@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Bookings - Public can create, only admin can read/update
+    match /bookings/{bookingId} {
+      allow create: if true; // Anyone can create bookings
+      allow read, update, delete: if request.auth != null; // Only authenticated users (admin)
+    }
+    
+    // Events - Only admin can manage
+    match /events/{eventId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Gallery - Public can read, only admin can write
+    match /gallery/{imageId} {
+      allow read: if true; // Public can view gallery
+      allow write: if request.auth != null; // Only admin can manage gallery
+    }
+    
+    // Reviews - Public can read approved, can create, only admin can manage
+    match /reviews/{reviewId} {
+      allow read: if true; // Public can read reviews
+      allow create: if true; // Anyone can create reviews
+      allow update, delete: if request.auth != null; // Only admin can approve/delete
+    }
+    
+    // Inventory - Only admin can manage
+    match /inventory/{itemId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Notifications - Only admin can manage
+    match /notifications/{notificationId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Chat rooms - Public can create, admin can read all
+    match /chat_rooms/{roomId} {
+      allow create: if true; // Anyone can create chat rooms
+      allow read, update: if request.auth != null; // Admin can manage
+    }
+    
+    // Chat messages - Users can create for their room, admin can read all
+    match /chat_messages/{messageId} {
+      allow read, create: if true; // Anyone can read/create chat messages
+      allow update, delete: if request.auth != null; // Only admin can manage
+    }
+  }
+}
