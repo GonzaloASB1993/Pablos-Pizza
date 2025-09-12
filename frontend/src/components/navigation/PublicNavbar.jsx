@@ -19,7 +19,8 @@ import {
   Close as CloseIcon,
   Restaurant,
   Phone,
-  WhatsApp
+  WhatsApp,
+  Instagram
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 
@@ -106,11 +107,21 @@ const PublicNavbar = () => {
             <Button
               fullWidth
               variant="outlined"
-              href="https://wa.me/1234567890"
+              href="https://wa.me/56998960858"
               target="_blank"
               startIcon={<WhatsApp />}
             >
               WhatsApp
+            </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              href="https://instagram.com/pablospizza" 
+              target="_blank"
+              startIcon={<Instagram />}
+              sx={{ mt: 1 }}
+            >
+              Instagram
             </Button>
           </Box>
         </ListItem>
@@ -134,20 +145,17 @@ const PublicNavbar = () => {
               onClick={() => navigate('/')}
             >
               <Box
+                component="img"
+                src="/logo.png"
+                alt="Pablo's Pizza Logo"
                 sx={{
                   width: 40,
                   height: 40,
                   mr: 2,
-                  backgroundColor: theme.palette.primary.main,
                   borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.5rem'
+                  objectFit: 'cover'
                 }}
-              >
-                🍕
-              </Box>
+              />
               <Typography
                 variant="h5"
                 sx={{
@@ -198,7 +206,7 @@ const PublicNavbar = () => {
                 </Button>
 
                 <IconButton
-                  href="https://wa.me/1234567890"
+                  href="https://wa.me/56998960858"
                   target="_blank"
                   sx={{ 
                     ml: 1,
@@ -206,6 +214,18 @@ const PublicNavbar = () => {
                   }}
                 >
                   <WhatsApp />
+                </IconButton>
+                <IconButton
+                  href="https://instagram.com/pablospizza"
+                  target="_blank"
+                  sx={{ 
+                    ml: 1,
+                    color: theme.palette.primary.main,
+                    '&:hover': { color: theme.palette.primary.light }
+                  }}
+                  aria-label="Instagram"
+                >
+                  <Instagram />
                 </IconButton>
               </Box>
             )}

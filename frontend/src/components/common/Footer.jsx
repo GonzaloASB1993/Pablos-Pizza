@@ -8,7 +8,6 @@ import {
   Divider
 } from '@mui/material'
 import {
-  Facebook,
   Instagram,
   WhatsApp,
   Phone,
@@ -63,17 +62,7 @@ const Footer = () => {
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <IconButton 
-                href="https://facebook.com/pablospizza" 
-                target="_blank"
-                sx={{ 
-                  color: theme.palette.primary.main,
-                  '&:hover': { color: theme.palette.primary.dark }
-                }}
-              >
-                <Facebook />
-              </IconButton>
-              <IconButton 
-                href="https://instagram.com/pablospizza" 
+                href="https://instagram.com/pablospizza.cl" 
                 target="_blank"
                 sx={{ 
                   color: theme.palette.primary.main,
@@ -83,7 +72,7 @@ const Footer = () => {
                 <Instagram />
               </IconButton>
               <IconButton 
-                href="https://wa.me/1234567890" 
+                href="https://wa.me/56998960858" 
                 target="_blank"
                 sx={{ 
                   color: theme.palette.primary.main,
@@ -157,14 +146,14 @@ const Footer = () => {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <WhatsApp fontSize="small" sx={{ color: theme.palette.primary.main }} />
-                <Link href="https://wa.me/1234567890" color="inherit" underline="hover">
-                  +1 (234) 567-890
+                <Link href="https://wa.me/56998960858" color="inherit" underline="hover">
+                  +569 9896 0858
                 </Link>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Phone fontSize="small" sx={{ color: theme.palette.primary.main }} />
-                <Link href="tel:+1234567890" color="inherit" underline="hover">
-                  +1 (234) 567-890
+                <Link href="tel:+56998960858" color="inherit" underline="hover">
+                  +569 9896 0858
                 </Link>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -176,7 +165,7 @@ const Footer = () => {
               <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
                 <LocationOn fontSize="small" sx={{ color: theme.palette.primary.main, mt: 0.5 }} />
                 <Typography variant="body2">
-                  Ciudad, País<br />
+                  Santiago de Chile<br />
                   Servicio a domicilio disponible
                 </Typography>
               </Box>
@@ -190,7 +179,7 @@ const Footer = () => {
         <Grid container justifyContent="space-between" alignItems="center">
           <Grid item xs={12} md={6}>
             <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
-              © 2024 Pablo's Pizza. Todos los derechos reservados.
+              © {new Date().getFullYear()} Pablo's Pizza. Todos los derechos reservados.
             </Typography>
           </Grid>
           <Grid item xs={12} md={6} sx={{ textAlign: { xs: 'left', md: 'right' } }}>

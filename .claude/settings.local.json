@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(move:*)"
+      "Bash(move:*)",
+      "Bash(git remote set-url:*)"
     ],
     "deny": [],
     "ask": []

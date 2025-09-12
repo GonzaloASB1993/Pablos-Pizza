@@ -59,21 +59,18 @@ const AdminLogin = () => {
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ textAlign: 'center', mb: 4 }}>
               <Box
+                component="img"
+                src="/logo.png"
+                alt="Pablo's Pizza Logo"
                 sx={{
                   width: 80,
                   height: 80,
                   mx: 'auto',
                   mb: 2,
-                  backgroundColor: '#FFD700',
                   borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '3rem'
+                  objectFit: 'cover'
                 }}
-              >
-                🍕
-              </Box>
+              />
               <Typography variant="h4" gutterBottom>
                 Admin - Pablo's Pizza
               </Typography>

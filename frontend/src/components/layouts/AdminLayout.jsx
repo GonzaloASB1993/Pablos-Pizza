@@ -65,20 +65,17 @@ const AdminLayout = () => {
       <Toolbar>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Box
+            component="img"
+            src="/logo.png"
+            alt="Pablo's Pizza Logo"
             sx={{
               width: 32,
               height: 32,
               mr: 1,
-              backgroundColor: '#FFD700',
               borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1.2rem'
+              objectFit: 'cover'
             }}
-          >
-            🍕
-          </Box>
+          />
           <Typography variant="h6" noWrap>
             Admin
           </Typography>

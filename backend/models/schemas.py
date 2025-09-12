@@ -90,7 +90,7 @@ class GalleryImage(BaseModel):
 # Schemas para Reviews
 class ReviewBase(BaseModel):
     client_name: str
-    client_email: EmailStr
+    client_email: Optional[EmailStr] = None
     event_id: Optional[str] = None
     rating: int
     comment: str
