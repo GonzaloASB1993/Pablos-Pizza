@@ -409,13 +409,13 @@ export const eventsAPI = {
 }
 
 export const galleryAPI = {
-  upload: (formData) => mockAPI.gallery.upload(formData),
+  upload: (formData) => api.post('/gallery/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   getAll: (params = {}) => api.get('/gallery/', { params }),
   getById: (id) => api.get(`/gallery/${id}`),
   update: (id, data) => api.put(`/gallery/${id}`, data),
   delete: (id) => api.delete(`/gallery/${id}`),
   getFeatured: (params = {}) => api.get('/gallery/featured/homepage', { params }),
-  getByEvent: (eventId) => mockAPI.gallery.getByEvent(eventId),
+  getByEvent: (eventId) => api.get('/gallery/', { params: { event_id: eventId } }),
 }
 
 export const reviewsAPI = {

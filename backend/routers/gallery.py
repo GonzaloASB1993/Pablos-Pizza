@@ -50,13 +50,25 @@ async def upload_image(
         blob_name = f"gallery/{image_id}.{file_extension}"
         
         # Subir a Firebase Storage
-        blob = bucket.blob(blob_name)
+    blob = bucket.blob(blob_name)
         blob.upload_from_file(img_byte_arr, content_type=file.content_type)
         
         # Hacer público el archivo
         blob.make_public()
         
         # Crear registro en base de datos
+        # Intentar enriquecer con fecha de evento si existe
+        event_date = None
+        if event_id:
+            try:
+                event_doc = db.collection("events").document(event_id).get()
+                if event_doc.exists:
+                    event_data = event_doc.to_dict()
+                    # usar start_time si existe, sino event_date
+                    event_date = event_data.get("start_time") or event_data.get("event_date")
+            except Exception:
+                pass
+
         image_data = {
             "id": image_id,
             "url": blob.public_url,
@@ -64,7 +76,9 @@ async def upload_image(
             "title": title or f"Imagen {datetime.now().strftime('%d/%m/%Y')}",
             "description": description,
             "uploaded_at": datetime.now(),
-            "is_featured": is_featured
+            "is_featured": is_featured,
+            "blob_name": blob_name,
+            "event_date": event_date
         }
         
         db.collection("gallery").document(image_id).set(image_data)
@@ -189,7 +203,7 @@ async def delete_image(image_id: str):
         
         # Eliminar de Firebase Storage
         try:
-            blob_name = f"gallery/{image_id}"
+            blob_name = image_data.get("blob_name") or f"gallery/{image_id}"
             blob = bucket.blob(blob_name)
             blob.delete()
         except:
