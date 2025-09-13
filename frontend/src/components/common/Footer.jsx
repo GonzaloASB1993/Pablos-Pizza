@@ -35,20 +35,15 @@ const Footer = () => {
           <Grid item xs={12} md={4}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <Box
+                component="img"
+                src="/logo.png"
+                alt="Pablo's Pizza Logo"
                 sx={{
                   width: 50,
                   height: 50,
-                  mr: 2,
-                  backgroundColor: theme.palette.primary.main,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '2rem'
+                  mr: 2
                 }}
-              >
-                🍕
-              </Box>
+              />
               <Typography variant="h5" sx={{ 
                 fontWeight: 700,
                 color: theme.palette.primary.main
@@ -72,7 +67,7 @@ const Footer = () => {
                 <Instagram />
               </IconButton>
               <IconButton 
-                href="https://wa.me/56998960858" 
+                href="https://wa.me/56989424566" 
                 target="_blank"
                 sx={{ 
                   color: theme.palette.primary.main,
@@ -146,20 +141,20 @@ const Footer = () => {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <WhatsApp fontSize="small" sx={{ color: theme.palette.primary.main }} />
-                <Link href="https://wa.me/56998960858" color="inherit" underline="hover">
-                  +569 9896 0858
+                <Link href="https://wa.me/56989424566" color="inherit" underline="hover">
+                  +56 9 8942 4566
                 </Link>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Phone fontSize="small" sx={{ color: theme.palette.primary.main }} />
-                <Link href="tel:+56998960858" color="inherit" underline="hover">
-                  +569 9896 0858
+                <Link href="tel:+56989424566" color="inherit" underline="hover">
+                  +56 9 8942 4566
                 </Link>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Email fontSize="small" sx={{ color: theme.palette.primary.main }} />
-                <Link href="mailto:info@pablospizza.com" color="inherit" underline="hover">
-                  info@pablospizza.com
+                <Link href="mailto:Pablospizza.cl@gmail.com" color="inherit" underline="hover">
+                  Pablospizza.cl@gmail.com
                 </Link>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>

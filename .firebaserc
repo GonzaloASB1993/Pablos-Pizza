@@ -1,0 +1,13 @@
+{
+  "projects": {},
+  "targets": {
+    "pablospizza-d84bf": {
+      "hosting": {
+        "pablospizza": [
+          "pablospizza"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

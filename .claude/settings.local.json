@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(move:*)",
-      "Bash(git remote set-url:*)"
+      "Bash(git remote set-url:*)",
+      "Bash(firebase target:apply:*)",
+      "Bash(npm run build:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(copy:*)",
+      "Bash(npm install:*)",
+      "Bash(\"venv/Scripts/pip.exe\" install -r requirements.txt)",
+      "Bash(python -m pip install:*)",
+      "Bash(python test:*)"
     ],
     "deny": [],
     "ask": []

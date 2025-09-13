@@ -3,12 +3,326 @@ import toast from 'react-hot-toast'
 
 // Create axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 })
+
+// Mock data storage in localStorage for demo
+const getMockData = (key) => {
+  try {
+    const data = JSON.parse(localStorage.getItem(key) || '[]')
+
+    // Initialize default data if empty
+    if (data.length === 0) {
+      switch (key) {
+        case 'inventory':
+          const defaultInventory = [
+            {
+              id: 1,
+              name: 'Harina de Trigo',
+              category: 'ingredients',
+              current_stock: 25,
+              min_stock: 10,
+              max_stock: 50,
+              unit: 'kg',
+              supplier: 'Molinos del Norte',
+              cost_per_unit: 1200,
+              notes: 'Harina tipo 000 para pizzas',
+              created_at: new Date().toISOString()
+            },
+            {
+              id: 2,
+              name: 'Queso Mozzarella',
+              category: 'ingredients',
+              current_stock: 5,
+              min_stock: 8,
+              max_stock: 20,
+              unit: 'kg',
+              supplier: 'Lácteos Premium',
+              cost_per_unit: 8500,
+              notes: 'Mantener refrigerado',
+              created_at: new Date().toISOString()
+            },
+            {
+              id: 3,
+              name: 'Salsa de Tomate',
+              category: 'ingredients',
+              current_stock: 15,
+              min_stock: 5,
+              max_stock: 30,
+              unit: 'litros',
+              supplier: 'Conservas del Sur',
+              cost_per_unit: 2500,
+              notes: 'Salsa especial para pizzas',
+              created_at: new Date().toISOString()
+            }
+          ]
+          setMockData('inventory', defaultInventory)
+          return defaultInventory
+        case 'events':
+          // Limpiar eventos existentes - empezar desde cero
+          setMockData('events', [])
+          return []
+        case 'gallery':
+          // Limpiar galería existente - empezar desde cero
+          setMockData('gallery', [])
+          return []
+      }
+    }
+
+    return data
+  } catch {
+    return []
+  }
+}
+
+const setMockData = (key, data) => {
+  localStorage.setItem(key, JSON.stringify(data))
+}
+
+// Mock API responses
+const mockAPI = {
+  bookings: {
+    create: async (data) => {
+      const bookings = getMockData('bookings')
+      const newBooking = {
+        ...data,
+        id: Date.now(),
+        created_at: new Date().toISOString(),
+        status: 'pending'
+      }
+      bookings.push(newBooking)
+      setMockData('bookings', bookings)
+      return { data: newBooking }
+    },
+    getAll: async () => {
+      const bookings = getMockData('bookings')
+      return { data: bookings }
+    },
+    update: async (id, data) => {
+      const bookings = getMockData('bookings')
+      const index = bookings.findIndex(b => b.id === parseInt(id))
+      if (index !== -1) {
+        const oldStatus = bookings[index].status
+        bookings[index] = { ...bookings[index], ...data }
+        setMockData('bookings', bookings)
+
+        // Si el evento se confirma, simular envío de notificaciones
+        if (oldStatus !== 'confirmed' && data.status === 'confirmed') {
+          console.log('📧 Enviando email de confirmación a:', bookings[index].client_email)
+          console.log('📱 Enviando WhatsApp de confirmación a:', bookings[index].client_phone)
+
+          // Simular delay de envío
+          setTimeout(() => {
+            console.log('✅ Notificaciones enviadas exitosamente')
+          }, 1000)
+        }
+      }
+      return { data: bookings[index] }
+    },
+    checkAvailability: async (selectedDate, selectedTime) => {
+      const bookings = getMockData('bookings')
+      const conflicts = []
+      const availableSlots = []
+
+      if (!selectedDate) {
+        return { data: { conflicts: [], availableSlots: [] } }
+      }
+
+      // Generar slots de tiempo disponibles (9:00 AM a 8:00 PM)
+      const timeSlots = []
+      for (let hour = 9; hour <= 20; hour++) {
+        timeSlots.push(`${hour.toString().padStart(2, '0')}:00`)
+      }
+
+      // Verificar conflictos con eventos existentes del mismo día
+      const dayBookings = bookings.filter(booking => {
+        return booking.event_date === selectedDate &&
+               ['pending', 'confirmed', 'completed'].includes(booking.status)
+      })
+
+      dayBookings.forEach(booking => {
+        if (booking.event_time) {
+          const eventHour = parseInt(booking.event_time.split(':')[0])
+          // Bloquear 6 horas: 4 del evento + 2 de traslado
+          for (let i = eventHour - 6; i <= eventHour + 6; i++) {
+            const blockedTime = `${i.toString().padStart(2, '0')}:00`
+            if (timeSlots.includes(blockedTime)) {
+              const index = timeSlots.indexOf(blockedTime)
+              if (index > -1) {
+                timeSlots.splice(index, 1)
+              }
+            }
+          }
+        }
+      })
+
+      // Si se proporcionó una hora específica, verificar si está disponible
+      if (selectedTime) {
+        const selectedHour = parseInt(selectedTime.split(':')[0])
+        const isConflict = dayBookings.some(booking => {
+          if (!booking.event_time) return false
+          const bookingHour = parseInt(booking.event_time.split(':')[0])
+          // Verificar si está dentro del rango de 6 horas
+          return Math.abs(selectedHour - bookingHour) < 6
+        })
+
+        if (isConflict) {
+          conflicts.push({
+            time: selectedTime,
+            reason: 'Conflicto con evento existente (requiere 6 horas de separación)'
+          })
+        }
+      }
+
+      return {
+        data: {
+          conflicts,
+          availableSlots: timeSlots,
+          canSchedule: conflicts.length === 0
+        }
+      }
+    },
+    cancel: async (id) => {
+      const bookings = getMockData('bookings')
+      const index = bookings.findIndex(b => b.id === parseInt(id))
+      if (index !== -1) {
+        bookings.splice(index, 1)
+        setMockData('bookings', bookings)
+        return { data: { message: 'Agendamiento eliminado' } }
+      } else {
+        throw new Error('Agendamiento no encontrado')
+      }
+    }
+  },
+  inventory: {
+    getAll: async () => {
+      const inventory = getMockData('inventory')
+      return { data: inventory }
+    },
+    create: async (data) => {
+      const inventory = getMockData('inventory')
+      const newItem = {
+        ...data,
+        id: Date.now(),
+        created_at: new Date().toISOString()
+      }
+      inventory.push(newItem)
+      setMockData('inventory', inventory)
+      return { data: newItem }
+    },
+    update: async (id, data) => {
+      const inventory = getMockData('inventory')
+      const index = inventory.findIndex(item => item.id === parseInt(id))
+      if (index !== -1) {
+        inventory[index] = { ...inventory[index], ...data }
+        setMockData('inventory', inventory)
+      }
+      return { data: inventory[index] }
+    },
+    delete: async (id) => {
+      const inventory = getMockData('inventory')
+      const index = inventory.findIndex(item => item.id === parseInt(id))
+      if (index !== -1) {
+        inventory.splice(index, 1)
+        setMockData('inventory', inventory)
+        return { data: { message: 'Producto eliminado' } }
+      } else {
+        throw new Error('Producto no encontrado')
+      }
+    }
+  },
+  events: {
+    create: async (data) => {
+      const events = getMockData('events')
+      const newEvent = {
+        ...data,
+        id: Date.now(),
+        created_at: new Date().toISOString()
+      }
+      events.push(newEvent)
+      setMockData('events', events)
+      return { data: newEvent }
+    },
+    getAll: async () => {
+      const events = getMockData('events')
+      return { data: events }
+    },
+    updateFinancials: async (id, data) => {
+      const events = getMockData('events')
+      const index = events.findIndex(e => e.id === parseInt(id))
+      if (index !== -1) {
+        events[index] = { ...events[index], ...data }
+        setMockData('events', events)
+      }
+      return { data: events[index] }
+    }
+  },
+  reviews: {
+    create: async (data) => {
+      const reviews = getMockData('reviews')
+      const newReview = {
+        ...data,
+        id: Date.now(),
+        created_at: new Date().toISOString(),
+        approved: false
+      }
+      reviews.push(newReview)
+      setMockData('reviews', reviews)
+      return { data: newReview }
+    },
+    getAll: async (params = {}) => {
+      let reviews = getMockData('reviews')
+      if (params.approved_only) {
+        reviews = reviews.filter(r => r.approved)
+      }
+      if (params.limit) {
+        reviews = reviews.slice(0, parseInt(params.limit))
+      }
+      return { data: reviews }
+    }
+  },
+  gallery: {
+    upload: async (formData) => {
+      // Mock file upload - just store metadata with random pizza images
+      const gallery = getMockData('gallery')
+
+      const pizzaImages = [
+        'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&h=300&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1520201163981-8cc95007dd2a?w=400&h=300&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1506354666786-959d6d497f1a?w=400&h=300&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1571997478779-2adcbbe9ab2f?w=400&h=300&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1548610762-7c6afe24c261?w=400&h=300&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1579952363873-27d3bfad9c0d?w=400&h=300&fit=crop&auto=format'
+      ]
+
+      const randomImage = pizzaImages[Math.floor(Math.random() * pizzaImages.length)]
+
+      const newImage = {
+        id: Date.now() + Math.random(),
+        title: formData.get('title'),
+        description: formData.get('description'),
+        event_id: formData.get('event_id'),
+        category: formData.get('category'),
+        url: randomImage,
+        created_at: new Date().toISOString()
+      }
+      gallery.push(newImage)
+      setMockData('gallery', gallery)
+      return { data: newImage }
+    },
+    getByEvent: async (eventId) => {
+      const gallery = getMockData('gallery')
+      const eventImages = gallery.filter(img => img.event_id == eventId)
+      return { data: eventImages }
+    }
+  }
+}
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
@@ -74,39 +388,39 @@ api.interceptors.response.use(
   }
 )
 
-// API methods for different entities
+// API methods for different entities (using mock data for now)
 export const bookingsAPI = {
-  create: (data) => api.post('/bookings/', data),
-  getAll: (params = {}) => api.get('/bookings/', { params }),
+  create: (data) => mockAPI.bookings.create(data),
+  getAll: (params = {}) => mockAPI.bookings.getAll(params),
   getById: (id) => api.get(`/bookings/${id}`),
-  update: (id, data) => api.put(`/bookings/${id}`, data),
-  cancel: (id) => api.delete(`/bookings/${id}`),
+  update: (id, data) => mockAPI.bookings.update(id, data),
+  cancel: (id) => mockAPI.bookings.cancel(id),
   getCalendarEvents: (year, month) => api.get(`/bookings/calendar/${year}/${month}`),
+  checkAvailability: (selectedDate, selectedTime) => mockAPI.bookings.checkAvailability(selectedDate, selectedTime),
 }
 
 export const eventsAPI = {
-  create: (data) => api.post('/events/', data),
-  getAll: (params = {}) => api.get('/events/', { params }),
+  create: (data) => mockAPI.events.create(data),
+  getAll: (params = {}) => mockAPI.events.getAll(params),
   getById: (id) => api.get(`/events/${id}`),
-  updateFinancials: (id, data) => api.put(`/events/${id}/financials`, data),
+  updateFinancials: (id, data) => mockAPI.events.updateFinancials(id, data),
   requestReview: (id) => api.post(`/events/${id}/request-review`),
   getByBooking: (bookingId) => api.get(`/events/booking/${bookingId}`),
 }
 
 export const galleryAPI = {
-  upload: (formData) => api.post('/gallery/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
+  upload: (formData) => mockAPI.gallery.upload(formData),
   getAll: (params = {}) => api.get('/gallery/', { params }),
   getById: (id) => api.get(`/gallery/${id}`),
   update: (id, data) => api.put(`/gallery/${id}`, data),
   delete: (id) => api.delete(`/gallery/${id}`),
   getFeatured: (params = {}) => api.get('/gallery/featured/homepage', { params }),
+  getByEvent: (eventId) => mockAPI.gallery.getByEvent(eventId),
 }
 
 export const reviewsAPI = {
-  create: (data) => api.post('/reviews/', data),
-  getAll: (params = {}) => api.get('/reviews/', { params }),
+  create: (data) => mockAPI.reviews.create(data),
+  getAll: (params = {}) => mockAPI.reviews.getAll(params),
   getById: (id) => api.get(`/reviews/${id}`),
   approve: (id) => api.put(`/reviews/${id}/approve`),
   delete: (id) => api.delete(`/reviews/${id}`),
@@ -116,9 +430,11 @@ export const reviewsAPI = {
 }
 
 export const inventoryAPI = {
-  create: (data) => api.post('/inventory/', data),
-  getAll: (params = {}) => api.get('/inventory/', { params }),
-  updateStock: (id, data) => api.put(`/inventory/${id}/stock`, data),
+  create: (data) => mockAPI.inventory.create(data),
+  getAll: (params = {}) => mockAPI.inventory.getAll(params),
+  update: (id, data) => mockAPI.inventory.update(id, data),
+  delete: (id) => mockAPI.inventory.delete(id),
+  updateStock: (id, data) => mockAPI.inventory.update(id, data),
   getCategories: () => api.get('/inventory/categories'),
   getAlerts: () => api.get('/inventory/alerts'),
 }

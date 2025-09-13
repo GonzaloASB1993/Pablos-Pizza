@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
+from firebase_functions import https_fn
 import os
-from decouple import config
 
 # Routers
 from routers import bookings, events, gallery, reviews, inventory, reports, notifications, chat
@@ -18,7 +18,12 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, especificar dominios exactos
+    allow_origins=[
+        "https://pablospizza.web.app",
+        "https://pablospizza.firebaseapp.com",
+        "http://localhost:3000",
+        "http://localhost:5173"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,13 +31,12 @@ app.add_middleware(
 
 # Firebase initialization
 if not firebase_admin._apps:
-    cred = credentials.Certificate("firebase-service-account.json")
-    firebase_admin.initialize_app(cred)
+    firebase_admin.initialize_app()
 
 db = firestore.client()
 security = HTTPBearer()
 
-# Middleware para verificar token de Firebase
+# Middleware para verificar token de Firebase (opcional para rutas públicas)
 async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         decoded_token = auth.verify_id_token(credentials.credentials)
@@ -61,6 +65,13 @@ async def root():
 async def health_check():
     return {"status": "healthy", "service": "Pablo's Pizza API"}
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# Firebase Function
+@https_fn.on_request()
+def api(req: https_fn.Request) -> https_fn.Response:
+    """Firebase Function entry point"""
+    import asyncio
+    from asgi_lifespan import LifespanManager
+    from mangum import Mangum
+
+    handler = Mangum(app, lifespan="off")
+    return handler(req, None)

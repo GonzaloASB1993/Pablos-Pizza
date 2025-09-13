@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "target": "pablospizza",
     "public": "frontend/dist",
     "ignore": [
       "firebase.json",
@@ -7,6 +8,10 @@
       "**/node_modules/**"
     ],
     "rewrites": [
+      {
+        "source": "/api/**",
+        "function": "api"
+      },
       {
         "source": "**",
         "destination": "/index.html"
@@ -26,7 +31,7 @@
   },
   "functions": {
     "source": "backend",
-    "runtime": "python39",
+    "runtime": "python311",
     "ignore": [
       "venv",
       ".git",

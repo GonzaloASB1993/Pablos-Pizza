@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from firebase_admin import firestore
 from models.schemas import BookingCreate, BookingUpdate, Booking, BookingStatus
 from services.notification_service import send_whatsapp_notification
+from services.email_service import send_confirmation_email
 from typing import List
 import uuid
 from datetime import datetime
@@ -29,8 +30,26 @@ async def create_booking(booking: BookingCreate):
         # Guardar en Firestore
         db.collection("bookings").document(booking_id).set(booking_data)
         
-        # Enviar notificaciones WhatsApp
-        await send_booking_notifications(booking_data)
+        # Enviar notificación WhatsApp al cliente confirmando que se registró el agendamiento
+        client_message = f"""
+¡Hola {booking_data['client_name']}!
+
+Tu solicitud de agendamiento ha sido recibida:
+📅 Fecha: {booking_data['event_date'].strftime('%d/%m/%Y')}
+⏰ Hora: {booking_data['event_time']}
+👥 Participantes: {booking_data['participants']}
+🍕 Servicio: {'Pizzeros en Acción' if booking_data['service_type'] == 'workshop' else 'Pizza Party'}
+
+Pronto nos pondremos en contacto contigo para confirmar los detalles.
+
+¡Gracias por elegir Pablo's Pizza! 🍕
+        """
+
+        await send_whatsapp_notification(
+            booking_data['client_phone'],
+            client_message,
+            "booking_confirmation"
+        )
         
         return Booking(**booking_data)
     except Exception as e:
@@ -100,9 +119,12 @@ async def update_booking(booking_id: str, booking_update: BookingUpdate):
         update_data = booking_update.model_dump(exclude_unset=True)
         update_data["updated_at"] = datetime.now()
         
-        # Si se actualiza el estado a confirmado, enviar notificación
+        # Si se actualiza el estado a confirmado, enviar notificaciones
         if update_data.get("status") == BookingStatus.CONFIRMED:
+            # Enviar WhatsApp de confirmación
             await send_confirmation_notification(current_data)
+            # Enviar Email de confirmación con detalles completos
+            await send_confirmation_email(current_data)
         
         booking_ref.update(update_data)
         

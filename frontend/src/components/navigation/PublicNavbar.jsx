@@ -107,7 +107,7 @@ const PublicNavbar = () => {
             <Button
               fullWidth
               variant="outlined"
-              href="https://wa.me/56998960858"
+              href="https://wa.me/56989424566"
               target="_blank"
               startIcon={<WhatsApp />}
             >
@@ -116,7 +116,7 @@ const PublicNavbar = () => {
             <Button
               fullWidth
               variant="outlined"
-              href="https://instagram.com/pablospizza" 
+              href="https://instagram.com/pablospizza.cl" 
               target="_blank"
               startIcon={<Instagram />}
               sx={{ mt: 1 }}
@@ -206,7 +206,7 @@ const PublicNavbar = () => {
                 </Button>
 
                 <IconButton
-                  href="https://wa.me/56998960858"
+                  href="https://wa.me/56989424566"
                   target="_blank"
                   sx={{ 
                     ml: 1,
@@ -216,7 +216,7 @@ const PublicNavbar = () => {
                   <WhatsApp />
                 </IconButton>
                 <IconButton
-                  href="https://instagram.com/pablospizza"
+                  href="https://instagram.com/pablospizza.cl"
                   target="_blank"
                   sx={{ 
                     ml: 1,
