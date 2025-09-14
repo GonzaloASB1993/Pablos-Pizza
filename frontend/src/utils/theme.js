@@ -1,5 +1,52 @@
 import { createTheme } from '@mui/material/styles'
 
+// Design tokens reutilizables para estilos (gradientes, radios, sombras, paleta extendida)
+export const designTokens = {
+  colors: {
+    golden: {
+      50: '#FFF9DB',
+      100: '#FFF0A6',
+      200: '#FFE46B',
+      300: '#FFD940',
+      400: '#FFCC1A',
+      500: '#FFD700', // dorado base
+      600: '#E6C200',
+      700: '#CCAC00',
+    },
+    charcoal: {
+      50: '#F5F5F6',
+      100: '#E9EAEC',
+      200: '#D4D6DA',
+      300: '#B7BAC1',
+      600: '#565A64',
+      800: '#2F3340',
+      900: '#1E2230',
+    },
+    semantic: {
+      success: '#4CAF50',
+      error: '#F44336',
+      warning: '#FF9800',
+    },
+    aurora: {
+      // Gradientes y fondos translúcidos usados en páginas públicas
+      sunset: 'linear-gradient(135deg, #FFB800 0%, #FF6A00 100%)',
+      golden: 'linear-gradient(135deg, #FFD700 0%, #FF8A00 100%)',
+      glassMorph: 'rgba(255, 255, 255, 0.15)',
+    },
+  },
+  radius: {
+    sm: 6,
+    md: 8,
+    lg: 12,
+    xl: 20,
+    full: 9999,
+  },
+  shadows: {
+    medium: '0 8px 24px rgba(0,0,0,0.12)',
+    glowHover: '0 10px 30px rgba(255, 215, 0, 0.35), 0 4px 12px rgba(0,0,0,0.1)',
+  },
+}
+
 // Colores de Pablo's Pizza - Negro y Amarillo
 const theme = createTheme({
   palette: {

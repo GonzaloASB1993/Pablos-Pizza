@@ -195,10 +195,16 @@ const PublicNavbar = () => {
                   onClick={() => handleNavigation('/agendar')}
                   sx={{ 
                     ml: 2,
+                    px: 2.5,
+                    py: 1,
+                    borderRadius: 12, // Rectángulo con bordes redondeados
+                    boxShadow: 'none',
                     backgroundColor: theme.palette.primary.main,
                     color: theme.palette.secondary.main,
+                    border: '1px solid transparent',
                     '&:hover': {
-                      backgroundColor: theme.palette.primary.dark
+                      backgroundColor: theme.palette.primary.dark,
+                      boxShadow: 'none',
                     }
                   }}
                   startIcon={<Restaurant />}
