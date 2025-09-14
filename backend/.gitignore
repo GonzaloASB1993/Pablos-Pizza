@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Env & keys
+.env
+.env.example
+ServiceAccount.json
+*.key
+*.pem
+*.p12
+
+# OS
+.DS_Store
+Thumbs.db
