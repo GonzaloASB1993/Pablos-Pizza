@@ -3,10 +3,10 @@ import { useAuth } from './contexts/AuthContext'
 
 // Public pages
 import HomePage from './pages/public/HomePage'
-import ServicesPage from './pages/public/ServicesPage'
 import GalleryPage from './pages/public/GalleryPage'
-import ReviewsPage from './pages/public/ReviewsPage'
+import TestimonialsPage from './pages/public/TestimonialsPage'
 import BookingPage from './pages/public/BookingPage'
+import ServicesPage from './pages/public/ServicesPage'
 import ContactPage from './pages/public/ContactPage'
 
 // Admin pages
@@ -44,7 +44,7 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="servicios" element={<ServicesPage />} />
           <Route path="galeria" element={<GalleryPage />} />
-          <Route path="testimonios" element={<ReviewsPage />} />
+          <Route path="testimonios" element={<TestimonialsPage />} />
           <Route path="agendar" element={<BookingPage />} />
           <Route path="contacto" element={<ContactPage />} />
         </Route>

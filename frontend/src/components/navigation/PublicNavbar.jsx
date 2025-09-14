@@ -23,6 +23,7 @@ import {
   Instagram
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
+import logo from '../../assets/logo.png'
 
 const PublicNavbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -146,7 +147,7 @@ const PublicNavbar = () => {
             >
               <Box
                 component="img"
-                src="/logo.png"
+                src={logo}
                 alt="Pablo's Pizza Logo"
                 sx={{
                   width: 40,

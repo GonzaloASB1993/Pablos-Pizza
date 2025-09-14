@@ -15,6 +15,7 @@ import {
   LocationOn
 } from '@mui/icons-material'
 import { useTheme } from '@mui/material/styles'
+import logo from '../../assets/logo.png'
 
 const Footer = () => {
   const theme = useTheme()
@@ -36,7 +37,7 @@ const Footer = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <Box
                 component="img"
-                src="/logo.png"
+                src={logo}
                 alt="Pablo's Pizza Logo"
                 sx={{
                   width: 50,

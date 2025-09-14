@@ -17,7 +17,7 @@ if env_path.exists():
 EMAIL_CONFIG = ConnectionConfig(
     MAIL_USERNAME=config('EMAIL_USERNAME', default='gonzalo.asb@gmail.com'),
     MAIL_PASSWORD=config('EMAIL_PASSWORD', default='izct tpac jcbw mlhb'),
-    MAIL_FROM=config('EMAIL_FROM', default='noreply@pablospizza.cl'),
+    MAIL_FROM=config('EMAIL_FROM', default='gonzalo.asb@gmail.com'),
     MAIL_PORT=config('EMAIL_PORT', default=587, cast=int),
     MAIL_SERVER=config('EMAIL_SERVER', default='smtp.gmail.com'),
     MAIL_STARTTLS=config('EMAIL_STARTTLS', default=True, cast=bool),
