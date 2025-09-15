@@ -22,7 +22,19 @@
       "Bash(find:*)",
       "Bash(dir:*)",
       "Bash(curl:*)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(firebase functions:config:get:*)",
+      "Bash(firebase functions:delete:*)",
+      "Bash(firebase functions:list:*)",
+      "Bash(del \"C:\\Users\\gonza\\OneDrive\\Escritorio\\Pablos Pizza\\backend\\functions.yaml\")",
+      "Bash(firebase --version)",
+      "Bash(firebase projects:list:*)",
+      "Bash(firebase use:*)",
+      "Bash(firebase init:*)",
+      "Bash(\"venv\\Scripts\\activate.bat\")",
+      "Bash(pip install:*)",
+      "Bash(firebase functions:log:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
