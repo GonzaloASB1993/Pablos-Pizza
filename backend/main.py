@@ -8,9 +8,8 @@ import os
 from dotenv import load_dotenv
 
 # Load environment variables
-# En producción (Firebase Functions), usar .env.production
-env_file = '.env.production' if os.getenv('ENVIRONMENT') == 'production' else '.env'
-load_dotenv(env_file)
+# En Firebase Functions, usar .env directamente
+load_dotenv('.env')
 
 app = FastAPI(
     title="Pablo's Pizza API",
