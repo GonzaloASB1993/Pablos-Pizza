@@ -258,15 +258,9 @@ async def get_calendar_events(year: int, month: int):
 # Funciones auxiliares
 def calculate_estimated_price(service_type: str, participants: int) -> float:
     """Calcular precio estimado basado en el tipo de servicio y participantes"""
-    print("FUNCION CORREGIDA EJECUTANDOSE")
-    print(f"PARAMETROS: service_type='{service_type}', participants={participants}")
+    print(f"[CALCULATE] Starting calculation: service_type='{service_type}', participants={participants}")
 
-    # FORZAR VALOR CORRECTO PARA PRUEBA
-    if service_type == "workshop" and participants == 12:
-        print("DEVOLVIENDO 162000.0 PARA workshop/12")
-        return 162000.0
-
-    # Lógica normal para otros casos
+    # Lógica normal para todos los casos
     if service_type == "workshop":  # Pizzeros en Acción
         print(f"[DEBUG] Processing workshop...")
         unit_base = 13500  # Precio base por niño
@@ -301,7 +295,7 @@ def calculate_estimated_price(service_type: str, participants: int) -> float:
         print(f"[DEBUG] Fallback calculation: 10000 * {participants} = {total}")
 
     result = round(total, 2)
-    print(f"[DEBUG] Final result: {result}")
+    print(f"[CALCULATE] Final result: {result}")
     return result
 
 async def send_booking_notifications(booking_data: dict):
