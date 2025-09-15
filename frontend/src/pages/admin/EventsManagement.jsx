@@ -168,6 +168,8 @@ const EventsManagement = () => {
   const handlePhotoUpload = (event) => {
     const files = Array.from(event.target.files)
 
+    console.log('📁 Archivos seleccionados:', files.map(f => ({ name: f.name, type: f.type, size: f.size })))
+
     if (files.length > 5) {
       toast.error('Puedes subir máximo 5 fotos por evento')
       return
@@ -175,7 +177,11 @@ const EventsManagement = () => {
 
     // Validar que todos los archivos sean imágenes
     const validFiles = files.filter(file => file.type.startsWith('image/'))
+    console.log('✅ Archivos válidos:', validFiles.map(f => ({ name: f.name, type: f.type })))
+    
     if (validFiles.length !== files.length) {
+      const invalidFiles = files.filter(file => !file.type.startsWith('image/'))
+      console.log('❌ Archivos inválidos:', invalidFiles.map(f => ({ name: f.name, type: f.type })))
       toast.error('Solo se permiten archivos de imagen')
       return
     }
@@ -218,6 +224,20 @@ const EventsManagement = () => {
       pending: 'warning'
     }
     return colors[status] || 'default'
+  }
+
+  const getEventType = (event) => {
+    // Determinar tipo basado en el título o descripción
+    if (event.title?.toLowerCase().includes('pizzeros en acción') || 
+        event.title?.toLowerCase().includes('workshop') ||
+        event.description?.toLowerCase().includes('taller')) {
+      return 'Taller'
+    } else if (event.title?.toLowerCase().includes('pizza party') ||
+               event.description?.toLowerCase().includes('pizza party')) {
+      return 'Pizza Party'
+    } else {
+      return 'Evento'
+    }
   }
 
   const getStatusLabel = (status) => {
@@ -292,9 +312,9 @@ const EventsManagement = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell>Evento</TableCell>
+                    <TableCell>Tipo</TableCell>
                     <TableCell>Fecha</TableCell>
                     <TableCell>Participantes</TableCell>
-                    <TableCell>Financiero</TableCell>
                     <TableCell>Estado</TableCell>
                     <TableCell>Galería</TableCell>
                     <TableCell>Acciones</TableCell>
@@ -317,37 +337,20 @@ const EventsManagement = () => {
                         </Box>
                       </TableCell>
                       <TableCell>
+                        <Chip 
+                          label={getEventType(event)} 
+                          color={getEventType(event) === 'Taller' ? 'secondary' : 'primary'}
+                          variant="outlined"
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
                         {event.event_date ?
                           new Date(event.event_date).toLocaleDateString('es-CL') :
                           'No especificada'
                         }
                       </TableCell>
                       <TableCell>{event.participants || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Box>
-                          {event.revenue && (
-                            <Typography variant="caption" color="success.main">
-                              Ingreso: ${event.revenue.toLocaleString('es-CL')}
-                            </Typography>
-                          )}
-                          <br />
-                          {event.event_cost && (
-                            <Typography variant="caption" color="warning.main">
-                              Costo: ${event.event_cost.toLocaleString('es-CL')}
-                            </Typography>
-                          )}
-                          <br />
-                          {event.event_profit !== undefined && (
-                            <Typography
-                              variant="caption"
-                              color={event.event_profit >= 0 ? 'success.main' : 'error.main'}
-                              fontWeight="bold"
-                            >
-                              Utilidad: ${event.event_profit.toLocaleString('es-CL')}
-                            </Typography>
-                          )}
-                        </Box>
-                      </TableCell>
                       <TableCell>
                         <Chip
                           label={getStatusLabel(event.status)}

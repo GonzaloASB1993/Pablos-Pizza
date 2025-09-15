@@ -260,6 +260,8 @@ def create_event_from_booking(booking_data: dict) -> bool:
             "event_date": booking_data.get('event_date'),  # Use the original event_date format
             "participants": booking_data.get('participants', 0),
             "final_price": estimated_price,
+            "event_cost": event_cost,
+            "profit": final_profit,
             "notes": f"Evento creado automáticamente. Cliente: {booking_data.get('client_name')}. Ubicación: {booking_data.get('location', 'No especificada')}. Costo: {event_cost}, Ganancia: {final_profit}",
             "status": "completed",
             "booking_id": booking_data.get('id')
@@ -438,6 +440,8 @@ def create_event():
             'event_date': data['event_date'],
             'participants': data.get('participants', 0),
             'final_price': data.get('final_price', 0),
+            'event_cost': data.get('event_cost', 0),
+            'profit': data.get('profit', 0),
             'notes': data.get('notes', ''),
             'status': data.get('status', 'pending'),
             'booking_id': data.get('booking_id'),
@@ -522,9 +526,18 @@ def update_event(event_id):
 # Gallery endpoints (basic implementation)
 @app.route('/api/gallery/', methods=['GET'])
 def get_gallery_images():
-    """Get gallery images"""
+    """Get gallery images for public gallery"""
     try:
         db = get_db()
+        
+        # Get events data for additional info
+        events_ref = db.collection("events")
+        events_dict = {}
+        for event_doc in events_ref.stream():
+            event_data = event_doc.to_dict()
+            events_dict[event_doc.id] = event_data
+        
+        # Get gallery images
         images_ref = db.collection("gallery").order_by("uploaded_at", direction=firestore.Query.DESCENDING)
         
         # Apply filters if provided
@@ -532,13 +545,29 @@ def get_gallery_images():
         if event_id:
             images_ref = images_ref.where("event_id", "==", event_id)
         
-        images = []
+        gallery_items = []
         for doc in images_ref.stream():
             image = doc.to_dict()
-            image['id'] = doc.id
-            images.append(image)
+            event_data = events_dict.get(image.get('event_id'), {})
+            
+            # Transform to expected format for public gallery
+            gallery_item = {
+                'id': doc.id,
+                'title': event_data.get('name', image.get('title', 'Evento')),
+                'category': 'workshop' if event_data.get('event_type') == 'Taller' else 'party',
+                'description': event_data.get('description', image.get('description', '')),
+                'images': [image.get('url', '')],  # Array of image URLs
+                'date': event_data.get('event_date', image.get('uploaded_at')),
+                'participants': event_data.get('guest_count', 10),
+                'featured': image.get('is_featured', False),
+                'satisfaction': 5,  # Default satisfaction
+                'highlight': 'Experiencia única',
+                'age_group': 'Todas las edades'
+            }
+            
+            gallery_items.append(gallery_item)
 
-        return jsonify(images), 200
+        return jsonify(gallery_items), 200
 
     except Exception as e:
         print(f"Error getting gallery images: {e}")
@@ -546,30 +575,69 @@ def get_gallery_images():
 
 @app.route('/api/gallery/upload', methods=['POST'])
 def upload_gallery_image():
-    """Upload image to gallery - placeholder endpoint"""
+    """Upload images to gallery"""
     try:
-        # Para ahora, retornamos un placeholder
-        # En producción deberían integrarse con Firebase Storage
-        data = request.get_json() or {}
+        print("=== GALLERY UPLOAD DEBUG ===")
+        print("Request method:", request.method)
+        print("Content type:", request.content_type)
+        print("Files in request:", list(request.files.keys()) if request.files else "No files")
+        print("Form data:", dict(request.form) if request.form else "No form data")
         
-        image_id = str(uuid.uuid4())
-        image_data = {
-            "id": image_id,
-            "url": "https://via.placeholder.com/400x300",  # Placeholder
-            "title": data.get('title', 'Nueva imagen'),
-            "description": data.get('description', ''),
-            "event_id": data.get('event_id'),
-            "uploaded_at": datetime.now(),
-            "is_featured": data.get('is_featured', False)
-        }
+        if not request.files:
+            print("❌ No files in request")
+            return jsonify({"error": "No files provided"}), 400
+            
+        event_id = request.form.get('event_id')
+        if not event_id:
+            print("❌ No event_id provided")
+            return jsonify({"error": "event_id is required"}), 400
+            
+        uploaded_files = []
         
-        db = get_db()
-        db.collection("gallery").document(image_id).set(image_data)
+        for file_key in request.files:
+            file = request.files[file_key]
+            print(f"Processing file: {file.filename}, type: {file.content_type}")
+            
+            if file and file.filename:
+                # Validate file type
+                if not file.content_type.startswith('image/'):
+                    print(f"❌ Invalid file type: {file.content_type}")
+                    continue
+                    
+                # For now, create placeholder entry in Firestore
+                # TODO: Upload to Firebase Storage in production
+                image_id = str(uuid.uuid4())
+                image_data = {
+                    "id": image_id,
+                    "url": f"https://via.placeholder.com/400x300?text={file.filename}",
+                    "title": file.filename,
+                    "description": request.form.get('description', ''),
+                    "event_id": event_id,
+                    "uploaded_at": datetime.now(),
+                    "is_featured": False,
+                    "filename": file.filename,
+                    "content_type": file.content_type
+                }
+                
+                db = get_db()
+                db.collection("gallery").document(image_id).set(image_data)
+                uploaded_files.append(image_data)
+                print(f"✅ File processed: {image_id}")
         
-        return jsonify(image_data), 201
+        if not uploaded_files:
+            print("❌ No valid images processed")
+            return jsonify({"error": "No valid images were processed"}), 400
+            
+        print(f"✅ Successfully uploaded {len(uploaded_files)} files")
+        return jsonify({
+            "message": f"Successfully uploaded {len(uploaded_files)} image(s)",
+            "files": uploaded_files
+        }), 201
 
     except Exception as e:
-        print(f"Error uploading image: {e}")
+        print(f"❌ Error uploading images: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 # Update booking status
