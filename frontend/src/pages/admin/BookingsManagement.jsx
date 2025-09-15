@@ -288,12 +288,34 @@ const BookingsManagement = () => {
 
   const handleCompleteEvent = async () => {
     try {
-      // Por ahora solo marcamos como completado en backend real
-      await bookingsAPI.update(selectedBooking.id, { status: 'completed' })
+      // Preparar datos para enviar al backend
+      const updateData = { 
+        status: 'completed'
+      }
 
-      // Mantener notificación simple
-      toast.success('Evento marcado como completado')
+      // Agregar event_cost y event_profit si están disponibles
+      if (completeData.eventCost && completeData.eventCost.trim() !== '') {
+        updateData.event_cost = parseFloat(completeData.eventCost)
+      }
+      
+      if (completeData.eventProfit && completeData.eventProfit.trim() !== '') {
+        updateData.event_profit = parseFloat(completeData.eventProfit)
+      }
+
+      console.log('Enviando datos al backend:', updateData)
+
+      // Actualizar en backend
+      await bookingsAPI.update(selectedBooking.id, updateData)
+
+      toast.success('Evento completado con costo y utilidad guardados')
       setCompleteDialog(false)
+      
+      // Limpiar datos del formulario
+      setCompleteData({
+        eventCost: '',
+        eventProfit: ''
+      })
+      
       loadBookings()
     } catch (error) {
       console.error('Error completing event:', error)
@@ -450,19 +472,19 @@ const BookingsManagement = () => {
                             ${Math.round(booking.estimated_price || 0).toLocaleString('es-CL') || 'N/A'}
                           </TableCell>
                           <TableCell>
-                            {booking.event_cost ?
-                              `$${booking.event_cost.toLocaleString('es-CL')}` :
+                            {booking.event_cost !== undefined && booking.event_cost !== null ?
+                              `$${Math.round(booking.event_cost).toLocaleString('es-CL')}` :
                               (booking.status === 'completed' ? 'N/A' : '-')
                             }
                           </TableCell>
                           <TableCell>
-                            {booking.event_profit !== undefined ?
+                            {booking.event_profit !== undefined && booking.event_profit !== null ?
                               (
                                 <Typography
                                   color={booking.event_profit >= 0 ? 'success.main' : 'error.main'}
                                   fontWeight="bold"
                                 >
-                                  ${booking.event_profit.toLocaleString('es-CL')}
+                                  ${Math.round(booking.event_profit).toLocaleString('es-CL')}
                                 </Typography>
                               ) :
                               (booking.status === 'completed' ? 'N/A' : '-')

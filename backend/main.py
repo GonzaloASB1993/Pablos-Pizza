@@ -18,7 +18,21 @@ from email.mime.multipart import MIMEMultipart
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app, origins=os.getenv('CORS_ORIGINS', '*').split(','))
+
+# CORS configuration - allow both Firebase hosting domains
+allowed_origins = [
+    'https://pablospizza.web.app',
+    'https://pablospizza.firebaseapp.com',
+    'http://localhost:5173',  # For development
+    'http://localhost:3000'   # Alternative dev port
+]
+
+# Add any additional origins from environment
+cors_origins = os.getenv('CORS_ORIGINS', '')
+if cors_origins:
+    allowed_origins.extend(cors_origins.split(','))
+
+CORS(app, origins=allowed_origins)
 
 # Firebase initialization with lazy loading
 _db = None
@@ -208,6 +222,66 @@ def calculate_estimated_price(service_type: str, participants: int) -> float:
     print(f"[CALCULATE] Final result: {result}")
     return result
 
+def create_event_from_booking(booking_data: dict) -> bool:
+    """Create an event automatically when a booking is completed with costs"""
+    try:
+        print(f"Creando evento automáticamente para booking: {booking_data.get('id')}")
+        
+        # Generate event ID
+        event_id = str(uuid.uuid4())
+        
+        # Determine service name for title
+        service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+        event_title = f"{service_name} - {booking_data.get('client_name', 'Cliente')}"
+        
+        # Parse event date if it's a string
+        event_date = booking_data.get('event_date')
+        if isinstance(event_date, str):
+            try:
+                from datetime import datetime
+                event_date = datetime.strptime(event_date, '%Y-%m-%d').date()
+            except:
+                event_date = datetime.now().date()
+        elif hasattr(event_date, 'date'):
+            event_date = event_date.date()
+        
+        # Calculate profit if we have both estimated price and cost
+        estimated_price = booking_data.get('estimated_price', 0)
+        event_cost = booking_data.get('event_cost', 0)
+        calculated_profit = estimated_price - event_cost if estimated_price and event_cost else 0
+        
+        # Use provided profit or calculated profit
+        final_profit = booking_data.get('event_profit', calculated_profit)
+        
+        # Create event data
+        event_data = {
+            "id": event_id,
+            "booking_id": booking_data.get('id'),
+            "title": event_title,
+            "description": f"Evento realizado automáticamente desde agendamiento. Servicio: {service_name}",
+            "event_date": event_date,
+            "participants": booking_data.get('participants', 0),
+            "final_price": estimated_price,
+            "event_cost": event_cost,
+            "profit": final_profit,
+            "notes": f"Evento creado automáticamente. Cliente: {booking_data.get('client_name')}. Ubicación: {booking_data.get('location', 'No especificada')}",
+            "status": "completed",
+            "created_at": datetime.now(),
+            "photos": [],  # Array vacío para fotos que se pueden agregar después
+            "source": "auto_booking"  # Indicador de que fue creado automáticamente
+        }
+        
+        # Save to Firestore events collection
+        db = get_db()
+        db.collection("events").document(event_id).set(event_data)
+        
+        print(f"Evento creado exitosamente: {event_id} para booking {booking_data.get('id')}")
+        return True
+        
+    except Exception as e:
+        print(f"Error creando evento automático: {e}")
+        return False
+
 # Health check endpoint
 @app.route('/api/health', methods=['GET'])
 def health():
@@ -317,6 +391,137 @@ def get_booking(booking_id):
         print(f"Error getting booking: {e}")
         return jsonify({"error": str(e)}), 500
 
+# Events endpoints
+@app.route('/api/events/', methods=['GET'])
+def get_events():
+    """Get all events"""
+    try:
+        db = get_db()
+        events_ref = db.collection("events").order_by("created_at", direction=firestore.Query.DESCENDING)
+        events = []
+
+        for doc in events_ref.stream():
+            event = doc.to_dict()
+            event['id'] = doc.id
+            events.append(event)
+
+        return jsonify(events), 200
+
+    except Exception as e:
+        print(f"Error getting events: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/events/<event_id>', methods=['GET'])
+def get_event(event_id):
+    """Get specific event by ID"""
+    try:
+        db = get_db()
+        doc_ref = db.collection("events").document(event_id)
+        doc = doc_ref.get()
+
+        if doc.exists:
+            event = doc.to_dict()
+            event['id'] = doc.id
+            return jsonify(event), 200
+        else:
+            return jsonify({"error": "Event not found"}), 404
+
+    except Exception as e:
+        print(f"Error getting event: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/events/<event_id>', methods=['PUT'])
+def update_event(event_id):
+    """Update event data"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        db = get_db()
+        doc_ref = db.collection("events").document(event_id)
+        doc = doc_ref.get()
+
+        if not doc.exists:
+            return jsonify({"error": "Event not found"}), 404
+
+        # Update fields
+        update_data = {}
+        updatable_fields = ['title', 'description', 'notes', 'photos', 'final_price', 'event_cost', 'profit']
+        for field in updatable_fields:
+            if field in data:
+                update_data[field] = data[field]
+
+        # Add update timestamp
+        update_data['updated_at'] = datetime.now()
+
+        # Update in Firestore
+        doc_ref.update(update_data)
+
+        # Get updated event data
+        updated_doc = doc_ref.get()
+        updated_event = updated_doc.to_dict()
+        updated_event['id'] = updated_doc.id
+
+        return jsonify(updated_event), 200
+
+    except Exception as e:
+        print(f"Error updating event: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# Gallery endpoints (basic implementation)
+@app.route('/api/gallery/', methods=['GET'])
+def get_gallery_images():
+    """Get gallery images"""
+    try:
+        db = get_db()
+        images_ref = db.collection("gallery").order_by("uploaded_at", direction=firestore.Query.DESCENDING)
+        
+        # Apply filters if provided
+        event_id = request.args.get('event_id')
+        if event_id:
+            images_ref = images_ref.where("event_id", "==", event_id)
+        
+        images = []
+        for doc in images_ref.stream():
+            image = doc.to_dict()
+            image['id'] = doc.id
+            images.append(image)
+
+        return jsonify(images), 200
+
+    except Exception as e:
+        print(f"Error getting gallery images: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/gallery/upload', methods=['POST'])
+def upload_gallery_image():
+    """Upload image to gallery - placeholder endpoint"""
+    try:
+        # Para ahora, retornamos un placeholder
+        # En producción deberían integrarse con Firebase Storage
+        data = request.get_json() or {}
+        
+        image_id = str(uuid.uuid4())
+        image_data = {
+            "id": image_id,
+            "url": "https://via.placeholder.com/400x300",  # Placeholder
+            "title": data.get('title', 'Nueva imagen'),
+            "description": data.get('description', ''),
+            "event_id": data.get('event_id'),
+            "uploaded_at": datetime.now(),
+            "is_featured": data.get('is_featured', False)
+        }
+        
+        db = get_db()
+        db.collection("gallery").document(image_id).set(image_data)
+        
+        return jsonify(image_data), 201
+
+    except Exception as e:
+        print(f"Error uploading image: {e}")
+        return jsonify({"error": str(e)}), 500
+
 # Update booking status
 @app.route('/api/bookings/<booking_id>', methods=['PUT'])
 def update_booking(booking_id):
@@ -346,10 +551,11 @@ def update_booking(booking_id):
             print(f"Actualizando status a: {data['status']}")
 
         # Add other updatable fields as needed
-        updatable_fields = ['status', 'notes', 'confirmed_price', 'confirmed_date', 'confirmed_time']
+        updatable_fields = ['status', 'notes', 'confirmed_price', 'confirmed_date', 'confirmed_time', 'event_cost', 'event_profit']
         for field in updatable_fields:
             if field in data:
                 update_data[field] = data[field]
+                print(f"Actualizando campo {field}: {data[field]}")
 
         # Add update timestamp
         update_data['updated_at'] = datetime.now()
@@ -377,6 +583,16 @@ def update_booking(booking_id):
                     print(f"Error al enviar email de confirmación a {client_email}")
             else:
                 print("No se pudo enviar email: no hay email del cliente")
+
+        # Create event automatically when booking is completed with costs
+        if ('status' in data and data['status'] == 'completed' and 
+            ('event_cost' in data or 'event_profit' in data)):
+            try:
+                create_event_from_booking(updated_booking)
+                print(f"Evento creado automáticamente para booking {booking_id}")
+            except Exception as e:
+                print(f"Error creando evento automático: {e}")
+                # No fallar la actualización del booking si falla la creación del evento
 
         return jsonify(updated_booking), 200
 

@@ -1,10 +1,20 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
-// Detectar entorno local de desarrollo para evitar CORS usando el proxy de Vite
-const BASE_URL = import.meta.env.DEV
-  ? '/api'
-  : (import.meta.env.VITE_API_URL || '/api')
+console.log('🎯 API.JS LOADED - Version 2.0')
+
+// API Configuration - simplified for production
+const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+
+const BASE_URL = isDevelopment
+  ? 'http://localhost:8000/api'  // Development
+  : 'https://main-4kqeqojbsq-uc.a.run.app/api'  // Production
+
+console.log('🔧 API Configuration:', {
+  hostname: window.location.hostname,
+  isDevelopment,
+  BASE_URL
+})
 
 // Create axios instance
 const api = axios.create({
@@ -14,6 +24,24 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 })
+
+// Add request logging
+api.interceptors.request.use(
+  (config) => {
+    console.log('🚀 API Request:', {
+      method: config.method.toUpperCase(),
+      url: config.url,
+      baseURL: config.baseURL,
+      fullURL: `${config.baseURL}${config.url}`,
+      data: config.data
+    })
+    return config
+  },
+  (error) => {
+    console.error('❌ Request Error:', error)
+    return Promise.reject(error)
+  }
+)
 
 // Mock data storage in localStorage for demo
 const getMockData = (key) => {
@@ -346,9 +374,24 @@ api.interceptors.request.use(
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => {
+    console.log('✅ API Response:', {
+      status: response.status,
+      url: response.config.url,
+      data: response.data
+    })
     return response
   },
   (error) => {
+    console.error('❌ API Error Details:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      url: error.config?.url,
+      fullURL: `${error.config?.baseURL}${error.config?.url}`,
+      responseData: error.response?.data,
+      responseText: typeof error.response?.data === 'string' ? error.response.data.substring(0, 200) : 'Not string'
+    })
+    
     if (error.response) {
       // Server responded with error status
       const { status, data } = error.response
@@ -395,8 +438,31 @@ api.interceptors.response.use(
 
 // API methods for different entities (using mock data for now)
 export const bookingsAPI = {
-  // Conectar a backend real
-  create: (data) => api.post('/bookings/', data),
+  // Conectar a backend real con debugging extra
+  create: async (data) => {
+    const url = '/bookings/'
+    const fullUrl = `${BASE_URL}${url}`
+    
+    console.log('🎯 BOOKING CREATE DEBUG:', {
+      BASE_URL,
+      url,
+      fullUrl,
+      data
+    })
+    
+    try {
+      const response = await api.post(url, data)
+      console.log('✅ BOOKING CREATE SUCCESS:', response.data)
+      return response
+    } catch (error) {
+      console.error('❌ BOOKING CREATE ERROR:', {
+        message: error.message,
+        response: error.response,
+        config: error.config
+      })
+      throw error
+    }
+  },
   getAll: (params = {}) => api.get('/bookings/', { params }),
   getById: (id) => api.get(`/bookings/${id}`),
   update: (id, data) => api.put(`/bookings/${id}`, data),
@@ -407,10 +473,10 @@ export const bookingsAPI = {
 }
 
 export const eventsAPI = {
-  create: (data) => mockAPI.events.create(data),
-  getAll: (params = {}) => mockAPI.events.getAll(params),
+  create: (data) => api.post('/events/', data),
+  getAll: (params = {}) => api.get('/events/', { params }),
   getById: (id) => api.get(`/events/${id}`),
-  updateFinancials: (id, data) => mockAPI.events.updateFinancials(id, data),
+  update: (id, data) => api.put(`/events/${id}`, data),
   requestReview: (id) => api.post(`/events/${id}/request-review`),
   getByBooking: (bookingId) => api.get(`/events/booking/${bookingId}`),
 }

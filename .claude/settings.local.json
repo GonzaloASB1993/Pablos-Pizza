@@ -34,7 +34,11 @@
       "Bash(\"venv\\Scripts\\activate.bat\")",
       "Bash(pip install:*)",
       "Bash(firebase functions:log:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "WebFetch(domain:main-4kqeqojbsq-uc.a.run.app)",
+      "Bash(start \"https://pablospizza.web.app/agendar\")",
+      "WebFetch(domain:pablospizza.web.app)",
+      "Bash(start \"https://pablospizza.web.app/admin/agendamientos\")"
     ],
     "deny": [],
     "ask": []

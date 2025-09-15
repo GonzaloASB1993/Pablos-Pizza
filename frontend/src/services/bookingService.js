@@ -1,9 +1,31 @@
 // Servicio para manejo de bookings/agendamientos (frontend público)
-// En dev, forzamos '/api' para usar el proxy de Vite y evitar CORS. En prod, usamos VITE_API_URL si existe.
-const API_BASE = import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_URL || '/api')
+// Configuración corregida para production
+const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+
+const API_BASE = isDevelopment 
+  ? '/api'  // En development usa proxy
+  : 'https://main-4kqeqojbsq-uc.a.run.app/api'  // En production usa URL completa
+
+console.log('🔧 BookingService Configuration:', {
+  hostname: window.location.hostname,
+  isDevelopment,
+  API_BASE
+})
 
 export const createBooking = async (bookingData) => {
+  console.log('🎯 BOOKING SERVICE START:', {
+    data: bookingData,
+    apiBase: API_BASE,
+    url: `${API_BASE}/bookings/`
+  })
+  
   try {
+    console.log('🎯 CREATE BOOKING START:', {
+      API_BASE,
+      fullURL: `${API_BASE}/bookings/`,
+      bookingData
+    })
+
     const mapEventType = (t) => {
       switch ((t || '').toLowerCase()) {
         case 'cumple':
@@ -48,19 +70,38 @@ export const createBooking = async (bookingData) => {
       })
     })
 
+    console.log('🚀 FETCH RESPONSE:', {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    })
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      // Mejorar mensaje cuando FastAPI devuelve detail como lista de errores
-      if (Array.isArray(errorData.detail)) {
-        const msg = errorData.detail
-          .map((e) => `${Array.isArray(e.loc) ? e.loc.join('.') : ''} ${e.msg}`.trim())
-          .join(' | ')
-        throw new Error(msg || 'Error de validación (422)')
+      const errorText = await response.text()
+      console.error('❌ RESPONSE NOT OK:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText: errorText.substring(0, 200)
+      })
+      
+      try {
+        const errorData = JSON.parse(errorText)
+        // Mejorar mensaje cuando FastAPI devuelve detail como lista de errores
+        if (Array.isArray(errorData.detail)) {
+          const msg = errorData.detail
+            .map((e) => `${Array.isArray(e.loc) ? e.loc.join('.') : ''} ${e.msg}`.trim())
+            .join(' | ')
+          throw new Error(msg || 'Error de validación (422)')
+        }
+        throw new Error(errorData.detail || `Error ${response.status}: ${response.statusText}`)
+      } catch (parseError) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
-      throw new Error(errorData.detail || `Error ${response.status}: ${response.statusText}`)
     }
 
     const booking = await response.json()
+    console.log('✅ BOOKING CREATED:', booking)
     return booking
   } catch (error) {
     console.error('Error creating booking:', error)

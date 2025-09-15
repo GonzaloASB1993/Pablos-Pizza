@@ -94,7 +94,7 @@ const EventsManagement = () => {
   const handleSubmit = async () => {
     try {
       if (editingEvent) {
-        await eventsAPI.updateFinancials(editingEvent.id, formData)
+        await eventsAPI.update(editingEvent.id, formData)
         toast.success('Evento actualizado')
       } else {
         const response = await eventsAPI.create(formData)
