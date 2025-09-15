@@ -253,30 +253,34 @@ def create_event_from_booking(booking_data: dict) -> bool:
         # Use provided profit or calculated profit
         final_profit = booking_data.get('event_profit', calculated_profit)
         
-        # Create event data
+        # Create event data (compatible with POST endpoint)
         event_data = {
-            "id": event_id,
-            "booking_id": booking_data.get('id'),
             "title": event_title,
             "description": f"Evento realizado automáticamente desde agendamiento. Servicio: {service_name}",
-            "event_date": event_date,
+            "event_date": booking_data.get('event_date'),  # Use the original event_date format
             "participants": booking_data.get('participants', 0),
             "final_price": estimated_price,
-            "event_cost": event_cost,
-            "profit": final_profit,
-            "notes": f"Evento creado automáticamente. Cliente: {booking_data.get('client_name')}. Ubicación: {booking_data.get('location', 'No especificada')}",
+            "notes": f"Evento creado automáticamente. Cliente: {booking_data.get('client_name')}. Ubicación: {booking_data.get('location', 'No especificada')}. Costo: {event_cost}, Ganancia: {final_profit}",
             "status": "completed",
-            "created_at": datetime.now(),
-            "photos": [],  # Array vacío para fotos que se pueden agregar después
-            "source": "auto_booking"  # Indicador de que fue creado automáticamente
+            "booking_id": booking_data.get('id')
         }
         
-        # Save to Firestore events collection
-        db = get_db()
-        db.collection("events").document(event_id).set(event_data)
-        
-        print(f"Evento creado exitosamente: {event_id} para booking {booking_data.get('id')}")
-        return True
+        # Use the internal POST endpoint to create the event
+        # This ensures all validation and formatting is consistent
+        from flask import current_app
+        with current_app.test_request_context('/api/events/', json=event_data, method='POST'):
+            try:
+                # Import the create_event function and call it directly
+                response = create_event()
+                if response[1] == 201:  # Check if created successfully
+                    print(f"Evento creado exitosamente via endpoint para booking {booking_data.get('id')}")
+                    return True
+                else:
+                    print(f"Error en endpoint de eventos: {response}")
+                    return False
+            except Exception as e:
+                print(f"Error llamando endpoint interno de eventos: {e}")
+                return False
         
     except Exception as e:
         print(f"Error creando evento automático: {e}")
