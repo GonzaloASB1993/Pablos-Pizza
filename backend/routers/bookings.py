@@ -17,10 +17,10 @@ def get_firestore_client():
 async def create_booking(booking: BookingCreate):
     """Crear nuevo agendamiento"""
     booking_id = str(uuid.uuid4())
-    
+
     # Calcular precio estimado basado en servicio y participantes
     estimated_price = calculate_estimated_price(booking.service_type, booking.participants)
-    
+
     booking_data = {
         "id": booking_id,
         **booking.model_dump(),
@@ -221,20 +221,29 @@ async def get_calendar_events(year: int, month: int):
 # Funciones auxiliares
 def calculate_estimated_price(service_type: str, participants: int) -> float:
     """Calcular precio estimado basado en el tipo de servicio y participantes"""
-    base_prices = {
-        "workshop": 25.0,  # $25 por niño en taller
-        "pizza_party": 20.0  # $20 por persona en pizza party
-    }
-    
-    base_price = base_prices.get(service_type, 20.0)
-    total = base_price * participants
-    
-    # Descuento por volumen
-    if participants >= 20:
-        total *= 0.9  # 10% descuento
-    elif participants >= 10:
-        total *= 0.95  # 5% descuento
-    
+    # Sincronizado con el frontend - precios en CLP
+    if service_type == "workshop":  # Pizzeros en Acción
+        unit_base = 13500  # Precio base por niño
+        if participants <= 15:
+            unit_final = 13500
+        elif participants <= 25:
+            unit_final = 12150  # 10% descuento
+        else:
+            unit_final = 11475  # 15% descuento
+        total = unit_final * participants
+
+    elif service_type == "pizza_party":  # Pizza Party
+        unit_base = 11990  # Precio base por persona
+        if participants >= 20:
+            unit_final = round(unit_base * 0.9)  # 10% descuento para 20+ = 10,791
+        else:
+            unit_final = unit_base
+        total = unit_final * participants
+
+    else:
+        # Fallback para otros tipos
+        total = 10000 * participants
+
     return round(total, 2)
 
 async def send_booking_notifications(booking_data: dict):
