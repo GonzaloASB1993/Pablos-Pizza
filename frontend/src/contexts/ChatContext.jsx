@@ -24,11 +24,12 @@ export const ChatProvider = ({ children }) => {
   // Initialize chat room
   const initializeChatRoom = async (clientName, clientEmail) => {
     try {
-      const room = await chatService.createChatRoom(clientName, clientEmail)
+  const room = await chatService.createChatRoom(clientName, clientEmail)
       setChatRoom(room)
       
       // Connect to WebSocket
-      const newSocket = io(`${import.meta.env.VITE_API_URL}/chat/ws/${room.id}`)
+  const wsBase = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || '')
+  const newSocket = io(`${wsBase}/chat/ws/${room.id}`)
       
       newSocket.on('connect', () => {
         setIsConnected(true)

@@ -7,6 +7,13 @@ service firebase.storage {
       allow write: if request.auth != null;
     }
     
+    // Reviews photos - Permitir lectura pública y escritura con límites (tamaño y tipo)
+    match /reviews/{imageId} {
+      allow read: if true;
+      allow write: if request.resource.size < 5 * 1024 * 1024
+                  && request.resource.contentType.matches('image/.*');
+    }
+    
     // Other files - Only admin can manage
     match /{allPaths=**} {
       allow read, write: if request.auth != null;

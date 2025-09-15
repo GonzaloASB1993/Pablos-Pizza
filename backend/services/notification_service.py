@@ -11,7 +11,10 @@ TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN', default='')
 TWILIO_WHATSAPP_NUMBER = config('TWILIO_WHATSAPP_NUMBER', default='whatsapp:+14155238886')
 
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_SID else None
-db = firestore.client()
+
+def get_firestore_client():
+    """Get Firestore client instance"""
+    return firestore.client()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -56,6 +59,7 @@ async def send_whatsapp_notification(phone: str, message: str, notification_type
             "status": "sent"
         }
         
+        db = get_firestore_client()
         db.collection("notifications").document(message_instance.sid).set(notification_data)
         
         logger.info(f"WhatsApp enviado exitosamente a {phone}")
@@ -76,6 +80,7 @@ async def send_whatsapp_notification(phone: str, message: str, notification_type
         }
         
         try:
+            db = get_firestore_client()
             db.collection("notifications").add(error_notification)
         except:
             pass
@@ -87,6 +92,7 @@ async def send_booking_reminder(booking_id: str) -> bool:
     Enviar recordatorio de evento (24 horas antes)
     """
     try:
+        db = get_firestore_client()
         booking_doc = db.collection("bookings").document(booking_id).get()
         if not booking_doc.exists:
             return False
@@ -125,6 +131,7 @@ async def send_review_request(event_id: str) -> bool:
     Solicitar review después del evento
     """
     try:
+        db = get_firestore_client()
         event_doc = db.collection("events").document(event_id).get()
         if not event_doc.exists:
             return False
@@ -171,6 +178,7 @@ async def send_admin_daily_summary():
         today = date.today()
         
         # Obtener estadísticas del día
+        db = get_firestore_client()
         bookings_today = db.collection("bookings").where(
             "created_at", ">=", today
         ).where(

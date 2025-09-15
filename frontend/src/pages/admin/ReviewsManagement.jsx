@@ -23,7 +23,7 @@ import {
   Grid
 } from '@mui/material'
 import { CheckCircle, Cancel, Visibility, Delete } from '@mui/icons-material'
-import { reviewsAPI } from '../../services/api'
+import { listenTestimonials, updateReview, deleteReview } from '../../services/testimonialsService'
 import toast from 'react-hot-toast'
 
 const ReviewsManagement = () => {
@@ -33,27 +33,18 @@ const ReviewsManagement = () => {
   const [selectedReview, setSelectedReview] = useState(null)
 
   useEffect(() => {
-    loadReviews()
-  }, [])
-
-  const loadReviews = async () => {
-    try {
-      setLoading(true)
-      const response = await reviewsAPI.getAll()
-      setReviews(response.data || [])
-    } catch (error) {
-      console.error('Error loading reviews:', error)
-      toast.error('Error al cargar reseñas')
-    } finally {
+    setLoading(true)
+    const unsub = listenTestimonials((list) => {
+      setReviews(list)
       setLoading(false)
-    }
-  }
+    })
+    return () => unsub && unsub()
+  }, [])
 
   const handleApprove = async (reviewId) => {
     try {
-      await reviewsAPI.update(reviewId, { approved: true })
+      await updateReview(reviewId, { approved: true })
       toast.success('Reseña aprobada')
-      loadReviews()
     } catch (error) {
       console.error('Error approving review:', error)
       toast.error('Error al aprobar reseña')
@@ -62,9 +53,8 @@ const ReviewsManagement = () => {
 
   const handleReject = async (reviewId) => {
     try {
-      await reviewsAPI.update(reviewId, { approved: false })
+      await updateReview(reviewId, { approved: false })
       toast.success('Reseña rechazada')
-      loadReviews()
     } catch (error) {
       console.error('Error rejecting review:', error)
       toast.error('Error al rechazar reseña')
@@ -73,9 +63,8 @@ const ReviewsManagement = () => {
 
   const handleDelete = async (reviewId) => {
     try {
-      await reviewsAPI.delete(reviewId)
+      await deleteReview(reviewId)
       toast.success('Reseña eliminada')
-      loadReviews()
     } catch (error) {
       console.error('Error deleting review:', error)
       toast.error('Error al eliminar reseña')
@@ -179,11 +168,11 @@ const ReviewsManagement = () => {
                       <TableCell>
                         <Box>
                           <Typography variant="body2" fontWeight="bold">
-                            {review.client_name || 'Anónimo'}
+                            {review.name || 'Anónimo'}
                           </Typography>
-                          {review.client_email && (
+                          {review.email && (
                             <Typography variant="caption" color="text.secondary">
-                              {review.client_email}
+                              {review.email}
                             </Typography>
                           )}
                         </Box>
@@ -205,10 +194,7 @@ const ReviewsManagement = () => {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        {review.created_at ?
-                          new Date(review.created_at).toLocaleDateString('es-CL') :
-                          'N/A'
-                        }
+                        {review.createdAt?.toDate ? review.createdAt.toDate().toLocaleDateString('es-CL') : (review.created_at ? new Date(review.created_at).toLocaleDateString('es-CL') : 'N/A')}
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -279,11 +265,11 @@ const ReviewsManagement = () => {
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">Cliente:</Typography>
-                  <Typography variant="body1">{selectedReview.client_name || 'Anónimo'}</Typography>
+                  <Typography variant="body1">{selectedReview.name || 'Anónimo'}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">Email:</Typography>
-                  <Typography variant="body1">{selectedReview.client_email || 'No proporcionado'}</Typography>
+                  <Typography variant="body1">{selectedReview.email || 'No proporcionado'}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">Rating:</Typography>
@@ -292,10 +278,7 @@ const ReviewsManagement = () => {
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">Fecha:</Typography>
                   <Typography variant="body1">
-                    {selectedReview.created_at ?
-                      new Date(selectedReview.created_at).toLocaleDateString('es-CL') :
-                      'N/A'
-                    }
+                    {selectedReview.createdAt?.toDate ? selectedReview.createdAt.toDate().toLocaleDateString('es-CL') : (selectedReview.created_at ? new Date(selectedReview.created_at).toLocaleDateString('es-CL') : 'N/A')}
                   </Typography>
                 </Grid>
                 <Grid item xs={12}>
@@ -304,6 +287,16 @@ const ReviewsManagement = () => {
                     {selectedReview.comment || 'Sin comentario'}
                   </Typography>
                 </Grid>
+                {Array.isArray(selectedReview.photos) && selectedReview.photos.length > 0 && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">Fotos:</Typography>
+                    <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {selectedReview.photos.map((url) => (
+                        <Box key={url} component="img" src={url} alt="foto reseña" sx={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 1, border: '1px solid #eee' }} />
+                      ))}
+                    </Box>
+                  </Grid>
+                )}
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" color="text.secondary">Estado:</Typography>
                   <Chip

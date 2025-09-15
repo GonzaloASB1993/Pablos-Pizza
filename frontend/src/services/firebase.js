@@ -12,6 +12,16 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 }
 
+// Aviso temprano si faltan variables en desarrollo
+if (import.meta.env.DEV) {
+  const missing = Object.entries(firebaseConfig)
+    .filter(([, v]) => !v)
+    .map(([k]) => k)
+  if (missing.length) {
+    console.warn('[Firebase] Faltan variables de entorno:', missing.join(', '))
+  }
+}
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
 

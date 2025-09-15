@@ -158,7 +158,15 @@ const BookingsManagement = () => {
   const handleUpdateBooking = async () => {
     try {
       const oldStatus = selectedBooking.status
-      await bookingsAPI.update(selectedBooking.id, formData)
+      // Solo enviar campos que el backend acepta
+      const updatePayload = {}
+      if (formData.status) updatePayload.status = formData.status
+      // Opcional: persistir notas en special_requests para no perderlas
+      if (formData.notes) {
+        updatePayload.special_requests = formData.notes
+      }
+
+      await bookingsAPI.update(selectedBooking.id, updatePayload)
 
       // Mostrar notificación especial si se confirma el evento
       if (oldStatus !== 'confirmed' && formData.status === 'confirmed') {
@@ -228,9 +236,18 @@ const BookingsManagement = () => {
   const handleCreateBooking = async () => {
     try {
       const bookingData = {
-        ...newBookingData,
-        participants: parseInt(newBookingData.participants),
-        status: 'pending'
+        client_name: newBookingData.client_name,
+        client_email: newBookingData.client_email,
+        client_phone: newBookingData.client_phone,
+        // Mapear enums esperados por backend
+        service_type: newBookingData.service_type || 'workshop', // 'workshop' | 'pizza_party'
+        event_type: newBookingData.event_type || 'private', // 'birthday' | 'corporate' | 'school' | 'private'
+        event_date: newBookingData.event_date, // ISO date string
+        event_time: newBookingData.event_time,
+        duration_hours: parseInt(newBookingData.duration_hours || 4),
+        participants: parseInt(newBookingData.participants || 0),
+        location: newBookingData.location,
+        special_requests: newBookingData.special_requests || ''
       }
 
       await bookingsAPI.create(bookingData)
@@ -271,38 +288,11 @@ const BookingsManagement = () => {
 
   const handleCompleteEvent = async () => {
     try {
-      const cost = parseFloat(completeData.eventCost)
-      const profit = parseFloat(completeData.eventProfit)
+      // Por ahora solo marcamos como completado en backend real
+      await bookingsAPI.update(selectedBooking.id, { status: 'completed' })
 
-      if (isNaN(cost) || isNaN(profit)) {
-        toast.error('Por favor ingresa valores válidos para costo y utilidad')
-        return
-      }
-
-      // Actualizar el agendamiento con estado completado y datos financieros
-      await bookingsAPI.update(selectedBooking.id, {
-        status: 'completed',
-        event_cost: cost,
-        event_profit: profit,
-        actual_revenue: selectedBooking.estimated_price,
-        completed_at: new Date().toISOString()
-      })
-
-      // Crear evento en la galería
-      const eventData = {
-        booking_id: selectedBooking.id,
-        title: `${getServiceLabel(selectedBooking.service_type)} - ${selectedBooking.client_name}`,
-        description: selectedBooking.special_requests || '',
-        event_date: selectedBooking.event_date,
-        event_cost: cost,
-        event_profit: profit,
-        revenue: selectedBooking.estimated_price,
-        status: 'completed'
-      }
-
-      await eventsAPI.create(eventData)
-
-      toast.success('Evento completado y agregado a la galería')
+      // Mantener notificación simple
+      toast.success('Evento marcado como completado')
       setCompleteDialog(false)
       loadBookings()
     } catch (error) {
@@ -437,7 +427,7 @@ const BookingsManagement = () => {
                           <TableCell>
                             <Box>
                               <Typography variant="body2">
-                                {new Date(booking.event_date + 'T00:00:00').toLocaleDateString('es-CL')}
+                                {new Date(booking.event_date).toLocaleDateString('es-CL')}
                               </Typography>
                               <Typography variant="caption" color="text.secondary">
                                 {booking.event_time || 'Hora por definir'}
@@ -453,7 +443,7 @@ const BookingsManagement = () => {
                             />
                           </TableCell>
                           <TableCell>
-                            ${booking.estimated_price?.toLocaleString('es-CL') || 'N/A'}
+                            ${Math.round(booking.estimated_price || 0).toLocaleString('es-CL') || 'N/A'}
                           </TableCell>
                           <TableCell>
                             {booking.event_cost ?

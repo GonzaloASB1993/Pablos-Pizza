@@ -8,7 +8,10 @@ import uuid
 from datetime import datetime
 
 router = APIRouter()
-db = firestore.client()
+
+def get_firestore_client():
+    """Get Firestore client instance"""
+    return firestore.client()
 
 @router.post("/", response_model=Booking)
 async def create_booking(booking: BookingCreate):
@@ -28,6 +31,7 @@ async def create_booking(booking: BookingCreate):
     
     try:
         # Guardar en Firestore
+        db = get_firestore_client()
         db.collection("bookings").document(booking_id).set(booking_data)
         
         # Enviar notificación WhatsApp al cliente confirmando que se registró el agendamiento
@@ -62,6 +66,7 @@ Pronto nos pondremos en contacto contigo para confirmar los detalles.
 async def get_bookings(status_filter: str = None, limit: int = 100):
     """Obtener todos los agendamientos con filtro opcional por estado"""
     try:
+        db = get_firestore_client()
         query = db.collection("bookings").order_by("created_at", direction=firestore.Query.DESCENDING)
         
         if status_filter:
@@ -85,6 +90,7 @@ async def get_bookings(status_filter: str = None, limit: int = 100):
 async def get_booking(booking_id: str):
     """Obtener agendamiento específico"""
     try:
+        db = get_firestore_client()
         doc = db.collection("bookings").document(booking_id).get()
         if not doc.exists:
             raise HTTPException(
@@ -106,6 +112,7 @@ async def get_booking(booking_id: str):
 async def update_booking(booking_id: str, booking_update: BookingUpdate):
     """Actualizar agendamiento"""
     try:
+        db = get_firestore_client()
         booking_ref = db.collection("bookings").document(booking_id)
         doc = booking_ref.get()
         
@@ -145,6 +152,7 @@ async def update_booking(booking_id: str, booking_update: BookingUpdate):
 async def cancel_booking(booking_id: str):
     """Cancelar agendamiento"""
     try:
+        db = get_firestore_client()
         booking_ref = db.collection("bookings").document(booking_id)
         doc = booking_ref.get()
         
@@ -179,6 +187,7 @@ async def get_calendar_events(year: int, month: int):
         else:
             end_date = date(year, month + 1, 1)
         
+        db = get_firestore_client()
         query = db.collection("bookings").where(
             "event_date", ">=", start_date
         ).where(
@@ -269,7 +278,8 @@ ID: {booking_data['id']}
     """
     
     # Configurar ADMIN_WHATSAPP_NUMBER en variables de entorno
-    admin_phone = "+1234567890"  # Reemplazar con tu número
+    import os
+    admin_phone = os.getenv("ADMIN_WHATSAPP_NUMBER", "+56912345678")  # Número de Pablo's Pizza
     await send_whatsapp_notification(
         admin_phone,
         admin_message,

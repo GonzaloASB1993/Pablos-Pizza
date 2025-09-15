@@ -82,12 +82,32 @@ export const AuthProvider = ({ children }) => {
   }
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user)
+    let resolved = false
+    let unsubscribe = () => {}
+    try {
+      unsubscribe = onAuthStateChanged(auth, (user) => {
+        setUser(user)
+        setLoading(false)
+        resolved = true
+      })
+    } catch (err) {
+      console.error('Auth initialization error:', err)
       setLoading(false)
-    })
+      resolved = true
+    }
 
-    return () => unsubscribe()
+    // Fallback: si Auth no responde, no bloquear la app
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        console.warn('Auth check timeout. Continuando sin sesión para evitar bloqueo de carga.')
+        setLoading(false)
+      }
+    }, 4000)
+
+    return () => {
+      clearTimeout(timeout)
+      try { unsubscribe() } catch {}
+    }
   }, [])
 
   const value = {

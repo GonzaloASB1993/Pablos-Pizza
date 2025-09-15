@@ -26,10 +26,13 @@ EMAIL_CONFIG = ConnectionConfig(
     VALIDATE_CERTS=config('EMAIL_VALIDATE_CERTS', default=True, cast=bool)
 )
 
-print(f"📧 Email configurado: {EMAIL_CONFIG.MAIL_USERNAME} -> {EMAIL_CONFIG.MAIL_FROM}")
+print(f"Email configurado: {EMAIL_CONFIG.MAIL_USERNAME} -> {EMAIL_CONFIG.MAIL_FROM}")
 
 fastmail = FastMail(EMAIL_CONFIG) if EMAIL_CONFIG.MAIL_USERNAME else None
-db = firestore.client()
+
+def get_firestore_client():
+    """Get Firestore client instance"""
+    return firestore.client()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -135,6 +138,7 @@ async def send_confirmation_email(booking_data: dict) -> bool:
             "status": "sent"
         }
 
+        db = get_firestore_client()
         db.collection("emails").add(email_data)
 
         logger.info(f"Email de confirmación enviado exitosamente a {booking_data['client_email']}")
@@ -155,6 +159,7 @@ async def send_confirmation_email(booking_data: dict) -> bool:
         }
 
         try:
+            db = get_firestore_client()
             db.collection("emails").add(error_email)
         except:
             pass

@@ -32,10 +32,7 @@
       "collectionGroup": "events",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "start_time",
-          "order": "ASCENDING"
-        }
+        
       ]
     },
     {
@@ -98,10 +95,7 @@
       "collectionGroup": "notifications",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "sent_at",
-          "order": "DESCENDING"
-        }
+        
       ]
     },
     {
@@ -129,6 +123,38 @@
         {
           "fieldPath": "timestamp",
           "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "event_date",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "is_approved",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "rating",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
         }
       ]
     }

@@ -18,11 +18,17 @@ service cloud.firestore {
       allow write: if request.auth != null; // Only admin can manage gallery
     }
     
-    // Reviews - Public can read approved, can create, only admin can manage
+    // Reviews - Público puede leer y crear; validaciones básicas
     match /reviews/{reviewId} {
-      allow read: if true; // Public can read reviews
-      allow create: if true; // Anyone can create reviews
-      allow update, delete: if request.auth != null; // Only admin can approve/delete
+      allow read: if true;
+      allow create: if
+        request.resource.data.keys().hasAll(['name', 'comment', 'rating', 'createdAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+        && request.resource.data.comment is string && request.resource.data.comment.size() > 0 && request.resource.data.comment.size() <= 1000
+        && request.resource.data.rating is number && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && (!('photos' in request.resource.data) || request.resource.data.photos is list)
+        ;
+      allow update, delete: if request.auth != null;
     }
     
     // Inventory - Only admin can manage

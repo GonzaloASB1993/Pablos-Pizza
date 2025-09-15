@@ -50,7 +50,7 @@ async def upload_image(
         blob_name = f"gallery/{image_id}.{file_extension}"
         
         # Subir a Firebase Storage
-    blob = bucket.blob(blob_name)
+        blob = bucket.blob(blob_name)
         blob.upload_from_file(img_byte_arr, content_type=file.content_type)
         
         # Hacer público el archivo

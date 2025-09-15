@@ -1,9 +1,14 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
+// Detectar entorno local de desarrollo para evitar CORS usando el proxy de Vite
+const BASE_URL = import.meta.env.DEV
+  ? '/api'
+  : (import.meta.env.VITE_API_URL || '/api')
+
 // Create axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: BASE_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -390,12 +395,14 @@ api.interceptors.response.use(
 
 // API methods for different entities (using mock data for now)
 export const bookingsAPI = {
-  create: (data) => mockAPI.bookings.create(data),
-  getAll: (params = {}) => mockAPI.bookings.getAll(params),
+  // Conectar a backend real
+  create: (data) => api.post('/bookings/', data),
+  getAll: (params = {}) => api.get('/bookings/', { params }),
   getById: (id) => api.get(`/bookings/${id}`),
-  update: (id, data) => mockAPI.bookings.update(id, data),
-  cancel: (id) => mockAPI.bookings.cancel(id),
+  update: (id, data) => api.put(`/bookings/${id}`, data),
+  cancel: (id) => api.delete(`/bookings/${id}`),
   getCalendarEvents: (year, month) => api.get(`/bookings/calendar/${year}/${month}`),
+  // Aún no existe endpoint real para disponibilidad; mantener mock temporalmente
   checkAvailability: (selectedDate, selectedTime) => mockAPI.bookings.checkAvailability(selectedDate, selectedTime),
 }
 

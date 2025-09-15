@@ -5,9 +5,10 @@ import firebase_admin
 from firebase_admin import credentials, firestore, auth
 from firebase_functions import https_fn
 import os
+from dotenv import load_dotenv
 
-# Routers
-from routers import bookings, events, gallery, reviews, inventory, reports, notifications, chat
+# Load environment variables
+load_dotenv()
 
 app = FastAPI(
     title="Pablo's Pizza API",
@@ -31,10 +32,22 @@ app.add_middleware(
 
 # Firebase initialization
 if not firebase_admin._apps:
-    firebase_admin.initialize_app()
+    # Verificar si existe el archivo de credenciales
+    cred_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS', 'ServiceAccount.json')
+    if os.path.exists(cred_path):
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred, {
+            'storageBucket': 'pablospizza-d84bf.appspot.com'
+        })
+    else:
+        # Fallback para desarrollo sin credenciales
+        firebase_admin.initialize_app()
 
 db = firestore.client()
 security = HTTPBearer()
+
+# Import routers AFTER Firebase initialization
+from routers import bookings, events, gallery, reviews, inventory, reports, notifications, chat
 
 # Middleware para verificar token de Firebase (opcional para rutas públicas)
 async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depends(security)):

@@ -10,7 +10,15 @@
       "Bash(npm install:*)",
       "Bash(\"venv/Scripts/pip.exe\" install -r requirements.txt)",
       "Bash(python -m pip install:*)",
-      "Bash(python test:*)"
+      "Bash(python test:*)",
+      "Bash(timeout:*)",
+      "Bash(npm run dev:*)",
+      "Bash(start \"http://localhost:3001/testimonios\")",
+      "Bash(start \"http://localhost:3001/agendar\")",
+      "Bash(python:*)",
+      "Bash(uvicorn:*)",
+      "Bash(start \"http://localhost:3000/agendar\")",
+      "Bash(start \"http://localhost:3000/admin/agendamientos\")"
     ],
     "deny": [],
     "ask": []
