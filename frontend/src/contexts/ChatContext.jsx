@@ -28,8 +28,11 @@ export const ChatProvider = ({ children }) => {
       setChatRoom(room)
       
       // Connect to WebSocket
-  const wsBase = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || '')
-  const newSocket = io(`${wsBase}/chat/ws/${room.id}`)
+      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      const wsBase = isDevelopment 
+        ? '' // En development no necesita base URL
+        : 'https://main-4kqeqojbsq-uc.a.run.app' // En production usa URL completa
+      const newSocket = io(`${wsBase}/chat/ws/${room.id}`)
       
       newSocket.on('connect', () => {
         setIsConnected(true)

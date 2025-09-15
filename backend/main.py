@@ -411,6 +411,52 @@ def get_events():
         print(f"Error getting events: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/events/', methods=['POST'])
+def create_event():
+    """Create a new event"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Required fields
+        required_fields = ['title', 'event_date']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        db = get_db()
+        
+        # Create event document
+        event_data = {
+            'title': data['title'],
+            'description': data.get('description', ''),
+            'event_date': data['event_date'],
+            'participants': data.get('participants', 0),
+            'final_price': data.get('final_price', 0),
+            'notes': data.get('notes', ''),
+            'status': data.get('status', 'pending'),
+            'booking_id': data.get('booking_id'),
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
+        }
+        
+        # Add to database
+        doc_ref = db.collection("events").add(event_data)
+        event_id = doc_ref[1].id
+        
+        # Return created event
+        event_data['id'] = event_id
+        event_data['created_at'] = event_data['created_at'].isoformat()
+        event_data['updated_at'] = event_data['updated_at'].isoformat()
+        
+        print(f"✅ Event created successfully: {event_id}")
+        return jsonify(event_data), 201
+
+    except Exception as e:
+        print(f"❌ Error creating event: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/events/<event_id>', methods=['GET'])
 def get_event(event_id):
     """Get specific event by ID"""
@@ -585,14 +631,23 @@ def update_booking(booking_id):
                 print("No se pudo enviar email: no hay email del cliente")
 
         # Create event automatically when booking is completed with costs
+        print(f"Checking event creation conditions:")
+        print(f"- status in data: {'status' in data}")
+        print(f"- status value: {data.get('status')}")
+        print(f"- event_cost in data: {'event_cost' in data}")
+        print(f"- event_profit in data: {'event_profit' in data}")
+        
         if ('status' in data and data['status'] == 'completed' and 
             ('event_cost' in data or 'event_profit' in data)):
+            print(f"Condiciones cumplidas, creando evento para booking {booking_id}")
             try:
                 create_event_from_booking(updated_booking)
                 print(f"Evento creado automáticamente para booking {booking_id}")
             except Exception as e:
                 print(f"Error creando evento automático: {e}")
                 # No fallar la actualización del booking si falla la creación del evento
+        else:
+            print(f"Condiciones no cumplidas para crear evento automático")
 
         return jsonify(updated_booking), 200
 
