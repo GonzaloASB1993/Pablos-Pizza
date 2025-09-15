@@ -210,7 +210,7 @@ const AdminDashboard = () => {
                   <Button
                     variant="contained"
                     fullWidth
-                    onClick={() => navigate('/admin/bookings')}
+                    onClick={() => navigate('/admin/agendamientos')}
                     startIcon={<Event />}
                   >
                     Ver Agendamientos ({stats.newBookings} hoy)
