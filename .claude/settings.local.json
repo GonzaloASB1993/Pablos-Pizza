@@ -18,7 +18,11 @@
       "Bash(python:*)",
       "Bash(uvicorn:*)",
       "Bash(start \"http://localhost:3000/agendar\")",
-      "Bash(start \"http://localhost:3000/admin/agendamientos\")"
+      "Bash(start \"http://localhost:3000/admin/agendamientos\")",
+      "Bash(find:*)",
+      "Bash(dir:*)",
+      "Bash(curl:*)",
+      "Bash(tasklist:*)"
     ],
     "deny": [],
     "ask": []

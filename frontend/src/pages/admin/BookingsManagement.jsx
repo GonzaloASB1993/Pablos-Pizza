@@ -320,13 +320,17 @@ const BookingsManagement = () => {
   }
 
   // Prepare calendar events
-  const calendarEvents = bookings.map(booking => ({
-    id: booking.id,
-    title: `${booking.client_name} - ${getServiceLabel(booking.service_type)}`,
-    start: new Date(`${booking.event_date}T${booking.event_time || '10:00'}`),
-    end: new Date(`${booking.event_date}T${booking.event_time || '10:00'}`),
-    resource: booking
-  }))
+  const calendarEvents = bookings.map(booking => {
+    // Si event_date ya es un datetime completo, usarlo directamente
+    const eventDate = new Date(booking.event_date)
+    return {
+      id: booking.id,
+      title: `${booking.client_name} - ${getServiceLabel(booking.service_type)}`,
+      start: eventDate,
+      end: new Date(eventDate.getTime() + (booking.duration_hours || 4) * 60 * 60 * 1000), // Agregar duración
+      resource: booking
+    }
+  })
 
   return (
     <Box>
