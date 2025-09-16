@@ -115,78 +115,6 @@ async def send_whatsapp_notification(phone: str, message: str, notification_type
         print(f"Error sending WhatsApp to {phone}: {str(e)}")
         return False
 
-def send_sms_notification(phone: str, message: str) -> bool:
-    """Send SMS notification using Twilio"""
-    if not twilio_client:
-        print("Twilio client not configured")
-        return False
-
-    sms_enabled = os.getenv('SMS_ENABLED', 'false').lower() == 'true'
-    if not sms_enabled:
-        print("SMS notifications disabled")
-        return False
-
-    try:
-        sms_from = os.getenv('TWILIO_SMS_FROM', '+1234567890')
-
-        # Format phone number for SMS (no whatsapp: prefix)
-        if phone.startswith('whatsapp:'):
-            phone = phone.replace('whatsapp:', '')
-
-        # Ensure + prefix
-        if not phone.startswith('+'):
-            if phone.startswith('56'):
-                phone = '+' + phone
-            elif phone.startswith('9'):
-                phone = '+56' + phone
-            else:
-                phone = '+56' + phone
-
-        message_instance = twilio_client.messages.create(
-            body=message,
-            from_=sms_from,
-            to=phone
-        )
-
-        print(f"SMS sent successfully to {phone}")
-        return True
-
-    except Exception as e:
-        print(f"Error sending SMS to {phone}: {str(e)}")
-        return False
-
-async def send_sms_confirmation(booking_data: dict) -> bool:
-    """Send SMS confirmation when event is confirmed"""
-    try:
-        service_name = 'Pizzeros en Acción' if booking_data['service_type'] == 'workshop' else 'Pizza Party'
-
-        sms_content = f"""🍕 PABLO'S PIZZA - CONFIRMACION
-
-¡Hola {booking_data['client_name']}!
-
-Tu evento ha sido CONFIRMADO:
-
-Servicio: {service_name}
-Fecha: {booking_data['event_date']}
-Hora: {booking_data['event_time']}
-Participantes: {booking_data['participants']}
-Ubicacion: {booking_data['location']}
-Precio: ${booking_data.get('estimated_price', 0):,.0f} CLP
-
-¡Nos vemos pronto para una experiencia increible!
-
-Dudas? WhatsApp: +56 9 8942 4566"""
-
-        client_phone = booking_data.get('client_phone', '')
-        if client_phone:
-            return send_sms_notification(client_phone, sms_content)
-
-        return False
-
-    except Exception as e:
-        print(f"Error sending SMS confirmation: {str(e)}")
-        return False
-
 def send_admin_email_notification(booking_data: dict) -> bool:
     """Send email notification to admin about new booking"""
     try:
@@ -262,6 +190,70 @@ def send_admin_email_notification(booking_data: dict) -> bool:
     except Exception as e:
         print(f"Error sending admin email notification: {e}")
         return False
+
+def generate_calendar_invite(booking_data: dict) -> str:
+    """Generate ICS calendar invitation content"""
+    try:
+        from datetime import datetime, timedelta
+        import uuid
+
+        # Parse event date and time
+        event_date_str = booking_data.get('event_date', '')
+        event_time_str = booking_data.get('event_time', '12:00')
+
+        # Create datetime object
+        if 'T' in event_date_str:
+            # If it's ISO format
+            event_datetime = datetime.fromisoformat(event_date_str.replace('Z', '+00:00'))
+        else:
+            # If it's date only, combine with time
+            event_date = datetime.strptime(event_date_str.split('T')[0], '%Y-%m-%d').date()
+            event_time = datetime.strptime(event_time_str, '%H:%M').time()
+            event_datetime = datetime.combine(event_date, event_time)
+
+        # Calculate end time (add duration)
+        duration_hours = booking_data.get('duration_hours', 4)
+        end_datetime = event_datetime + timedelta(hours=duration_hours)
+
+        # Format for ICS
+        start_time = event_datetime.strftime('%Y%m%dT%H%M%S')
+        end_time = end_datetime.strftime('%Y%m%dT%H%M%S')
+
+        service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+
+        # Generate unique UID
+        event_uid = str(uuid.uuid4())
+
+        # Create ICS content
+        ics_content = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Pablo's Pizza//Event Calendar//ES
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:{event_uid}
+DTSTART:{start_time}
+DTEND:{end_time}
+SUMMARY:🍕 {service_name} - Pablo's Pizza
+DESCRIPTION:¡Tu evento de Pablo's Pizza está confirmado!\\n\\nDetalles:\\n- Servicio: {service_name}\\n- Participantes: {booking_data.get('participants', 'N/A')}\\n- Precio: ${booking_data.get('estimated_price', 0):,.0f} CLP\\n\\n¡Nos vemos pronto para una experiencia increíble!\\n\\nContacto: +56 9 8942 4566
+LOCATION:{booking_data.get('location', 'Por confirmar')}
+STATUS:CONFIRMED
+SEQUENCE:0
+ORGANIZER;CN=Pablo's Pizza:mailto:pablospizza.cl@gmail.com
+ATTENDEE;CN={booking_data.get('client_name', 'Cliente')}:mailto:{booking_data.get('client_email', '')}
+BEGIN:VALARM
+TRIGGER:-PT24H
+ACTION:DISPLAY
+DESCRIPTION:Recordatorio: Tu evento de Pablo's Pizza es mañana
+END:VALARM
+END:VEVENT
+END:VCALENDAR"""
+
+        return ics_content
+
+    except Exception as e:
+        print(f"Error generating calendar invite: {e}")
+        return ""
 
 # CORS configuration - allow both Firebase hosting domains
 allowed_origins = [
@@ -741,6 +733,17 @@ def send_confirmation_email(booking_data: dict) -> bool:
                         </div>
                     </div>
 
+                    <!-- Calendar section -->
+                    <div class="calendar-section" style="background-color: #f8f9fa; padding: 25px 20px; margin: 25px 0; border-radius: 8px; border: 2px dashed #FFC107;">
+                        <h3 style="color: #000000; font-size: 20px; margin-bottom: 15px; text-align: center;">📅 Agregar a mi Calendario</h3>
+                        <p style="text-align: center; margin-bottom: 15px;">Hemos incluido una invitación de calendario con este email. <strong>Revisa los archivos adjuntos</strong> y ábrelo para agregar automáticamente el evento a tu calendario personal.</p>
+                        <div style="background-color: #FFF3CD; border-left: 4px solid #FFC107; padding: 12px; margin: 15px 0; border-radius: 4px;">
+                            <p style="margin: 0; font-size: 14px; color: #856404;">
+                                💡 <strong>Tip:</strong> El archivo "evento_pablos_pizza.ics" se puede abrir con Google Calendar, Outlook, Apple Calendar y la mayoría de aplicaciones de calendario.
+                            </p>
+                        </div>
+                    </div>
+
                     <!-- CTA section -->
                     <div class="cta-section">
                         <p class="cta-text">¡Nos vemos pronto para una experiencia gastronómica increíble! 🎉🍕</p>
@@ -769,6 +772,17 @@ def send_confirmation_email(booking_data: dict) -> bool:
         # Attach HTML content
         html_part = MIMEText(html_content, 'html')
         msg.attach(html_part)
+
+        # Generate and attach calendar invitation
+        calendar_content = generate_calendar_invite(booking_data)
+        if calendar_content:
+            from email.mime.text import MIMEText
+            cal_attachment = MIMEText(calendar_content, 'calendar')
+            cal_attachment['Content-Disposition'] = f'attachment; filename="evento_pablos_pizza.ics"'
+            cal_attachment.set_type('text/calendar')
+            cal_attachment.set_param('method', 'REQUEST')
+            msg.attach(cal_attachment)
+            print("Invitación de calendario agregada al email")
 
         # Send email
         server = smtplib.SMTP(smtp_server, smtp_port)
