@@ -53,10 +53,7 @@ const BookingsManagement = () => {
   const [filteredBookings, setFilteredBookings] = useState([])
   const [view, setView] = useState('list')
   const [loading, setLoading] = useState(true)
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date()
-    return `${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`
-  })
+  const [selectedMonth, setSelectedMonth] = useState("")
   const [editDialog, setEditDialog] = useState(false)
   const [createDialog, setCreateDialog] = useState(false)
   const [completeDialog, setCompleteDialog] = useState(false)
