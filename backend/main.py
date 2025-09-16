@@ -16,6 +16,11 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+# WhatsApp service imports
+import asyncio
+from services.whatsapp_service import send_whatsapp_confirmation, format_phone_number
+from services.notification_service import send_whatsapp_notification
+
 # Initialize Flask app
 app = Flask(__name__)
 
@@ -738,6 +743,46 @@ def create_booking():
         db.collection("bookings").document(booking_id).set(booking_data)
         print(f"GUARDADO EN FIRESTORE: {booking_id} con precio ${estimated_price}")
 
+        # Send WhatsApp notification to admin about new booking
+        try:
+            admin_phone = os.getenv('ADMIN_WHATSAPP_NUMBER', '+56989424566')
+            service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+
+            admin_message = f"""🍕 *Pablo's Pizza - NUEVO AGENDAMIENTO*
+
+¡Te acaban de agendar un evento!
+
+👤 *Cliente:* {booking_data.get('client_name', 'No especificado')}
+📱 *Teléfono:* {booking_data.get('client_phone', 'No especificado')}
+📧 *Email:* {booking_data.get('client_email', 'No especificado')}
+
+🍕 *Servicio:* {service_name}
+📅 *Fecha:* {booking_data.get('event_date', 'No especificada')}
+⏰ *Hora:* {booking_data.get('event_time', 'No especificada')}
+👥 *Participantes:* {booking_data.get('participants', 'No especificado')}
+📍 *Ubicación:* {booking_data.get('location', 'No especificada')}
+💰 *Precio estimado:* ${estimated_price:,.0f} CLP
+
+🔔 *Favor verificar en la plataforma para confirmar el evento.*
+
+ID: {booking_id}"""
+
+            print(f"Enviando notificación de nuevo agendamiento al admin: {admin_phone}")
+            whatsapp_sent = asyncio.run(send_whatsapp_notification(
+                admin_phone,
+                admin_message,
+                "new_booking_alert"
+            ))
+
+            if whatsapp_sent:
+                print(f"Notificación de nuevo agendamiento enviada exitosamente al admin")
+            else:
+                print(f"Error al enviar notificación de nuevo agendamiento al admin")
+
+        except Exception as e:
+            print(f"Error enviando notificación al admin: {e}")
+            # No fallar la creación de la reserva si falla la notificación
+
         return jsonify(booking_data), 201
 
     except Exception as e:
@@ -1149,6 +1194,28 @@ def update_booking(booking_id):
                     print(f"Error al enviar email de confirmación a {client_email}")
             else:
                 print("No se pudo enviar email: no hay email del cliente")
+
+            # Send WhatsApp confirmation to client
+            client_phone = updated_booking.get('client_phone')
+            if client_phone:
+                print(f"Enviando WhatsApp de confirmación a: {client_phone}")
+                try:
+                    # Convert datetime strings to datetime objects if needed
+                    booking_for_whatsapp = updated_booking.copy()
+                    if isinstance(booking_for_whatsapp.get('event_date'), str):
+                        booking_for_whatsapp['event_date'] = datetime.fromisoformat(booking_for_whatsapp['event_date'].replace('Z', '+00:00'))
+
+                    # Run async function
+                    whatsapp_sent = asyncio.run(send_whatsapp_confirmation(booking_for_whatsapp))
+
+                    if whatsapp_sent:
+                        print(f"WhatsApp de confirmación enviado exitosamente a {client_phone}")
+                    else:
+                        print(f"Error al enviar WhatsApp de confirmación a {client_phone}")
+                except Exception as e:
+                    print(f"Error enviando WhatsApp de confirmación: {e}")
+            else:
+                print("No se pudo enviar WhatsApp: no hay teléfono del cliente")
 
         # Create event automatically when booking is completed with costs
         print(f"Checking event creation conditions:")
