@@ -18,11 +18,102 @@ from email.mime.multipart import MIMEMultipart
 
 # WhatsApp service imports
 import asyncio
-from services.whatsapp_service import send_whatsapp_confirmation, format_phone_number
-from services.notification_service import send_whatsapp_notification
+from twilio.rest import Client
+from decouple import config
+import logging
 
 # Initialize Flask app
 app = Flask(__name__)
+
+# Twilio WhatsApp Configuration
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '')
+TWILIO_WHATSAPP_FROM = os.getenv('TWILIO_WHATSAPP_FROM', 'whatsapp:+14155238886')
+
+twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN else None
+
+def format_phone_number(phone: str) -> str:
+    """Format phone number for WhatsApp"""
+    phone = phone.strip()
+    if not phone.startswith('+'):
+        if phone.startswith('9'):
+            phone = '+56' + phone
+        else:
+            phone = '+56' + phone
+    return f"whatsapp:{phone}"
+
+async def send_whatsapp_confirmation(booking_data: dict) -> bool:
+    """Send WhatsApp confirmation when event is confirmed"""
+    if not twilio_client:
+        print("WhatsApp service not configured")
+        return False
+
+    try:
+        service_name = 'Pizzeros en Acción' if booking_data['service_type'] == 'workshop' else 'Pizza Party'
+
+        message_content = f"""🍕 *Pablo's Pizza*
+
+¡Hola {booking_data['client_name']}!
+
+✅ *Tu evento ha sido CONFIRMADO*
+
+📋 *Detalles:*
+🍕 Servicio: {service_name}
+📅 Fecha: {booking_data['event_date'].strftime('%d/%m/%Y') if hasattr(booking_data['event_date'], 'strftime') else booking_data['event_date']}
+⏰ Hora: {booking_data['event_time']}
+👥 Participantes: {booking_data['participants']}
+📍 Ubicación: {booking_data['location']}
+💰 Precio estimado: ${booking_data.get('estimated_price', 0):,.0f} CLP
+
+🔥 *¿Qué puedes esperar?*
+✅ Llegamos puntualmente
+✅ Todos los materiales incluidos
+✅ Experiencia divertida y educativa
+✅ Pizzas deliciosas hechas por ustedes
+
+¿Tienes alguna pregunta? ¡Responde a este mensaje!
+
+¡Nos vemos pronto para una experiencia increíble! 🎉"""
+
+        to_whatsapp = format_phone_number(booking_data['client_phone'])
+
+        message = twilio_client.messages.create(
+            body=message_content,
+            from_=TWILIO_WHATSAPP_FROM,
+            to=to_whatsapp
+        )
+
+        print(f"WhatsApp confirmation sent successfully to {booking_data['client_phone']}")
+        return True
+
+    except Exception as e:
+        print(f"Error sending WhatsApp confirmation to {booking_data['client_phone']}: {str(e)}")
+        return False
+
+async def send_whatsapp_notification(phone: str, message: str, notification_type: str) -> bool:
+    """Send WhatsApp notification using Twilio"""
+    if not twilio_client:
+        print("Twilio client not configured")
+        return False
+
+    try:
+        if not phone.startswith('whatsapp:'):
+            if not phone.startswith('+'):
+                phone = '+' + phone
+            phone = f'whatsapp:{phone}'
+
+        message_instance = twilio_client.messages.create(
+            body=message,
+            from_=TWILIO_WHATSAPP_FROM,
+            to=phone
+        )
+
+        print(f"WhatsApp sent successfully to {phone}")
+        return True
+
+    except Exception as e:
+        print(f"Error sending WhatsApp to {phone}: {str(e)}")
+        return False
 
 # CORS configuration - allow both Firebase hosting domains
 allowed_origins = [
