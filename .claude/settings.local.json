@@ -38,7 +38,9 @@
       "WebFetch(domain:main-4kqeqojbsq-uc.a.run.app)",
       "Bash(start \"https://pablospizza.web.app/agendar\")",
       "WebFetch(domain:pablospizza.web.app)",
-      "Bash(start \"https://pablospizza.web.app/admin/agendamientos\")"
+      "Bash(start \"https://pablospizza.web.app/admin/agendamientos\")",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

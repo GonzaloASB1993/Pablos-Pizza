@@ -487,6 +487,7 @@ export const galleryAPI = {
   getById: (id) => api.get(`/gallery/${id}`),
   update: (id, data) => api.put(`/gallery/${id}`, data),
   delete: (id) => api.delete(`/gallery/${id}`),
+  publish: (id, isPublished) => api.put(`/gallery/${id}/publish`, { is_published: isPublished }),
   getFeatured: (params = {}) => api.get('/gallery/featured/homepage', { params }),
   getByEvent: (eventId) => api.get('/gallery/', { params: { event_id: eventId } }),
 }

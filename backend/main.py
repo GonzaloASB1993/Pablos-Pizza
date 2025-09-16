@@ -776,7 +776,6 @@ def send_confirmation_email(booking_data: dict) -> bool:
         # Generate and attach calendar invitation
         calendar_content = generate_calendar_invite(booking_data)
         if calendar_content:
-            from email.mime.text import MIMEText
             cal_attachment = MIMEText(calendar_content, 'calendar')
             cal_attachment['Content-Disposition'] = f'attachment; filename="evento_pablos_pizza.ics"'
             cal_attachment.set_type('text/calendar')
@@ -1519,31 +1518,6 @@ def update_booking(booking_id):
                 except Exception as e:
                     print(f"Error enviando WhatsApp de confirmación: {e}")
 
-            # Send SMS confirmation to client
-            if client_phone:
-                print(f"Enviando SMS de confirmación a: {client_phone}")
-                try:
-                    # Prepare booking data for SMS
-                    booking_for_sms = updated_booking.copy()
-                    if isinstance(booking_for_sms.get('event_date'), str):
-                        # Format date for SMS (shorter format)
-                        try:
-                            date_obj = datetime.fromisoformat(booking_for_sms['event_date'].replace('Z', '+00:00'))
-                            booking_for_sms['event_date'] = date_obj.strftime('%d/%m/%Y')
-                        except:
-                            booking_for_sms['event_date'] = booking_for_sms['event_date']
-
-                    # Run async function
-                    sms_sent = asyncio.run(send_sms_confirmation(booking_for_sms))
-
-                    if sms_sent:
-                        print(f"SMS de confirmación enviado exitosamente a {client_phone}")
-                    else:
-                        print(f"Error al enviar SMS de confirmación a {client_phone}")
-                except Exception as e:
-                    print(f"Error enviando SMS de confirmación: {e}")
-            else:
-                print("No se pudo enviar SMS: no hay teléfono del cliente")
 
         # Create event automatically when booking is completed with costs
         print(f"Checking event creation conditions:")

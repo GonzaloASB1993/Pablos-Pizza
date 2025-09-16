@@ -26,7 +26,7 @@ import {
   IconButton,
   Alert
 } from '@mui/material'
-import { Add, Edit, Delete, Upload, Image } from '@mui/icons-material'
+import { Add, Edit, Delete, Upload, Image, Publish, PublishOff, Visibility, VisibilityOff } from '@mui/icons-material'
 import { eventsAPI, galleryAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
@@ -53,6 +53,8 @@ const EventsManagement = () => {
   const [photoDialog, setPhotoDialog] = useState(false)
   const [selectedEventForPhotos, setSelectedEventForPhotos] = useState(null)
   const [photoFiles, setPhotoFiles] = useState([])
+  const [eventPhotos, setEventPhotos] = useState([])
+  const [loadingPhotos, setLoadingPhotos] = useState(false)
 
   useEffect(() => {
     loadEvents()
@@ -159,10 +161,11 @@ const EventsManagement = () => {
     setImageFiles(files)
   }
 
-  const handleOpenPhotoDialog = (event) => {
+  const handleOpenPhotoDialog = async (event) => {
     setSelectedEventForPhotos(event)
     setPhotoFiles([])
     setPhotoDialog(true)
+    await loadEventPhotos(event.id)
   }
 
   const handlePhotoUpload = (event) => {
@@ -208,9 +211,10 @@ const EventsManagement = () => {
       }
 
       toast.success(`${photoFiles.length} imagen(es) subida(s) a la galería`)
-      setPhotoDialog(false)
       setPhotoFiles([])
-      setSelectedEventForPhotos(null)
+      
+      // Recargar fotos del evento
+      await loadEventPhotos(selectedEventForPhotos.id)
     } catch (error) {
       console.error('Error uploading photos:', error)
       toast.error('Error al subir imágenes')
@@ -247,6 +251,36 @@ const EventsManagement = () => {
       pending: 'Pendiente'
     }
     return labels[status] || status
+  }
+
+  // Funciones para manejar fotos del evento
+  const loadEventPhotos = async (eventId) => {
+    try {
+      setLoadingPhotos(true)
+      const response = await galleryAPI.getByEvent(eventId)
+      setEventPhotos(response.data || [])
+    } catch (error) {
+      console.error('Error loading event photos:', error)
+      toast.error('Error al cargar fotos del evento')
+    } finally {
+      setLoadingPhotos(false)
+    }
+  }
+
+  const handlePublishPhoto = async (photoId, isPublished) => {
+    try {
+      await galleryAPI.publish(photoId, isPublished)
+      const action = isPublished ? 'publicada' : 'despublicada'
+      toast.success(`Imagen ${action} exitosamente`)
+      
+      // Recargar fotos del evento
+      if (selectedEventForPhotos) {
+        await loadEventPhotos(selectedEventForPhotos.id)
+      }
+    } catch (error) {
+      console.error('Error publishing photo:', error)
+      toast.error('Error al cambiar estado de publicación')
+    }
   }
 
   return (
@@ -514,9 +548,9 @@ const EventsManagement = () => {
       </Dialog>
 
       {/* Photo Upload Dialog */}
-      <Dialog open={photoDialog} onClose={() => setPhotoDialog(false)} maxWidth="md" fullWidth>
+      <Dialog open={photoDialog} onClose={() => setPhotoDialog(false)} maxWidth="lg" fullWidth>
         <DialogTitle>
-          Subir Fotos del Evento
+          Gestionar Fotos del Evento
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
@@ -560,11 +594,11 @@ const EventsManagement = () => {
             </Box>
 
             {photoFiles.length > 0 && (
-              <Box sx={{ mt: 2 }}>
+              <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle1" gutterBottom>
                   Imágenes seleccionadas ({photoFiles.length}):
                 </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
                   {Array.from(photoFiles).map((file, index) => (
                     <Chip
                       key={index}
@@ -575,21 +609,97 @@ const EventsManagement = () => {
                     />
                   ))}
                 </Box>
+                <Button
+                  variant="contained"
+                  onClick={handleSavePhotos}
+                  disabled={photoFiles.length === 0}
+                  startIcon={<Upload />}
+                >
+                  Subir {photoFiles.length} Foto(s)
+                </Button>
+              </Box>
+            )}
+
+            {/* Sección de fotos existentes */}
+            <Typography variant="h6" gutterBottom>
+              Fotos del Evento
+            </Typography>
+            {loadingPhotos ? (
+              <Box sx={{ textAlign: 'center', py: 3 }}>
+                <Typography>Cargando fotos...</Typography>
+              </Box>
+            ) : eventPhotos.length > 0 ? (
+              <Grid container spacing={2}>
+                {eventPhotos.map((photo) => (
+                  <Grid item xs={12} sm={6} md={4} key={photo.id}>
+                    <Card>
+                      <Box sx={{ position: 'relative' }}>
+                        <img
+                          src={photo.url}
+                          alt={photo.title}
+                          style={{
+                            width: '100%',
+                            height: 200,
+                            objectFit: 'cover'
+                          }}
+                        />
+                        <Chip
+                          label={photo.is_published ? 'Publicada' : 'Privada'}
+                          color={photo.is_published ? 'success' : 'default'}
+                          size="small"
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            backgroundColor: photo.is_published ? 'success.main' : 'grey.500',
+                            color: 'white'
+                          }}
+                        />
+                      </Box>
+                      <CardContent>
+                        <Typography variant="body2" noWrap>
+                          {photo.title}
+                        </Typography>
+                        <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
+                          {photo.is_published ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="warning"
+                              startIcon={<VisibilityOff />}
+                              onClick={() => handlePublishPhoto(photo.id, false)}
+                            >
+                              Despublicar
+                            </Button>
+                          ) : (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="primary"
+                              startIcon={<Visibility />}
+                              onClick={() => handlePublishPhoto(photo.id, true)}
+                            >
+                              Publicar
+                            </Button>
+                          )}
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 3 }}>
+                <Typography color="text.secondary">
+                  No hay fotos subidas para este evento
+                </Typography>
               </Box>
             )}
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPhotoDialog(false)}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSavePhotos}
-            variant="contained"
-            disabled={photoFiles.length === 0}
-            startIcon={<Upload />}
-          >
-            Subir {photoFiles.length > 0 ? `${photoFiles.length} ` : ''}Foto(s)
+            Cerrar
           </Button>
         </DialogActions>
       </Dialog>
