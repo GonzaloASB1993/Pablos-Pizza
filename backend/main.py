@@ -921,7 +921,44 @@ def create_booking():
                 print(f"Error al enviar email de notificación de nuevo agendamiento al admin")
 
         except Exception as e:
-            print(f"Error enviando notificación al admin: {e}")
+            print(f"Error enviando email al admin: {e}")
+            # No fallar la creación de la reserva si falla la notificación
+
+        # Send WhatsApp notification to business partner about new booking
+        try:
+            partner_phone = os.getenv('PARTNER_WHATSAPP_NUMBER', '+56961093818')
+            service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+
+            partner_message = f"""🍕 *Pablo's Pizza - NUEVO AGENDAMIENTO*
+
+¡Hola! Te informo que acabamos de recibir una nueva reserva:
+
+👤 *Cliente:* {booking_data.get('client_name', 'No especificado')}
+📱 *Teléfono:* {booking_data.get('client_phone', 'No especificado')}
+
+🍕 *Servicio:* {service_name}
+📅 *Fecha:* {booking_data.get('event_date', 'No especificada')}
+⏰ *Hora:* {booking_data.get('event_time', 'No especificada')}
+👥 *Participantes:* {booking_data.get('participants', 'No especificado')}
+📍 *Ubicación:* {booking_data.get('location', 'No especificada')}
+💰 *Precio estimado:* ${booking_data.get('estimated_price', 0):,.0f} CLP
+
+¡Excelente! 🎉"""
+
+            print(f"Enviando WhatsApp de nueva reserva al socio: {partner_phone}")
+            whatsapp_sent = asyncio.run(send_whatsapp_notification(
+                partner_phone,
+                partner_message,
+                "new_booking_partner_alert"
+            ))
+
+            if whatsapp_sent:
+                print(f"WhatsApp de nueva reserva enviado exitosamente al socio")
+            else:
+                print(f"Error al enviar WhatsApp de nueva reserva al socio")
+
+        except Exception as e:
+            print(f"Error enviando WhatsApp al socio: {e}")
             # No fallar la creación de la reserva si falla la notificación
 
         return jsonify(booking_data), 201
