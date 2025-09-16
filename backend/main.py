@@ -115,6 +115,82 @@ async def send_whatsapp_notification(phone: str, message: str, notification_type
         print(f"Error sending WhatsApp to {phone}: {str(e)}")
         return False
 
+def send_admin_email_notification(booking_data: dict) -> bool:
+    """Send email notification to admin about new booking"""
+    try:
+        service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+
+        # Email configuration
+        smtp_server = os.getenv('EMAIL_SERVER', 'smtp.gmail.com')
+        smtp_port = int(os.getenv('EMAIL_PORT', 587))
+        email_username = os.getenv('EMAIL_USERNAME')
+        email_password = os.getenv('EMAIL_PASSWORD')
+        email_from = os.getenv('EMAIL_FROM')
+
+        if not all([email_username, email_password, email_from]):
+            print("Email configuration not complete")
+            return False
+
+        # Create message
+        msg = MIMEMultipart()
+        msg['From'] = email_from
+        msg['To'] = email_from  # Send to yourself
+        msg['Subject'] = f"🍕 NUEVO AGENDAMIENTO - {booking_data.get('client_name', 'Cliente')}"
+
+        # HTML content
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #FFC107; text-align: center;">🍕 Pablo's Pizza</h2>
+            <h3 style="color: #000;">¡NUEVO AGENDAMIENTO!</h3>
+
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h4>👤 Información del Cliente:</h4>
+                <p><strong>Nombre:</strong> {booking_data.get('client_name', 'No especificado')}</p>
+                <p><strong>Teléfono:</strong> {booking_data.get('client_phone', 'No especificado')}</p>
+                <p><strong>Email:</strong> {booking_data.get('client_email', 'No especificado')}</p>
+
+                <h4>🍕 Detalles del Evento:</h4>
+                <p><strong>Servicio:</strong> {service_name}</p>
+                <p><strong>Fecha:</strong> {booking_data.get('event_date', 'No especificada')}</p>
+                <p><strong>Hora:</strong> {booking_data.get('event_time', 'No especificada')}</p>
+                <p><strong>Participantes:</strong> {booking_data.get('participants', 'No especificado')}</p>
+                <p><strong>Ubicación:</strong> {booking_data.get('location', 'No especificada')}</p>
+                <p><strong>Precio estimado:</strong> ${booking_data.get('estimated_price', 0):,.0f} CLP</p>
+
+                <h4>📝 Solicitudes especiales:</h4>
+                <p>{booking_data.get('special_requests', 'Ninguna')}</p>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="https://pablospizza.web.app/admin/agendamientos"
+                   style="background-color: #FFC107; color: black; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                   Ver en Admin Panel
+                </a>
+            </div>
+
+            <p style="color: #666; font-size: 12px; text-align: center;">
+                ID de reserva: {booking_data.get('id', 'N/A')}<br>
+                Favor confirmar el evento en la plataforma.
+            </p>
+        </div>
+        """
+
+        msg.attach(MIMEText(html_content, 'html'))
+
+        # Send email
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(email_username, email_password)
+        server.send_message(msg)
+        server.quit()
+
+        print(f"Admin email notification sent successfully")
+        return True
+
+    except Exception as e:
+        print(f"Error sending admin email notification: {e}")
+        return False
+
 # CORS configuration - allow both Firebase hosting domains
 allowed_origins = [
     'https://pablospizza.web.app',
@@ -834,41 +910,15 @@ def create_booking():
         db.collection("bookings").document(booking_id).set(booking_data)
         print(f"GUARDADO EN FIRESTORE: {booking_id} con precio ${estimated_price}")
 
-        # Send WhatsApp notification to admin about new booking
+        # Send EMAIL notification to admin about new booking
         try:
-            admin_phone = os.getenv('ADMIN_WHATSAPP_NUMBER', '+56989424566')
-            service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+            print(f"Enviando email de notificación de nuevo agendamiento al admin")
+            email_sent = send_admin_email_notification(booking_data)
 
-            admin_message = f"""🍕 *Pablo's Pizza - NUEVO AGENDAMIENTO*
-
-¡Te acaban de agendar un evento!
-
-👤 *Cliente:* {booking_data.get('client_name', 'No especificado')}
-📱 *Teléfono:* {booking_data.get('client_phone', 'No especificado')}
-📧 *Email:* {booking_data.get('client_email', 'No especificado')}
-
-🍕 *Servicio:* {service_name}
-📅 *Fecha:* {booking_data.get('event_date', 'No especificada')}
-⏰ *Hora:* {booking_data.get('event_time', 'No especificada')}
-👥 *Participantes:* {booking_data.get('participants', 'No especificado')}
-📍 *Ubicación:* {booking_data.get('location', 'No especificada')}
-💰 *Precio estimado:* ${estimated_price:,.0f} CLP
-
-🔔 *Favor verificar en la plataforma para confirmar el evento.*
-
-ID: {booking_id}"""
-
-            print(f"Enviando notificación de nuevo agendamiento al admin: {admin_phone}")
-            whatsapp_sent = asyncio.run(send_whatsapp_notification(
-                admin_phone,
-                admin_message,
-                "new_booking_alert"
-            ))
-
-            if whatsapp_sent:
-                print(f"Notificación de nuevo agendamiento enviada exitosamente al admin")
+            if email_sent:
+                print(f"Email de notificación de nuevo agendamiento enviado exitosamente al admin")
             else:
-                print(f"Error al enviar notificación de nuevo agendamiento al admin")
+                print(f"Error al enviar email de notificación de nuevo agendamiento al admin")
 
         except Exception as e:
             print(f"Error enviando notificación al admin: {e}")
