@@ -924,6 +924,46 @@ def create_booking():
             print(f"Error enviando email al admin: {e}")
             # No fallar la creación de la reserva si falla la notificación
 
+        # Send WhatsApp notification to admin about new booking
+        try:
+            admin_phone = os.getenv('ADMIN_WHATSAPP_NUMBER', '+56989424566')
+            service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+
+            admin_whatsapp_message = f"""🍕 *Pablo's Pizza - NUEVO AGENDAMIENTO*
+
+¡Te acaban de agendar un evento!
+
+👤 *Cliente:* {booking_data.get('client_name', 'No especificado')}
+📱 *Teléfono:* {booking_data.get('client_phone', 'No especificado')}
+📧 *Email:* {booking_data.get('client_email', 'No especificado')}
+
+🍕 *Servicio:* {service_name}
+📅 *Fecha:* {booking_data.get('event_date', 'No especificada')}
+⏰ *Hora:* {booking_data.get('event_time', 'No especificada')}
+👥 *Participantes:* {booking_data.get('participants', 'No especificado')}
+📍 *Ubicación:* {booking_data.get('location', 'No especificada')}
+💰 *Precio estimado:* ${booking_data.get('estimated_price', 0):,.0f} CLP
+
+🔔 *Favor verificar en la plataforma para confirmar el evento.*
+
+ID: {booking_data.get('id', 'N/A')}"""
+
+            print(f"Enviando WhatsApp de nueva reserva al admin: {admin_phone}")
+            admin_whatsapp_sent = asyncio.run(send_whatsapp_notification(
+                admin_phone,
+                admin_whatsapp_message,
+                "new_booking_admin_alert"
+            ))
+
+            if admin_whatsapp_sent:
+                print(f"WhatsApp de nueva reserva enviado exitosamente al admin")
+            else:
+                print(f"Error al enviar WhatsApp de nueva reserva al admin")
+
+        except Exception as e:
+            print(f"Error enviando WhatsApp al admin: {e}")
+            # No fallar la creación de la reserva si falla la notificación
+
         # Send WhatsApp notification to business partner about new booking
         try:
             partner_phone = os.getenv('PARTNER_WHATSAPP_NUMBER', '+56961093818')
