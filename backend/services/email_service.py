@@ -103,7 +103,7 @@ async def send_confirmation_email(booking_data: dict) -> bool:
                 <p>Si tienes alguna pregunta o necesitas hacer cambios:</p>
                 <ul>
                     <li><strong>WhatsApp:</strong> +56 9 8942 4566</li>
-                    <li><strong>Email:</strong> contacto@pablospizza.com</li>
+                    <li><strong>Email:</strong> pablospizza.cl@gmail.com</li>
                 </ul>
 
                 <p><strong>¡Nos vemos pronto para una experiencia increíble! 🎉</strong></p>

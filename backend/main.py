@@ -115,7 +115,7 @@ def send_confirmation_email(booking_data: dict) -> bool:
                 <p>Si tienes alguna pregunta o necesitas hacer cambios:</p>
                 <ul>
                     <li><strong>WhatsApp:</strong> +56 9 8942 4566</li>
-                    <li><strong>Email:</strong> contacto@pablospizza.com</li>
+                    <li><strong>Email:</strong> pablospizza.cl@gmail.com</li>
                 </ul>
 
                 <p><strong>¡Nos vemos pronto para una experiencia increíble! 🎉</strong></p>
@@ -526,51 +526,70 @@ def update_event(event_id):
 # Gallery endpoints (basic implementation)
 @app.route('/api/gallery/', methods=['GET'])
 def get_gallery_images():
-    """Get gallery images for public gallery"""
+    """Get gallery images for public gallery or admin management"""
     try:
+        print("=== GALLERY ENDPOINT DEBUG ===")
+        event_id = request.args.get('event_id')
+        print(f"Event ID param: {event_id}")
+        
         db = get_db()
         
-        # Get events data for additional info
-        events_ref = db.collection("events")
-        events_dict = {}
-        for event_doc in events_ref.stream():
-            event_data = event_doc.to_dict()
-            events_dict[event_doc.id] = event_data
-        
-        # Get gallery images
+        # Simple approach: get all gallery images first
         images_ref = db.collection("gallery").order_by("uploaded_at", direction=firestore.Query.DESCENDING)
-        
-        # Apply filters if provided
-        event_id = request.args.get('event_id')
-        if event_id:
-            images_ref = images_ref.where("event_id", "==", event_id)
         
         gallery_items = []
         for doc in images_ref.stream():
             image = doc.to_dict()
-            event_data = events_dict.get(image.get('event_id'), {})
+            image['id'] = doc.id
+            print(f"Processing image: {doc.id}, event_id: {image.get('event_id')}, published: {image.get('is_published')}")
             
-            # Transform to expected format for public gallery
-            gallery_item = {
-                'id': doc.id,
-                'title': event_data.get('name', image.get('title', 'Evento')),
-                'category': 'workshop' if event_data.get('event_type') == 'Taller' else 'party',
-                'description': event_data.get('description', image.get('description', '')),
-                'images': [image.get('url', '')],  # Array of image URLs
-                'date': event_data.get('event_date', image.get('uploaded_at')),
-                'participants': event_data.get('guest_count', 10),
-                'featured': image.get('is_featured', False),
-                'satisfaction': 5,  # Default satisfaction
-                'highlight': 'Experiencia única',
-                'age_group': 'Todas las edades'
-            }
+            # Apply event_id filter if specified (admin view)
+            if event_id and image.get('event_id') != event_id:
+                print(f"  Skipping - wrong event_id")
+                continue
+                
+            # For public gallery (no event_id), filter only published images
+            if not event_id and not image.get('is_published', False):
+                print(f"  Skipping - not published")
+                continue
+            
+            print(f"  Including image in results")
+            
+            # Simple format for admin, complex for public
+            if event_id:
+                # Admin format - simpler
+                gallery_item = {
+                    'id': doc.id,
+                    'title': image.get('title', 'Imagen'),
+                    'url': image.get('url', ''),
+                    'is_published': image.get('is_published', False),
+                    'uploaded_at': image.get('uploaded_at'),
+                    'event_id': image.get('event_id')
+                }
+            else:
+                # Public format - more complex
+                gallery_item = {
+                    'id': doc.id,
+                    'title': image.get('title', 'Evento'),
+                    'category': 'party',
+                    'description': image.get('description', ''),
+                    'images': [image.get('url', '')],
+                    'participants': 10,
+                    'featured': image.get('is_featured', False),
+                    'satisfaction': 5,
+                    'highlight': 'Experiencia única',
+                    'age_group': 'Todas las edades'
+                }
             
             gallery_items.append(gallery_item)
 
+        print(f"Returning {len(gallery_items)} items")
         return jsonify(gallery_items), 200
 
     except Exception as e:
-        print(f"Error getting gallery images: {e}")
+        print(f"❌ Error getting gallery images: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/gallery/upload', methods=['POST'])
@@ -615,6 +634,7 @@ def upload_gallery_image():
                     "event_id": event_id,
                     "uploaded_at": datetime.now(),
                     "is_featured": False,
+                    "is_published": False,  # Por defecto no publicado
                     "filename": file.filename,
                     "content_type": file.content_type
                 }
@@ -636,6 +656,47 @@ def upload_gallery_image():
 
     except Exception as e:
         print(f"❌ Error uploading images: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/gallery/<image_id>/publish', methods=['PUT'])
+def publish_gallery_image(image_id):
+    """Publish or unpublish a gallery image"""
+    try:
+        data = request.get_json() or {}
+        is_published = data.get('is_published', True)
+        
+        print(f"=== PUBLISH IMAGE DEBUG ===")
+        print(f"Image ID: {image_id}")
+        print(f"Setting published to: {is_published}")
+        
+        db = get_db()
+        doc_ref = db.collection("gallery").document(image_id)
+        
+        # Verificar que la imagen existe
+        doc = doc_ref.get()
+        if not doc.exists:
+            print(f"❌ Image not found: {image_id}")
+            return jsonify({"error": "Image not found"}), 404
+        
+        # Actualizar estado de publicación
+        doc_ref.update({
+            "is_published": is_published,
+            "published_at": datetime.now() if is_published else None
+        })
+        
+        action = "publicada" if is_published else "despublicada"
+        print(f"✅ Image {action}: {image_id}")
+        
+        return jsonify({
+            "message": f"Imagen {action} exitosamente",
+            "image_id": image_id,
+            "is_published": is_published
+        }), 200
+
+    except Exception as e:
+        print(f"❌ Error publishing image: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
