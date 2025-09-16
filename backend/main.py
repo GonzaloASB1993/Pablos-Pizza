@@ -115,6 +115,78 @@ async def send_whatsapp_notification(phone: str, message: str, notification_type
         print(f"Error sending WhatsApp to {phone}: {str(e)}")
         return False
 
+def send_sms_notification(phone: str, message: str) -> bool:
+    """Send SMS notification using Twilio"""
+    if not twilio_client:
+        print("Twilio client not configured")
+        return False
+
+    sms_enabled = os.getenv('SMS_ENABLED', 'false').lower() == 'true'
+    if not sms_enabled:
+        print("SMS notifications disabled")
+        return False
+
+    try:
+        sms_from = os.getenv('TWILIO_SMS_FROM', '+1234567890')
+
+        # Format phone number for SMS (no whatsapp: prefix)
+        if phone.startswith('whatsapp:'):
+            phone = phone.replace('whatsapp:', '')
+
+        # Ensure + prefix
+        if not phone.startswith('+'):
+            if phone.startswith('56'):
+                phone = '+' + phone
+            elif phone.startswith('9'):
+                phone = '+56' + phone
+            else:
+                phone = '+56' + phone
+
+        message_instance = twilio_client.messages.create(
+            body=message,
+            from_=sms_from,
+            to=phone
+        )
+
+        print(f"SMS sent successfully to {phone}")
+        return True
+
+    except Exception as e:
+        print(f"Error sending SMS to {phone}: {str(e)}")
+        return False
+
+async def send_sms_confirmation(booking_data: dict) -> bool:
+    """Send SMS confirmation when event is confirmed"""
+    try:
+        service_name = 'Pizzeros en Acción' if booking_data['service_type'] == 'workshop' else 'Pizza Party'
+
+        sms_content = f"""🍕 PABLO'S PIZZA - CONFIRMACION
+
+¡Hola {booking_data['client_name']}!
+
+Tu evento ha sido CONFIRMADO:
+
+Servicio: {service_name}
+Fecha: {booking_data['event_date']}
+Hora: {booking_data['event_time']}
+Participantes: {booking_data['participants']}
+Ubicacion: {booking_data['location']}
+Precio: ${booking_data.get('estimated_price', 0):,.0f} CLP
+
+¡Nos vemos pronto para una experiencia increible!
+
+Dudas? WhatsApp: +56 9 8942 4566"""
+
+        client_phone = booking_data.get('client_phone', '')
+        if client_phone:
+            return send_sms_notification(client_phone, sms_content)
+
+        return False
+
+    except Exception as e:
+        print(f"Error sending SMS confirmation: {str(e)}")
+        return False
+
 def send_admin_email_notification(booking_data: dict) -> bool:
     """Send email notification to admin about new booking"""
     try:
@@ -1432,8 +1504,32 @@ def update_booking(booking_id):
                         print(f"Error al enviar WhatsApp de confirmación a {client_phone}")
                 except Exception as e:
                     print(f"Error enviando WhatsApp de confirmación: {e}")
+
+            # Send SMS confirmation to client
+            if client_phone:
+                print(f"Enviando SMS de confirmación a: {client_phone}")
+                try:
+                    # Prepare booking data for SMS
+                    booking_for_sms = updated_booking.copy()
+                    if isinstance(booking_for_sms.get('event_date'), str):
+                        # Format date for SMS (shorter format)
+                        try:
+                            date_obj = datetime.fromisoformat(booking_for_sms['event_date'].replace('Z', '+00:00'))
+                            booking_for_sms['event_date'] = date_obj.strftime('%d/%m/%Y')
+                        except:
+                            booking_for_sms['event_date'] = booking_for_sms['event_date']
+
+                    # Run async function
+                    sms_sent = asyncio.run(send_sms_confirmation(booking_for_sms))
+
+                    if sms_sent:
+                        print(f"SMS de confirmación enviado exitosamente a {client_phone}")
+                    else:
+                        print(f"Error al enviar SMS de confirmación a {client_phone}")
+                except Exception as e:
+                    print(f"Error enviando SMS de confirmación: {e}")
             else:
-                print("No se pudo enviar WhatsApp: no hay teléfono del cliente")
+                print("No se pudo enviar SMS: no hay teléfono del cliente")
 
         # Create event automatically when booking is completed with costs
         print(f"Checking event creation conditions:")
