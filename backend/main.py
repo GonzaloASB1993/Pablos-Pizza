@@ -16,15 +16,192 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+# WhatsApp service imports
+import asyncio
+from twilio.rest import Client
+
 # Initialize Flask app
 app = Flask(__name__)
+
+# Twilio WhatsApp Configuration
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '')
+TWILIO_WHATSAPP_FROM = os.getenv('TWILIO_WHATSAPP_FROM', 'whatsapp:+14155238886')
+
+twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN else None
+
+async def send_whatsapp_notification(phone: str, message: str, notification_type: str) -> bool:
+    """Send WhatsApp notification using Twilio"""
+    if not twilio_client:
+        print("Twilio client not configured")
+        return False
+
+    try:
+        if not phone.startswith('whatsapp:'):
+            if not phone.startswith('+'):
+                phone = '+' + phone
+            phone = f'whatsapp:{phone}'
+
+        message_instance = twilio_client.messages.create(
+            body=message,
+            from_=TWILIO_WHATSAPP_FROM,
+            to=phone
+        )
+
+        print(f"WhatsApp sent successfully to {phone}")
+        return True
+
+    except Exception as e:
+        print(f"Error sending WhatsApp to {phone}: {str(e)}")
+        return False
+
+def send_admin_email_notification(booking_data: dict) -> bool:
+    """Send email notification to admin about new booking"""
+    try:
+        service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+
+        # Email configuration
+        smtp_server = os.getenv('EMAIL_SERVER', 'smtp.gmail.com')
+        smtp_port = int(os.getenv('EMAIL_PORT', 587))
+        email_username = os.getenv('EMAIL_USERNAME')
+        email_password = os.getenv('EMAIL_PASSWORD')
+        email_from = os.getenv('EMAIL_FROM')
+
+        if not all([email_username, email_password, email_from]):
+            print("Email configuration not complete")
+            return False
+
+        # Create message
+        msg = MIMEMultipart()
+        msg['From'] = email_from
+        msg['To'] = email_from  # Send to yourself
+        msg['Subject'] = f"🍕 NUEVO AGENDAMIENTO - {booking_data.get('client_name', 'Cliente')}"
+
+        # HTML content
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #FFC107; text-align: center;">🍕 Pablo's Pizza</h2>
+            <h3 style="color: #000;">¡NUEVO AGENDAMIENTO!</h3>
+
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h4>👤 Información del Cliente:</h4>
+                <p><strong>Nombre:</strong> {booking_data.get('client_name', 'No especificado')}</p>
+                <p><strong>Teléfono:</strong> {booking_data.get('client_phone', 'No especificado')}</p>
+                <p><strong>Email:</strong> {booking_data.get('client_email', 'No especificado')}</p>
+
+                <h4>🍕 Detalles del Evento:</h4>
+                <p><strong>Servicio:</strong> {service_name}</p>
+                <p><strong>Fecha:</strong> {booking_data.get('event_date', 'No especificada')}</p>
+                <p><strong>Hora:</strong> {booking_data.get('event_time', 'No especificada')}</p>
+                <p><strong>Participantes:</strong> {booking_data.get('participants', 'No especificado')}</p>
+                <p><strong>Ubicación:</strong> {booking_data.get('location', 'No especificada')}</p>
+                <p><strong>Precio estimado:</strong> ${booking_data.get('estimated_price', 0):,.0f} CLP</p>
+
+                <h4>📝 Solicitudes especiales:</h4>
+                <p>{booking_data.get('special_requests', 'Ninguna')}</p>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="https://pablospizza.web.app/admin/agendamientos"
+                   style="background-color: #FFC107; color: black; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                   Ver en Admin Panel
+                </a>
+            </div>
+
+            <p style="color: #666; font-size: 12px; text-align: center;">
+                ID de reserva: {booking_data.get('id', 'N/A')}<br>
+                Favor confirmar el evento en la plataforma.
+            </p>
+        </div>
+        """
+
+        msg.attach(MIMEText(html_content, 'html'))
+
+        # Send email
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(email_username, email_password)
+        server.send_message(msg)
+        server.quit()
+
+        print(f"Admin email notification sent successfully")
+        return True
+
+    except Exception as e:
+        print(f"Error sending admin email notification: {e}")
+        return False
+
+def generate_calendar_invite(booking_data: dict) -> str:
+    """Generate ICS calendar invitation content"""
+    try:
+        from datetime import datetime, timedelta
+        import uuid
+
+        # Parse event date and time
+        event_date_str = booking_data.get('event_date', '')
+        event_time_str = booking_data.get('event_time', '12:00')
+
+        # Create datetime object
+        if 'T' in event_date_str:
+            # If it's ISO format
+            event_datetime = datetime.fromisoformat(event_date_str.replace('Z', '+00:00'))
+        else:
+            # If it's date only, combine with time
+            event_date = datetime.strptime(event_date_str.split('T')[0], '%Y-%m-%d').date()
+            event_time = datetime.strptime(event_time_str, '%H:%M').time()
+            event_datetime = datetime.combine(event_date, event_time)
+
+        # Calculate end time (add duration)
+        duration_hours = booking_data.get('duration_hours', 4)
+        end_datetime = event_datetime + timedelta(hours=duration_hours)
+
+        # Format for ICS
+        start_time = event_datetime.strftime('%Y%m%dT%H%M%S')
+        end_time = end_datetime.strftime('%Y%m%dT%H%M%S')
+
+        service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+
+        # Generate unique UID
+        event_uid = str(uuid.uuid4())
+
+        # Create ICS content
+        ics_content = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Pablo's Pizza//Event Calendar//ES
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:{event_uid}
+DTSTART:{start_time}
+DTEND:{end_time}
+SUMMARY:🍕 {service_name} - Pablo's Pizza
+DESCRIPTION:¡Tu evento de Pablo's Pizza está confirmado!\\n\\nDetalles:\\n- Servicio: {service_name}\\n- Participantes: {booking_data.get('participants', 'N/A')}\\n- Precio: ${booking_data.get('estimated_price', 0):,.0f} CLP\\n\\n¡Nos vemos pronto para una experiencia increíble!\\n\\nContacto: +56 9 8942 4566
+LOCATION:{booking_data.get('location', 'Por confirmar')}
+STATUS:CONFIRMED
+SEQUENCE:0
+ORGANIZER;CN=Pablo's Pizza:mailto:pablospizza.cl@gmail.com
+ATTENDEE;CN={booking_data.get('client_name', 'Cliente')}:mailto:{booking_data.get('client_email', '')}
+BEGIN:VALARM
+TRIGGER:-PT24H
+ACTION:DISPLAY
+DESCRIPTION:Recordatorio: Tu evento de Pablo's Pizza es mañana
+END:VALARM
+END:VEVENT
+END:VCALENDAR"""
+
+        return ics_content
+
+    except Exception as e:
+        print(f"Error generating calendar invite: {e}")
+        return ""
 
 # CORS configuration - allow both Firebase hosting domains
 allowed_origins = [
     'https://pablospizza.web.app',
     'https://pablospizza.firebaseapp.com',
-    'http://localhost:5173',  # For development
-    'http://localhost:3000'   # Alternative dev port
+    'https://pablospizza.cl',     # Custom domain
+    'http://localhost:5173',      # For development
+    'http://localhost:3000'       # Alternative dev port
 ]
 
 # Add any additional origins from environment
@@ -81,64 +258,456 @@ def send_confirmation_email(booking_data: dict) -> bool:
         # Determine service name
         service_name = 'Pizzeros en Acción' if booking_data['service_type'] == 'workshop' else 'Pizza Party'
 
-        # Create professional HTML email
+        # Create professional branded HTML email with modern design
         html_content = f"""
         <!DOCTYPE html>
-        <html>
+        <html lang="es">
         <head>
             <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Evento Confirmado - Pablo's Pizza</title>
             <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                .header {{ background-color: #ff6b35; color: white; padding: 20px; text-align: center; }}
-                .content {{ padding: 20px; }}
-                .event-details {{ background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0; }}
-                .footer {{ background-color: #f1f1f1; padding: 15px; text-align: center; color: #666; }}
-                .logo {{ font-size: 24px; font-weight: bold; }}
+                /* Reset and base styles */
+                * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #2c2c2c;
+                    background-color: #f8f9fa;
+                    margin: 0;
+                    padding: 0;
+                }}
+
+                /* Email container */
+                .email-container {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background-color: #ffffff;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+                }}
+
+                /* Header with brand identity */
+                .header {{
+                    background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+                    padding: 40px 30px;
+                    text-align: center;
+                    position: relative;
+                    overflow: hidden;
+                }}
+
+                .header::before {{
+                    content: '';
+                    position: absolute;
+                    top: -50%;
+                    left: -50%;
+                    width: 200%;
+                    height: 200%;
+                    background: radial-gradient(circle, rgba(255, 193, 7, 0.1) 0%, transparent 70%);
+                    animation: glow 3s ease-in-out infinite alternate;
+                }}
+
+                @keyframes glow {{
+                    from {{ opacity: 0.5; }}
+                    to {{ opacity: 0.8; }}
+                }}
+
+                .logo-container {{
+                    position: relative;
+                    z-index: 2;
+                    margin-bottom: 20px;
+                    text-align: center;
+                }}
+
+                .logo-image {{
+                    width: 180px;
+                    height: 180px;
+                    border-radius: 50%;
+                    box-shadow:
+                        0 8px 24px rgba(255, 193, 7, 0.4),
+                        0 4px 12px rgba(0, 0, 0, 0.3);
+                    margin-bottom: 20px;
+                    display: inline-block;
+                    border: 3px solid #FFC107;
+                }}
+
+                .header h1 {{
+                    color: #ffffff;
+                    font-size: 28px;
+                    font-weight: 700;
+                    margin: 0;
+                    position: relative;
+                    z-index: 2;
+                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                }}
+
+                .status-badge {{
+                    display: inline-block;
+                    background: linear-gradient(135deg, #FFC107 0%, #FFD54F 100%);
+                    color: #000000;
+                    padding: 8px 20px;
+                    border-radius: 25px;
+                    font-weight: 700;
+                    font-size: 14px;
+                    margin-top: 15px;
+                    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+                }}
+
+                /* Content area */
+                .content {{
+                    padding: 40px 30px;
+                    background-color: #ffffff;
+                }}
+
+                .greeting {{
+                    font-size: 20px;
+                    font-weight: 600;
+                    color: #000000;
+                    margin-bottom: 15px;
+                }}
+
+                .intro-text {{
+                    font-size: 16px;
+                    color: #4a4a4a;
+                    margin-bottom: 30px;
+                    line-height: 1.7;
+                }}
+
+                /* Event details card */
+                .event-details {{
+                    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+                    border: 2px solid #FFC107;
+                    border-radius: 16px;
+                    padding: 25px;
+                    margin: 30px 0;
+                    position: relative;
+                    overflow: hidden;
+                }}
+
+                .event-details::before {{
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 4px;
+                    background: linear-gradient(90deg, #FFC107 0%, #FFD54F 50%, #FFC107 100%);
+                }}
+
+                .event-details h3 {{
+                    color: #000000;
+                    font-size: 18px;
+                    font-weight: 700;
+                    margin-bottom: 20px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }}
+
+                .detail-row {{
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 12px;
+                    padding: 8px 0;
+                    border-bottom: 1px solid #f0f0f0;
+                }}
+
+                .detail-row:last-child {{
+                    border-bottom: none;
+                    margin-bottom: 0;
+                }}
+
+                .detail-icon {{
+                    width: 24px;
+                    font-size: 18px;
+                    margin-right: 12px;
+                }}
+
+                .detail-label {{
+                    font-weight: 600;
+                    color: #2c2c2c;
+                    min-width: 100px;
+                }}
+
+                .detail-value {{
+                    color: #4a4a4a;
+                    flex: 1;
+                }}
+
+                .price-highlight {{
+                    color: #FFC107 !important;
+                    font-weight: 700;
+                    font-size: 18px;
+                }}
+
+                /* Expectations section */
+                .expectations {{
+                    margin: 30px 0;
+                }}
+
+                .expectations h3 {{
+                    color: #000000;
+                    font-size: 18px;
+                    font-weight: 700;
+                    margin-bottom: 20px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }}
+
+                .expectations ul {{
+                    list-style: none;
+                    padding: 0;
+                }}
+
+                .expectations li {{
+                    padding: 12px 0;
+                    border-bottom: 1px solid #f0f0f0;
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 12px;
+                }}
+
+                .expectations li:last-child {{
+                    border-bottom: none;
+                }}
+
+                .check-icon {{
+                    color: #FFC107;
+                    font-weight: bold;
+                    font-size: 16px;
+                    margin-top: 2px;
+                }}
+
+                /* Contact section */
+                .contact-section {{
+                    background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+                    border-radius: 16px;
+                    padding: 25px;
+                    margin: 30px 0;
+                    text-align: center;
+                }}
+
+                .contact-section h3 {{
+                    color: #FFC107;
+                    font-size: 18px;
+                    font-weight: 700;
+                    margin-bottom: 15px;
+                }}
+
+                .contact-section p {{
+                    color: #cccccc;
+                    margin-bottom: 20px;
+                }}
+
+                .contact-buttons {{
+                    display: flex;
+                    gap: 15px;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                }}
+
+                .contact-btn {{
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 12px 20px;
+                    background: linear-gradient(135deg, #FFC107 0%, #FFD54F 100%);
+                    color: #000000;
+                    text-decoration: none;
+                    border-radius: 25px;
+                    font-weight: 600;
+                    transition: transform 0.2s ease;
+                    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+                }}
+
+                .contact-btn:hover {{
+                    transform: translateY(-2px);
+                }}
+
+                /* CTA section */
+                .cta-section {{
+                    text-align: center;
+                    margin: 30px 0;
+                    padding: 25px;
+                    background: linear-gradient(135deg, #FFF3C4 0%, #FFECB3 100%);
+                    border-radius: 16px;
+                    border: 1px solid #FFC107;
+                }}
+
+                .cta-text {{
+                    font-size: 18px;
+                    font-weight: 700;
+                    color: #000000;
+                    margin: 0;
+                }}
+
+                /* Footer */
+                .footer {{
+                    background-color: #f8f9fa;
+                    padding: 30px;
+                    text-align: center;
+                    border-top: 1px solid #e9ecef;
+                }}
+
+                .footer-brand {{
+                    color: #000000;
+                    font-weight: 700;
+                    font-size: 16px;
+                    margin-bottom: 8px;
+                }}
+
+                .footer-tagline {{
+                    color: #6c757d;
+                    font-size: 14px;
+                    margin-bottom: 15px;
+                }}
+
+                .footer-disclaimer {{
+                    color: #adb5bd;
+                    font-size: 12px;
+                    line-height: 1.5;
+                }}
+
+                /* Mobile responsiveness */
+                @media only screen and (max-width: 600px) {{
+                    .email-container {{ margin: 10px; }}
+                    .header {{ padding: 30px 20px; }}
+                    .content {{ padding: 25px 20px; }}
+                    .header h1 {{ font-size: 24px; }}
+                    .contact-buttons {{ flex-direction: column; align-items: center; }}
+                    .detail-row {{ flex-direction: column; align-items: flex-start; gap: 5px; }}
+                    .detail-label {{ min-width: auto; }}
+                }}
             </style>
         </head>
         <body>
-            <div class="header">
-                <div class="logo">🍕 Pablo's Pizza</div>
-                <h1>¡Tu evento ha sido confirmado!</h1>
-            </div>
-
-            <div class="content">
-                <h2>Hola {booking_data.get('client_name', 'Cliente')},</h2>
-
-                <p>¡Excelente noticia! Tu evento ha sido <strong>confirmado</strong> y estamos emocionados de ser parte de tu celebración.</p>
-
-                <div class="event-details">
-                    <h3>📋 Detalles de tu evento:</h3>
-                    <p><strong>🍕 Servicio:</strong> {service_name}</p>
-                    <p><strong>📅 Fecha:</strong> {booking_data.get('event_date', 'No especificada')}</p>
-                    <p><strong>⏰ Hora:</strong> {booking_data.get('event_time', 'No especificada')}</p>
-                    <p><strong>👥 Participantes:</strong> {booking_data.get('participants', 'N/A')}</p>
-                    <p><strong>📍 Ubicación:</strong> {booking_data.get('location', 'No especificada')}</p>
-                    <p><strong>💰 Precio estimado:</strong> ${booking_data.get('estimated_price', 0):,.0f} CLP</p>
+            <div class="email-container">
+                <!-- Header with branding -->
+                <div class="header">
+                    <div class="logo-container">
+                        <img src="https://pablospizza.web.app/assets/logo-nqn6pSjR.png" alt="Pablo's Pizza" class="logo-image">
+                    </div>
+                    <h1>¡Tu evento ha sido confirmado!</h1>
+                    <div class="status-badge">✅ CONFIRMADO</div>
                 </div>
 
-                <h3>🔥 ¿Qué puedes esperar?</h3>
-                <ul>
-                    <li>✅ Nuestro equipo llegará puntualmente a la hora acordada</li>
-                    <li>✅ Todos los ingredientes y materiales necesarios incluidos</li>
-                    <li>✅ Una experiencia divertida y educativa para todos</li>
-                    <li>✅ Pizzas deliciosas hechas por los propios participantes</li>
-                </ul>
+                <!-- Main content -->
+                <div class="content">
+                    <div class="greeting">¡Hola {booking_data.get('client_name', 'Cliente')}!</div>
 
-                <h3>📞 Información de contacto:</h3>
-                <p>Si tienes alguna pregunta o necesitas hacer cambios:</p>
-                <ul>
-                    <li><strong>WhatsApp:</strong> +56 9 8942 4566</li>
-                    <li><strong>Email:</strong> contacto@pablospizza.com</li>
-                </ul>
+                    <p class="intro-text">
+                        ¡Excelente noticia! Tu evento ha sido <strong>confirmado oficialmente</strong> y estamos emocionados de ser parte de tu celebración especial. Nuestro equipo está preparado para brindarte una experiencia inolvidable.
+                    </p>
 
-                <p><strong>¡Nos vemos pronto para una experiencia increíble! 🎉</strong></p>
-            </div>
+                    <!-- Event details card -->
+                    <div class="event-details">
+                        <h3>📋 Detalles de tu evento</h3>
 
-            <div class="footer">
-                <p>Pablo's Pizza - Haciendo momentos deliciosos desde siempre 🍕❤️</p>
-                <p>Este es un email automático, por favor no responder directamente.</p>
+                        <div class="detail-row">
+                            <span class="detail-icon">🍕</span>
+                            <span class="detail-label">Servicio:</span>
+                            <span class="detail-value"><strong>{service_name}</strong></span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-icon">📅</span>
+                            <span class="detail-label">Fecha:</span>
+                            <span class="detail-value">{booking_data.get('event_date', 'No especificada')}</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-icon">⏰</span>
+                            <span class="detail-label">Hora:</span>
+                            <span class="detail-value">{booking_data.get('event_time', 'No especificada')}</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-icon">👥</span>
+                            <span class="detail-label">Participantes:</span>
+                            <span class="detail-value">{booking_data.get('participants', 'N/A')} personas</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-icon">📍</span>
+                            <span class="detail-label">Ubicación:</span>
+                            <span class="detail-value">{booking_data.get('location', 'No especificada')}</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-icon">💰</span>
+                            <span class="detail-label">Precio:</span>
+                            <span class="detail-value price-highlight">${booking_data.get('estimated_price', 0):,.0f} CLP</span>
+                        </div>
+                    </div>
+
+                    <!-- Expectations section -->
+                    <div class="expectations">
+                        <h3>🔥 ¿Qué puedes esperar de nosotros?</h3>
+                        <ul>
+                            <li>
+                                <span class="check-icon">✓</span>
+                                <span>Nuestro equipo profesional llegará puntualmente con todo el equipamiento necesario</span>
+                            </li>
+                            <li>
+                                <span class="check-icon">✓</span>
+                                <span>Ingredientes frescos y de primera calidad, incluyendo opciones especiales</span>
+                            </li>
+                            <li>
+                                <span class="check-icon">✓</span>
+                                <span>Una experiencia interactiva, divertida y educativa para todas las edades</span>
+                            </li>
+                            <li>
+                                <span class="check-icon">✓</span>
+                                <span>Pizzas artesanales deliciosas hechas por los propios participantes</span>
+                            </li>
+                            <li>
+                                <span class="check-icon">✓</span>
+                                <span>Recuerdos fotográficos y momentos únicos que durarán para siempre</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Contact section -->
+                    <div class="contact-section">
+                        <h3>📞 ¿Tienes alguna pregunta?</h3>
+                        <p>Nuestro equipo está disponible para ayudarte con cualquier consulta o cambio de último momento.</p>
+                        <div class="contact-buttons">
+                            <a href="https://wa.me/56989424566" class="contact-btn">
+                                📱 WhatsApp: +56 9 8942 4566
+                            </a>
+                            <a href="mailto:pablospizza.cl@gmail.com" class="contact-btn">
+                                ✉️ pablospizza.cl@gmail.com
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Calendar section -->
+                    <div class="calendar-section" style="background-color: #f8f9fa; padding: 25px 20px; margin: 25px 0; border-radius: 8px; border: 2px dashed #FFC107;">
+                        <h3 style="color: #000000; font-size: 20px; margin-bottom: 15px; text-align: center;">📅 Agregar a mi Calendario</h3>
+                        <p style="text-align: center; margin-bottom: 15px;">Hemos incluido una invitación de calendario con este email. <strong>Revisa los archivos adjuntos</strong> y ábrelo para agregar automáticamente el evento a tu calendario personal.</p>
+                        <div style="background-color: #FFF3CD; border-left: 4px solid #FFC107; padding: 12px; margin: 15px 0; border-radius: 4px;">
+                            <p style="margin: 0; font-size: 14px; color: #856404;">
+                                💡 <strong>Tip:</strong> El archivo "evento_pablos_pizza.ics" se puede abrir con Google Calendar, Outlook, Apple Calendar y la mayoría de aplicaciones de calendario.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- CTA section -->
+                    <div class="cta-section">
+                        <p class="cta-text">¡Nos vemos pronto para una experiencia gastronómica increíble! 🎉🍕</p>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="footer">
+                    <div class="footer-brand">Pablo's Pizza</div>
+                    <div class="footer-tagline">Creando momentos deliciosos y memorables desde siempre</div>
+                    <div class="footer-disclaimer">
+                        Este es un email automático de confirmación. Para consultas o cambios, utiliza nuestros canales de contacto oficiales.
+                    </div>
+                </div>
             </div>
         </body>
         </html>
@@ -153,6 +722,16 @@ def send_confirmation_email(booking_data: dict) -> bool:
         # Attach HTML content
         html_part = MIMEText(html_content, 'html')
         msg.attach(html_part)
+
+        # Generate and attach calendar invitation
+        calendar_content = generate_calendar_invite(booking_data)
+        if calendar_content:
+            cal_attachment = MIMEText(calendar_content, 'calendar')
+            cal_attachment['Content-Disposition'] = f'attachment; filename="evento_pablos_pizza.ics"'
+            cal_attachment.set_type('text/calendar')
+            cal_attachment.set_param('method', 'REQUEST')
+            msg.attach(cal_attachment)
+            print("Invitación de calendario agregada al email")
 
         # Send email
         server = smtplib.SMTP(smtp_server, smtp_port)
@@ -249,16 +828,15 @@ def create_event_from_booking(booking_data: dict) -> bool:
         service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
         event_title = f"{service_name} - {booking_data.get('client_name', 'Cliente')}"
         
-        # Parse event date if it's a string
+        # Parse event date - keep as string for Firestore compatibility
         event_date = booking_data.get('event_date')
-        if isinstance(event_date, str):
-            try:
-                from datetime import datetime
-                event_date = datetime.strptime(event_date, '%Y-%m-%d').date()
-            except:
-                event_date = datetime.now().date()
-        elif hasattr(event_date, 'date'):
-            event_date = event_date.date()
+        if not isinstance(event_date, str):
+            # If it's a datetime object, convert to string
+            if hasattr(event_date, 'strftime'):
+                event_date = event_date.strftime('%Y-%m-%d')
+            else:
+                # Fallback to current date as string
+                event_date = datetime.now().strftime('%Y-%m-%d')
         
         # Calculate profit if we have both estimated price and cost
         estimated_price = booking_data.get('estimated_price', 0)
@@ -360,6 +938,97 @@ def create_booking():
         db.collection("bookings").document(booking_id).set(booking_data)
         print(f"GUARDADO EN FIRESTORE: {booking_id} con precio ${estimated_price}")
 
+        # Send EMAIL notification to admin about new booking
+        try:
+            print(f"Enviando email de notificación de nuevo agendamiento al admin")
+            email_sent = send_admin_email_notification(booking_data)
+
+            if email_sent:
+                print(f"Email de notificación de nuevo agendamiento enviado exitosamente al admin")
+            else:
+                print(f"Error al enviar email de notificación de nuevo agendamiento al admin")
+
+        except Exception as e:
+            print(f"Error enviando email al admin: {e}")
+            # No fallar la creación de la reserva si falla la notificación
+
+        # Send WhatsApp notification to admin about new booking
+        try:
+            admin_phone = os.getenv('ADMIN_WHATSAPP_NUMBER', '+56989424566')
+            service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+
+            admin_whatsapp_message = f"""🍕 *Pablo's Pizza - NUEVO AGENDAMIENTO*
+
+¡Te acaban de agendar un evento!
+
+👤 *Cliente:* {booking_data.get('client_name', 'No especificado')}
+📱 *Teléfono:* {booking_data.get('client_phone', 'No especificado')}
+📧 *Email:* {booking_data.get('client_email', 'No especificado')}
+
+🍕 *Servicio:* {service_name}
+📅 *Fecha:* {booking_data.get('event_date', 'No especificada')}
+⏰ *Hora:* {booking_data.get('event_time', 'No especificada')}
+👥 *Participantes:* {booking_data.get('participants', 'No especificado')}
+📍 *Ubicación:* {booking_data.get('location', 'No especificada')}
+💰 *Precio estimado:* ${booking_data.get('estimated_price', 0):,.0f} CLP
+
+🔔 *Favor verificar en la plataforma para confirmar el evento.*
+
+ID: {booking_data.get('id', 'N/A')}"""
+
+            print(f"Enviando WhatsApp de nueva reserva al admin: {admin_phone}")
+            admin_whatsapp_sent = asyncio.run(send_whatsapp_notification(
+                admin_phone,
+                admin_whatsapp_message,
+                "new_booking_admin_alert"
+            ))
+
+            if admin_whatsapp_sent:
+                print(f"WhatsApp de nueva reserva enviado exitosamente al admin")
+            else:
+                print(f"Error al enviar WhatsApp de nueva reserva al admin")
+
+        except Exception as e:
+            print(f"Error enviando WhatsApp al admin: {e}")
+            # No fallar la creación de la reserva si falla la notificación
+
+        # Send WhatsApp notification to business partner about new booking
+        try:
+            partner_phone = os.getenv('PARTNER_WHATSAPP_NUMBER', '+56961093818')
+            service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+
+            partner_message = f"""🍕 *Pablo's Pizza - NUEVO AGENDAMIENTO*
+
+¡Hola! Te informo que acabamos de recibir una nueva reserva:
+
+👤 *Cliente:* {booking_data.get('client_name', 'No especificado')}
+📱 *Teléfono:* {booking_data.get('client_phone', 'No especificado')}
+
+🍕 *Servicio:* {service_name}
+📅 *Fecha:* {booking_data.get('event_date', 'No especificada')}
+⏰ *Hora:* {booking_data.get('event_time', 'No especificada')}
+👥 *Participantes:* {booking_data.get('participants', 'No especificado')}
+📍 *Ubicación:* {booking_data.get('location', 'No especificada')}
+💰 *Precio estimado:* ${booking_data.get('estimated_price', 0):,.0f} CLP
+
+¡Excelente! 🎉"""
+
+            print(f"Enviando WhatsApp de nueva reserva al socio: {partner_phone}")
+            whatsapp_sent = asyncio.run(send_whatsapp_notification(
+                partner_phone,
+                partner_message,
+                "new_booking_partner_alert"
+            ))
+
+            if whatsapp_sent:
+                print(f"WhatsApp de nueva reserva enviado exitosamente al socio")
+            else:
+                print(f"Error al enviar WhatsApp de nueva reserva al socio")
+
+        except Exception as e:
+            print(f"Error enviando WhatsApp al socio: {e}")
+            # No fallar la creación de la reserva si falla la notificación
+
         return jsonify(booking_data), 201
 
     except Exception as e:
@@ -424,6 +1093,61 @@ def get_events():
 
     except Exception as e:
         print(f"Error getting events: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/events/', methods=['POST'])
+def create_event():
+    """Create a new event"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Required fields
+        required_fields = ['title', 'event_date']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        db = get_db()
+
+        # Create event document
+        event_data = {
+            'title': data['title'],
+            'description': data.get('description', ''),
+            'event_date': data['event_date'],
+            'participants': data.get('participants', 0),
+            'final_price': data.get('final_price', 0),
+            'event_cost': data.get('event_cost', 0),
+            'profit': data.get('profit', 0),
+            'notes': data.get('notes', ''),
+            'status': data.get('status', 'pending'),
+            'booking_id': data.get('booking_id'),
+            'created_at': datetime.now(),
+            'updated_at': datetime.now(),
+            # Gallery fields
+            'is_published': data.get('is_published', False),
+            'is_featured': data.get('is_featured', False),
+            'category': data.get('category', 'workshop' if 'workshop' in data.get('title', '').lower() or 'pizzeros' in data.get('title', '').lower() else 'party'),
+            'satisfaction': data.get('satisfaction', 5),
+            'highlight': data.get('highlight', 'Experiencia única'),
+            'age_group': data.get('age_group', 'Todas las edades')
+        }
+
+        # Add to database
+        doc_ref = db.collection("events").add(event_data)
+        event_id = doc_ref[1].id
+
+        # Return created event
+        event_data['id'] = event_id
+        event_data['created_at'] = event_data['created_at'].isoformat()
+        event_data['updated_at'] = event_data['updated_at'].isoformat()
+
+        print(f"✅ Event created successfully: {event_id}")
+        return jsonify(event_data), 201
+
+    except Exception as e:
+        print(f"❌ Error creating event: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/events/<event_id>', methods=['GET'])

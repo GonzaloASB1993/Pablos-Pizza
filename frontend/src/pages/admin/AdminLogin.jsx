@@ -12,6 +12,7 @@ import {
 import { Login as LoginIcon } from '@mui/icons-material'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
+import logo from '../../assets/logo.png'
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('')
@@ -60,7 +61,7 @@ const AdminLogin = () => {
             <Box sx={{ textAlign: 'center', mb: 4 }}>
               <Box
                 component="img"
-                src="/logo.png"
+                src={logo}
                 alt="Pablo's Pizza Logo"
                 sx={{
                   width: 80,
