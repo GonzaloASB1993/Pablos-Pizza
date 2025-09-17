@@ -26,7 +26,7 @@ import {
   IconButton,
   Alert
 } from '@mui/material'
-import { Add, Edit, Delete, Upload, Image, Publish, PublishOff, Visibility, VisibilityOff } from '@mui/icons-material'
+import { Add, Edit, Delete, Upload, Image, Visibility, VisibilityOff, Star } from '@mui/icons-material'
 import { eventsAPI, galleryAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
@@ -272,7 +272,7 @@ const EventsManagement = () => {
       await galleryAPI.publish(photoId, isPublished)
       const action = isPublished ? 'publicada' : 'despublicada'
       toast.success(`Imagen ${action} exitosamente`)
-      
+
       // Recargar fotos del evento
       if (selectedEventForPhotos) {
         await loadEventPhotos(selectedEventForPhotos.id)
@@ -280,6 +280,21 @@ const EventsManagement = () => {
     } catch (error) {
       console.error('Error publishing photo:', error)
       toast.error('Error al cambiar estado de publicación')
+    }
+  }
+
+  // Funciones para publicar eventos
+  const handlePublishEvent = async (eventId, isPublished, isFeatured = false) => {
+    try {
+      await eventsAPI.publish(eventId, isPublished, isFeatured)
+      const action = isPublished ? 'publicado' : 'despublicado'
+      toast.success(`Evento ${action} exitosamente`)
+
+      // Recargar lista de eventos
+      await loadEvents()
+    } catch (error) {
+      console.error('Error publishing event:', error)
+      toast.error('Error al cambiar estado de publicación del evento')
     }
   }
 
@@ -351,6 +366,7 @@ const EventsManagement = () => {
                     <TableCell>Participantes</TableCell>
                     <TableCell>Estado</TableCell>
                     <TableCell>Galería</TableCell>
+                    <TableCell>Publicación</TableCell>
                     <TableCell>Acciones</TableCell>
                   </TableRow>
                 </TableHead>
@@ -401,6 +417,47 @@ const EventsManagement = () => {
                         >
                           Fotos
                         </Button>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          {event.is_published ? (
+                            <>
+                              <Chip
+                                label="Publicado"
+                                color="success"
+                                size="small"
+                                icon={<Visibility />}
+                              />
+                              {event.is_featured && (
+                                <Chip
+                                  label="Destacado"
+                                  color="warning"
+                                  size="small"
+                                  icon={<Star />}
+                                />
+                              )}
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="warning"
+                                startIcon={<VisibilityOff />}
+                                onClick={() => handlePublishEvent(event.id, false)}
+                              >
+                                Despublicar
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="primary"
+                              startIcon={<Visibility />}
+                              onClick={() => handlePublishEvent(event.id, true)}
+                            >
+                              Publicar
+                            </Button>
+                          )}
+                        </Box>
                       </TableCell>
                       <TableCell>
                         <IconButton

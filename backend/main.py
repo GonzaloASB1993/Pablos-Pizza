@@ -1181,7 +1181,14 @@ def create_event():
             'status': data.get('status', 'pending'),
             'booking_id': data.get('booking_id'),
             'created_at': datetime.now(),
-            'updated_at': datetime.now()
+            'updated_at': datetime.now(),
+            # Gallery fields
+            'is_published': data.get('is_published', False),
+            'is_featured': data.get('is_featured', False),
+            'category': data.get('category', 'workshop' if 'workshop' in data.get('title', '').lower() or 'pizzeros' in data.get('title', '').lower() else 'party'),
+            'satisfaction': data.get('satisfaction', 5),
+            'highlight': data.get('highlight', 'Experiencia única'),
+            'age_group': data.get('age_group', 'Todas las edades')
         }
         
         # Add to database
@@ -1261,71 +1268,160 @@ def update_event(event_id):
 # Gallery endpoints (basic implementation)
 @app.route('/api/gallery/', methods=['GET'])
 def get_gallery_images():
-    """Get gallery images for public gallery or admin management"""
+    """Get gallery images for admin management only"""
     try:
         print("=== GALLERY ENDPOINT DEBUG ===")
         event_id = request.args.get('event_id')
         print(f"Event ID param: {event_id}")
-        
+
         db = get_db()
-        
-        # Simple approach: get all gallery images first
-        images_ref = db.collection("gallery").order_by("uploaded_at", direction=firestore.Query.DESCENDING)
-        
+
+        # Get gallery images, filtering by event_id if specified
+        if event_id:
+            images_ref = db.collection("gallery").where("event_id", "==", event_id).order_by("uploaded_at", direction=firestore.Query.DESCENDING)
+        else:
+            images_ref = db.collection("gallery").order_by("uploaded_at", direction=firestore.Query.DESCENDING)
+
         gallery_items = []
         for doc in images_ref.stream():
             image = doc.to_dict()
-            image['id'] = doc.id
             print(f"Processing image: {doc.id}, event_id: {image.get('event_id')}, published: {image.get('is_published')}")
-            
-            # Apply event_id filter if specified (admin view)
-            if event_id and image.get('event_id') != event_id:
-                print(f"  Skipping - wrong event_id")
-                continue
-                
-            # For public gallery (no event_id), filter only published images
-            if not event_id and not image.get('is_published', False):
-                print(f"  Skipping - not published")
-                continue
-            
-            print(f"  Including image in results")
-            
-            # Simple format for admin, complex for public
-            if event_id:
-                # Admin format - simpler
-                gallery_item = {
-                    'id': doc.id,
-                    'title': image.get('title', 'Imagen'),
-                    'url': image.get('url', ''),
-                    'is_published': image.get('is_published', False),
-                    'uploaded_at': image.get('uploaded_at'),
-                    'event_id': image.get('event_id')
-                }
-            else:
-                # Public format - more complex
-                gallery_item = {
-                    'id': doc.id,
-                    'title': image.get('title', 'Evento'),
-                    'category': 'party',
-                    'description': image.get('description', ''),
-                    'images': [image.get('url', '')],
-                    'participants': 10,
-                    'featured': image.get('is_featured', False),
-                    'satisfaction': 5,
-                    'highlight': 'Experiencia única',
-                    'age_group': 'Todas las edades'
-                }
-            
+
+            gallery_item = {
+                'id': doc.id,
+                'title': image.get('title', 'Imagen'),
+                'url': image.get('url', ''),
+                'is_published': image.get('is_published', False),
+                'uploaded_at': image.get('uploaded_at'),
+                'event_id': image.get('event_id')
+            }
+
             gallery_items.append(gallery_item)
 
-        print(f"Returning {len(gallery_items)} items")
-        return jsonify(gallery_items), 200
+        print(f"✅ Gallery admin query completed. Found {len(gallery_items)} items")
+
+        # Return Response object only (no tuple)
+        response = jsonify(gallery_items)
+        response.status_code = 200
+        return response
 
     except Exception as e:
         print(f"❌ Error getting gallery images: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+
+        error_response = jsonify({"error": str(e)})
+        error_response.status_code = 500
+        return error_response
+
+
+@app.route('/api/gallery/public', methods=['GET'])
+def get_public_gallery_events():
+    """Get published events with their images for public gallery"""
+    try:
+        print("=== PUBLIC GALLERY EVENTS ===")
+        db = get_db()
+
+        # Get published events
+        events_ref = db.collection("events").where("is_published", "==", True).order_by("event_date", direction=firestore.Query.DESCENDING)
+
+        gallery_events = []
+        for event_doc in events_ref.stream():
+            event = event_doc.to_dict()
+            event_id = event_doc.id
+            print(f"Processing published event: {event_id} - {event.get('title')}")
+
+            # Get published images for this event
+            images_ref = db.collection("gallery").where("event_id", "==", event_id).where("is_published", "==", True)
+
+            event_images = []
+            for img_doc in images_ref.stream():
+                img = img_doc.to_dict()
+                event_images.append(img.get('url', ''))
+
+            # Only include events that have at least one published image
+            if event_images:
+                gallery_event = {
+                    'id': event_id,
+                    'title': event.get('title', 'Evento'),
+                    'description': event.get('description', ''),
+                    'category': event.get('category', 'workshop'),
+                    'participants': event.get('participants', 0),
+                    'featured': event.get('is_featured', False),
+                    'highlight': event.get('highlight', 'Experiencia única'),
+                    'age_group': event.get('age_group', 'Todas las edades'),
+                    'date': event.get('event_date'),
+                    'images': event_images  # Array of image URLs
+                }
+                gallery_events.append(gallery_event)
+                print(f"  ✅ Added event with {len(event_images)} images")
+            else:
+                print(f"  ⚠️  Skipping event - no published images")
+
+        print(f"✅ Public gallery query completed. Found {len(gallery_events)} published events")
+
+        # Return Response object only (no tuple)
+        response = jsonify(gallery_events)
+        response.status_code = 200
+        return response
+
+    except Exception as e:
+        print(f"❌ Error getting public gallery events: {e}")
+
+        error_response = jsonify({"error": str(e)})
+        error_response.status_code = 500
+        return error_response
+
+
+@app.route('/api/events/<event_id>/publish', methods=['PUT'])
+def publish_event(event_id):
+    """Publish or unpublish an event for gallery"""
+    try:
+        data = request.get_json() or {}
+        is_published = data.get('is_published', True)
+
+        print(f"=== PUBLISH EVENT DEBUG ===")
+        print(f"Event ID: {event_id}")
+        print(f"Setting published to: {is_published}")
+
+        db = get_db()
+        doc_ref = db.collection("events").document(event_id)
+
+        # Verificar que el evento existe
+        doc = doc_ref.get()
+        if not doc.exists:
+            return jsonify({"error": "Event not found"}), 404
+
+        # Actualizar estado de publicación
+        update_data = {
+            "is_published": is_published,
+            "updated_at": datetime.now()
+        }
+
+        # Si se está publicando, también guardar featured si viene en el request
+        if is_published and 'is_featured' in data:
+            update_data['is_featured'] = data['is_featured']
+
+        doc_ref.update(update_data)
+
+        action = "publicado" if is_published else "despublicado"
+        print(f"✅ Event {action}: {event_id}")
+
+        # Return Response object only (no tuple)
+        response = jsonify({
+            "message": f"Evento {action} exitosamente",
+            "event_id": event_id,
+            "is_published": is_published
+        })
+        response.status_code = 200
+        return response
+
+    except Exception as e:
+        print(f"❌ Error publishing event: {e}")
+
+        error_response = jsonify({"error": str(e)})
+        error_response.status_code = 500
+        return error_response
 
 @app.route('/api/gallery/upload', methods=['POST'])
 def upload_gallery_image():
@@ -1358,20 +1454,63 @@ def upload_gallery_image():
                     print(f"❌ Invalid file type: {file.content_type}")
                     continue
                     
-                # For now, create placeholder entry in Firestore
-                # TODO: Upload to Firebase Storage in production
-                image_id = str(uuid.uuid4())
+                # Upload to Firebase Storage
+                try:
+                    print(f"🔄 Starting upload for file: {file.filename}")
+                    import firebase_admin
+                    from firebase_admin import storage
+
+                    # Get storage bucket (Firebase project default)
+                    bucket = storage.bucket()
+                    print(f"✅ Storage bucket obtained: {bucket.name}")
+
+                    # Generate unique filename
+                    image_id = str(uuid.uuid4())
+                    file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+                    storage_path = f"gallery/{event_id}/{image_id}.{file_extension}"
+
+                    print(f"📁 Storage path: {storage_path}")
+
+                    # Read file data
+                    file_data = file.read()
+                    print(f"📊 File size: {len(file_data)} bytes")
+
+                    # Upload file to Firebase Storage
+                    blob = bucket.blob(storage_path)
+                    blob.upload_from_string(
+                        file_data,
+                        content_type=file.content_type
+                    )
+                    print(f"⬆️ Upload completed")
+
+                    # Make the blob publicly readable
+                    blob.make_public()
+                    print(f"🌐 Made public")
+
+                    # Get public URL
+                    public_url = blob.public_url
+                    print(f"✅ Image uploaded to Storage: {storage_path}")
+                    print(f"✅ Public URL: {public_url}")
+
+                except Exception as storage_error:
+                    print(f"❌ Storage upload failed: {storage_error}")
+                    import traceback
+                    traceback.print_exc()
+                    # Fallback to placeholder if storage fails
+                    public_url = f"https://via.placeholder.com/400x300?text=Upload+Failed"
+
                 image_data = {
                     "id": image_id,
-                    "url": f"https://via.placeholder.com/400x300?text={file.filename}",
+                    "url": public_url,
                     "title": file.filename,
                     "description": request.form.get('description', ''),
                     "event_id": event_id,
                     "uploaded_at": datetime.now(),
                     "is_featured": False,
-                    "is_published": False,  # Por defecto no publicado
+                    "is_published": True,  # Auto-publicado cuando se sube
                     "filename": file.filename,
-                    "content_type": file.content_type
+                    "content_type": file.content_type,
+                    "storage_path": storage_path
                 }
                 
                 db = get_db()
@@ -1548,30 +1687,80 @@ def update_booking(booking_id):
 @https_fn.on_request()
 def main(req: https_fn.Request) -> https_fn.Response:
     """Firebase Function entry point - Production ready"""
-    from werkzeug.test import Client
-
-    # Create a test client to handle the request properly
-    client = Client(app)
+    from flask import Response as FlaskResponse
+    import traceback
 
     try:
-        # Convert Firebase request to Flask-compatible format
-        response = client.open(
+        print(f"Processing request: {req.method} {req.path}")
+
+        # Create Flask request context
+        with app.test_request_context(
             path=req.path,
             method=req.method,
-            headers=list(req.headers.items()),
+            headers=dict(req.headers),
             data=req.get_data(),
-            query_string=req.query_string
-        )
+            query_string=req.query_string.decode() if req.query_string else None
+        ):
+            try:
+                # Process the request through Flask
+                flask_response = app.full_dispatch_request()
 
-        # Return properly formatted response
-        return https_fn.Response(
-            response.get_data(),
-            status=response.status_code,
-            headers=dict(response.headers)
-        )
+                print(f"Flask response type: {type(flask_response)}")
+
+                # Handle different response types
+                if isinstance(flask_response, tuple):
+                    # Flask returned a tuple (response, status_code, headers)
+                    if len(flask_response) == 2:
+                        response_data, status_code = flask_response
+                        headers = {}
+                    elif len(flask_response) == 3:
+                        response_data, status_code, headers = flask_response
+                    else:
+                        raise ValueError(f"Unexpected tuple length: {len(flask_response)}")
+
+                    # Convert response_data to proper format
+                    if isinstance(response_data, FlaskResponse):
+                        response_body = response_data.get_data()
+                        response_headers = dict(response_data.headers)
+                        response_status = response_data.status_code
+                    else:
+                        # response_data is probably a JSON response
+                        response_body = response_data if isinstance(response_data, (str, bytes)) else str(response_data)
+                        response_headers = headers if isinstance(headers, dict) else {}
+                        response_status = status_code
+
+                elif isinstance(flask_response, FlaskResponse):
+                    # Standard Flask response object
+                    response_body = flask_response.get_data()
+                    response_headers = dict(flask_response.headers)
+                    response_status = flask_response.status_code
+                else:
+                    # Unexpected response type
+                    raise ValueError(f"Unexpected response type: {type(flask_response)}")
+
+                print(f"Response status: {response_status}")
+                print(f"Response headers: {response_headers}")
+
+                # Ensure we have bytes for the response body
+                if isinstance(response_body, str):
+                    response_body = response_body.encode('utf-8')
+
+                # Return Firebase Functions response
+                return https_fn.Response(
+                    response_body,
+                    status=response_status,
+                    headers=response_headers
+                )
+
+            except Exception as flask_error:
+                print(f"Flask processing error: {flask_error}")
+                traceback.print_exc()
+                raise flask_error
 
     except Exception as e:
         print(f"Error in main function: {e}")
+        print(f"Error type: {type(e)}")
+        traceback.print_exc()
         return https_fn.Response(
             '{"error": "Internal server error"}',
             status=500,

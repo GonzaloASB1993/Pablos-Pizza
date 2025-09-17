@@ -40,7 +40,9 @@
       "WebFetch(domain:pablospizza.web.app)",
       "Bash(start \"https://pablospizza.web.app/admin/agendamientos\")",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(start \"https://pablospizza.web.app/admin/eventos\")",
+      "Bash(firebase storage:rules:*)"
     ],
     "deny": [],
     "ask": []
