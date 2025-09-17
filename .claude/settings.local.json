@@ -48,7 +48,8 @@
       "Bash(npm run:*)",
       "Bash(start \"http://localhost:3000/contacto\")",
       "Bash(start \"http://localhost:3001/contacto\")",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []

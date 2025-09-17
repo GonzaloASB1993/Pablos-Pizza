@@ -21,6 +21,7 @@ import {
 } from '@mui/icons-material'
 import { bookingsAPI, eventsAPI, reviewsAPI } from '../../services/api'
 import { useNavigate } from 'react-router-dom'
+import logo from '../../assets/logo.png'
 
 const AdminDashboard = () => {
   const navigate = useNavigate()
@@ -57,6 +58,12 @@ const AdminDashboard = () => {
       const events = eventsResponse.data || []
       const reviews = reviewsResponse.data || []
 
+      // Debug: log first booking and event to see data structure
+      console.log('🔍 DEBUG - Sample booking:', bookings[0])
+      console.log('🔍 DEBUG - Sample event:', events[0])
+      console.log('🔍 DEBUG - Total bookings:', bookings.length)
+      console.log('🔍 DEBUG - Total events:', events.length)
+
       // Calculate today's bookings
       const today = new Date()
       const todayStr = today.toISOString().split('T')[0]
@@ -74,13 +81,34 @@ const AdminDashboard = () => {
         return eventDate && eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
       })
 
-      const monthlyIncome = monthlyEvents.reduce((total, event) => {
-        return total + (event.revenue || event.final_price || 0)
+      // Calculate monthly income from confirmed bookings (not just completed events)
+      const confirmedBookings = bookings.filter(booking => {
+        if (booking.status !== 'confirmed' && booking.status !== 'completed') return false
+        const eventDate = booking.event_date ? new Date(booking.event_date) : null
+        const isThisMonth = eventDate && eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
+
+        // Debug each booking
+        console.log(`📊 Booking ${booking.id}: status=${booking.status}, date=${booking.event_date}, parsed=${eventDate}, thisMonth=${isThisMonth}, price=${booking.estimated_price}`)
+
+        return isThisMonth
+      })
+
+      console.log(`💰 Confirmed bookings this month:`, confirmedBookings.length)
+
+      const monthlyIncome = confirmedBookings.reduce((total, booking) => {
+        const price = booking.estimated_price || 0
+        console.log(`💰 Adding price: ${price} (total so far: ${total + price})`)
+        return total + price
       }, 0)
 
       const monthlyProfit = monthlyEvents.reduce((total, event) => {
-        return total + (event.event_profit || 0)
+        const profit = event.profit || 0
+        console.log(`💸 Event profit: ${profit} (total so far: ${total + profit})`)
+        return total + profit
       }, 0)
+
+      console.log(`💰 Final monthly income: ${monthlyIncome}`)
+      console.log(`💸 Final monthly profit: ${monthlyProfit}`)
 
       // Calculate alerts
       const pendingReviews = reviews.filter(review => !review.approved).length
@@ -137,13 +165,26 @@ const AdminDashboard = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h3" gutterBottom>
-            Dashboard - Pablo's Pizza
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Resumen general del negocio y métricas importantes
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box
+            component="img"
+            src={logo}
+            alt="Pablo's Pizza Logo"
+            sx={{
+              width: 60,
+              height: 60,
+              borderRadius: '50%',
+              objectFit: 'cover'
+            }}
+          />
+          <Box>
+            <Typography variant="h3" gutterBottom>
+              Dashboard - Pablo's Pizza
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Resumen general del negocio y métricas importantes
+            </Typography>
+          </Box>
         </Box>
         <Button
           variant="outlined"
@@ -210,7 +251,7 @@ const AdminDashboard = () => {
                   <Button
                     variant="contained"
                     fullWidth
-                    onClick={() => navigate('/admin/bookings')}
+                    onClick={() => navigate('/admin/agendamientos')}
                     startIcon={<Event />}
                   >
                     Ver Agendamientos ({stats.newBookings} hoy)
@@ -218,7 +259,7 @@ const AdminDashboard = () => {
                   <Button
                     variant="outlined"
                     fullWidth
-                    onClick={() => navigate('/admin/events')}
+                    onClick={() => navigate('/admin/eventos')}
                     startIcon={<People />}
                   >
                     Gestionar Galería de Eventos
@@ -238,7 +279,7 @@ const AdminDashboard = () => {
                       variant="outlined"
                       fullWidth
                       color="success"
-                      onClick={() => navigate('/admin/bookings')}
+                      onClick={() => navigate('/admin/agendamientos')}
                       startIcon={<CheckCircle />}
                     >
                       Completar Eventos ({alerts.confirmedEvents} confirmados)
