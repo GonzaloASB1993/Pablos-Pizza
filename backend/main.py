@@ -24,7 +24,11 @@ allowed_origins = [
     'https://pablospizza.web.app',
     'https://pablospizza.firebaseapp.com',
     'http://localhost:5173',  # For development
-    'http://localhost:3000'   # Alternative dev port
+    'http://localhost:3000',   # Alternative dev port
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'http://localhost:3003',
+    'http://localhost:3004'
 ]
 
 # Add any additional origins from environment
@@ -48,7 +52,7 @@ def get_db():
                 is_local = os.path.exists(service_account_path) and os.getenv('ENVIRONMENT') != 'production'
                 
                 if is_local:
-                    print("🔧 LOCAL: Using service account credentials")
+                    print("LOCAL: Using service account credentials")
                     from firebase_admin import credentials
                     cred = credentials.Certificate(service_account_path)
                     firebase_admin.initialize_app(cred)
@@ -57,7 +61,7 @@ def get_db():
                     print("☁️ PRODUCTION: Using default Firebase credentials")
                     firebase_admin.initialize_app()
             except Exception as e:
-                print(f"❌ Error initializing Firebase: {e}")
+                print(f"ERROR Error initializing Firebase: {e}")
                 return None
         _db = firestore.client()
     return _db
@@ -114,16 +118,16 @@ def send_confirmation_email(booking_data: dict) -> bool:
                     <p><strong>📅 Fecha:</strong> {booking_data.get('event_date', 'No especificada')}</p>
                     <p><strong>⏰ Hora:</strong> {booking_data.get('event_time', 'No especificada')}</p>
                     <p><strong>👥 Participantes:</strong> {booking_data.get('participants', 'N/A')}</p>
-                    <p><strong>📍 Ubicación:</strong> {booking_data.get('location', 'No especificada')}</p>
+                    <p><strong>Ubicación:</strong> {booking_data.get('location', 'No especificada')}</p>
                     <p><strong>💰 Precio estimado:</strong> ${booking_data.get('estimated_price', 0):,.0f} CLP</p>
                 </div>
 
                 <h3>🔥 ¿Qué puedes esperar?</h3>
                 <ul>
-                    <li>✅ Nuestro equipo llegará puntualmente a la hora acordada</li>
-                    <li>✅ Todos los ingredientes y materiales necesarios incluidos</li>
-                    <li>✅ Una experiencia divertida y educativa para todos</li>
-                    <li>✅ Pizzas deliciosas hechas por los propios participantes</li>
+                    <li>Nuestro equipo llegará puntualmente a la hora acordada</li>
+                    <li>Todos los ingredientes y materiales necesarios incluidos</li>
+                    <li>Una experiencia divertida y educativa para todos</li>
+                    <li>Pizzas deliciosas hechas por los propios participantes</li>
                 </ul>
 
                 <h3>📞 Información de contacto:</h3>
@@ -148,7 +152,7 @@ def send_confirmation_email(booking_data: dict) -> bool:
         msg = MIMEMultipart('alternative')
         msg['From'] = email_from
         msg['To'] = booking_data.get('client_email')
-        msg['Subject'] = "✅ ¡Tu evento con Pablo's Pizza ha sido confirmado!"
+        msg['Subject'] = "¡Tu evento con Pablo's Pizza ha sido confirmado!"
 
         # Attach HTML content
         html_part = MIMEText(html_content, 'html')
@@ -166,7 +170,7 @@ def send_confirmation_email(booking_data: dict) -> bool:
         try:
             email_data = {
                 "recipient_email": booking_data.get('client_email'),
-                "subject": "✅ ¡Tu evento con Pablo's Pizza ha sido confirmado!",
+                "subject": "¡Tu evento con Pablo's Pizza ha sido confirmado!",
                 "booking_id": booking_data.get('id'),
                 "email_type": "confirmation",
                 "sent_at": datetime.now(),
@@ -188,7 +192,7 @@ def send_confirmation_email(booking_data: dict) -> bool:
         try:
             error_email = {
                 "recipient_email": booking_data.get('client_email'),
-                "subject": "✅ ¡Tu evento con Pablo's Pizza ha sido confirmado!",
+                "subject": "¡Tu evento con Pablo's Pizza ha sido confirmado!",
                 "booking_id": booking_data.get('id'),
                 "email_type": "confirmation",
                 "sent_at": datetime.now(),
@@ -651,15 +655,15 @@ def main(req: https_fn.Request) -> https_fn.Response:
 
 # Local development server
 if __name__ == '__main__':
-    print("🚀 Starting Pablo's Pizza Backend in LOCAL DEVELOPMENT mode...")
-    print(f"📍 Server will be available at: http://localhost:8000")
-    print("🔗 Available endpoints:")
+    print("Starting Pablo's Pizza Backend in LOCAL DEVELOPMENT mode...")
+    print(f"Server will be available at: http://localhost:8000")
+    print("Available endpoints:")
     print("   - GET /api/health - Health check")
     print("   - POST /api/bookings/ - Create booking")
     print("   - GET /api/bookings/ - List bookings")
     print("   - GET /api/events/ - List events")
     print("   - GET /api/gallery/ - Gallery images")
-    print("💡 Use Ctrl+C to stop the server")
+    print("Use Ctrl+C to stop the server")
     
     # Run Flask development server
     app.run(
