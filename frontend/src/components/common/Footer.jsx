@@ -16,6 +16,7 @@ import {
 } from '@mui/icons-material'
 import { useTheme } from '@mui/material/styles'
 import logo from '../../assets/logo.png'
+import { CONTACT_INFO } from '../../config/constants'
 
 const Footer = () => {
   const theme = useTheme()
@@ -68,7 +69,7 @@ const Footer = () => {
                 <Instagram />
               </IconButton>
               <IconButton 
-                href="https://wa.me/56989424566" 
+                href="{CONTACT_INFO.WHATSAPP_URL}" 
                 target="_blank"
                 sx={{ 
                   color: theme.palette.primary.main,
@@ -142,14 +143,14 @@ const Footer = () => {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <WhatsApp fontSize="small" sx={{ color: theme.palette.primary.main }} />
-                <Link href="https://wa.me/56989424566" color="inherit" underline="hover">
-                  +56 9 8942 4566
+                <Link href="{CONTACT_INFO.WHATSAPP_URL}" color="inherit" underline="hover">
+                  {CONTACT_INFO.WHATSAPP_DISPLAY}
                 </Link>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Phone fontSize="small" sx={{ color: theme.palette.primary.main }} />
-                <Link href="tel:+56989424566" color="inherit" underline="hover">
-                  +56 9 8942 4566
+                <Link href="tel:{CONTACT_INFO.WHATSAPP_NUMBER}" color="inherit" underline="hover">
+                  {CONTACT_INFO.WHATSAPP_DISPLAY}
                 </Link>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

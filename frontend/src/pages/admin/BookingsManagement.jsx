@@ -61,7 +61,12 @@ const BookingsManagement = () => {
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [formData, setFormData] = useState({
     status: '',
-    notes: ''
+    notes: '',
+    event_date: '',
+    event_time: '',
+    service_type: '',
+    participants: '',
+    estimated_price: ''
   })
   const [completeData, setCompleteData] = useState({
     eventCost: '',
@@ -147,7 +152,12 @@ const BookingsManagement = () => {
     setSelectedBooking(booking)
     setFormData({
       status: booking.status,
-      notes: booking.notes || ''
+      notes: booking.notes || '',
+      event_date: booking.event_date ? booking.event_date.split('T')[0] : '',
+      event_time: booking.event_time || '',
+      service_type: booking.service_type || '',
+      participants: booking.participants || '',
+      estimated_price: booking.estimated_price || ''
     })
     setEditDialog(true)
   }
@@ -155,13 +165,16 @@ const BookingsManagement = () => {
   const handleUpdateBooking = async () => {
     try {
       const oldStatus = selectedBooking.status
-      // Solo enviar campos que el backend acepta
+      // Preparar datos de actualización con todos los campos editables
       const updatePayload = {}
+
       if (formData.status) updatePayload.status = formData.status
-      // Opcional: persistir notas en special_requests para no perderlas
-      if (formData.notes) {
-        updatePayload.special_requests = formData.notes
-      }
+      if (formData.notes) updatePayload.special_requests = formData.notes
+      if (formData.event_date) updatePayload.event_date = formData.event_date
+      if (formData.event_time) updatePayload.event_time = formData.event_time
+      if (formData.service_type) updatePayload.service_type = formData.service_type
+      if (formData.participants) updatePayload.participants = parseInt(formData.participants)
+      if (formData.estimated_price) updatePayload.estimated_price = parseFloat(formData.estimated_price)
 
       await bookingsAPI.update(selectedBooking.id, updatePayload)
 
@@ -567,7 +580,7 @@ const BookingsManagement = () => {
       )}
 
       {/* Edit Dialog */}
-      <Dialog open={editDialog} onClose={() => setEditDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog open={editDialog} onClose={() => setEditDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>Editar Agendamiento</DialogTitle>
         <DialogContent>
           {selectedBooking && (
@@ -576,13 +589,27 @@ const BookingsManagement = () => {
                 <Alert severity="info">
                   <Typography variant="body2">
                     <strong>Cliente:</strong> {selectedBooking.client_name}<br />
-                    <strong>Servicio:</strong> {getServiceLabel(selectedBooking.service_type)}<br />
-                    <strong>Fecha:</strong> {new Date(selectedBooking.event_date).toLocaleDateString('es-CL')}<br />
-                    <strong>Participantes:</strong> {selectedBooking.participants}
+                    <strong>Email:</strong> {selectedBooking.client_email}<br />
+                    <strong>Teléfono:</strong> {selectedBooking.client_phone}
                   </Typography>
                 </Alert>
               </Grid>
-              <Grid item xs={12}>
+
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Tipo de Servicio</InputLabel>
+                  <Select
+                    value={formData.service_type}
+                    onChange={(e) => setFormData({...formData, service_type: e.target.value})}
+                    label="Tipo de Servicio"
+                  >
+                    <MenuItem value="workshop">Pizzeros en Acción</MenuItem>
+                    <MenuItem value="pizza_party">Pizza Party</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
                   <InputLabel>Estado</InputLabel>
                   <Select
@@ -597,6 +624,53 @@ const BookingsManagement = () => {
                   </Select>
                 </FormControl>
               </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Fecha del Evento"
+                  type="date"
+                  value={formData.event_date}
+                  onChange={(e) => setFormData({...formData, event_date: e.target.value})}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Hora del Evento"
+                  type="time"
+                  value={formData.event_time}
+                  onChange={(e) => setFormData({...formData, event_time: e.target.value})}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Número de Participantes"
+                  type="number"
+                  value={formData.participants}
+                  onChange={(e) => setFormData({...formData, participants: e.target.value})}
+                  inputProps={{ min: 1, max: 50 }}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Precio Estimado"
+                  type="number"
+                  value={formData.estimated_price}
+                  onChange={(e) => setFormData({...formData, estimated_price: e.target.value})}
+                  InputProps={{
+                    startAdornment: '$'
+                  }}
+                />
+              </Grid>
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth

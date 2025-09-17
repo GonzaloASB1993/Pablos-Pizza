@@ -42,7 +42,8 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(start \"https://pablospizza.web.app/admin/eventos\")",
-      "Bash(firebase storage:rules:*)"
+      "Bash(firebase storage:rules:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

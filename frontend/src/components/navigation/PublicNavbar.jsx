@@ -24,6 +24,7 @@ import {
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import logo from '../../assets/logo.png'
+import { CONTACT_INFO } from '../../config/constants'
 
 const PublicNavbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -108,7 +109,7 @@ const PublicNavbar = () => {
             <Button
               fullWidth
               variant="outlined"
-              href="https://wa.me/56989424566"
+              href={CONTACT_INFO.WHATSAPP_URL}
               target="_blank"
               startIcon={<WhatsApp />}
             >
@@ -213,7 +214,7 @@ const PublicNavbar = () => {
                 </Button>
 
                 <IconButton
-                  href="https://wa.me/56989424566"
+                  href={CONTACT_INFO.WHATSAPP_URL}
                   target="_blank"
                   sx={{ 
                     ml: 1,
