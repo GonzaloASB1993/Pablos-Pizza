@@ -477,7 +477,6 @@ export const eventsAPI = {
   getAll: (params = {}) => api.get('/events/', { params }),
   getById: (id) => api.get(`/events/${id}`),
   update: (id, data) => api.put(`/events/${id}`, data),
-  publish: (id, isPublished, isFeatured = false) => api.put(`/events/${id}/publish`, { is_published: isPublished, is_featured: isFeatured }),
   requestReview: (id) => api.post(`/events/${id}/request-review`),
   getByBooking: (bookingId) => api.get(`/events/booking/${bookingId}`),
 }
@@ -485,11 +484,9 @@ export const eventsAPI = {
 export const galleryAPI = {
   upload: (formData) => api.post('/gallery/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   getAll: (params = {}) => api.get('/gallery/', { params }),
-  getPublic: () => api.get('/gallery/public'),
   getById: (id) => api.get(`/gallery/${id}`),
   update: (id, data) => api.put(`/gallery/${id}`, data),
   delete: (id) => api.delete(`/gallery/${id}`),
-  publish: (id, isPublished) => api.put(`/gallery/${id}/publish`, { is_published: isPublished }),
   getFeatured: (params = {}) => api.get('/gallery/featured/homepage', { params }),
   getByEvent: (eventId) => api.get('/gallery/', { params: { event_id: eventId } }),
 }

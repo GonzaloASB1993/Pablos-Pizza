@@ -13,7 +13,6 @@ import {
   IconButton,
   Button
 } from '@mui/material'
-import logo from '../../assets/logo.png'
 import {
   Menu as MenuIcon,
   Dashboard,
@@ -67,7 +66,7 @@ const AdminLayout = () => {
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Box
             component="img"
-            src={logo}
+            src="/logo.png"
             alt="Pablo's Pizza Logo"
             sx={{
               width: 32,

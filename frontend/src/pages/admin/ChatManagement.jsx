@@ -24,8 +24,6 @@ import {
 } from '@mui/material'
 import {
   Chat,
-  Mark​EmailRead,
-  MarkEmailUnread,
   Reply,
   Close,
   WhatsApp,

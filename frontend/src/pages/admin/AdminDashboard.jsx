@@ -78,27 +78,8 @@ const AdminDashboard = () => {
         return total + (event.revenue || event.final_price || 0)
       }, 0)
 
-      // Calculate monthly profit from completed bookings
-      const monthlyBookings = bookings.filter(booking => {
-        const eventDate = booking.event_date ? new Date(booking.event_date) : null
-        return eventDate && 
-               eventDate.getMonth() === currentMonth && 
-               eventDate.getFullYear() === currentYear &&
-               booking.status === 'completed'
-      })
-
-      const monthlyProfit = monthlyBookings.reduce((total, booking) => {
-        // Usar el event_profit que se guarda cuando se completa el evento
-        const profit = booking.event_profit || 0
-        
-        console.log('Booking profit calculation:', {
-          id: booking.id,
-          event_profit: booking.event_profit,
-          event_cost: booking.event_cost,
-          used_profit: profit
-        })
-        
-        return total + profit
+      const monthlyProfit = monthlyEvents.reduce((total, event) => {
+        return total + (event.event_profit || 0)
       }, 0)
 
       // Calculate alerts
@@ -229,7 +210,7 @@ const AdminDashboard = () => {
                   <Button
                     variant="contained"
                     fullWidth
-                    onClick={() => navigate('/admin/agendamientos')}
+                    onClick={() => navigate('/admin/bookings')}
                     startIcon={<Event />}
                   >
                     Ver Agendamientos ({stats.newBookings} hoy)

@@ -26,7 +26,7 @@ import {
   IconButton,
   Alert
 } from '@mui/material'
-import { Add, Edit, Delete, Upload, Image, Visibility, VisibilityOff, Star } from '@mui/icons-material'
+import { Add, Edit, Delete, Upload, Image } from '@mui/icons-material'
 import { eventsAPI, galleryAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
@@ -53,8 +53,6 @@ const EventsManagement = () => {
   const [photoDialog, setPhotoDialog] = useState(false)
   const [selectedEventForPhotos, setSelectedEventForPhotos] = useState(null)
   const [photoFiles, setPhotoFiles] = useState([])
-  const [eventPhotos, setEventPhotos] = useState([])
-  const [loadingPhotos, setLoadingPhotos] = useState(false)
 
   useEffect(() => {
     loadEvents()
@@ -161,17 +159,14 @@ const EventsManagement = () => {
     setImageFiles(files)
   }
 
-  const handleOpenPhotoDialog = async (event) => {
+  const handleOpenPhotoDialog = (event) => {
     setSelectedEventForPhotos(event)
     setPhotoFiles([])
     setPhotoDialog(true)
-    await loadEventPhotos(event.id)
   }
 
   const handlePhotoUpload = (event) => {
     const files = Array.from(event.target.files)
-
-    console.log('📁 Archivos seleccionados:', files.map(f => ({ name: f.name, type: f.type, size: f.size })))
 
     if (files.length > 5) {
       toast.error('Puedes subir máximo 5 fotos por evento')
@@ -180,11 +175,7 @@ const EventsManagement = () => {
 
     // Validar que todos los archivos sean imágenes
     const validFiles = files.filter(file => file.type.startsWith('image/'))
-    console.log('✅ Archivos válidos:', validFiles.map(f => ({ name: f.name, type: f.type })))
-    
     if (validFiles.length !== files.length) {
-      const invalidFiles = files.filter(file => !file.type.startsWith('image/'))
-      console.log('❌ Archivos inválidos:', invalidFiles.map(f => ({ name: f.name, type: f.type })))
       toast.error('Solo se permiten archivos de imagen')
       return
     }
@@ -211,10 +202,9 @@ const EventsManagement = () => {
       }
 
       toast.success(`${photoFiles.length} imagen(es) subida(s) a la galería`)
+      setPhotoDialog(false)
       setPhotoFiles([])
-      
-      // Recargar fotos del evento
-      await loadEventPhotos(selectedEventForPhotos.id)
+      setSelectedEventForPhotos(null)
     } catch (error) {
       console.error('Error uploading photos:', error)
       toast.error('Error al subir imágenes')
@@ -230,20 +220,6 @@ const EventsManagement = () => {
     return colors[status] || 'default'
   }
 
-  const getEventType = (event) => {
-    // Determinar tipo basado en el título o descripción
-    if (event.title?.toLowerCase().includes('pizzeros en acción') || 
-        event.title?.toLowerCase().includes('workshop') ||
-        event.description?.toLowerCase().includes('taller')) {
-      return 'Taller'
-    } else if (event.title?.toLowerCase().includes('pizza party') ||
-               event.description?.toLowerCase().includes('pizza party')) {
-      return 'Pizza Party'
-    } else {
-      return 'Evento'
-    }
-  }
-
   const getStatusLabel = (status) => {
     const labels = {
       completed: 'Completado',
@@ -251,51 +227,6 @@ const EventsManagement = () => {
       pending: 'Pendiente'
     }
     return labels[status] || status
-  }
-
-  // Funciones para manejar fotos del evento
-  const loadEventPhotos = async (eventId) => {
-    try {
-      setLoadingPhotos(true)
-      const response = await galleryAPI.getByEvent(eventId)
-      setEventPhotos(response.data || [])
-    } catch (error) {
-      console.error('Error loading event photos:', error)
-      toast.error('Error al cargar fotos del evento')
-    } finally {
-      setLoadingPhotos(false)
-    }
-  }
-
-  const handlePublishPhoto = async (photoId, isPublished) => {
-    try {
-      await galleryAPI.publish(photoId, isPublished)
-      const action = isPublished ? 'publicada' : 'despublicada'
-      toast.success(`Imagen ${action} exitosamente`)
-
-      // Recargar fotos del evento
-      if (selectedEventForPhotos) {
-        await loadEventPhotos(selectedEventForPhotos.id)
-      }
-    } catch (error) {
-      console.error('Error publishing photo:', error)
-      toast.error('Error al cambiar estado de publicación')
-    }
-  }
-
-  // Funciones para publicar eventos
-  const handlePublishEvent = async (eventId, isPublished, isFeatured = false) => {
-    try {
-      await eventsAPI.publish(eventId, isPublished, isFeatured)
-      const action = isPublished ? 'publicado' : 'despublicado'
-      toast.success(`Evento ${action} exitosamente`)
-
-      // Recargar lista de eventos
-      await loadEvents()
-    } catch (error) {
-      console.error('Error publishing event:', error)
-      toast.error('Error al cambiar estado de publicación del evento')
-    }
   }
 
   return (
@@ -361,12 +292,11 @@ const EventsManagement = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell>Evento</TableCell>
-                    <TableCell>Tipo</TableCell>
                     <TableCell>Fecha</TableCell>
                     <TableCell>Participantes</TableCell>
+                    <TableCell>Financiero</TableCell>
                     <TableCell>Estado</TableCell>
                     <TableCell>Galería</TableCell>
-                    <TableCell>Publicación</TableCell>
                     <TableCell>Acciones</TableCell>
                   </TableRow>
                 </TableHead>
@@ -387,20 +317,37 @@ const EventsManagement = () => {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Chip 
-                          label={getEventType(event)} 
-                          color={getEventType(event) === 'Taller' ? 'secondary' : 'primary'}
-                          variant="outlined"
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
                         {event.event_date ?
                           new Date(event.event_date).toLocaleDateString('es-CL') :
                           'No especificada'
                         }
                       </TableCell>
                       <TableCell>{event.participants || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Box>
+                          {event.revenue && (
+                            <Typography variant="caption" color="success.main">
+                              Ingreso: ${event.revenue.toLocaleString('es-CL')}
+                            </Typography>
+                          )}
+                          <br />
+                          {event.event_cost && (
+                            <Typography variant="caption" color="warning.main">
+                              Costo: ${event.event_cost.toLocaleString('es-CL')}
+                            </Typography>
+                          )}
+                          <br />
+                          {event.event_profit !== undefined && (
+                            <Typography
+                              variant="caption"
+                              color={event.event_profit >= 0 ? 'success.main' : 'error.main'}
+                              fontWeight="bold"
+                            >
+                              Utilidad: ${event.event_profit.toLocaleString('es-CL')}
+                            </Typography>
+                          )}
+                        </Box>
+                      </TableCell>
                       <TableCell>
                         <Chip
                           label={getStatusLabel(event.status)}
@@ -417,47 +364,6 @@ const EventsManagement = () => {
                         >
                           Fotos
                         </Button>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          {event.is_published ? (
-                            <>
-                              <Chip
-                                label="Publicado"
-                                color="success"
-                                size="small"
-                                icon={<Visibility />}
-                              />
-                              {event.is_featured && (
-                                <Chip
-                                  label="Destacado"
-                                  color="warning"
-                                  size="small"
-                                  icon={<Star />}
-                                />
-                              )}
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                color="warning"
-                                startIcon={<VisibilityOff />}
-                                onClick={() => handlePublishEvent(event.id, false)}
-                              >
-                                Despublicar
-                              </Button>
-                            </>
-                          ) : (
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="primary"
-                              startIcon={<Visibility />}
-                              onClick={() => handlePublishEvent(event.id, true)}
-                            >
-                              Publicar
-                            </Button>
-                          )}
-                        </Box>
                       </TableCell>
                       <TableCell>
                         <IconButton
@@ -605,9 +511,9 @@ const EventsManagement = () => {
       </Dialog>
 
       {/* Photo Upload Dialog */}
-      <Dialog open={photoDialog} onClose={() => setPhotoDialog(false)} maxWidth="lg" fullWidth>
+      <Dialog open={photoDialog} onClose={() => setPhotoDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>
-          Gestionar Fotos del Evento
+          Subir Fotos del Evento
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
@@ -651,11 +557,11 @@ const EventsManagement = () => {
             </Box>
 
             {photoFiles.length > 0 && (
-              <Box sx={{ mb: 3 }}>
+              <Box sx={{ mt: 2 }}>
                 <Typography variant="subtitle1" gutterBottom>
                   Imágenes seleccionadas ({photoFiles.length}):
                 </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   {Array.from(photoFiles).map((file, index) => (
                     <Chip
                       key={index}
@@ -666,97 +572,21 @@ const EventsManagement = () => {
                     />
                   ))}
                 </Box>
-                <Button
-                  variant="contained"
-                  onClick={handleSavePhotos}
-                  disabled={photoFiles.length === 0}
-                  startIcon={<Upload />}
-                >
-                  Subir {photoFiles.length} Foto(s)
-                </Button>
-              </Box>
-            )}
-
-            {/* Sección de fotos existentes */}
-            <Typography variant="h6" gutterBottom>
-              Fotos del Evento
-            </Typography>
-            {loadingPhotos ? (
-              <Box sx={{ textAlign: 'center', py: 3 }}>
-                <Typography>Cargando fotos...</Typography>
-              </Box>
-            ) : eventPhotos.length > 0 ? (
-              <Grid container spacing={2}>
-                {eventPhotos.map((photo) => (
-                  <Grid item xs={12} sm={6} md={4} key={photo.id}>
-                    <Card>
-                      <Box sx={{ position: 'relative' }}>
-                        <img
-                          src={photo.url}
-                          alt={photo.title}
-                          style={{
-                            width: '100%',
-                            height: 200,
-                            objectFit: 'cover'
-                          }}
-                        />
-                        <Chip
-                          label={photo.is_published ? 'Publicada' : 'Privada'}
-                          color={photo.is_published ? 'success' : 'default'}
-                          size="small"
-                          sx={{
-                            position: 'absolute',
-                            top: 8,
-                            right: 8,
-                            backgroundColor: photo.is_published ? 'success.main' : 'grey.500',
-                            color: 'white'
-                          }}
-                        />
-                      </Box>
-                      <CardContent>
-                        <Typography variant="body2" noWrap>
-                          {photo.title}
-                        </Typography>
-                        <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-                          {photo.is_published ? (
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="warning"
-                              startIcon={<VisibilityOff />}
-                              onClick={() => handlePublishPhoto(photo.id, false)}
-                            >
-                              Despublicar
-                            </Button>
-                          ) : (
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="primary"
-                              startIcon={<Visibility />}
-                              onClick={() => handlePublishPhoto(photo.id, true)}
-                            >
-                              Publicar
-                            </Button>
-                          )}
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            ) : (
-              <Box sx={{ textAlign: 'center', py: 3 }}>
-                <Typography color="text.secondary">
-                  No hay fotos subidas para este evento
-                </Typography>
               </Box>
             )}
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPhotoDialog(false)}>
-            Cerrar
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSavePhotos}
+            variant="contained"
+            disabled={photoFiles.length === 0}
+            startIcon={<Upload />}
+          >
+            Subir {photoFiles.length > 0 ? `${photoFiles.length} ` : ''}Foto(s)
           </Button>
         </DialogActions>
       </Dialog>

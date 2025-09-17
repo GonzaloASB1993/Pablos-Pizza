@@ -32,14 +32,7 @@
       "collectionGroup": "events",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "is_published",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "event_date",
-          "order": "DESCENDING"
-        }
+        
       ]
     },
     {
@@ -85,34 +78,6 @@
       ]
     },
     {
-      "collectionGroup": "gallery",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "is_published",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "uploaded_at",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "gallery",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "event_id",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "uploaded_at",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "inventory",
       "queryScope": "COLLECTION",
       "fields": [
@@ -124,6 +89,13 @@
           "fieldPath": "current_stock",
           "order": "ASCENDING"
         }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        
       ]
     },
     {

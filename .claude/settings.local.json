@@ -43,7 +43,11 @@
       "Bash(git push:*)",
       "Bash(start \"https://pablospizza.web.app/admin/eventos\")",
       "Bash(firebase storage:rules:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npm start)",
+      "Bash(npm run:*)",
+      "Bash(start \"http://localhost:3000/contacto\")",
+      "Bash(start \"http://localhost:3001/contacto\")"
     ],
     "deny": [],
     "ask": []
