@@ -11,7 +11,12 @@ import {
   ListItemIcon,
   ListItemText,
   IconButton,
-  Button
+  Button,
+  Menu,
+  MenuItem,
+  Avatar,
+  Divider,
+  Tooltip
 } from '@mui/material'
 import {
   Menu as MenuIcon,
@@ -23,32 +28,48 @@ import {
   Inventory,
   Assessment,
   Chat,
-  Logout
+  Logout,
+  Person,
+  Settings,
+  MenuOpen
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import logo from '../../assets/logo.png'
 
-const DRAWER_WIDTH = 240
+const DRAWER_WIDTH = 70 // Compact by default
 
 const AdminLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [profileMenu, setProfileMenu] = useState(null)
+  const [expanded, setExpanded] = useState(false)
   const { logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+
+  const currentDrawerWidth = expanded ? 240 : DRAWER_WIDTH
 
   const menuItems = [
     { label: 'Dashboard', path: '/admin', icon: <Dashboard /> },
     { label: 'Agendamientos', path: '/admin/agendamientos', icon: <Event /> },
     { label: 'Eventos', path: '/admin/eventos', icon: <Restaurant /> },
     { label: 'Galería', path: '/admin/galeria', icon: <Photo /> },
+    { label: 'Chat', path: '/admin/chat', icon: <Chat /> },
     { label: 'Testimonios', path: '/admin/testimonios', icon: <Star /> },
     { label: 'Inventario', path: '/admin/inventario', icon: <Inventory /> },
     { label: 'Reportes', path: '/admin/reportes', icon: <Assessment /> },
-    { label: 'Chat', path: '/admin/chat', icon: <Chat /> },
   ]
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
+  }
+
+  const handleProfileMenu = (event) => {
+    setProfileMenu(event.currentTarget)
+  }
+
+  const handleCloseProfileMenu = () => {
+    setProfileMenu(null)
   }
 
   const handleLogout = async () => {
@@ -62,49 +83,144 @@ const AdminLayout = () => {
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <Toolbar sx={{ minHeight: '64px !important' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: expanded ? 'space-between' : 'center',
+            width: '100%'
+          }}
+        >
           <Box
-            component="img"
-            src="/logo.png"
-            alt="Pablo's Pizza Logo"
             sx={{
-              width: 32,
-              height: 32,
-              mr: 1,
-              borderRadius: '50%',
-              objectFit: 'cover'
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer'
             }}
-          />
-          <Typography variant="h6" noWrap>
-            Admin
-          </Typography>
+            onClick={() => navigate('/admin')}
+          >
+            <Avatar
+              src={logo}
+              alt="Pablo's Pizza Logo"
+              sx={{
+                width: expanded ? 32 : 28,
+                height: expanded ? 32 : 28,
+                mr: expanded ? 1 : 0,
+                border: '2px solid #FFD700'
+              }}
+            />
+            {expanded && (
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#FFD700' }}>
+                Pablo's
+              </Typography>
+            )}
+          </Box>
+
+          <IconButton
+            onClick={() => setExpanded(!expanded)}
+            sx={{ color: '#FFD700', p: 0.5 }}
+            size="small"
+          >
+            {expanded ? <MenuOpen /> : <MenuIcon />}
+          </IconButton>
         </Box>
       </Toolbar>
-      <List>
+
+      <List sx={{ px: 1 }}>
         {menuItems.map((item) => (
-          <ListItem
-            button
+          <Tooltip
             key={item.path}
-            onClick={() => navigate(item.path)}
-            selected={location.pathname === item.path}
+            title={expanded ? '' : item.label}
+            placement="right"
+            arrow
           >
-            <ListItemIcon>
-              {item.icon}
-            </ListItemIcon>
-            <ListItemText primary={item.label} />
-          </ListItem>
+            <ListItem
+              button
+              onClick={() => navigate(item.path)}
+              selected={location.pathname === item.path}
+              sx={{
+                mb: 0.5,
+                borderRadius: 2,
+                minHeight: 40,
+                justifyContent: expanded ? 'flex-start' : 'center',
+                px: expanded ? 2 : 1,
+                '&.Mui-selected': {
+                  backgroundColor: 'rgba(255, 215, 0, 0.15)',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    left: 0,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 3,
+                    height: '60%',
+                    backgroundColor: '#FFD700',
+                    borderRadius: '0 2px 2px 0'
+                  }
+                },
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 215, 0, 0.08)'
+                }
+              }}
+            >
+              <ListItemIcon sx={{
+                color: location.pathname === item.path ? '#FFD700' : 'inherit',
+                minWidth: expanded ? 40 : 'auto',
+                justifyContent: 'center'
+              }}>
+                {item.icon}
+              </ListItemIcon>
+              {expanded && (
+                <ListItemText
+                  primary={item.label}
+                  sx={{
+                    '& .MuiListItemText-primary': {
+                      fontSize: '0.875rem',
+                      fontWeight: location.pathname === item.path ? 600 : 400
+                    }
+                  }}
+                />
+              )}
+            </ListItem>
+          </Tooltip>
         ))}
       </List>
-      <Box sx={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>
-        <Button
-          fullWidth
-          variant="outlined"
-          startIcon={<Logout />}
-          onClick={handleLogout}
-        >
-          Cerrar Sesión
-        </Button>
+
+      <Box sx={{ position: 'absolute', bottom: 16, left: 8, right: 8 }}>
+        <Tooltip title={expanded ? '' : 'Cerrar Sesión'} placement="right" arrow>
+          <Box>
+            {expanded ? (
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<Logout />}
+                onClick={handleLogout}
+                sx={{
+                  borderColor: 'error.main',
+                  color: 'error.main',
+                  fontSize: '0.75rem',
+                  py: 1
+                }}
+              >
+                Cerrar Sesión
+              </Button>
+            ) : (
+              <IconButton
+                onClick={handleLogout}
+                sx={{
+                  width: '100%',
+                  color: 'error.main',
+                  border: '1px solid',
+                  borderColor: 'error.main',
+                  borderRadius: 2
+                }}
+              >
+                <Logout fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
+        </Tooltip>
       </Box>
     </div>
   )
@@ -114,8 +230,9 @@ const AdminLayout = () => {
       <AppBar
         position="fixed"
         sx={{
-          width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
-          ml: { sm: `${DRAWER_WIDTH}px` },
+          width: { sm: `calc(100% - ${currentDrawerWidth}px)` },
+          ml: { sm: `${currentDrawerWidth}px` },
+          zIndex: (theme) => theme.zIndex.drawer + 1
         }}
       >
         <Toolbar>
@@ -128,15 +245,59 @@ const AdminLayout = () => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            Panel Administrativo - Pablo's Pizza
-          </Typography>
+
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <Typography variant="h6" noWrap component="div">
+              Panel Administrativo - Pablo's Pizza
+            </Typography>
+
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <IconButton
+                color="inherit"
+                onClick={handleProfileMenu}
+                sx={{ ml: 1 }}
+              >
+                <Avatar
+                  src={logo}
+                  sx={{ width: 32, height: 32 }}
+                />
+              </IconButton>
+
+              <Menu
+                anchorEl={profileMenu}
+                open={Boolean(profileMenu)}
+                onClose={handleCloseProfileMenu}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+              >
+                <MenuItem onClick={handleCloseProfileMenu}>
+                  <ListItemIcon>
+                    <Person fontSize="small" />
+                  </ListItemIcon>
+                  Perfil
+                </MenuItem>
+                <MenuItem onClick={handleCloseProfileMenu}>
+                  <ListItemIcon>
+                    <Settings fontSize="small" />
+                  </ListItemIcon>
+                  Configuración
+                </MenuItem>
+                <Divider />
+                <MenuItem onClick={handleLogout}>
+                  <ListItemIcon>
+                    <Logout fontSize="small" />
+                  </ListItemIcon>
+                  Cerrar Sesión
+                </MenuItem>
+              </Menu>
+            </Box>
+          </Box>
         </Toolbar>
       </AppBar>
 
       <Box
         component="nav"
-        sx={{ width: { sm: DRAWER_WIDTH }, flexShrink: { sm: 0 } }}
+        sx={{ width: { sm: currentDrawerWidth }, flexShrink: { sm: 0 } }}
         aria-label="mailbox folders"
       >
         <Drawer
@@ -148,7 +309,7 @@ const AdminLayout = () => {
           }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 },
           }}
         >
           {drawer}
@@ -157,7 +318,11 @@ const AdminLayout = () => {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: currentDrawerWidth,
+              transition: 'width 0.3s ease'
+            },
           }}
           open
         >
@@ -170,7 +335,8 @@ const AdminLayout = () => {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
+          width: { sm: `calc(100% - ${currentDrawerWidth}px)` },
+          transition: 'width 0.3s ease'
         }}
       >
         <Toolbar />

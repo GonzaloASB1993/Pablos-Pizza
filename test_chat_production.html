@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Chat API - Pablo's Pizza</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button { 
+            padding: 12px 24px; 
+            margin: 8px; 
+            background: #FF6B35; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #e55a2b; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .result { 
+            background: #f8f9fa; 
+            border: 1px solid #dee2e6; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .success { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .loading { background: #fff3cd; border-color: #ffeaa7; color: #856404; }
+        h1 { color: #FF6B35; }
+        .status { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 4px; 
+            font-weight: bold;
+        }
+        .step { margin: 20px 0; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍕 Test Chat API - Pablo's Pizza</h1>
+        <p>Prueba automática del sistema de chat en producción</p>
+        
+        <div class="step">
+            <h3>Paso 1: Crear Sala de Chat</h3>
+            <button onclick="testCreateRoom()">Crear Sala de Chat de Prueba</button>
+        </div>
+
+        <div class="step">
+            <h3>Paso 2: Obtener Salas</h3>
+            <button onclick="testGetRooms()">Obtener Todas las Salas</button>
+        </div>
+
+        <div class="step">
+            <h3>Paso 3: Enviar Mensaje</h3>
+            <button onclick="testSendMessage()" id="sendBtn" disabled>Enviar Mensaje de Prueba</button>
+        </div>
+
+        <div class="step">
+            <h3>Paso 4: Obtener Mensajes</h3>
+            <button onclick="testGetMessages()" id="getBtn" disabled>Obtener Mensajes de la Sala</button>
+        </div>
+
+        <div id="status" class="status"></div>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://main-4kqeqojbsq-uc.a.run.app/api';
+        let currentRoomId = null;
+
+        function updateStatus(message, type = 'loading') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = message;
+        }
+
+        function showResult(title, data, isError = false) {
+            const resultsDiv = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${isError ? 'error' : 'success'}`;
+            div.innerHTML = `
+                <h4>${title}</h4>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+                <small>Timestamp: ${new Date().toLocaleString()}</small>
+            `;
+            resultsDiv.insertBefore(div, resultsDiv.firstChild);
+        }
+
+        async function testCreateRoom() {
+            try {
+                updateStatus('🔄 Creando sala de chat...', 'loading');
+                console.log('Creating chat room...');
+                
+                const response = await fetch(`${API_BASE}/chat/rooms`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        client_name: 'Test Usuario - ' + new Date().toLocaleTimeString(),
+                        client_email: 'test@pablospizza.com'
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Room created:', data);
+                
+                if (response.ok) {
+                    currentRoomId = data.id;
+                    document.getElementById('sendBtn').disabled = false;
+                    document.getElementById('getBtn').disabled = false;
+                    updateStatus('✅ Sala creada exitosamente. ID: ' + currentRoomId, 'success');
+                    showResult('✅ Sala de Chat Creada', data);
+                } else {
+                    updateStatus('❌ Error al crear sala', 'error');
+                    showResult('❌ Error al Crear Sala', data, true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                updateStatus('❌ Error de conexión: ' + error.message, 'error');
+                showResult('❌ Error de Conexión', error.message, true);
+            }
+        }
+
+        async function testGetRooms() {
+            try {
+                updateStatus('🔄 Obteniendo salas de chat...', 'loading');
+                console.log('Getting chat rooms...');
+                
+                const response = await fetch(`${API_BASE}/chat/rooms`);
+                const data = await response.json();
+                console.log('Rooms retrieved:', data);
+                
+                if (response.ok) {
+                    updateStatus(`✅ ${data.length} salas obtenidas exitosamente`, 'success');
+                    showResult(`✅ Salas de Chat Obtenidas (${data.length})`, data);
+                } else {
+                    updateStatus('❌ Error al obtener salas', 'error');
+                    showResult('❌ Error al Obtener Salas', data, true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                updateStatus('❌ Error de conexión: ' + error.message, 'error');
+                showResult('❌ Error de Conexión', error.message, true);
+            }
+        }
+
+        async function testSendMessage() {
+            if (!currentRoomId) {
+                updateStatus('❌ Error: Primero crea una sala de chat', 'error');
+                return;
+            }
+
+            try {
+                updateStatus('🔄 Enviando mensaje...', 'loading');
+                console.log('Sending message...');
+                
+                const messageText = `Consulta desde formulario de contacto:
+
+📝 Asunto: Prueba del sistema de chat
+📞 Teléfono: +56 9 8765 4321
+
+💬 Mensaje:
+Hola, estoy probando el sistema de chat desde la página de contacto. Esta es una prueba automatizada para verificar que todo funcione correctamente.
+
+¿Podrían confirmar que reciben este mensaje?
+
+Gracias!`;
+
+                const response = await fetch(`${API_BASE}/chat/rooms/${currentRoomId}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: messageText,
+                        sender_name: 'Test Usuario',
+                        is_admin: false
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Message sent:', data);
+                
+                if (response.ok) {
+                    updateStatus('✅ Mensaje enviado exitosamente', 'success');
+                    showResult('✅ Mensaje Enviado', data);
+                } else {
+                    updateStatus('❌ Error al enviar mensaje', 'error');
+                    showResult('❌ Error al Enviar Mensaje', data, true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                updateStatus('❌ Error de conexión: ' + error.message, 'error');
+                showResult('❌ Error de Conexión', error.message, true);
+            }
+        }
+
+        async function testGetMessages() {
+            if (!currentRoomId) {
+                updateStatus('❌ Error: Primero crea una sala de chat', 'error');
+                return;
+            }
+
+            try {
+                updateStatus('🔄 Obteniendo mensajes...', 'loading');
+                console.log('Getting messages...');
+                
+                const response = await fetch(`${API_BASE}/chat/rooms/${currentRoomId}/messages`);
+                const data = await response.json();
+                console.log('Messages retrieved:', data);
+                
+                if (response.ok) {
+                    updateStatus(`✅ ${data.length} mensajes obtenidos exitosamente`, 'success');
+                    showResult(`✅ Mensajes Obtenidos (${data.length})`, data);
+                } else {
+                    updateStatus('❌ Error al obtener mensajes', 'error');
+                    showResult('❌ Error al Obtener Mensajes', data, true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                updateStatus('❌ Error de conexión: ' + error.message, 'error');
+                showResult('❌ Error de Conexión', error.message, true);
+            }
+        }
+
+        // Test inicial
+        window.onload = function() {
+            updateStatus('🌟 Chat API Test Tool cargado. API Base: ' + API_BASE, 'success');
+            console.log('🌟 Chat API Test Tool Loaded');
+            console.log('API Base URL:', API_BASE);
+        };
+    </script>
+</body>
+</html>

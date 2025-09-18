@@ -1624,28 +1624,42 @@ def upload_gallery_image():
         response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
         return response, 500
 
-# Chat endpoints
-@app.route('/api/chat/rooms', methods=['POST', 'OPTIONS'])
-def create_chat_room():
-    """Create a new chat room"""
+# Chat endpoints - Combined GET and POST
+@app.route('/api/chat/rooms', methods=['GET', 'POST', 'OPTIONS'])
+def handle_chat_rooms():
+    """Handle both GET (list rooms) and POST (create room) for chat rooms"""
     # Handle preflight OPTIONS request
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'OK'})
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
         return response
 
+    # Handle POST - Create new chat room
+    if request.method == 'POST':
+        return create_chat_room_logic()
+
+    # Handle GET - List chat rooms
+    elif request.method == 'GET':
+        return get_chat_rooms_logic()
+
+def create_chat_room_logic():
+    """Create a new chat room logic"""
     try:
         data = request.get_json()
         if not data:
-            return jsonify({"error": "No data provided"}), 400
+            response = jsonify({"error": "No data provided"})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
 
         # Required fields
         required_fields = ['client_name', 'client_email']
         for field in required_fields:
             if field not in data:
-                return jsonify({"error": f"Missing required field: {field}"}), 400
+                response = jsonify({"error": f"Missing required field: {field}"})
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 400
 
         # Generate room ID
         room_id = str(uuid.uuid4())
@@ -1669,7 +1683,7 @@ def create_chat_room():
         response = jsonify(room_data)
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
         return response, 201
 
     except Exception as e:
@@ -1677,34 +1691,85 @@ def create_chat_room():
         response = jsonify({"error": str(e)})
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
         return response, 500
 
-@app.route('/api/chat/rooms', methods=['GET'])
-def get_chat_rooms():
-    """Get all chat rooms"""
+def get_chat_rooms_logic():
+    """Get all chat rooms logic"""
     try:
+        print("🔍 Getting chat rooms...")
         db = get_db()
-        rooms_ref = db.collection("chat_rooms").order_by("created_at", direction=firestore.Query.DESCENDING)
-        rooms = []
+        if db is None:
+            print("❌ Database connection failed")
+            response = jsonify({"error": "Database connection failed"})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 500
 
+        # Get query parameter
+        active_only = request.args.get('active_only', 'true').lower() == 'true'
+        print(f"🔍 Filter active_only: {active_only}")
+
+        # Simplificar la consulta para evitar índices complejos
+        # Solo ordenar por created_at, filtrar después si es necesario
+        rooms_ref = db.collection("chat_rooms").order_by("created_at", direction=firestore.Query.DESCENDING)
+
+        # Obtener todos los documentos y filtrar en memoria si es necesario
+        rooms = []
         for doc in rooms_ref.stream():
             room = doc.to_dict()
             room['id'] = doc.id
+            
+            # Ensure compatibility with frontend expectations
+            if 'status' not in room:
+                room['status'] = 'open'  # Default status
+            room['is_active'] = room['status'] == 'open'
+            
+            # Filtrar en memoria en lugar de en la consulta
+            if active_only and room['status'] != 'open':
+                continue
+                
             rooms.append(room)
 
-        return jsonify(rooms), 200
+        print(f"✅ Found {len(rooms)} chat rooms")
+        response = jsonify(rooms)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        return response, 200
 
     except Exception as e:
-        print(f"Error getting chat rooms: {e}")
-        return jsonify({"error": str(e)}), 500
+        print(f"❌ Error getting chat rooms: {e}")
+        import traceback
+        traceback.print_exc()
+        response = jsonify({"error": str(e), "details": "Check server logs for more information"})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        return response, 500
 
-@app.route('/api/chat/rooms/<room_id>/messages', methods=['GET'])
+
+@app.route('/api/chat/rooms/<room_id>/messages', methods=['GET', 'OPTIONS'])
 def get_chat_messages(room_id):
     """Get messages for a specific chat room"""
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return response
+
     try:
+        print(f"🔍 Getting messages for room: {room_id}")
         db = get_db()
-        messages_ref = db.collection("chat_messages").where("room_id", "==", room_id).order_by("created_at")
+        if db is None:
+            response = jsonify({"error": "Database connection failed"})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 500
+
+        # Simplificar consulta para evitar índices
+        # Obtener todos los mensajes de esta sala (sin ordenamiento en la consulta)
+        messages_ref = db.collection("chat_messages").where("room_id", "==", room_id)
         messages = []
 
         for doc in messages_ref.stream():
@@ -1712,11 +1777,25 @@ def get_chat_messages(room_id):
             message['id'] = doc.id
             messages.append(message)
 
-        return jsonify(messages), 200
+        # Ordenar en memoria por created_at
+        messages.sort(key=lambda x: x.get('created_at', datetime.min))
+
+        print(f"✅ Found {len(messages)} messages for room {room_id}")
+        response = jsonify(messages)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return response, 200
 
     except Exception as e:
-        print(f"Error getting chat messages: {e}")
-        return jsonify({"error": str(e)}), 500
+        print(f"❌ Error getting chat messages for room {room_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        response = jsonify({"error": str(e), "room_id": room_id})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return response, 500
 
 @app.route('/api/chat/rooms/<room_id>/messages', methods=['POST'])
 def send_chat_message(room_id):

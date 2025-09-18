@@ -52,7 +52,11 @@
       "Bash(powershell:*)",
       "Bash(firebase help:*)",
       "Bash(chmod:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(start \"http://localhost:3000/galeria\")",
+      "Bash(start \"http://localhost:3000/admin/chats\")",
+      "Bash(start \"https://pablospizza.web.app/admin\")",
+      "Bash(start \"https://pablospizza.web.app/admin/chat\")"
     ],
     "deny": [],
     "ask": []

@@ -81,16 +81,23 @@ const AdminDashboard = () => {
         return eventDate && eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
       })
 
-      // Calculate monthly income from confirmed bookings (not just completed events)
+      // Calculate monthly income from confirmed bookings (include future confirmed events)
       const confirmedBookings = bookings.filter(booking => {
         if (booking.status !== 'confirmed' && booking.status !== 'completed') return false
         const eventDate = booking.event_date ? new Date(booking.event_date) : null
-        const isThisMonth = eventDate && eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
+
+        // For revenue calculation, include current month + future confirmed events
+        let includeInRevenue = false
+        if (eventDate) {
+          const isThisMonth = eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
+          const isFutureConfirmed = booking.status === 'confirmed' && eventDate >= today
+          includeInRevenue = isThisMonth || isFutureConfirmed
+        }
 
         // Debug each booking
-        console.log(`📊 Booking ${booking.id}: status=${booking.status}, date=${booking.event_date}, parsed=${eventDate}, thisMonth=${isThisMonth}, price=${booking.estimated_price}`)
+        console.log(`📊 Booking ${booking.id}: status=${booking.status}, date=${booking.event_date}, parsed=${eventDate}, includeInRevenue=${includeInRevenue}, price=${booking.estimated_price}`)
 
-        return isThisMonth
+        return includeInRevenue
       })
 
       console.log(`💰 Confirmed bookings this month:`, confirmedBookings.length)
@@ -221,7 +228,7 @@ const AdminDashboard = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <StatCard
-                title="Ingresos del Mes"
+                title="Ingresos Confirmados"
                 value={`$${stats.monthlyIncome.toLocaleString('es-CL')}`}
                 icon={<AttachMoney />}
                 color="success"

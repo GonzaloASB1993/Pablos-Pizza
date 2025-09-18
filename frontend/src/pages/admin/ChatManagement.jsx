@@ -36,6 +36,7 @@ import {
 } from '@mui/icons-material'
 import toast from 'react-hot-toast'
 import { CONTACT_INFO } from '../../config/constants'
+import { chatAPI } from '../../services/api'
 
 const ChatManagement = () => {
     const [chats, setChats] = useState([])
@@ -43,48 +44,77 @@ const ChatManagement = () => {
     const [selectedChat, setSelectedChat] = useState(null)
     const [replyDialog, setReplyDialog] = useState(false)
     const [response, setResponse] = useState('')
+    const [messages, setMessages] = useState({})
 
-    const mockChats = [
-        {
-            id: 1,
-            customer_name: 'María González',
-            customer_email: 'maria@example.com',
-            customer_phone: '+56912345678',
-            subject: 'Consulta sobre Pizza Party',
-            message: 'Hola, quisiera saber los precios para una pizza party de 15 niños. ¿Qué incluye el servicio?',
-            status: 'pending',
-            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000),
-            responded_at: null
-        },
-        {
-            id: 2,
-            customer_name: 'Carlos Rodríguez',
-            customer_email: 'carlos@example.com',
-            customer_phone: '+56987654321',
-            subject: 'Disponibilidad fin de semana',
-            message: 'Buenos días, necesito saber si tienen disponibilidad para el próximo sábado 20 de enero para un cumpleaños.',
-            status: 'responded',
-            created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-            responded_at: new Date(Date.now() - 22 * 60 * 60 * 1000)
-        },
-        {
-            id: 3,
-            customer_name: 'Ana Martínez',
-            customer_email: 'ana@example.com',
-            customer_phone: '+56911111111',
-            subject: 'Cambio de fecha',
-            message: 'Hola, tengo una reserva para el 15 de enero pero necesito cambiarla al 22. ¿Es posible?',
-            status: 'pending',
-            created_at: new Date(Date.now() - 30 * 60 * 1000),
-            responded_at: null
+    const loadChats = async () => {
+        try {
+            setLoading(true)
+            const response = await chatAPI.getRooms({ active_only: false })
+            const chatRooms = response.data
+
+            // Load messages for each room to get the first message content
+            const chatsWithMessages = await Promise.all(
+                chatRooms.map(async (room) => {
+                    try {
+                        const messagesResponse = await chatAPI.getMessages(room.id, { limit: 1 })
+                        const roomMessages = messagesResponse.data
+                        const firstMessage = roomMessages[0]
+
+                        // Transform to expected format
+                        return {
+                            id: room.id,
+                            customer_name: room.client_name,
+                            customer_email: room.client_email,
+                            customer_phone: extractPhoneFromMessage(firstMessage?.message),
+                            subject: extractSubjectFromMessage(firstMessage?.message),
+                            message: firstMessage?.message || 'Sin mensaje',
+                            status: room.is_active ? 'pending' : 'resolved',
+                            created_at: new Date(room.created_at),
+                            responded_at: room.last_message_at ? new Date(room.last_message_at) : null,
+                            room_id: room.id
+                        }
+                    } catch (error) {
+                        console.error(`Error loading messages for room ${room.id}:`, error)
+                        return {
+                            id: room.id,
+                            customer_name: room.client_name,
+                            customer_email: room.client_email,
+                            customer_phone: 'No disponible',
+                            subject: 'Consulta general',
+                            message: 'Error al cargar mensaje',
+                            status: room.is_active ? 'pending' : 'resolved',
+                            created_at: new Date(room.created_at),
+                            responded_at: room.last_message_at ? new Date(room.last_message_at) : null,
+                            room_id: room.id
+                        }
+                    }
+                })
+            )
+
+            setChats(chatsWithMessages)
+        } catch (error) {
+            console.error('Error loading chats:', error)
+            toast.error('Error al cargar las consultas')
+            setChats([])
+        } finally {
+            setLoading(false)
         }
-    ]
+    }
+
+    const extractPhoneFromMessage = (message) => {
+        if (!message) return 'No disponible'
+        const phoneMatch = message.match(/📞 Teléfono: (.+)/)
+        return phoneMatch ? phoneMatch[1] : 'No disponible'
+    }
+
+    const extractSubjectFromMessage = (message) => {
+        if (!message) return 'Consulta general'
+        const subjectMatch = message.match(/📝 Asunto: (.+)/)
+        return subjectMatch ? subjectMatch[1] : 'Consulta general'
+    }
 
     useEffect(() => {
-        setTimeout(() => {
-            setChats(mockChats)
-            setLoading(false)
-        }, 1000)
+        loadChats()
     }, [])
 
     const getStatusColor = (status) => {
@@ -127,17 +157,27 @@ const ChatManagement = () => {
         setReplyDialog(true)
     }
 
-    const handleMarkResolved = (chatId) => {
-        setChats(prev => prev.map(chat =>
-            chat.id === chatId
-                ? { ...chat, status: 'resolved', responded_at: new Date() }
-                : chat
-        ))
-        toast.success('Consulta marcada como resuelta')
+    const handleMarkResolved = async (chatId) => {
+        try {
+            const chat = chats.find(c => c.id === chatId)
+            if (chat && chat.room_id) {
+                await chatAPI.closeRoom(chat.room_id)
+                setChats(prev => prev.map(c =>
+                    c.id === chatId
+                        ? { ...c, status: 'resolved', responded_at: new Date() }
+                        : c
+                ))
+                toast.success('Consulta marcada como resuelta')
+            }
+        } catch (error) {
+            console.error('Error marking chat as resolved:', error)
+            toast.error('Error al marcar como resuelta')
+        }
     }
 
-    const handleWhatsAppReply = (chat) => {
-        const message = `Hola ${chat.customer_name}, gracias por contactarnos.
+    const handleWhatsAppReply = async (chat) => {
+        try {
+            const message = `Hola ${chat.customer_name}, gracias por contactarnos.
 
 Recibimos tu consulta: "${chat.subject}"
 
@@ -146,18 +186,31 @@ ${response || 'Te vamos a ayudar con tu solicitud. ¿Podrías darnos más detall
 Saludos,
 Equipo Pablo's Pizza`
 
-        const whatsappUrl = `https://wa.me/${chat.customer_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`
-        window.open(whatsappUrl, '_blank')
+            // Send response message to chat room
+            if (chat.room_id) {
+                await chatAPI.sendMessage(chat.room_id, {
+                    message: `Respuesta enviada por WhatsApp: ${message}`,
+                    sender_name: 'Administrador',
+                    is_admin: true
+                })
+            }
 
-        setChats(prev => prev.map(c =>
-            c.id === chat.id
-                ? { ...c, status: 'responded', responded_at: new Date() }
-                : c
-        ))
+            const whatsappUrl = `https://wa.me/${chat.customer_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`
+            window.open(whatsappUrl, '_blank')
 
-        setReplyDialog(false)
-        setResponse('')
-        toast.success('Respuesta enviada por WhatsApp')
+            setChats(prev => prev.map(c =>
+                c.id === chat.id
+                    ? { ...c, status: 'responded', responded_at: new Date() }
+                    : c
+            ))
+
+            setReplyDialog(false)
+            setResponse('')
+            toast.success('Respuesta enviada por WhatsApp')
+        } catch (error) {
+            console.error('Error sending WhatsApp reply:', error)
+            toast.error('Error al enviar respuesta')
+        }
     }
 
     const pendingChats = chats.filter(chat => chat.status === 'pending')
