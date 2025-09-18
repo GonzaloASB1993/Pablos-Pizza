@@ -1684,6 +1684,7 @@ def create_chat_room():
 def get_chat_rooms():
     """Get all chat rooms"""
     try:
+        print("🔍 Getting chat rooms...")
         db = get_db()
         rooms_ref = db.collection("chat_rooms").order_by("created_at", direction=firestore.Query.DESCENDING)
         rooms = []
@@ -1692,12 +1693,24 @@ def get_chat_rooms():
             room = doc.to_dict()
             room['id'] = doc.id
             rooms.append(room)
+            print(f"📄 Found room: {doc.id} - {room.get('client_name', 'Unknown')}")
 
-        return jsonify(rooms), 200
+        print(f"✅ Returning {len(rooms)} chat rooms")
+        response = jsonify(rooms)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return response, 200
 
     except Exception as e:
-        print(f"Error getting chat rooms: {e}")
-        return jsonify({"error": str(e)}), 500
+        print(f"❌ Error getting chat rooms: {e}")
+        import traceback
+        traceback.print_exc()
+        response = jsonify({"error": str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return response, 500
 
 @app.route('/api/chat/rooms/<room_id>/messages', methods=['GET'])
 def get_chat_messages(room_id):
