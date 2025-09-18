@@ -32,12 +32,10 @@ import {
     Phone,
     Email,
     CheckCircle,
-    AccessTime,
-    Send
+    AccessTime
 } from '@mui/icons-material'
 import toast from 'react-hot-toast'
 import { CONTACT_INFO } from '../../config/constants'
-import { chatAPI } from '../../services/api'
 
 const ChatManagement = () => {
     const [chats, setChats] = useState([])
@@ -45,7 +43,6 @@ const ChatManagement = () => {
     const [selectedChat, setSelectedChat] = useState(null)
     const [replyDialog, setReplyDialog] = useState(false)
     const [response, setResponse] = useState('')
-    const [messages, setMessages] = useState([])
 
     const mockChats = [
         {
@@ -82,75 +79,6 @@ const ChatManagement = () => {
             responded_at: null
         }
     ]
-
-    useEffect(() => {
-        loadChatRooms()
-    }, [])
-
-    const loadChatRooms = async () => {
-        try {
-            setLoading(true)
-            console.log('🔄 Cargando salas de chat...')
-            
-            const response = await chatAPI.getRooms()
-            console.log('📥 Respuesta del API:', response.data)
-            
-            if (!response.data || response.data.length === 0) {
-                console.log('⚠️ No hay salas de chat disponibles')
-                setChats([])
-                return
-            }
-            
-            // Transformar los datos de las salas a formato compatible con el componente
-            const transformedChats = response.data.map(room => {
-                console.log('🔄 Transformando sala:', room)
-                
-                // Manejar diferentes formatos de fecha de Firestore
-                let timestamp
-                if (room.created_at && room.created_at._seconds) {
-                    timestamp = new Date(room.created_at._seconds * 1000)
-                } else if (room.created_at) {
-                    timestamp = new Date(room.created_at)
-                } else {
-                    timestamp = new Date()
-                }
-                
-                return {
-                    id: room.id,
-                    customer_name: room.client_name,
-                    customer_email: room.client_email,
-                    customer_phone: room.client_phone || null,
-                    message: 'Ver conversación completa',
-                    timestamp: timestamp,
-                    status: room.status === 'open' ? 'pending' : 'resolved',
-                    subject: 'Consulta desde formulario web',
-                    messages_count: room.messages_count || 0
-                }
-            })
-            
-            console.log('✅ Salas transformadas:', transformedChats)
-            setChats(transformedChats)
-            
-        } catch (error) {
-            console.error('❌ Error loading chat rooms:', error)
-            toast.error('Error al cargar las conversaciones: ' + error.message)
-            
-            // NO usar datos mock como fallback - mejor mostrar error real
-            setChats([])
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const loadChatMessages = async (roomId) => {
-        try {
-            const response = await chatAPI.getMessages(roomId)
-            setMessages(response.data)
-        } catch (error) {
-            console.error('Error loading messages:', error)
-            toast.error('Error al cargar los mensajes')
-        }
-    }
 
     useEffect(() => {
         setTimeout(() => {
@@ -190,53 +118,16 @@ const ChatManagement = () => {
         }
     }
 
-    const handleViewChat = async (chat) => {
+    const handleViewChat = (chat) => {
         setSelectedChat(chat)
-        await loadChatMessages(chat.id)
     }
 
-    const handleReplyClick = async (chat) => {
+    const handleReplyClick = (chat) => {
         setSelectedChat(chat)
-        await loadChatMessages(chat.id)
         setReplyDialog(true)
     }
 
-    const handleSendReply = async () => {
-        if (!response.trim() || !selectedChat) return
-
-        try {
-            await chatAPI.sendMessage(selectedChat.id, {
-                message: response,
-                sender_name: 'Administrador - Pablo\'s Pizza',
-                is_admin: true
-            })
-
-            toast.success('Respuesta enviada exitosamente')
-            setResponse('')
-            setReplyDialog(false)
-            
-            // Recargar mensajes y actualizar el estado de la conversación
-            await loadChatMessages(selectedChat.id)
-            await loadChatRooms()
-            
-        } catch (error) {
-            console.error('Error sending reply:', error)
-            toast.error('Error al enviar la respuesta')
-        }
-    }
-
-    const handleMarkResolved = async (chatId) => {
-        try {
-            await chatAPI.closeRoom(chatId)
-            toast.success('Conversación marcada como resuelta')
-            await loadChatRooms()
-        } catch (error) {
-            console.error('Error marking as resolved:', error)
-            toast.error('Error al marcar como resuelto')
-        }
-    }
-
-    const handleMarkResolved_old = (chatId) => {
+    const handleMarkResolved = (chatId) => {
         setChats(prev => prev.map(chat =>
             chat.id === chatId
                 ? { ...chat, status: 'resolved', responded_at: new Date() }
@@ -278,28 +169,19 @@ Equipo Pablo's Pizza`
                 <Box>
                     <Typography variant="h4">Portal de Chats</Typography>
                     <Typography variant="body2" color="text.secondary">
-                        Gestiona las consultas de clientes desde el formulario de contacto
+                        Gestiona las consultas de los clientes desde el formulario web
                     </Typography>
                 </Box>
-                <Button
-                    variant="outlined"
-                    startIcon={<Chat />}
-                    onClick={loadChatRooms}
-                    disabled={loading}
-                >
-                    {loading ? 'Cargando...' : 'Recargar Chats'}
-                </Button>
-            </Box>
-            
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                <Card sx={{ p: 2, textAlign: 'center', minWidth: 100 }}>
-                    <Typography variant="h6" color="warning.main">{pendingChats.length}</Typography>
-                    <Typography variant="caption">Pendientes</Typography>
-                </Card>
-                <Card sx={{ p: 2, textAlign: 'center', minWidth: 100 }}>
-                    <Typography variant="h6" color="success.main">{respondedChats.length}</Typography>
-                    <Typography variant="caption">Respondidos</Typography>
-                </Card>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Card sx={{ p: 2, textAlign: 'center', minWidth: 100 }}>
+                        <Typography variant="h6" color="warning.main">{pendingChats.length}</Typography>
+                        <Typography variant="caption">Pendientes</Typography>
+                    </Card>
+                    <Card sx={{ p: 2, textAlign: 'center', minWidth: 100 }}>
+                        <Typography variant="h6" color="success.main">{respondedChats.length}</Typography>
+                        <Typography variant="caption">Respondidos</Typography>
+                    </Card>
+                </Box>
             </Box>
 
             {pendingChats.length > 0 && (
@@ -410,7 +292,7 @@ Equipo Pablo's Pizza`
 
             <Dialog open={!!selectedChat && !replyDialog} onClose={() => setSelectedChat(null)} maxWidth="md" fullWidth>
                 <DialogTitle>
-                    Conversación con {selectedChat?.customer_name}
+                    Consulta de {selectedChat?.customer_name}
                     <IconButton
                         onClick={() => setSelectedChat(null)}
                         sx={{ position: 'absolute', right: 8, top: 8 }}
@@ -425,104 +307,58 @@ Equipo Pablo's Pizza`
                                 <Alert severity="info">
                                     <Typography variant="body2">
                                         <strong>Email:</strong> {selectedChat.customer_email}<br />
-                                        {selectedChat.customer_phone && (
-                                            <>
-                                                <strong>Teléfono:</strong> {selectedChat.customer_phone}<br />
-                                            </>
-                                        )}
-                                        <strong>Fecha de inicio:</strong> {selectedChat.timestamp.toLocaleString('es-CL')}<br />
-                                        <strong>Mensajes:</strong> {selectedChat.messages_count}
+                                        <strong>Teléfono:</strong> {selectedChat.customer_phone}<br />
+                                        <strong>Asunto:</strong> {selectedChat.subject}<br />
+                                        <strong>Fecha:</strong> {selectedChat.created_at.toLocaleString('es-CL')}
                                     </Typography>
                                 </Alert>
                             </Grid>
                             <Grid item xs={12}>
-                                <Typography variant="h6" gutterBottom>Historial de conversación:</Typography>
-                                <Box sx={{ 
-                                    maxHeight: '400px', 
-                                    overflow: 'auto', 
-                                    border: '1px solid #e0e0e0', 
-                                    borderRadius: 1, 
-                                    p: 2,
-                                    bgcolor: 'grey.50'
-                                }}>
-                                    {messages.length > 0 ? (
-                                        messages.map((message, index) => (
-                                            <Card 
-                                                key={message.id || index} 
-                                                sx={{ 
-                                                    mb: 2, 
-                                                    bgcolor: message.is_admin ? 'primary.light' : 'white',
-                                                    color: message.is_admin ? 'white' : 'inherit'
-                                                }}
-                                            >
-                                                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                                                    <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                                                        {message.sender_name} {message.is_admin ? '(Admin)' : '(Cliente)'}
-                                                        <Typography component="span" variant="caption" sx={{ ml: 1, opacity: 0.7 }}>
-                                                            {new Date(message.created_at._seconds * 1000 || message.created_at).toLocaleString('es-CL')}
-                                                        </Typography>
-                                                    </Typography>
-                                                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                                                        {message.message}
-                                                    </Typography>
-                                                </CardContent>
-                                            </Card>
-                                        ))
-                                    ) : (
-                                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                                            No hay mensajes en esta conversación
-                                        </Typography>
-                                    )}
-                                </Box>
+                                <Typography variant="h6" gutterBottom>Mensaje del cliente:</Typography>
+                                <Card sx={{ bgcolor: 'grey.50', p: 2 }}>
+                                    <Typography variant="body1">
+                                        {selectedChat.message}
+                                    </Typography>
+                                </Card>
                             </Grid>
                         </Grid>
                     )}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setSelectedChat(null)}>Cerrar</Button>
-                    <Button
-                        onClick={() => handleReplyClick(selectedChat)}
-                        variant="contained"
-                        startIcon={<Reply />}
-                    >
-                        Responder
-                    </Button>
                     {selectedChat?.status === 'pending' && (
                         <Button
-                            onClick={() => handleMarkResolved(selectedChat.id)}
-                            variant="outlined"
-                            startIcon={<CheckCircle />}
-                            color="success"
+                            onClick={() => handleReplyClick(selectedChat)}
+                            variant="contained"
+                            startIcon={<WhatsApp />}
                         >
-                            Marcar como Resuelto
+                            Responder por WhatsApp
                         </Button>
                     )}
                 </DialogActions>
             </Dialog>
 
             <Dialog open={replyDialog} onClose={() => setReplyDialog(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>Responder a {selectedChat?.customer_name}</DialogTitle>
+                <DialogTitle>Responder por WhatsApp</DialogTitle>
                 <DialogContent>
                     {selectedChat && (
                         <Grid container spacing={2} sx={{ mt: 1 }}>
                             <Grid item xs={12}>
                                 <Alert severity="info" sx={{ mb: 2 }}>
                                     <Typography variant="body2">
-                                        Envía una respuesta directa a través del sistema de chat. 
-                                        El cliente recibirá una notificación por email.
+                                        Se abrirá WhatsApp con una respuesta pre-redactada para {selectedChat.customer_name}
                                     </Typography>
                                 </Alert>
                             </Grid>
                             <Grid item xs={12}>
                                 <TextField
                                     fullWidth
-                                    label="Tu respuesta"
+                                    label="Mensaje adicional (opcional)"
                                     multiline
                                     rows={4}
                                     value={response}
                                     onChange={(e) => setResponse(e.target.value)}
-                                    placeholder="Escribe tu respuesta aquí..."
-                                    required
+                                    placeholder="Agrega información específica para esta consulta..."
                                 />
                             </Grid>
                         </Grid>
@@ -531,20 +367,12 @@ Equipo Pablo's Pizza`
                 <DialogActions>
                     <Button onClick={() => setReplyDialog(false)}>Cancelar</Button>
                     <Button
-                        onClick={() => window.open(`https://wa.me/${selectedChat?.customer_phone?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${selectedChat?.customer_name}, ${response || 'gracias por contactarnos desde Pablo\'s Pizza'}`)}`)}
-                        startIcon={<WhatsApp />}
-                        sx={{ bgcolor: '#25D366', color: 'white', '&:hover': { bgcolor: '#1DA851' } }}
-                        disabled={!selectedChat?.customer_phone}
-                    >
-                        WhatsApp
-                    </Button>
-                    <Button
-                        onClick={handleSendReply}
+                        onClick={() => handleWhatsAppReply(selectedChat)}
                         variant="contained"
-                        startIcon={<Send />}
-                        disabled={!response.trim()}
+                        startIcon={<WhatsApp />}
+                        sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1DA851' } }}
                     >
-                        Enviar Respuesta
+                        Enviar por WhatsApp
                     </Button>
                 </DialogActions>
             </Dialog>
