@@ -85,21 +85,22 @@ const Footer = () => {
                     <Grid item xs={12} sm={6} md={3}>
                         <Typography variant="h6" gutterBottom sx={{
                             color: theme.palette.primary.main,
-                            fontWeight: 600
+                            fontWeight: 600,
+                            fontSize: { xs: '1rem', sm: '1.25rem' }
                         }}>
                             Servicios
                         </Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            <Link href="/servicios" color="inherit" underline="hover">
+                            <Link href="/servicios" color="inherit" underline="hover" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                                 Talleres para Niños
                             </Link>
-                            <Link href="/servicios" color="inherit" underline="hover">
+                            <Link href="/servicios" color="inherit" underline="hover" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                                 Pizza Parties
                             </Link>
-                            <Link href="/servicios" color="inherit" underline="hover">
+                            <Link href="/servicios" color="inherit" underline="hover" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                                 Eventos Corporativos
                             </Link>
-                            <Link href="/servicios" color="inherit" underline="hover">
+                            <Link href="/servicios" color="inherit" underline="hover" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                                 Celebraciones Escolares
                             </Link>
                         </Box>
@@ -109,24 +110,25 @@ const Footer = () => {
                     <Grid item xs={12} sm={6} md={2}>
                         <Typography variant="h6" gutterBottom sx={{
                             color: theme.palette.primary.main,
-                            fontWeight: 600
+                            fontWeight: 600,
+                            fontSize: { xs: '1rem', sm: '1.25rem' }
                         }}>
                             Enlaces
                         </Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            <Link href="/" color="inherit" underline="hover">
+                            <Link href="/" color="inherit" underline="hover" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                                 Inicio
                             </Link>
-                            <Link href="/galeria" color="inherit" underline="hover">
+                            <Link href="/galeria" color="inherit" underline="hover" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                                 Galería
                             </Link>
-                            <Link href="/testimonios" color="inherit" underline="hover">
+                            <Link href="/testimonios" color="inherit" underline="hover" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                                 Testimonios
                             </Link>
-                            <Link href="/agendar" color="inherit" underline="hover">
+                            <Link href="/agendar" color="inherit" underline="hover" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                                 Agendar Evento
                             </Link>
-                            <Link href="/contacto" color="inherit" underline="hover">
+                            <Link href="/contacto" color="inherit" underline="hover" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                                 Contacto
                             </Link>
                         </Box>
@@ -136,32 +138,33 @@ const Footer = () => {
                     <Grid item xs={12} md={3}>
                         <Typography variant="h6" gutterBottom sx={{
                             color: theme.palette.primary.main,
-                            fontWeight: 600
+                            fontWeight: 600,
+                            fontSize: { xs: '1rem', sm: '1.25rem' }
                         }}>
                             Contacto
                         </Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <WhatsApp fontSize="small" sx={{ color: theme.palette.primary.main }} />
-                                <Link href={CONTACT_INFO.WHATSAPP_URL} color="inherit" underline="hover">
+                                <Link href={CONTACT_INFO.WHATSAPP_URL} color="inherit" underline="hover" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, wordBreak: 'break-word' }}>
                                     {CONTACT_INFO.WHATSAPP_DISPLAY}
                                 </Link>
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <Phone fontSize="small" sx={{ color: theme.palette.primary.main }} />
-                                <Link href={`tel:${CONTACT_INFO.WHATSAPP_NUMBER}`} color="inherit" underline="hover">
+                                <Link href={`tel:${CONTACT_INFO.WHATSAPP_NUMBER}`} color="inherit" underline="hover" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, wordBreak: 'break-word' }}>
                                     {CONTACT_INFO.WHATSAPP_DISPLAY}
                                 </Link>
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <Email fontSize="small" sx={{ color: theme.palette.primary.main }} />
-                                <Link href="mailto:Pablospizza.cl@gmail.com" color="inherit" underline="hover">
+                                <Link href="mailto:Pablospizza.cl@gmail.com" color="inherit" underline="hover" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, wordBreak: 'break-word' }}>
                                     Pablospizza.cl@gmail.com
                                 </Link>
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
                                 <LocationOn fontSize="small" sx={{ color: theme.palette.primary.main, mt: 0.5 }} />
-                                <Typography variant="body2">
+                                <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                                     Santiago de Chile<br />
                                     Servicio a domicilio disponible
                                 </Typography>

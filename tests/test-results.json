@@ -1,0 +1,213 @@
+{
+  "total": 7,
+  "passed": 3,
+  "failed": 4,
+  "tests": [
+    {
+      "name": "Health Check Endpoint",
+      "success": false,
+      "details": {
+        "status": 200,
+        "cors": {
+          "testName": "Health Check Endpoint",
+          "success": false,
+          "headers": {
+            "access-control-allow-origin": "https://pablospizza.web.app"
+          },
+          "errors": [
+            "Missing header: access-control-allow-methods",
+            "Missing header: access-control-allow-headers"
+          ]
+        },
+        "data": {
+          "cors_origins": 11,
+          "database": "connected",
+          "endpoints": [
+            "/api/health",
+            "/api/bookings/",
+            "/api/events/",
+            "/api/gallery/",
+            "/api/chat/rooms"
+          ],
+          "environment": "production",
+          "service": "Pablo's Pizza API - Production Ready",
+          "status": "healthy",
+          "version": "2.1.1"
+        }
+      },
+      "timestamp": "2025-09-18T02:10:11.233Z"
+    },
+    {
+      "name": "CORS - Preflight OPTIONS Request",
+      "success": true,
+      "details": {
+        "status": 200,
+        "cors": {
+          "testName": "CORS - Preflight OPTIONS Request",
+          "success": true,
+          "headers": {
+            "access-control-allow-origin": "*",
+            "access-control-allow-methods": "POST,OPTIONS",
+            "access-control-allow-headers": "Content-Type,Authorization"
+          },
+          "errors": []
+        }
+      },
+      "timestamp": "2025-09-18T02:10:11.644Z"
+    },
+    {
+      "name": "Contact Form - Chat Room Creation",
+      "success": true,
+      "details": {
+        "status": 201,
+        "cors": {
+          "testName": "Contact Form - Chat Room Creation",
+          "success": true,
+          "headers": {
+            "access-control-allow-origin": "*",
+            "access-control-allow-methods": "POST,OPTIONS",
+            "access-control-allow-headers": "Content-Type,Authorization"
+          },
+          "errors": []
+        },
+        "requestData": {
+          "client_name": "Test User 1758161411644",
+          "client_email": "test.1758161411644@example.com",
+          "phone": "+56912345678",
+          "message": "E2E test message sent at 2025-09-18T02:10:11.644Z",
+          "subject": "E2E Test Contact"
+        },
+        "responseData": {
+          "client_email": "test.1758161411644@example.com",
+          "client_name": "Test User 1758161411644",
+          "created_at": "Thu, 18 Sep 2025 02:10:11 GMT",
+          "id": "f946f952-5432-4688-9c6a-6f0ae6c7b4e2",
+          "messages_count": 0,
+          "status": "open",
+          "updated_at": "Thu, 18 Sep 2025 02:10:11 GMT"
+        }
+      },
+      "timestamp": "2025-09-18T02:10:12.037Z"
+    },
+    {
+      "name": "Gallery - Photo Upload",
+      "success": true,
+      "details": {
+        "status": 201,
+        "cors": {
+          "testName": "Gallery - Photo Upload",
+          "success": true,
+          "headers": {
+            "access-control-allow-origin": "*",
+            "access-control-allow-methods": "POST,OPTIONS",
+            "access-control-allow-headers": "Content-Type,Authorization"
+          },
+          "errors": []
+        },
+        "responseData": {
+          "category": "event_photos",
+          "content_type": "image/png",
+          "description": "E2E test image upload",
+          "event_id": "test-event-123",
+          "filename": "16f91095-ecd7-4468-9468-8e83c33b8f51.png",
+          "id": "16f91095-ecd7-4468-9468-8e83c33b8f51",
+          "is_featured": false,
+          "storage_path": "gallery/test-event-123/16f91095-ecd7-4468-9468-8e83c33b8f51.png",
+          "title": "Test Upload Image",
+          "uploaded_at": "2025-09-18T02:10:12.494102",
+          "url": "https://storage.googleapis.com/pablospizza-d84bf.firebasestorage.app/gallery/test-event-123/16f91095-ecd7-4468-9468-8e83c33b8f51.png"
+        }
+      },
+      "timestamp": "2025-09-18T02:10:12.731Z"
+    },
+    {
+      "name": "Gallery - Loading with Event ID",
+      "success": false,
+      "details": {
+        "status": 500,
+        "cors": {
+          "testName": "Gallery - Loading with Event ID",
+          "success": false,
+          "headers": {},
+          "errors": [
+            "Missing header: access-control-allow-origin",
+            "Missing header: access-control-allow-methods",
+            "Missing header: access-control-allow-headers"
+          ]
+        },
+        "responseData": {
+          "error": "Internal server error"
+        }
+      },
+      "timestamp": "2025-09-18T02:10:12.930Z"
+    },
+    {
+      "name": "Gallery - Public Endpoint",
+      "success": false,
+      "details": {
+        "status": 200,
+        "cors": {
+          "testName": "Gallery - Public Endpoint",
+          "success": false,
+          "headers": {
+            "access-control-allow-origin": "https://pablospizza.web.app"
+          },
+          "errors": [
+            "Missing header: access-control-allow-methods",
+            "Missing header: access-control-allow-headers"
+          ]
+        },
+        "responseData": [
+          {
+            "category": "event_photos",
+            "description": "E2E test image upload",
+            "event_id": "test-event-123",
+            "id": "16f91095-ecd7-4468-9468-8e83c33b8f51",
+            "src": "https://storage.googleapis.com/pablospizza-d84bf.firebasestorage.app/gallery/test-event-123/16f91095-ecd7-4468-9468-8e83c33b8f51.png",
+            "title": "Test Upload Image",
+            "uploaded_at": "Thu, 18 Sep 2025 02:10:12 GMT"
+          },
+          {
+            "category": "general",
+            "description": "Imagen del evento: Pizzeros en Acción - gonzalo",
+            "event_id": "QamgMMeqbp6HcHR0RpGL",
+            "id": "7d7ca491-c6d4-41d7-9290-3f12db86498c",
+            "src": "https://storage.googleapis.com/pablospizza-d84bf.firebasestorage.app/gallery/QamgMMeqbp6HcHR0RpGL/7d7ca491-c6d4-41d7-9290-3f12db86498c.jpg",
+            "title": "IMG-20250524-WA0071.jpg",
+            "uploaded_at": "Wed, 17 Sep 2025 02:00:36 GMT"
+          },
+          {
+            "category": "general",
+            "description": "Imagen del evento: Pizzeros en Acción - gonzalo",
+            "event_id": "QamgMMeqbp6HcHR0RpGL",
+            "id": "87f6e6a7-3deb-4d94-bb4d-d872a7f18b5a",
+            "src": "https://storage.googleapis.com/pablospizza-d84bf.firebasestorage.app/gallery/QamgMMeqbp6HcHR0RpGL/87f6e6a7-3deb-4d94-bb4d-d872a7f18b5a.jpg",
+            "title": "IMG-20250912-WA0065.jpg",
+            "uploaded_at": "Wed, 17 Sep 2025 01:38:15 GMT"
+          }
+        ]
+      },
+      "timestamp": "2025-09-18T02:10:13.159Z"
+    },
+    {
+      "name": "Error Handling - 404 Endpoint",
+      "success": false,
+      "details": {
+        "status": 404,
+        "cors": {
+          "testName": "Error Handling - 404 Endpoint",
+          "success": false,
+          "headers": {
+            "access-control-allow-origin": "https://pablospizza.web.app"
+          },
+          "errors": [
+            "Missing header: access-control-allow-methods",
+            "Missing header: access-control-allow-headers"
+          ]
+        },
+        "responseData": "<!doctype html>\n<html lang=en>\n<title>404 Not Found</title>\n<h1>Not Found</h1>\n<p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>\n"
+      },
+      "timestamp": "2025-09-18T02:10:13.342Z"
+    }
+  ]
+}

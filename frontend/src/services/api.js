@@ -491,7 +491,7 @@ export const galleryAPI = {
   delete: (id) => api.delete(`/gallery/${id}`),
   publish: (id, isPublished) => api.put(`/gallery/${id}/publish`, { is_published: isPublished }),
   getFeatured: (params = {}) => api.get('/gallery/featured/homepage', { params }),
-  getByEvent: (eventId) => api.get('/gallery/', { params: { event_id: eventId } }),
+  getByEvent: (eventId) => api.get(`/gallery/event/${eventId}`),
 }
 
 export const reviewsAPI = {

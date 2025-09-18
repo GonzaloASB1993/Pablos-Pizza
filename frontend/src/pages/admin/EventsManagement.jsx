@@ -105,7 +105,7 @@ const EventsManagement = () => {
         if (imageFiles.length > 0) {
           for (const file of imageFiles) {
             const formDataImage = new FormData()
-            formDataImage.append('file', file)
+            formDataImage.append('image', file)
             formDataImage.append('title', `${formData.title} - Imagen`)
             formDataImage.append('description', `Imagen del evento: ${formData.title}`)
             formDataImage.append('event_id', response.data.id)
@@ -201,7 +201,7 @@ const EventsManagement = () => {
 
       for (const file of photoFiles) {
         const formDataImage = new FormData()
-        formDataImage.append('file', file)
+        formDataImage.append('image', file)
         formDataImage.append('title', `${selectedEventForPhotos.title} - Imagen`)
         formDataImage.append('description', `Imagen del evento: ${selectedEventForPhotos.title}`)
         formDataImage.append('event_id', selectedEventForPhotos.id)

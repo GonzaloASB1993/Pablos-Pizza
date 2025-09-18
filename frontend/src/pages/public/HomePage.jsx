@@ -96,7 +96,7 @@ const Hero3DLogo = () => (
       alt="Pablo's Pizza Logo"
       sx={{
         width: '100%',
-        maxWidth: { xs: 280, md: 380, lg: 420 },
+        maxWidth: { xs: 200, sm: 280, md: 380, lg: 420 },
         aspectRatio: '1',
         borderRadius: '50%',
         objectFit: 'cover',
@@ -142,7 +142,7 @@ const StatsCard = ({ number, label, icon, color = 'golden' }) => (
     <Paper
       elevation={0}
       sx={{
-        p: 2,
+        p: { xs: 1.5, sm: 2 },
         textAlign: 'center',
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
         backdropFilter: 'blur(10px)',
@@ -156,10 +156,10 @@ const StatsCard = ({ number, label, icon, color = 'golden' }) => (
         }
       }}
     >
-      <Box sx={{ mb: 1 }}>
+      <Box sx={{ mb: { xs: 0.5, sm: 1 } }}>
         {React.cloneElement(icon, {
           sx: {
-            fontSize: 36,
+            fontSize: { xs: 24, sm: 36 },
             color: designTokens.colors.golden[400],
             filter: 'drop-shadow(0 4px 8px rgba(255, 215, 0, 0.3))',
           }
@@ -169,6 +169,7 @@ const StatsCard = ({ number, label, icon, color = 'golden' }) => (
         variant="h4"
         sx={{
           fontWeight: 700,
+          fontSize: { xs: '1.25rem', sm: '2rem' },
           background: designTokens.colors.aurora.golden,
           backgroundClip: 'text',
           WebkitBackgroundClip: 'text',
@@ -178,7 +179,11 @@ const StatsCard = ({ number, label, icon, color = 'golden' }) => (
       >
         {number}
       </Typography>
-      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontWeight: 500 }}>
+      <Typography variant="body2" sx={{
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontWeight: 500,
+        fontSize: { xs: '0.75rem', sm: '0.875rem' }
+      }}>
         {label}
       </Typography>
     </Paper>
@@ -200,8 +205,8 @@ const FloatingCTA = ({ navigate }) => {
         elevation={8}
         sx={{
           position: 'fixed',
-          bottom: 24,
-          right: 24,
+          bottom: { xs: 16, sm: 24 },
+          right: { xs: 16, sm: 24 },
           p: 2,
           backgroundColor: designTokens.colors.golden[500],
           color: designTokens.colors.charcoal[900],
@@ -385,9 +390,9 @@ export default function HomePage() {
                   <Typography
                     variant="h1"
                     sx={{
-                      fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4rem', lg: '4.5rem' },
+                      fontSize: { xs: '2rem', sm: '2.8rem', md: '4rem', lg: '4.5rem' },
                       fontWeight: 800,
-                      lineHeight: { xs: 1.2, md: 1.1 },
+                      lineHeight: { xs: 1.1, sm: 1.2, md: 1.1 },
                       mb: 3,
                       background: `linear-gradient(135deg, #FFFFFF 0%, ${designTokens.colors.golden[300]} 100%)`,
                       backgroundClip: 'text',
@@ -425,21 +430,21 @@ export default function HomePage() {
 
                   {/* Estadísticas rápidas */}
                   <Grid container spacing={3} sx={{ mb: 4 }}>
-                    <Grid item xs={4}>
+                    <Grid item xs={6} sm={4}>
                       <StatsCard
                         number="500+"
                         label="Niños Felices"
                         icon={<Favorite />}
                       />
                     </Grid>
-                    <Grid item xs={4}>
+                    <Grid item xs={6} sm={4}>
                       <StatsCard
                         number="50+"
                         label="Eventos Exitosos"
                         icon={<EmojiEvents />}
                       />
                     </Grid>
-                    <Grid item xs={4}>
+                    <Grid item xs={12} sm={4}>
                       <StatsCard
                         number="5★"
                         label="Calificación"

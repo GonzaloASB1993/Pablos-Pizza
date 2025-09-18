@@ -7,7 +7,7 @@ load_dotenv('.env')
 
 # Import after loading env variables
 import firebase_admin
-from firebase_admin import firestore
+from firebase_admin import firestore, storage
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from datetime import datetime
@@ -883,12 +883,31 @@ def create_event_from_booking(booking_data: dict) -> bool:
 @app.route('/api/health', methods=['GET'])
 def health():
     """Health check endpoint"""
-    return jsonify({
-        "status": "healthy",
-        "service": "Pablo's Pizza API - Production Ready",
-        "environment": os.getenv('ENVIRONMENT', 'production'),
-        "version": "2.0.0"
-    })
+    try:
+        # Test database connection
+        db = get_db()
+        db_status = "connected" if db else "disconnected"
+
+        return jsonify({
+            "status": "healthy",
+            "service": "Pablo's Pizza API - Production Ready",
+            "environment": os.getenv('ENVIRONMENT', 'production'),
+            "version": "2.1.1",
+            "database": db_status,
+            "cors_origins": len(allowed_origins),
+            "endpoints": [
+                "/api/health",
+                "/api/bookings/",
+                "/api/events/",
+                "/api/gallery/",
+                "/api/chat/rooms"
+            ]
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "unhealthy",
+            "error": str(e)
+        }), 500
 
 # Root endpoint
 @app.route('/', methods=['GET'])
@@ -1212,57 +1231,572 @@ def update_event(event_id):
         print(f"Error updating event: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/events/<event_id>/publish', methods=['PUT', 'OPTIONS'])
+def publish_event(event_id):
+    """Publish or unpublish an event"""
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'PUT,OPTIONS')
+        return response
+
+    try:
+        data = request.get_json()
+        if not data:
+            response = jsonify({"error": "No data provided"})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'PUT,OPTIONS')
+            return response, 400
+
+        db = get_db()
+        doc_ref = db.collection("events").document(event_id)
+        doc = doc_ref.get()
+
+        if not doc.exists:
+            response = jsonify({"error": "Event not found"})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'PUT,OPTIONS')
+            return response, 404
+
+        # Update publication fields
+        update_data = {
+            'is_published': data.get('is_published', False),
+            'updated_at': datetime.now()
+        }
+
+        if 'is_featured' in data:
+            update_data['is_featured'] = data['is_featured']
+
+        # Update in Firestore
+        doc_ref.update(update_data)
+
+        # Get updated event data
+        updated_doc = doc_ref.get()
+        updated_event = updated_doc.to_dict()
+        updated_event['id'] = updated_doc.id
+
+        print(f"✅ Event {event_id} publication status updated: published={update_data['is_published']}")
+
+        response = jsonify(updated_event)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'PUT,OPTIONS')
+        return response, 200
+
+    except Exception as e:
+        print(f"Error publishing event: {e}")
+        response = jsonify({"error": str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'PUT,OPTIONS')
+        return response, 500
+
+@app.route('/api/gallery/<photo_id>/publish', methods=['PUT', 'OPTIONS'])
+def publish_gallery_photo(photo_id):
+    """Publish or unpublish a gallery photo"""
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'PUT,OPTIONS')
+        return response
+
+    try:
+        data = request.get_json()
+        if not data:
+            response = jsonify({"error": "No data provided"})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'PUT,OPTIONS')
+            return response, 400
+
+        db = get_db()
+        doc_ref = db.collection("gallery").document(photo_id)
+        doc = doc_ref.get()
+
+        if not doc.exists:
+            response = jsonify({"error": "Photo not found"})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'PUT,OPTIONS')
+            return response, 404
+
+        # Update publication status
+        update_data = {
+            'is_published': data.get('is_published', False),
+            'updated_at': datetime.now()
+        }
+
+        # Update in Firestore
+        doc_ref.update(update_data)
+
+        # Get updated photo data
+        updated_doc = doc_ref.get()
+        updated_photo = updated_doc.to_dict()
+        updated_photo['id'] = updated_doc.id
+
+        print(f"✅ Photo {photo_id} publication status updated: published={update_data['is_published']}")
+
+        response = jsonify(updated_photo)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'PUT,OPTIONS')
+        return response, 200
+
+    except Exception as e:
+        print(f"Error publishing photo: {e}")
+        response = jsonify({"error": str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'PUT,OPTIONS')
+        return response, 500
+
 # Gallery endpoints (basic implementation)
 @app.route('/api/gallery/', methods=['GET'])
 def get_gallery_images():
-    """Get gallery images"""
+    """Get gallery images for admin management only"""
+    try:
+        print("=== GALLERY ENDPOINT DEBUG ===")
+        event_id = request.args.get('event_id')
+        print(f"Event ID param: {event_id}")
+
+        db = get_db()
+
+        # Get gallery images, filtering by event_id if specified
+        if event_id:
+            images_ref = db.collection("gallery").where("event_id", "==", event_id).order_by("uploaded_at", direction=firestore.Query.DESCENDING)
+        else:
+            images_ref = db.collection("gallery").order_by("uploaded_at", direction=firestore.Query.DESCENDING)
+
+        gallery_items = []
+        for doc in images_ref.stream():
+            image = doc.to_dict()
+            print(f"Processing image: {doc.id}, event_id: {image.get('event_id')}, published: {image.get('is_published')}")
+
+            gallery_item = {
+                'id': doc.id,
+                'title': image.get('title', 'Imagen'),
+                'url': image.get('url', ''),
+                'is_published': image.get('is_published', False),
+                'uploaded_at': image.get('uploaded_at'),
+                'event_id': image.get('event_id')
+            }
+
+            gallery_items.append(gallery_item)
+
+        print(f"Returning {len(gallery_items)} gallery items")
+        return jsonify(gallery_items), 200
+
+    except Exception as e:
+        print(f"Error getting gallery images: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/gallery/event/<event_id>', methods=['GET', 'OPTIONS'])
+def get_gallery_by_event(event_id):
+    """Get gallery images for a specific event"""
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return response
+
+    try:
+        print(f"Getting gallery images for event: {event_id}")
+        db = get_db()
+        if db is None:
+            response = jsonify({"error": "Database connection failed"})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+            return response, 500
+
+        # Query images by event_id
+        images_ref = db.collection("gallery").where("event_id", "==", event_id)
+        # Temporarily removing order_by to test if it causes the 500 error
+        # images_ref = images_ref.order_by("uploaded_at", direction=firestore.Query.DESCENDING)
+
+        images = []
+        try:
+            for doc in images_ref.stream():
+                image = doc.to_dict()
+                image['id'] = doc.id
+                images.append(image)
+            print(f"Found {len(images)} images for event {event_id}")
+        except Exception as db_error:
+            print(f"Database query error for event {event_id}: {db_error}")
+            import traceback
+            traceback.print_exc()
+            response = jsonify({"error": "Database query failed", "details": str(db_error), "event_id": event_id})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+            return response, 500
+
+        response = jsonify(images)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return response, 200
+
+    except Exception as e:
+        print(f"Error getting gallery images for event {event_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        response = jsonify({"error": str(e), "event_id": event_id})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return response, 500
+
+@app.route('/api/gallery/public', methods=['GET', 'OPTIONS'])
+def get_public_gallery_images():
+    """Get public gallery images for the website gallery page"""
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
+        return response
+
     try:
         db = get_db()
+        # Get only published/public images
         images_ref = db.collection("gallery").order_by("uploaded_at", direction=firestore.Query.DESCENDING)
-        
-        # Apply filters if provided
-        event_id = request.args.get('event_id')
-        if event_id:
-            images_ref = images_ref.where("event_id", "==", event_id)
-        
+
         images = []
         for doc in images_ref.stream():
             image = doc.to_dict()
             image['id'] = doc.id
-            images.append(image)
+
+            # Transform to expected format for gallery page
+            transformed_image = {
+                'id': image['id'],
+                'src': image.get('url', ''),
+                'title': image.get('title', 'Imagen'),
+                'description': image.get('description', ''),
+                'category': image.get('category', 'general'),
+                'event_id': image.get('event_id'),
+                'uploaded_at': image.get('uploaded_at')
+            }
+            images.append(transformed_image)
 
         return jsonify(images), 200
 
     except Exception as e:
-        print(f"Error getting gallery images: {e}")
+        print(f"Error getting public gallery images: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/gallery/upload', methods=['POST'])
+@app.route('/api/gallery/upload', methods=['POST', 'OPTIONS'])
 def upload_gallery_image():
-    """Upload image to gallery - placeholder endpoint"""
+    """Upload image to Firebase Storage and save metadata to Firestore"""
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        return response
+
     try:
-        # Para ahora, retornamos un placeholder
-        # En producción deberían integrarse con Firebase Storage
-        data = request.get_json() or {}
-        
+        print(f"📸 GALLERY UPLOAD - Headers: {dict(request.headers)}")
+        print(f"📸 GALLERY UPLOAD - Form data: {dict(request.form)}")
+        print(f"📸 GALLERY UPLOAD - Files: {list(request.files.keys())}")
+
+        # Check if file is in the request
+        if 'image' not in request.files:
+            print("❌ No image file provided")
+            response = jsonify({"error": "No image file provided", "received_files": list(request.files.keys())})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+            return response, 400
+
+        file = request.files['image']
+        if file.filename == '':
+            print("❌ No file selected")
+            response = jsonify({"error": "No file selected"})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+            return response, 400
+
+        # Validate file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        file_extension = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+        if file_extension not in allowed_extensions:
+            print(f"❌ Invalid file type: {file_extension}")
+            response = jsonify({"error": f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+            return response, 400
+
+        # Get form data
+        title = request.form.get('title', 'Nueva imagen')
+        description = request.form.get('description', '')
+        event_id = request.form.get('event_id')
+        category = request.form.get('category', 'general')
+        is_featured = request.form.get('is_featured', 'false').lower() == 'true'
+
+        print(f"📸 Processing upload: {title}, event_id: {event_id}")
+
+        # Generate unique filename
         image_id = str(uuid.uuid4())
+        filename = f"{image_id}.{file_extension}"
+
+        # Upload to Firebase Storage - using default bucket for the project
+        bucket = storage.bucket()
+        blob_path = f"gallery/{event_id}/{filename}" if event_id else f"gallery/{filename}"
+        blob = bucket.blob(blob_path)
+
+        # Reset file pointer to beginning
+        file.seek(0)
+
+        # Upload file with metadata
+        content_type = file.content_type or f'image/{file_extension}'
+        print(f"📸 Uploading to Firebase Storage: {blob_path}, content_type: {content_type}")
+
+        blob.upload_from_file(
+            file,
+            content_type=content_type
+        )
+
+        # Make the file publicly readable
+        blob.make_public()
+
+        # Get the public URL
+        public_url = blob.public_url
+        print(f"📸 Upload successful, public URL: {public_url}")
+
+        # Save metadata to Firestore
         image_data = {
             "id": image_id,
-            "url": "https://via.placeholder.com/400x300",  # Placeholder
-            "title": data.get('title', 'Nueva imagen'),
-            "description": data.get('description', ''),
-            "event_id": data.get('event_id'),
+            "url": public_url,
+            "title": title,
+            "description": description,
+            "event_id": event_id,
+            "category": category,
             "uploaded_at": datetime.now(),
-            "is_featured": data.get('is_featured', False)
+            "is_featured": is_featured,
+            "storage_path": blob_path,
+            "filename": filename,
+            "content_type": content_type
         }
-        
+
         db = get_db()
+        if db is None:
+            print("❌ Database connection failed")
+            response = jsonify({"error": "Database connection failed"})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+            return response, 500
+
         db.collection("gallery").document(image_id).set(image_data)
-        
-        return jsonify(image_data), 201
+        print(f"📸 Metadata saved to Firestore: {image_id}")
+
+        # Convert datetime for JSON serialization
+        image_data['uploaded_at'] = image_data['uploaded_at'].isoformat()
+
+        response = jsonify(image_data)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        return response, 201
 
     except Exception as e:
-        print(f"Error uploading image: {e}")
+        print(f"❌ Error uploading image: {e}")
+        import traceback
+        traceback.print_exc()
+        response = jsonify({"error": str(e), "details": "Check server logs for more information"})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        return response, 500
+
+# Chat endpoints
+@app.route('/api/chat/rooms', methods=['POST', 'OPTIONS'])
+def create_chat_room():
+    """Create a new chat room"""
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        return response
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Required fields
+        required_fields = ['client_name', 'client_email']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        # Generate room ID
+        room_id = str(uuid.uuid4())
+
+        # Create room data
+        room_data = {
+            "id": room_id,
+            "client_name": data['client_name'],
+            "client_email": data['client_email'],
+            "status": "open",
+            "created_at": datetime.now(),
+            "updated_at": datetime.now(),
+            "messages_count": 0
+        }
+
+        # Save to Firestore
+        db = get_db()
+        db.collection("chat_rooms").document(room_id).set(room_data)
+
+        print(f"Chat room created: {room_id} for {data['client_name']}")
+        response = jsonify(room_data)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        return response, 201
+
+    except Exception as e:
+        print(f"Error creating chat room: {e}")
+        response = jsonify({"error": str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        return response, 500
+
+@app.route('/api/chat/rooms', methods=['GET'])
+def get_chat_rooms():
+    """Get all chat rooms"""
+    try:
+        db = get_db()
+        rooms_ref = db.collection("chat_rooms").order_by("created_at", direction=firestore.Query.DESCENDING)
+        rooms = []
+
+        for doc in rooms_ref.stream():
+            room = doc.to_dict()
+            room['id'] = doc.id
+            rooms.append(room)
+
+        return jsonify(rooms), 200
+
+    except Exception as e:
+        print(f"Error getting chat rooms: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/chat/rooms/<room_id>/messages', methods=['GET'])
+def get_chat_messages(room_id):
+    """Get messages for a specific chat room"""
+    try:
+        db = get_db()
+        messages_ref = db.collection("chat_messages").where("room_id", "==", room_id).order_by("created_at")
+        messages = []
+
+        for doc in messages_ref.stream():
+            message = doc.to_dict()
+            message['id'] = doc.id
+            messages.append(message)
+
+        return jsonify(messages), 200
+
+    except Exception as e:
+        print(f"Error getting chat messages: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/chat/rooms/<room_id>/messages', methods=['POST'])
+def send_chat_message(room_id):
+    """Send a message to a chat room"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Required fields
+        required_fields = ['message', 'sender_name']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        # Generate message ID
+        message_id = str(uuid.uuid4())
+
+        # Create message data
+        message_data = {
+            "id": message_id,
+            "room_id": room_id,
+            "message": data['message'],
+            "sender_name": data['sender_name'],
+            "is_admin": data.get('is_admin', False),
+            "created_at": datetime.now()
+        }
+
+        # Save to Firestore
+        db = get_db()
+        db.collection("chat_messages").document(message_id).set(message_data)
+
+        # Update room's last activity
+        room_ref = db.collection("chat_rooms").document(room_id)
+        room_ref.update({
+            "updated_at": datetime.now(),
+            "messages_count": firestore.Increment(1)
+        })
+
+        print(f"Message sent in room {room_id}: {data['message'][:50]}...")
+        return jsonify(message_data), 201
+
+    except Exception as e:
+        print(f"Error sending chat message: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/chat/rooms/<room_id>/close', methods=['PUT'])
+def close_chat_room(room_id):
+    """Close a chat room"""
+    try:
+        db = get_db()
+        room_ref = db.collection("chat_rooms").document(room_id)
+        room_ref.update({
+            "status": "closed",
+            "updated_at": datetime.now()
+        })
+
+        return jsonify({"message": "Chat room closed successfully"}), 200
+
+    except Exception as e:
+        print(f"Error closing chat room: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/chat/rooms/<room_id>/status', methods=['GET'])
+def get_chat_room_status(room_id):
+    """Get chat room status"""
+    try:
+        db = get_db()
+        room_ref = db.collection("chat_rooms").document(room_id)
+        room = room_ref.get()
+
+        if room.exists:
+            room_data = room.to_dict()
+            room_data['id'] = room.id
+            return jsonify(room_data), 200
+        else:
+            return jsonify({"error": "Chat room not found"}), 404
+
+    except Exception as e:
+        print(f"Error getting chat room status: {e}")
         return jsonify({"error": str(e)}), 500
 
 # Update booking status

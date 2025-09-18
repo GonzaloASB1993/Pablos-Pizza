@@ -1,0 +1,22 @@
+{
+  "name": "pablos-pizza-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Pablo's Pizza application CORS and API fixes",
+  "main": "node-api-tests.js",
+  "scripts": {
+    "test": "node node-api-tests.js",
+    "test:api": "node node-api-tests.js",
+    "test:playwright": "npx playwright test playwright-e2e-tests.js",
+    "test:browser": "echo 'Open browser and go to file://tests/browser-test-runner.html'",
+    "test:all": "npm run test:api && npm run test:playwright",
+    "install:playwright": "npm install @playwright/test && npx playwright install",
+    "cors:check": "node -e \"require('./node-api-tests.js').NodeApiTestSuite.prototype.testHealthCheck().then(()=>process.exit(0)).catch(()=>process.exit(1))\"",
+    "setup": "npm install @playwright/test && npx playwright install chromium"
+  },
+  "keywords": ["e2e", "testing", "cors", "api", "pablos-pizza"],
+  "author": "Pablo's Pizza Dev Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}

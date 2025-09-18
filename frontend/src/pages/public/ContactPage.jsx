@@ -166,12 +166,12 @@ ${formData.message}`
                     boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
                   }
                 }}>
-                  <CardContent sx={{ p: 3, textAlign: 'center' }}>
-                    <WhatsApp sx={{ fontSize: 40, color: '#25D366', mb: 1 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                  <CardContent sx={{ p: { xs: 2, sm: 3 }, textAlign: 'center' }}>
+                    <WhatsApp sx={{ fontSize: { xs: 32, sm: 40 }, color: '#25D366', mb: 1 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                       WhatsApp
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                       {CONTACT_INFO.WHATSAPP_DISPLAY}
                     </Typography>
                     <Button
@@ -181,7 +181,9 @@ ${formData.message}`
                       sx={{
                         bgcolor: '#25D366',
                         '&:hover': { bgcolor: '#1DA851' },
-                        borderRadius: 2
+                        borderRadius: 2,
+                        fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                        py: { xs: 1, sm: 1.5 }
                       }}
                       fullWidth
                     >

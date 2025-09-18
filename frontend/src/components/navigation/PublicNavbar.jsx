@@ -57,7 +57,7 @@ const PublicNavbar = () => {
     }
 
     const drawer = (
-        <Box sx={{ width: 250 }}>
+        <Box sx={{ width: { xs: '85vw', sm: 300, md: 350 }, maxWidth: 400 }}>
             <Box sx={{
                 p: 2,
                 display: 'flex',
@@ -163,7 +163,8 @@ const PublicNavbar = () => {
                                 sx={{
                                     fontWeight: 700,
                                     color: theme.palette.primary.main,
-                                    display: { xs: 'none', sm: 'block' }
+                                    display: { xs: 'none', sm: 'block' },
+                                    fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }
                                 }}
                             >
                                 Pablo's Pizza

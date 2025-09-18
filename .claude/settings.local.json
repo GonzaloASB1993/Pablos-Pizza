@@ -49,7 +49,10 @@
       "Bash(start \"http://localhost:3000/contacto\")",
       "Bash(start \"http://localhost:3001/contacto\")",
       "Bash(git merge:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(firebase help:*)",
+      "Bash(chmod:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []
