@@ -1479,57 +1479,61 @@ def get_public_gallery_images():
 
         gallery_events = []
 
-        # Get all events and filter completed ones in Python to avoid index requirement
+        # Simplify by getting all published gallery images directly
         try:
-            print("📸 Querying all events...")
-            events_ref = db.collection("events")
-            events_count = 0
+            print("📸 Querying published gallery images directly...")
+            gallery_ref = db.collection("gallery").where("is_published", "==", True)
+            events_dict = {}
 
-            for event_doc in events_ref.stream():
-                event = event_doc.to_dict()
-                # Filter for completed events in Python instead of Firestore query
-                if event.get("status") != "completed":
+            # Group images by event_id
+            for img_doc in gallery_ref.stream():
+                img_data = img_doc.to_dict()
+                event_id = img_data.get('event_id')
+                if not event_id or not img_data.get('url'):
                     continue
-                events_count += 1
-                event_id = event_doc.id
-                print(f"📸 Processing event: {event_id}")
 
-                # Get images for this event
+                if event_id not in events_dict:
+                    events_dict[event_id] = {
+                        'images': [],
+                        'event_data': None
+                    }
+                events_dict[event_id]['images'].append(img_data.get('url'))
+
+            # Now get event details for each event that has images
+            events_count = 0
+            for event_id, data in events_dict.items():
                 try:
-                    images_ref = db.collection("gallery").where("event_id", "==", event_id).where("is_published", "==", True)
-                    event_images = []
+                    event_doc = db.collection("events").document(event_id).get()
+                    if event_doc.exists:
+                        event = event_doc.to_dict()
+                        if event.get("status") == "completed":
+                            events_count += 1
+                            event_images = data['images']
 
-                    for img_doc in images_ref.stream():
-                        img_data = img_doc.to_dict()
-                        if img_data.get('url'):  # Only include images with valid URLs
-                            event_images.append(img_data.get('url'))
+                            # Determine title based on available fields
+                            event_title = event.get('title', 'Evento Pablo\'s Pizza')
+                            if not event_title or event_title == 'Evento Pablo\'s Pizza':
+                                # Try to construct from other fields
+                                service_type = 'Taller' if 'workshop' in event.get('category', '').lower() or 'taller' in event.get('title', '').lower() else 'Fiesta'
+                                event_title = f"{service_type} Pablo's Pizza"
 
-                    # Only include events that have images
-                    if event_images:
-                        # Determine title based on available fields
-                        event_title = event.get('title', 'Evento Pablo\'s Pizza')
-                        if not event_title or event_title == 'Evento Pablo\'s Pizza':
-                            # Try to construct from other fields
-                            service_type = 'Taller' if 'workshop' in event.get('category', '').lower() or 'taller' in event.get('title', '').lower() else 'Fiesta'
-                            event_title = f"{service_type} Pablo's Pizza"
+                            gallery_event = {
+                                'id': event_id,
+                                'title': event_title,
+                                'description': event.get('description', 'Una experiencia inolvidable con Pablo\'s Pizza'),
+                                'category': event.get('category', 'party'),
+                                'images': event_images,
+                                'participants': event.get('participants', 15),
+                                'date': event.get('event_date'),
+                                'featured': len(event_images) >= 3,  # Featured if has 3+ images
+                                'highlight': event.get('highlight', f"Evento para {event.get('participants', 15)} personas"),
+                                'age_group': event.get('age_group', 'Todas las edades')
+                            }
+                            gallery_events.append(gallery_event)
+                            print(f"📸 Added event {event_id} with {len(event_images)} images")
 
-                        gallery_event = {
-                            'id': event_id,
-                            'title': event_title,
-                            'description': event.get('description', 'Una experiencia inolvidable con Pablo\'s Pizza'),
-                            'category': event.get('category', 'party'),
-                            'images': event_images,
-                            'participants': event.get('participants', 15),
-                            'date': event.get('event_date'),
-                            'featured': len(event_images) >= 3,  # Featured if has 3+ images
-                            'highlight': event.get('highlight', f"Evento para {event.get('participants', 15)} personas"),
-                            'age_group': event.get('age_group', 'Todas las edades')
-                        }
-                        gallery_events.append(gallery_event)
-                        print(f"📸 Added event {event_id} with {len(event_images)} images")
-
-                except Exception as img_error:
-                    print(f"❌ Error processing images for event {event_id}: {img_error}")
+                except Exception as event_error:
+                    print(f"❌ Error processing event {event_id}: {event_error}")
                     continue
 
             print(f"📸 Processed {events_count} events, added {len(gallery_events)} with images")
