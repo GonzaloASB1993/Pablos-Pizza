@@ -900,7 +900,7 @@ def health():
                 "/api/bookings/",
                 "/api/events/",
                 "/api/gallery/",
-                "/api/chat/rooms"
+                "/api/contacts/"
             ]
         })
     except Exception as e:
@@ -1459,7 +1459,7 @@ def get_gallery_by_event(event_id):
 
 @app.route('/api/gallery/public', methods=['GET', 'OPTIONS'])
 def get_public_gallery_images():
-    """Get public gallery images for the website gallery page"""
+    """Get public gallery images grouped by events for the website gallery page"""
     # Handle preflight OPTIONS request
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'OK'})
@@ -1469,32 +1469,145 @@ def get_public_gallery_images():
         return response
 
     try:
+        print("📸 GALLERY PUBLIC - Starting request")
         db = get_db()
-        # Get only published/public images
-        images_ref = db.collection("gallery").order_by("uploaded_at", direction=firestore.Query.DESCENDING)
+        if db is None:
+            print("❌ Database connection failed")
+            response = jsonify({"error": "Database connection failed"})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 500
 
-        images = []
-        for doc in images_ref.stream():
-            image = doc.to_dict()
-            image['id'] = doc.id
+        gallery_events = []
 
-            # Transform to expected format for gallery page
-            transformed_image = {
-                'id': image['id'],
-                'src': image.get('url', ''),
-                'title': image.get('title', 'Imagen'),
-                'description': image.get('description', ''),
-                'category': image.get('category', 'general'),
-                'event_id': image.get('event_id'),
-                'uploaded_at': image.get('uploaded_at')
-            }
-            images.append(transformed_image)
+        # Get all events and filter completed ones in Python to avoid index requirement
+        try:
+            print("📸 Querying all events...")
+            events_ref = db.collection("events")
+            events_count = 0
 
-        return jsonify(images), 200
+            for event_doc in events_ref.stream():
+                event = event_doc.to_dict()
+                # Filter for completed events in Python instead of Firestore query
+                if event.get("status") != "completed":
+                    continue
+                events_count += 1
+                event_id = event_doc.id
+                print(f"📸 Processing event: {event_id}")
+
+                # Get images for this event
+                try:
+                    images_ref = db.collection("gallery").where("event_id", "==", event_id).where("is_published", "==", True)
+                    event_images = []
+
+                    for img_doc in images_ref.stream():
+                        img_data = img_doc.to_dict()
+                        if img_data.get('url'):  # Only include images with valid URLs
+                            event_images.append(img_data.get('url'))
+
+                    # Only include events that have images
+                    if event_images:
+                        # Determine title based on available fields
+                        event_title = event.get('title', 'Evento Pablo\'s Pizza')
+                        if not event_title or event_title == 'Evento Pablo\'s Pizza':
+                            # Try to construct from other fields
+                            service_type = 'Taller' if 'workshop' in event.get('category', '').lower() or 'taller' in event.get('title', '').lower() else 'Fiesta'
+                            event_title = f"{service_type} Pablo's Pizza"
+
+                        gallery_event = {
+                            'id': event_id,
+                            'title': event_title,
+                            'description': event.get('description', 'Una experiencia inolvidable con Pablo\'s Pizza'),
+                            'category': event.get('category', 'party'),
+                            'images': event_images,
+                            'participants': event.get('participants', 15),
+                            'date': event.get('event_date'),
+                            'featured': len(event_images) >= 3,  # Featured if has 3+ images
+                            'highlight': event.get('highlight', f"Evento para {event.get('participants', 15)} personas"),
+                            'age_group': event.get('age_group', 'Todas las edades')
+                        }
+                        gallery_events.append(gallery_event)
+                        print(f"📸 Added event {event_id} with {len(event_images)} images")
+
+                except Exception as img_error:
+                    print(f"❌ Error processing images for event {event_id}: {img_error}")
+                    continue
+
+            print(f"📸 Processed {events_count} events, added {len(gallery_events)} with images")
+
+        except Exception as events_error:
+            print(f"❌ Error querying events: {events_error}")
+
+        # If no events with images, return individual published images
+        if not gallery_events:
+            print("📸 No events with images found, getting individual gallery images...")
+            try:
+                images_ref = db.collection("gallery").where("is_published", "==", True).limit(20)
+
+                for doc in images_ref.stream():
+                    image = doc.to_dict()
+                    if image.get('url'):  # Only include images with valid URLs
+                        gallery_event = {
+                            'id': doc.id,
+                            'title': image.get('title', 'Evento Pablo\'s Pizza'),
+                            'description': image.get('description', 'Una experiencia única con Pablo\'s Pizza'),
+                            'category': image.get('category', 'party'),
+                            'images': [image.get('url')],
+                            'participants': 15,
+                            'date': image.get('uploaded_at'),
+                            'featured': False,
+                            'highlight': 'Experiencia única',
+                            'age_group': 'Todas las edades'
+                        }
+                        gallery_events.append(gallery_event)
+
+                print(f"📸 Added {len(gallery_events)} individual images")
+
+            except Exception as images_error:
+                print(f"❌ Error querying individual images: {images_error}")
+
+        # If still no gallery events, create some sample data
+        if not gallery_events:
+            print("📸 No images found, creating sample gallery event")
+            gallery_events = [{
+                'id': 'sample-1',
+                'title': 'Taller Pablo\'s Pizza - Experiencia Educativa',
+                'description': 'Ven y aprende a hacer deliciosas pizzas artesanales en nuestro taller interactivo. Una experiencia perfecta para toda la familia.',
+                'category': 'workshop',
+                'images': ['https://pablospizza.web.app/assets/logo-nqn6pSjR.png'],
+                'participants': 15,
+                'date': '2024-01-15',
+                'featured': True,
+                'highlight': 'Experiencia educativa única',
+                'age_group': 'Todas las edades'
+            }]
+
+        print(f"📸 Returning {len(gallery_events)} gallery events")
+        response = jsonify(gallery_events)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
 
     except Exception as e:
-        print(f"Error getting public gallery images: {e}")
-        return jsonify({"error": str(e)}), 500
+        print(f"❌ Error in gallery public endpoint: {e}")
+        import traceback
+        traceback.print_exc()
+
+        # Return a safe fallback response
+        fallback_data = [{
+            'id': 'fallback-1',
+            'title': 'Pablo\'s Pizza - Experiencias Únicas',
+            'description': 'Próximamente podrás ver nuestra galería de eventos realizados. ¡Estamos preparando contenido increíble para ti!',
+            'category': 'party',
+            'images': ['https://pablospizza.web.app/assets/logo-nqn6pSjR.png'],
+            'participants': 15,
+            'date': '2024-01-01',
+            'featured': false,
+            'highlight': 'Próximamente',
+            'age_group': 'Todas las edades'
+        }]
+
+        response = jsonify(fallback_data)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
 
 @app.route('/api/gallery/upload', methods=['POST', 'OPTIONS'])
 def upload_gallery_image():
@@ -1624,11 +1737,10 @@ def upload_gallery_image():
         response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
         return response, 500
 
-# Chat endpoints - Combined GET and POST
-@app.route('/api/chat/rooms', methods=['GET', 'POST', 'OPTIONS'])
-def handle_chat_rooms():
-    """Handle both GET (list rooms) and POST (create room) for chat rooms"""
-    # Handle preflight OPTIONS request
+# Contact System Endpoints
+@app.route('/api/contacts', methods=['GET', 'POST', 'OPTIONS'])
+def handle_contacts():
+    """Handle contact messages - GET to retrieve, POST to create"""
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'OK'})
         response.headers.add('Access-Control-Allow-Origin', '*')
@@ -1636,247 +1748,559 @@ def handle_chat_rooms():
         response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
         return response
 
-    # Handle POST - Create new chat room
+    if request.method == 'GET':
+        try:
+            print("🔍 Getting contact messages...")
+            db = get_db()
+            if db is None:
+                return jsonify({"error": "Database connection failed"}), 500
+
+            # Query parameters for filtering
+            status = request.args.get('status')
+            priority = request.args.get('priority')
+            limit = int(request.args.get('limit', 50))
+
+            contacts_ref = db.collection("contacts")
+
+            # Apply filters
+            if status:
+                contacts_ref = contacts_ref.where("status", "==", status)
+            if priority:
+                contacts_ref = contacts_ref.where("priority", "==", priority)
+
+            contacts_ref = contacts_ref.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
+
+            contacts = []
+            for doc in contacts_ref.stream():
+                contact = doc.to_dict()
+                contact['id'] = doc.id
+                contacts.append(contact)
+
+            print(f"✅ Found {len(contacts)} contact messages")
+            response = jsonify(contacts)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 200
+
+        except Exception as e:
+            print(f"❌ Error getting contacts: {e}")
+            response = jsonify({"error": str(e)})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 500
+
     if request.method == 'POST':
-        return create_chat_room_logic()
+        try:
+            print("📝 Creating new contact message...")
+            data = request.get_json()
+            if not data:
+                return jsonify({"error": "No data provided"}), 400
 
-    # Handle GET - List chat rooms
-    elif request.method == 'GET':
-        return get_chat_rooms_logic()
+            # Required fields validation
+            required_fields = ['name', 'email', 'subject', 'message']
+            for field in required_fields:
+                if field not in data:
+                    return jsonify({"error": f"Missing required field: {field}"}), 400
 
-def create_chat_room_logic():
-    """Create a new chat room logic"""
+            # Generate contact ID
+            contact_id = str(uuid.uuid4())
+            current_time = datetime.now()
+
+            # Create contact data
+            contact_data = {
+                "id": contact_id,
+                "name": data['name'],
+                "email": data['email'],
+                "phone": data.get('phone'),
+                "subject": data['subject'],
+                "message": data['message'],
+                "priority": data.get('priority', 'normal'),
+                "status": "pending",
+                "created_at": current_time,
+                "updated_at": current_time,
+                "response_sent": False
+            }
+
+            # Save to Firestore
+            db = get_db()
+            db.collection("contacts").document(contact_id).set(contact_data)
+
+            # Send WhatsApp notification to admin (if configured)
+            try:
+                admin_phone = "+5491167329628"  # Replace with actual admin WhatsApp number
+                message_text = f"🔔 *Nuevo mensaje de contacto*\n\n" \
+                              f"*De:* {data['name']}\n" \
+                              f"*Email:* {data['email']}\n" \
+                              f"*Asunto:* {data['subject']}\n" \
+                              f"*Mensaje:* {data['message'][:100]}{'...' if len(data['message']) > 100 else ''}\n" \
+                              f"*Prioridad:* {data.get('priority', 'normal').upper()}\n\n" \
+                              f"Responde desde el panel de administración."
+
+                # Note: WhatsApp integration would go here
+                # For now, we'll just log it
+                print(f"📱 WhatsApp notification would be sent to {admin_phone}")
+                print(f"Message: {message_text}")
+
+            except Exception as whatsapp_error:
+                print(f"⚠️ WhatsApp notification failed: {whatsapp_error}")
+
+            print(f"✅ Contact message created: {contact_id}")
+            response = jsonify(contact_data)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 201
+
+        except Exception as e:
+            print(f"❌ Error creating contact: {e}")
+            response = jsonify({"error": str(e)})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 500
+
+@app.route('/api/contacts/<contact_id>', methods=['PUT', 'OPTIONS'])
+def update_contact(contact_id):
+    """Update contact message status, assignment, notes, etc."""
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'PUT,OPTIONS')
+        return response
+
     try:
+        print(f"📝 Updating contact: {contact_id}")
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        db = get_db()
+        contact_ref = db.collection("contacts").document(contact_id)
+        contact_doc = contact_ref.get()
+
+        if not contact_doc.exists:
+            return jsonify({"error": "Contact not found"}), 404
+
+        # Prepare update data
+        update_data = {"updated_at": datetime.now()}
+
+        # Update allowed fields
+        allowed_fields = ['status', 'assigned_to', 'notes', 'response_method', 'response_sent']
+        for field in allowed_fields:
+            if field in data:
+                update_data[field] = data[field]
+
+        # Set resolved_at if status changes to resolved
+        if data.get('status') == 'resolved':
+            update_data['resolved_at'] = datetime.now()
+
+        # Update in Firestore
+        contact_ref.update(update_data)
+
+        # Get updated contact
+        updated_contact = contact_ref.get().to_dict()
+        updated_contact['id'] = contact_id
+
+        print(f"✅ Contact updated: {contact_id}")
+        response = jsonify(updated_contact)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
+
+    except Exception as e:
+        print(f"❌ Error updating contact: {e}")
+        response = jsonify({"error": str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+def send_contact_response_email(contact_data: dict, response_message: str) -> bool:
+    """Send email response to contact inquiry"""
+    try:
+        print(f"📧 Sending response email to: {contact_data['email']}")
+
+        # Email configuration
+        smtp_server = os.getenv('EMAIL_SERVER', 'smtp.gmail.com')
+        smtp_port = int(os.getenv('EMAIL_PORT', 587))
+        email_username = os.getenv('EMAIL_USERNAME')
+        email_password = os.getenv('EMAIL_PASSWORD')
+        email_from = os.getenv('EMAIL_FROM')
+
+        if not all([email_username, email_password, email_from]):
+            print("❌ Email configuration not complete")
+            return False
+
+        # Create professional HTML email response
+        html_content = f"""
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Respuesta - Pablo's Pizza</title>
+            <style>
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #2c2c2c;
+                    background-color: #f8f9fa;
+                    margin: 0;
+                    padding: 0;
+                }}
+                .email-container {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background-color: #ffffff;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+                }}
+                .header {{
+                    background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+                    padding: 40px 30px;
+                    text-align: center;
+                    position: relative;
+                    overflow: hidden;
+                }}
+                .logo-container {{
+                    position: relative;
+                    z-index: 2;
+                    margin-bottom: 20px;
+                    text-align: center;
+                }}
+                .logo-image {{
+                    width: 120px;
+                    height: 120px;
+                    border-radius: 50%;
+                    box-shadow: 0 8px 24px rgba(255, 193, 7, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+                    margin-bottom: 20px;
+                    display: inline-block;
+                    border: 3px solid #FFC107;
+                }}
+                .header h1 {{
+                    color: #ffffff;
+                    font-size: 24px;
+                    font-weight: 700;
+                    margin: 0;
+                    position: relative;
+                    z-index: 2;
+                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                }}
+                .content {{
+                    padding: 40px 30px;
+                    background-color: #ffffff;
+                }}
+                .greeting {{
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #000000;
+                    margin-bottom: 15px;
+                }}
+                .response-content {{
+                    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+                    border: 2px solid #FFC107;
+                    border-radius: 16px;
+                    padding: 25px;
+                    margin: 30px 0;
+                    position: relative;
+                    overflow: hidden;
+                }}
+                .response-content::before {{
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 4px;
+                    background: linear-gradient(90deg, #FFC107 0%, #FFD54F 50%, #FFC107 100%);
+                }}
+                .response-content h3 {{
+                    color: #000000;
+                    font-size: 16px;
+                    font-weight: 700;
+                    margin-bottom: 15px;
+                }}
+                .contact-section {{
+                    background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+                    border-radius: 16px;
+                    padding: 25px;
+                    margin: 30px 0;
+                    text-align: center;
+                }}
+                .contact-section h3 {{
+                    color: #FFC107;
+                    font-size: 18px;
+                    font-weight: 700;
+                    margin-bottom: 15px;
+                }}
+                .contact-section p {{
+                    color: #cccccc;
+                    margin-bottom: 20px;
+                }}
+                .contact-buttons {{
+                    display: flex;
+                    gap: 15px;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                }}
+                .contact-btn {{
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 12px 20px;
+                    background: linear-gradient(135deg, #FFC107 0%, #FFD54F 100%);
+                    color: #000000;
+                    text-decoration: none;
+                    border-radius: 25px;
+                    font-weight: 600;
+                    transition: transform 0.2s ease;
+                    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+                }}
+                .footer {{
+                    background-color: #f8f9fa;
+                    padding: 30px;
+                    text-align: center;
+                    border-top: 1px solid #e9ecef;
+                }}
+                .footer-brand {{
+                    color: #000000;
+                    font-weight: 700;
+                    font-size: 16px;
+                    margin-bottom: 8px;
+                }}
+                .footer-tagline {{
+                    color: #6c757d;
+                    font-size: 14px;
+                    margin-bottom: 15px;
+                }}
+                .footer-disclaimer {{
+                    color: #adb5bd;
+                    font-size: 12px;
+                    line-height: 1.5;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="email-container">
+                <div class="header">
+                    <div class="logo-container">
+                        <img src="https://pablospizza.web.app/assets/logo-nqn6pSjR.png" alt="Pablo's Pizza" class="logo-image">
+                    </div>
+                    <h1>Respuesta a tu consulta</h1>
+                </div>
+
+                <div class="content">
+                    <div class="greeting">¡Hola {contact_data.get('name', 'Cliente')}!</div>
+
+                    <p>Gracias por contactarnos. Hemos recibido tu mensaje y queremos responderte personalmente:</p>
+
+                    <div class="response-content">
+                        <h3>📧 Nuestra respuesta:</h3>
+                        <p style="line-height: 1.7; font-size: 16px; color: #2c2c2c;">{response_message}</p>
+                    </div>
+
+                    <div style="background-color: rgba(255, 215, 0, 0.1); border-radius: 12px; padding: 20px; margin: 20px 0;">
+                        <h4 style="color: #000000; margin-bottom: 10px;">📝 Tu consulta original:</h4>
+                        <p style="margin-bottom: 5px;"><strong>Asunto:</strong> {contact_data.get('subject', 'No especificado')}</p>
+                        <p style="margin-bottom: 0;"><strong>Mensaje:</strong> {contact_data.get('message', 'No especificado')}</p>
+                    </div>
+
+                    <div class="contact-section">
+                        <h3>📞 ¿Necesitas más información?</h3>
+                        <p>Estamos aquí para ayudarte con cualquier consulta adicional.</p>
+                        <div class="contact-buttons">
+                            <a href="https://wa.me/56989424566" class="contact-btn">
+                                📱 WhatsApp: +56 9 8942 4566
+                            </a>
+                            <a href="mailto:pablospizza.cl@gmail.com" class="contact-btn">
+                                ✉️ pablospizza.cl@gmail.com
+                            </a>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin: 30px 0; padding: 25px; background: linear-gradient(135deg, #FFF3C4 0%, #FFECB3 100%); border-radius: 16px; border: 1px solid #FFC107;">
+                        <h3 style="color: #000000; margin-bottom: 15px;">🍕 ¿Listo para agendar tu evento?</h3>
+                        <p style="margin-bottom: 20px;">Contáctanos para obtener una cotización personalizada y crear recuerdos inolvidables.</p>
+                        <a href="https://pablospizza.web.app/agendar" style="display: inline-block; background: linear-gradient(135deg, #FFD700 0%, #CBA900 100%); color: #000; padding: 12px 30px; text-decoration: none; border-radius: 25px; font-weight: 700; box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);">
+                            Agendar Mi Evento
+                        </a>
+                    </div>
+                </div>
+
+                <div class="footer">
+                    <div class="footer-brand">Pablo's Pizza</div>
+                    <div class="footer-tagline">Creando momentos deliciosos y memorables</div>
+                    <div class="footer-disclaimer">
+                        Esta es una respuesta personalizada a tu consulta. Para más información, utiliza nuestros canales de contacto oficiales.
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        # Create message
+        msg = MIMEMultipart('alternative')
+        msg['From'] = email_from
+        msg['To'] = contact_data.get('email')
+        msg['Subject'] = f"Re: {contact_data.get('subject', 'Tu consulta')} - Pablo's Pizza"
+
+        # Attach HTML content
+        html_part = MIMEText(html_content, 'html')
+        msg.attach(html_part)
+
+        # Send email
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(email_username, email_password)
+        text = msg.as_string()
+        server.sendmail(email_from, contact_data.get('email'), text)
+        server.quit()
+
+        print(f"✅ Response email sent successfully to: {contact_data.get('email')}")
+        return True
+
+    except Exception as e:
+        print(f"❌ Error sending response email: {e}")
+        return False
+
+@app.route('/api/contacts/<contact_id>/respond', methods=['POST', 'OPTIONS'])
+def respond_to_contact(contact_id):
+    """Send response to contact via email or WhatsApp"""
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        return response
+
+    try:
+        print(f"📧 Sending response to contact: {contact_id}")
         data = request.get_json()
         if not data:
             response = jsonify({"error": "No data provided"})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
 
-        # Required fields
-        required_fields = ['client_name', 'client_email']
+        required_fields = ['response_message', 'response_method']
         for field in required_fields:
             if field not in data:
                 response = jsonify({"error": f"Missing required field: {field}"})
                 response.headers.add('Access-Control-Allow-Origin', '*')
                 return response, 400
 
-        # Generate room ID
-        room_id = str(uuid.uuid4())
+        db = get_db()
+        contact_ref = db.collection("contacts").document(contact_id)
+        contact_doc = contact_ref.get()
 
-        # Create room data
-        room_data = {
-            "id": room_id,
-            "client_name": data['client_name'],
-            "client_email": data['client_email'],
-            "status": "open",
-            "created_at": datetime.now(),
+        if not contact_doc.exists:
+            response = jsonify({"error": "Contact not found"})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 404
+
+        contact_data = contact_doc.to_dict()
+        response_method = data['response_method']
+        response_message = data['response_message']
+        response_success = False
+
+        # Send response based on method
+        if response_method == 'email':
+            response_success = send_contact_response_email(contact_data, response_message)
+            if not response_success:
+                response = jsonify({"error": "Failed to send email response. Please check email configuration."})
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 500
+
+        elif response_method == 'whatsapp':
+            # WhatsApp response implementation
+            phone = contact_data.get('phone')
+            if not phone:
+                response = jsonify({"error": "No phone number available for WhatsApp response"})
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 400
+
+            try:
+                # Format WhatsApp message
+                whatsapp_message = f"""🍕 *Pablo's Pizza - Respuesta a tu consulta*
+
+Hola {contact_data.get('name', 'Cliente')},
+
+Gracias por tu mensaje sobre: *{contact_data.get('subject', 'Consulta general')}*
+
+*Nuestra respuesta:*
+{response_message}
+
+Si tienes más preguntas, no dudes en contactarnos.
+
+¡Saludos cordiales del equipo Pablo's Pizza! 🍕"""
+
+                # Send WhatsApp using existing function
+                whatsapp_sent = asyncio.run(send_whatsapp_notification(
+                    phone,
+                    whatsapp_message,
+                    "contact_response"
+                ))
+
+                if whatsapp_sent:
+                    print(f"✅ WhatsApp response sent successfully to: {phone}")
+                    response_success = True
+                else:
+                    print(f"❌ Failed to send WhatsApp response to: {phone}")
+                    response = jsonify({"error": "Failed to send WhatsApp response"})
+                    response.headers.add('Access-Control-Allow-Origin', '*')
+                    return response, 500
+
+            except Exception as whatsapp_error:
+                print(f"❌ WhatsApp error: {whatsapp_error}")
+                response = jsonify({"error": f"WhatsApp error: {str(whatsapp_error)}"})
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 500
+
+        else:
+            response = jsonify({"error": "Invalid response method. Use 'email' or 'whatsapp'"})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
+
+        # Update contact as resolved with response info
+        update_data = {
+            "status": "resolved",
+            "response_sent": True,
+            "response_message": response_message,
+            "response_method": response_method,
+            "resolved_at": datetime.now(),
             "updated_at": datetime.now(),
-            "messages_count": 0
+            "notes": data.get('notes', '')
         }
 
-        # Save to Firestore
-        db = get_db()
-        db.collection("chat_rooms").document(room_id).set(room_data)
+        contact_ref.update(update_data)
 
-        print(f"Chat room created: {room_id} for {data['client_name']}")
-        response = jsonify(room_data)
+        # Save response record to database
+        try:
+            response_record = {
+                "contact_id": contact_id,
+                "response_message": response_message,
+                "response_method": response_method,
+                "sent_at": datetime.now(),
+                "status": "sent" if response_success else "failed"
+            }
+            db.collection("contact_responses").add(response_record)
+            print(f"📝 Response record saved to database")
+        except Exception as record_error:
+            print(f"⚠️ Failed to save response record: {record_error}")
+
+        print(f"✅ Response sent via {response_method} to contact: {contact_id}")
+        response_data = {
+            "message": f"Response sent via {response_method}",
+            "contact_id": contact_id,
+            "response_method": response_method,
+            "success": response_success
+        }
+
+        response = jsonify(response_data)
         response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-        return response, 201
+        return response, 200
 
     except Exception as e:
-        print(f"Error creating chat room: {e}")
+        print(f"❌ Error sending response: {e}")
+        import traceback
+        traceback.print_exc()
         response = jsonify({"error": str(e)})
         response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
         return response, 500
 
-def get_chat_rooms_logic():
-    """Get all chat rooms logic"""
-    try:
-        print("🔍 Getting chat rooms...")
-        db = get_db()
-        if db is None:
-            print("❌ Database connection failed")
-            response = jsonify({"error": "Database connection failed"})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 500
-
-        # Get query parameter
-        active_only = request.args.get('active_only', 'true').lower() == 'true'
-        print(f"🔍 Filter active_only: {active_only}")
-
-        # Simplificar la consulta para evitar índices complejos
-        # Solo ordenar por created_at, filtrar después si es necesario
-        rooms_ref = db.collection("chat_rooms").order_by("created_at", direction=firestore.Query.DESCENDING)
-
-        # Obtener todos los documentos y filtrar en memoria si es necesario
-        rooms = []
-        for doc in rooms_ref.stream():
-            room = doc.to_dict()
-            room['id'] = doc.id
-            
-            # Ensure compatibility with frontend expectations
-            if 'status' not in room:
-                room['status'] = 'open'  # Default status
-            room['is_active'] = room['status'] == 'open'
-            
-            # Filtrar en memoria en lugar de en la consulta
-            if active_only and room['status'] != 'open':
-                continue
-                
-            rooms.append(room)
-
-        print(f"✅ Found {len(rooms)} chat rooms")
-        response = jsonify(rooms)
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-        return response, 200
-
-    except Exception as e:
-        print(f"❌ Error getting chat rooms: {e}")
-        import traceback
-        traceback.print_exc()
-        response = jsonify({"error": str(e), "details": "Check server logs for more information"})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-        return response, 500
-
-
-@app.route('/api/chat/rooms/<room_id>/messages', methods=['GET', 'OPTIONS'])
-def get_chat_messages(room_id):
-    """Get messages for a specific chat room"""
-    # Handle preflight OPTIONS request
-    if request.method == 'OPTIONS':
-        response = jsonify({'status': 'OK'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
-        return response
-
-    try:
-        print(f"🔍 Getting messages for room: {room_id}")
-        db = get_db()
-        if db is None:
-            response = jsonify({"error": "Database connection failed"})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 500
-
-        # Simplificar consulta para evitar índices
-        # Obtener todos los mensajes de esta sala (sin ordenamiento en la consulta)
-        messages_ref = db.collection("chat_messages").where("room_id", "==", room_id)
-        messages = []
-
-        for doc in messages_ref.stream():
-            message = doc.to_dict()
-            message['id'] = doc.id
-            messages.append(message)
-
-        # Ordenar en memoria por created_at
-        messages.sort(key=lambda x: x.get('created_at', datetime.min))
-
-        print(f"✅ Found {len(messages)} messages for room {room_id}")
-        response = jsonify(messages)
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
-        return response, 200
-
-    except Exception as e:
-        print(f"❌ Error getting chat messages for room {room_id}: {e}")
-        import traceback
-        traceback.print_exc()
-        response = jsonify({"error": str(e), "room_id": room_id})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
-        return response, 500
-
-@app.route('/api/chat/rooms/<room_id>/messages', methods=['POST'])
-def send_chat_message(room_id):
-    """Send a message to a chat room"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "No data provided"}), 400
-
-        # Required fields
-        required_fields = ['message', 'sender_name']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({"error": f"Missing required field: {field}"}), 400
-
-        # Generate message ID
-        message_id = str(uuid.uuid4())
-
-        # Create message data
-        message_data = {
-            "id": message_id,
-            "room_id": room_id,
-            "message": data['message'],
-            "sender_name": data['sender_name'],
-            "is_admin": data.get('is_admin', False),
-            "created_at": datetime.now()
-        }
-
-        # Save to Firestore
-        db = get_db()
-        db.collection("chat_messages").document(message_id).set(message_data)
-
-        # Update room's last activity
-        room_ref = db.collection("chat_rooms").document(room_id)
-        room_ref.update({
-            "updated_at": datetime.now(),
-            "messages_count": firestore.Increment(1)
-        })
-
-        print(f"Message sent in room {room_id}: {data['message'][:50]}...")
-        return jsonify(message_data), 201
-
-    except Exception as e:
-        print(f"Error sending chat message: {e}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/chat/rooms/<room_id>/close', methods=['PUT'])
-def close_chat_room(room_id):
-    """Close a chat room"""
-    try:
-        db = get_db()
-        room_ref = db.collection("chat_rooms").document(room_id)
-        room_ref.update({
-            "status": "closed",
-            "updated_at": datetime.now()
-        })
-
-        return jsonify({"message": "Chat room closed successfully"}), 200
-
-    except Exception as e:
-        print(f"Error closing chat room: {e}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/chat/rooms/<room_id>/status', methods=['GET'])
-def get_chat_room_status(room_id):
-    """Get chat room status"""
-    try:
-        db = get_db()
-        room_ref = db.collection("chat_rooms").document(room_id)
-        room = room_ref.get()
-
-        if room.exists:
-            room_data = room.to_dict()
-            room_data['id'] = room.id
-            return jsonify(room_data), 200
-        else:
-            return jsonify({"error": "Chat room not found"}), 404
-
-    except Exception as e:
-        print(f"Error getting chat room status: {e}")
-        return jsonify({"error": str(e)}), 500
 
 # Update booking status
 @app.route('/api/bookings/<booking_id>', methods=['PUT'])

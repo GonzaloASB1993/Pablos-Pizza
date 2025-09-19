@@ -152,19 +152,23 @@ class Notification(NotificationBase):
     sent_at: datetime
     status: str  # "sent", "failed", "pending"
 
-# Schemas para Chat
-class ChatMessage(BaseModel):
-    id: str
-    sender_id: str
-    sender_name: str
+# Contact System Schemas
+class ContactMessageCreate(BaseModel):
+    name: str
+    email: EmailStr
+    phone: Optional[str] = None
+    subject: str
     message: str
-    timestamp: datetime
-    is_admin: bool = False
+    priority: str = "normal"  # "low", "normal", "high", "urgent"
 
-class ChatRoom(BaseModel):
+class ContactMessage(ContactMessageCreate):
     id: str
-    client_name: str
-    client_email: EmailStr
-    is_active: bool = True
+    status: str = "pending"  # "pending", "in_progress", "resolved"
     created_at: datetime
-    last_message_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    assigned_to: Optional[str] = None  # Admin user ID
+    response_method: Optional[str] = None  # "email", "whatsapp", "phone"
+    response_sent: bool = False
+    resolved_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
