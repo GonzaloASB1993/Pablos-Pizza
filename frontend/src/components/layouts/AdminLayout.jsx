@@ -477,13 +477,24 @@ const AdminLayout = () => {
       >
         <Toolbar>
           <IconButton
-            color="inherit"
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
+            sx={{
+              mr: 2,
+              display: { sm: 'none' },
+              color: '#FFD700',
+              backgroundColor: 'rgba(255, 215, 0, 0.1)',
+              border: '2px solid #FFD700',
+              borderRadius: 2,
+              p: 1,
+              '&:hover': {
+                backgroundColor: 'rgba(255, 215, 0, 0.2)',
+                transform: 'scale(1.1)',
+              }
+            }}
           >
-            <MenuIcon />
+            <MenuIcon sx={{ fontSize: 28, fontWeight: 'bold' }} />
           </IconButton>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>

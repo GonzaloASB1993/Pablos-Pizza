@@ -242,12 +242,22 @@ const PublicNavbar = () => {
                         {/* Mobile Menu Button */}
                         {isMobile && (
                             <IconButton
-                                color="inherit"
                                 aria-label="open drawer"
                                 edge="end"
                                 onClick={handleDrawerToggle}
+                                sx={{
+                                    color: theme.palette.primary.main,
+                                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                    border: `2px solid ${theme.palette.primary.main}`,
+                                    borderRadius: 2,
+                                    p: 1,
+                                    '&:hover': {
+                                        backgroundColor: 'rgba(255, 215, 0, 0.2)',
+                                        transform: 'scale(1.1)',
+                                    }
+                                }}
                             >
-                                <MenuIcon />
+                                <MenuIcon sx={{ fontSize: 28, fontWeight: 'bold' }} />
                             </IconButton>
                         )}
                     </Toolbar>
