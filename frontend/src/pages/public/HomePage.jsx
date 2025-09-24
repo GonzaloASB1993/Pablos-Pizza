@@ -638,7 +638,7 @@ export default function HomePage() {
           <Grid item xs={12} md={6}>
             <Card
               sx={{
-                height: { xs: 420, md: 400 },
+                height: { xs: 550, sm: 480, md: 400 },
                 background: `linear-gradient(135deg, ${designTokens.colors.golden[50]} 0%, ${designTokens.colors.golden[100]} 100%)`,
                 position: 'relative',
                 overflow: 'hidden',
@@ -669,12 +669,12 @@ export default function HomePage() {
                 }}
               />
 
-              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 4, position: 'relative', zIndex: 1 }}>
+              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: { xs: 2.5, sm: 3, md: 4 }, position: 'relative', zIndex: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                   <Avatar
                     sx={{
-                      width: 72,
-                      height: 72,
+                      width: { xs: 56, sm: 64, md: 72 },
+                      height: { xs: 56, sm: 64, md: 72 },
                       backgroundColor: designTokens.colors.golden[500],
                       color: designTokens.colors.charcoal[900],
                       boxShadow: '0 8px 32px rgba(255, 215, 0, 0.4)',
@@ -683,7 +683,7 @@ export default function HomePage() {
                     <School sx={{ fontSize: 36 }} />
                   </Avatar>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 800, color: designTokens.colors.charcoal[900] }}>
+                    <Typography variant="h4" sx={{ fontWeight: 800, color: designTokens.colors.charcoal[900], fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' } }}>
                       Pizzeros en Acción
                     </Typography>
                     <Typography variant="subtitle1" sx={{ color: designTokens.colors.golden[700], fontWeight: 600 }}>
@@ -694,7 +694,7 @@ export default function HomePage() {
 
                 <Typography
                   variant="body1"
-                  sx={{ mb: 3, lineHeight: 1.8, color: designTokens.colors.charcoal[700], fontSize: '1.1rem' }}
+                  sx={{ mb: 3, lineHeight: 1.8, color: designTokens.colors.charcoal[700], fontSize: { xs: '1rem', md: '1.1rem' } }}
                 >
                   <strong>Talleres gastronómicos únicos</strong> donde los niños se convierten en verdaderos chefs.
                   Aprenden técnicas culinarias, desarrollan habilidades motoras y trabajan en equipo
@@ -791,7 +791,7 @@ export default function HomePage() {
           <Grid item xs={12} md={6}>
             <Card
               sx={{
-                height: { xs: 420, md: 400 },
+                height: { xs: 550, sm: 480, md: 400 },
                 background: `linear-gradient(135deg, ${designTokens.colors.golden[100]} 0%, ${designTokens.colors.golden[50]} 100%)`,
                 color: designTokens.colors.charcoal[900],
                 position: 'relative',
@@ -840,12 +840,12 @@ export default function HomePage() {
                 }}
               />
 
-              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 4, position: 'relative', zIndex: 1 }}>
+              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: { xs: 2.5, sm: 3, md: 4 }, position: 'relative', zIndex: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                   <Avatar
                     sx={{
-                      width: 72,
-                      height: 72,
+                      width: { xs: 56, sm: 64, md: 72 },
+                      height: { xs: 56, sm: 64, md: 72 },
                       backgroundColor: designTokens.colors.golden[500],
                       color: designTokens.colors.charcoal[900],
                       boxShadow: '0 8px 32px rgba(255, 215, 0, 0.4)',
@@ -854,7 +854,7 @@ export default function HomePage() {
                     <Celebration sx={{ fontSize: 36 }} />
                   </Avatar>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 800, color: designTokens.colors.charcoal[900] }}>
+                    <Typography variant="h4" sx={{ fontWeight: 800, color: designTokens.colors.charcoal[900], fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' } }}>
                       Pizza Parties
                     </Typography>
                     <Typography variant="subtitle1" sx={{ color: designTokens.colors.golden[700], fontWeight: 600 }}>
@@ -865,7 +865,7 @@ export default function HomePage() {
 
                 <Typography
                   variant="body1"
-                  sx={{ mb: 3, lineHeight: 1.8, color: designTokens.colors.charcoal[700], fontSize: '1.1rem' }}
+                  sx={{ mb: 3, lineHeight: 1.8, color: designTokens.colors.charcoal[700], fontSize: { xs: '1rem', md: '1.1rem' } }}
                 >
                   <strong>Catering gourmet especializado</strong> en pizzas artesanales para eventos únicos.
                   Servicio integral que incluye preparación en vivo, ingredientes premium y

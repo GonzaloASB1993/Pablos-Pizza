@@ -483,18 +483,16 @@ const AdminLayout = () => {
             sx={{
               mr: 2,
               display: { sm: 'none' },
-              color: '#FFD700',
-              backgroundColor: 'rgba(255, 215, 0, 0.1)',
-              border: '2px solid #FFD700',
-              borderRadius: 2,
-              p: 1,
+              color: 'white',
+              p: 1.5,
               '&:hover': {
-                backgroundColor: 'rgba(255, 215, 0, 0.2)',
-                transform: 'scale(1.1)',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: '#FFD700',
+                transform: 'scale(1.05)',
               }
             }}
           >
-            <MenuIcon sx={{ fontSize: 28, fontWeight: 'bold' }} />
+            <MenuIcon sx={{ fontSize: 32, fontWeight: 'bold' }} />
           </IconButton>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>

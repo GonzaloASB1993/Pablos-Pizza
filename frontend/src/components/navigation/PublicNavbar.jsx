@@ -247,17 +247,14 @@ const PublicNavbar = () => {
                                 onClick={handleDrawerToggle}
                                 sx={{
                                     color: theme.palette.primary.main,
-                                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                                    border: `2px solid ${theme.palette.primary.main}`,
-                                    borderRadius: 2,
                                     p: 1,
                                     '&:hover': {
-                                        backgroundColor: 'rgba(255, 215, 0, 0.2)',
-                                        transform: 'scale(1.1)',
+                                        backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                                        transform: 'scale(1.05)',
                                     }
                                 }}
                             >
-                                <MenuIcon sx={{ fontSize: 28, fontWeight: 'bold' }} />
+                                <MenuIcon sx={{ fontSize: 32, fontWeight: 'bold' }} />
                             </IconButton>
                         )}
                     </Toolbar>
