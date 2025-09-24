@@ -190,6 +190,32 @@ const theme = createTheme({
         },
       },
     },
+    MuiSelect: {
+      styleOverrides: {
+        root: {
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#FFD700',
+          },
+        },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          '&:hover': {
+            backgroundColor: 'rgba(255, 215, 0, 0.1)',
+            color: '#000000',
+          },
+          '&.Mui-selected': {
+            backgroundColor: 'rgba(255, 215, 0, 0.2)',
+            color: '#000000',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 215, 0, 0.3)',
+            },
+          },
+        },
+      },
+    },
   },
   breakpoints: {
     values: {

@@ -56,7 +56,13 @@
       "Bash(start \"http://localhost:3000/galeria\")",
       "Bash(start \"http://localhost:3000/admin/chats\")",
       "Bash(start \"https://pablospizza.web.app/admin\")",
-      "Bash(start \"https://pablospizza.web.app/admin/chat\")"
+      "Bash(start \"https://pablospizza.web.app/admin/chat\")",
+      "Bash(del:*)",
+      "Bash(rm:*)",
+      "Bash(start \"https://pablospizza.web.app\")",
+      "Bash(start:*)",
+      "Bash(firebase functions:deploy:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

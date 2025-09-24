@@ -46,6 +46,9 @@ class BookingUpdate(BaseModel):
     location: Optional[str] = None
     special_requests: Optional[str] = None
     status: Optional[BookingStatus] = None
+    estimated_price: Optional[float] = None
+    event_cost: Optional[float] = None
+    event_profit: Optional[float] = None
 
 class Booking(BookingBase):
     id: str
@@ -53,6 +56,8 @@ class Booking(BookingBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     estimated_price: Optional[float] = None
+    event_cost: Optional[float] = None
+    event_profit: Optional[float] = None
 
 # Schemas para Events (eventos realizados)
 class EventFinancials(BaseModel):

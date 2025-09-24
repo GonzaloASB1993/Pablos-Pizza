@@ -54,8 +54,10 @@ export const createBooking = async (bookingData) => {
         client_name: bookingData.name,
         client_email: bookingData.email,
         client_phone: bookingData.phone,
-        // Backend espera valores del enum ServiceType: 'workshop' | 'pizza_party'
-        service_type: bookingData.service === 'pizzeros' ? 'workshop' : 'pizza_party',
+        // Enviar múltiples servicios separados por coma para el backend
+        service_type: Array.isArray(bookingData.services)
+          ? bookingData.services.map(s => s === 'pizzeros' ? 'workshop' : 'pizza_party').join(',')
+          : (bookingData.service === 'pizzeros' ? 'workshop' : 'pizza_party'), // fallback para compatibilidad
         // Backend espera enum EventType: 'birthday' | 'corporate' | 'school' | 'private'
         event_type: mapEventType(bookingData.eventType),
         // event_date debe ser ISO string o fecha parseable por Pydantic
@@ -66,7 +68,9 @@ export const createBooking = async (bookingData) => {
         // duración por defecto 4 horas si no viene del formulario
         duration_hours: bookingData.durationHours || 4,
         participants: Number(bookingData.participants) || 0,
-        special_requests: bookingData.specialRequests || ''
+        special_requests: bookingData.specialRequests || '',
+        // Agregar información de servicios múltiples para el admin
+        services_selected: Array.isArray(bookingData.services) ? bookingData.services : [bookingData.service]
       })
     })
 

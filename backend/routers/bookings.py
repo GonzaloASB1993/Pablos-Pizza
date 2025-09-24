@@ -149,8 +149,16 @@ async def update_booking(booking_id: str, booking_update: BookingUpdate):
             )
         
         current_data = doc.to_dict()
+
+        # DEBUG: Log what we're receiving
+        print(f"🔧 BACKEND DEBUG: booking_update received: {booking_update}")
+        print(f"🔧 BACKEND DEBUG: booking_update.model_dump(): {booking_update.model_dump()}")
+        print(f"🔧 BACKEND DEBUG: booking_update.model_dump(exclude_unset=True): {booking_update.model_dump(exclude_unset=True)}")
+
         update_data = booking_update.model_dump(exclude_unset=True)
         update_data["updated_at"] = datetime.now()
+
+        print(f"🔧 BACKEND DEBUG: final update_data: {update_data}")
         
         # Si se actualiza el estado a confirmado, enviar notificaciones
         if update_data.get("status") == BookingStatus.CONFIRMED:

@@ -638,151 +638,70 @@ export default function HomePage() {
           <Grid item xs={12} md={6}>
             <Card
               sx={{
-                height: { xs: 420, md: 400 },
+                height: { xs: 360, md: 340 },
                 background: `linear-gradient(135deg, ${designTokens.colors.golden[50]} 0%, ${designTokens.colors.golden[100]} 100%)`,
                 position: 'relative',
                 overflow: 'hidden',
-                border: `2px solid ${designTokens.colors.golden[200]}`,
-                '&:hover': {
-                  transform: 'translateY(-8px)',
-                  boxShadow: `0 20px 60px rgba(255, 215, 0, 0.3)`,
-                  transition: 'all 0.4s ease-in-out',
-                }
               }}
             >
-              {/* Elementos decorativos mejorados */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -40,
-                  right: -40,
-                  width: 120,
-                  height: 120,
-                  borderRadius: '50%',
-                  background: `radial-gradient(circle, ${designTokens.colors.golden[300]}60 0%, transparent 70%)`,
-                  opacity: 0.8,
-                  animation: 'float 6s ease-in-out infinite',
-                  '@keyframes float': {
-                    '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
-                    '50%': { transform: 'translateY(-20px) rotate(180deg)' }
-                  }
-                }}
-              />
-
-              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 4, position: 'relative', zIndex: 1 }}>
+              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                   <Avatar
                     sx={{
-                      width: 72,
-                      height: 72,
+                      width: 64,
+                      height: 64,
                       backgroundColor: designTokens.colors.golden[500],
                       color: designTokens.colors.charcoal[900],
-                      boxShadow: '0 8px 32px rgba(255, 215, 0, 0.4)',
                     }}
                   >
-                    <School sx={{ fontSize: 36 }} />
+                    <School sx={{ fontSize: 32 }} />
                   </Avatar>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 800, color: designTokens.colors.charcoal[900] }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: designTokens.colors.charcoal[900] }}>
                       Pizzeros en Acción
                     </Typography>
-                    <Typography variant="subtitle1" sx={{ color: designTokens.colors.golden[700], fontWeight: 600 }}>
-                      🏆 Experiencia Educativa Premium
+                    <Typography variant="subtitle1" color="text.secondary">
+                      Experiencia Educativa Premium
                     </Typography>
                   </Box>
                 </Box>
 
                 <Typography
                   variant="body1"
-                  sx={{ mb: 3, lineHeight: 1.8, color: designTokens.colors.charcoal[700], fontSize: '1.1rem' }}
+                  sx={{ mb: 3, lineHeight: 1.7, color: designTokens.colors.charcoal[700] }}
                 >
-                  <strong>Talleres gastronómicos únicos</strong> donde los niños se convierten en verdaderos chefs.
-                  Aprenden técnicas culinarias, desarrollan habilidades motoras y trabajan en equipo
-                  mientras crean pizzas artesanales con ingredientes premium.
+                  Talleres interactivos donde los niños aprenden el arte culinario, desarrollan
+                  creatividad y trabajan en equipo mientras crean sus propias pizzas artesanales.
                 </Typography>
 
-                {/* Información de precios destacada */}
-                <Box
-                  sx={{
-                    p: 2,
-                    backgroundColor: alpha(designTokens.colors.golden[200], 0.3),
-                    borderRadius: designTokens.radius.lg,
-                    mb: 3,
-                    border: `1px solid ${designTokens.colors.golden[300]}`
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: designTokens.colors.charcoal[800] }}>
-                    💰 Desde $13.500 por niño • Descuentos por grupo
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: designTokens.colors.charcoal[600] }}>
-                    10% desc. +15 niños • 15% desc. +25 niños
-                  </Typography>
-                </Box>
-
                 <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 3 }}>
-                  {[
-                    { icon: '🎓', text: 'Educativo' },
-                    { icon: '👨‍🍳', text: 'Chef Experto' },
-                    { icon: '🎪', text: 'Interactivo' },
-                    { icon: '🛡️', text: '100% Seguro' }
-                  ].map((tag) => (
+                  {['🎓 Educativo', '🎉 Divertido', '👥 Interactivo', '🛡️ Seguro'].map((tag) => (
                     <Chip
-                      key={tag.text}
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <span>{tag.icon}</span>
-                          <span>{tag.text}</span>
-                        </Box>
-                      }
+                      key={tag}
+                      label={tag}
                       variant="outlined"
                       sx={{
                         borderColor: designTokens.colors.golden[400],
                         color: designTokens.colors.golden[700],
-                        fontWeight: 600,
-                        backgroundColor: alpha(designTokens.colors.golden[100], 0.5),
+                        fontWeight: 500,
                       }}
                     />
                   ))}
                 </Stack>
 
-                <Stack direction="row" spacing={2} sx={{ mt: 'auto' }}>
+                <Box sx={{ mt: 'auto' }}>
                   <Button
                     variant="contained"
-                    onClick={() => navigate('/agendar')}
-                    startIcon={<Restaurant />}
-                    sx={{
-                      background: designTokens.colors.aurora.golden,
-                      color: designTokens.colors.charcoal[900],
-                      fontWeight: 700,
-                      px: 3,
-                      py: 1.5,
-                      '&:hover': {
-                        background: designTokens.colors.golden[600],
-                        transform: 'scale(1.05)',
-                      }
-                    }}
-                  >
-                    ¡Reservar Ya!
-                  </Button>
-                  <Button
-                    variant="outlined"
                     onClick={() => navigate('/servicios')}
                     endIcon={<ArrowForward />}
                     sx={{
-                      borderColor: designTokens.colors.golden[500],
-                      color: designTokens.colors.golden[800],
-                      fontWeight: 700,
-                      borderWidth: 2,
-                      '&:hover': {
-                        borderColor: designTokens.colors.golden[600],
-                        backgroundColor: alpha(designTokens.colors.golden[100], 0.3),
-                        transform: 'scale(1.02)',
-                      }
+                      background: designTokens.colors.aurora.golden,
+                      color: designTokens.colors.charcoal[900],
                     }}
                   >
-                    Ver Detalles
+                    Conocer Más
                   </Button>
-                </Stack>
+                </Box>
               </CardContent>
             </Card>
           </Grid>
@@ -791,112 +710,82 @@ export default function HomePage() {
           <Grid item xs={12} md={6}>
             <Card
               sx={{
-                height: { xs: 420, md: 400 },
+                height: { xs: 360, md: 340 },
                 background: `linear-gradient(135deg, ${designTokens.colors.golden[100]} 0%, ${designTokens.colors.golden[50]} 100%)`,
                 color: designTokens.colors.charcoal[900],
                 position: 'relative',
                 overflow: 'hidden',
                 border: `2px solid ${designTokens.colors.golden[200]}`,
                 '&:hover': {
-                  transform: 'translateY(-8px)',
-                  boxShadow: `0 20px 60px rgba(255, 215, 0, 0.3)`,
-                  transition: 'all 0.4s ease-in-out',
+                  transform: 'translateY(-4px)',
+                  boxShadow: `0 12px 40px rgba(255, 215, 0, 0.2)`,
+                  transition: 'all 0.3s ease-in-out',
                 }
               }}
             >
-              {/* Elementos decorativos mejorados */}
+              {/* Elementos decorativos */}
               <Box
                 sx={{
                   position: 'absolute',
-                  top: -30,
-                  right: -30,
-                  width: 140,
-                  height: 140,
+                  top: -20,
+                  right: -20,
+                  width: 100,
+                  height: 100,
                   borderRadius: '50%',
-                  background: `conic-gradient(${designTokens.colors.golden[300]}40 0deg, transparent 120deg, ${designTokens.colors.golden[200]}20 240deg, transparent 360deg)`,
-                  opacity: 0.7,
-                  animation: 'spin 20s linear infinite',
-                  '@keyframes spin': {
-                    '0%': { transform: 'rotate(0deg)' },
-                    '100%': { transform: 'rotate(360deg)' }
-                  }
+                  background: `radial-gradient(circle, ${designTokens.colors.golden[300]}40 0%, transparent 70%)`,
+                  opacity: 0.6,
                 }}
               />
               <Box
                 sx={{
                   position: 'absolute',
-                  bottom: -40,
-                  left: -40,
-                  width: 160,
-                  height: 160,
+                  bottom: -30,
+                  left: -30,
+                  width: 120,
+                  height: 120,
                   borderRadius: '50%',
-                  background: `radial-gradient(circle, ${designTokens.colors.golden[200]}25 0%, transparent 60%)`,
-                  opacity: 0.5,
-                  animation: 'pulse 4s ease-in-out infinite',
-                  '@keyframes pulse': {
-                    '0%, 100%': { transform: 'scale(1)' },
-                    '50%': { transform: 'scale(1.1)' }
-                  }
+                  background: `radial-gradient(circle, ${designTokens.colors.golden[200]}30 0%, transparent 70%)`,
+                  opacity: 0.4,
                 }}
               />
-
+              
               <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 4, position: 'relative', zIndex: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                   <Avatar
                     sx={{
-                      width: 72,
-                      height: 72,
+                      width: 64,
+                      height: 64,
                       backgroundColor: designTokens.colors.golden[500],
                       color: designTokens.colors.charcoal[900],
-                      boxShadow: '0 8px 32px rgba(255, 215, 0, 0.4)',
                     }}
                   >
-                    <Celebration sx={{ fontSize: 36 }} />
+                    <Celebration sx={{ fontSize: 32 }} />
                   </Avatar>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 800, color: designTokens.colors.charcoal[900] }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: designTokens.colors.charcoal[900] }}>
                       Pizza Parties
                     </Typography>
-                    <Typography variant="subtitle1" sx={{ color: designTokens.colors.golden[700], fontWeight: 600 }}>
-                      🌟 Celebraciones Memorables
+                    <Typography variant="subtitle1" color="text.secondary">
+                      Celebraciones Memorables
                     </Typography>
                   </Box>
                 </Box>
 
                 <Typography
                   variant="body1"
-                  sx={{ mb: 3, lineHeight: 1.8, color: designTokens.colors.charcoal[700], fontSize: '1.1rem' }}
+                  sx={{ mb: 3, lineHeight: 1.7, color: designTokens.colors.charcoal[700] }}
                 >
-                  <strong>Catering gourmet especializado</strong> en pizzas artesanales para eventos únicos.
-                  Servicio integral que incluye preparación en vivo, ingredientes premium y
-                  atención personalizada para hacer de tu celebración algo extraordinario.
+                  Servicio completo de catering con pizzas artesanales para eventos especiales. 
+                  Creamos experiencias únicas con la mejor calidad y sabor.
                 </Typography>
 
-                {/* Información de precios destacada */}
-                <Box
-                  sx={{
-                    p: 2,
-                    backgroundColor: alpha(designTokens.colors.golden[200], 0.3),
-                    borderRadius: designTokens.radius.lg,
-                    mb: 3,
-                    border: `1px solid ${designTokens.colors.golden[300]}`
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: designTokens.colors.charcoal[800] }}>
-                    💰 Desde $11.990 por persona • Min. 15 personas
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: designTokens.colors.charcoal[600] }}>
-                    10% desc. +20 personas • Incluye preparación en vivo
-                  </Typography>
-                </Box>
-
-                {/* Tags estilo premium mejorado */}
+                {/* Tags estilo premium */}
                 <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: 'wrap', gap: 1 }}>
                   {[
                     { icon: '🎉', text: 'Premium' },
-                    { icon: '🍕', text: 'En Vivo' },
-                    { icon: '✨', text: 'Gourmet' },
-                    { icon: '🎊', text: 'Todo Incluido' }
+                    { icon: '🍕', text: 'Catering' },
+                    { icon: '✨', text: 'Artesanal' },
+                    { icon: '🎊', text: 'Eventos' }
                   ].map((tag) => (
                     <Chip
                       key={tag.text}
@@ -906,101 +795,56 @@ export default function HomePage() {
                           <span>{tag.text}</span>
                         </Box>
                       }
-                      variant="outlined"
+                      size="small"
                       sx={{
-                        borderColor: designTokens.colors.golden[400],
-                        color: designTokens.colors.golden[700],
+                        backgroundColor: alpha(designTokens.colors.golden[100], 0.8),
+                        color: designTokens.colors.charcoal[700],
                         fontWeight: 600,
-                        backgroundColor: alpha(designTokens.colors.golden[100], 0.5),
+                        border: `1px solid ${designTokens.colors.golden[300]}`,
                       }}
                     />
                   ))}
                 </Stack>
 
-                <Stack direction="row" spacing={2} sx={{ mt: 'auto' }}>
+                <Box sx={{ mt: 'auto' }}>
                   <Button
                     variant="contained"
-                    onClick={() => navigate('/agendar')}
-                    startIcon={<Restaurant />}
-                    sx={{
-                      background: designTokens.colors.aurora.golden,
-                      color: designTokens.colors.charcoal[900],
-                      fontWeight: 700,
-                      px: 3,
-                      py: 1.5,
-                      '&:hover': {
-                        background: designTokens.colors.golden[600],
-                        transform: 'scale(1.05)',
-                      }
-                    }}
-                  >
-                    ¡Cotizar Ya!
-                  </Button>
-                  <Button
-                    variant="outlined"
                     onClick={() => navigate('/servicios')}
                     endIcon={<ArrowForward />}
                     sx={{
-                      borderColor: designTokens.colors.golden[500],
-                      color: designTokens.colors.golden[800],
-                      fontWeight: 700,
-                      borderWidth: 2,
-                      '&:hover': {
-                        borderColor: designTokens.colors.golden[600],
-                        backgroundColor: alpha(designTokens.colors.golden[100], 0.3),
-                        transform: 'scale(1.02)',
-                      }
+                      background: designTokens.colors.aurora.golden,
+                      color: designTokens.colors.charcoal[900],
                     }}
                   >
-                    Ver Menú
+                    Ver Precios
                   </Button>
-                </Stack>
+                </Box>
               </CardContent>
             </Card>
           </Grid>
 
-          {/* Stats Cards Mejoradas */}
+          {/* Stats Cards */}
           <Grid item xs={12} md={4}>
             <Card
               sx={{
-                height: 220,
-                background: `linear-gradient(135deg, ${designTokens.colors.aurora.sunset} 0%, #f97316 100%)`,
+                height: 200,
+                background: designTokens.colors.aurora.sunset,
                 color: 'white',
                 textAlign: 'center',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                position: 'relative',
-                overflow: 'hidden',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 12px 40px rgba(251, 146, 60, 0.4)',
-                  transition: 'all 0.3s ease-in-out',
-                }
               }}
             >
-              {/* Elemento decorativo */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -50,
-                  right: -50,
-                  width: 100,
-                  height: 100,
-                  borderRadius: '50%',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  animation: 'float 3s ease-in-out infinite',
-                }}
-              />
-              <Box sx={{ position: 'relative', zIndex: 1 }}>
-                <Typography variant="h2" sx={{ fontWeight: 900, mb: 1, fontSize: '3.5rem' }}>
+              <Box>
+                <Typography variant="h3" sx={{ fontWeight: 800, mb: 1 }}>
                   15+
                 </Typography>
-                <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 700, mb: 0.5 }}>
-                  🍕 Pizzas Mínimo
+                <Typography variant="h6" sx={{ opacity: 0.9 }}>
+                  Pizza Mínimo
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.8, fontSize: '0.9rem' }}>
-                  Para garantizar calidad premium
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  Para Pizza Parties
                 </Typography>
               </Box>
             </Card>
@@ -1009,44 +853,24 @@ export default function HomePage() {
           <Grid item xs={12} md={4}>
             <Card
               sx={{
-                height: 220,
-                background: `linear-gradient(135deg, ${designTokens.colors.golden[500]} 0%, ${designTokens.colors.golden[600]} 100%)`,
+                height: 200,
+                backgroundColor: designTokens.colors.golden[500],
                 color: designTokens.colors.charcoal[900],
                 textAlign: 'center',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                position: 'relative',
-                overflow: 'hidden',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: `0 12px 40px rgba(255, 215, 0, 0.4)`,
-                  transition: 'all 0.3s ease-in-out',
-                }
               }}
             >
-              {/* Elemento decorativo */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: -30,
-                  left: -30,
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  background: 'rgba(0, 0, 0, 0.1)',
-                  animation: 'pulse 2s ease-in-out infinite',
-                }}
-              />
-              <Box sx={{ position: 'relative', zIndex: 1 }}>
-                <Typography variant="h2" sx={{ fontWeight: 900, mb: 1, fontSize: '3.5rem' }}>
+              <Box>
+                <Typography variant="h3" sx={{ fontWeight: 800, mb: 1 }}>
                   2-3h
                 </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
-                  ⏰ Duración Típica
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                  Duración Típica
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.8, fontSize: '0.9rem' }}>
-                  Experiencia completa y divertida
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  Talleres completos
                 </Typography>
               </Box>
             </Card>
@@ -1055,44 +879,24 @@ export default function HomePage() {
           <Grid item xs={12} md={4}>
             <Card
               sx={{
-                height: 220,
-                background: `linear-gradient(135deg, ${designTokens.colors.semantic.success} 0%, #10b981 100%)`,
+                height: 200,
+                background: `linear-gradient(135deg, ${designTokens.colors.semantic.success} 0%, #059669 100%)`,
                 color: 'white',
                 textAlign: 'center',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                position: 'relative',
-                overflow: 'hidden',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 12px 40px rgba(34, 197, 94, 0.4)',
-                  transition: 'all 0.3s ease-in-out',
-                }
               }}
             >
-              {/* Elemento decorativo */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  bottom: -40,
-                  right: -40,
-                  width: 120,
-                  height: 120,
-                  borderRadius: '50%',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  animation: 'bounce 4s ease-in-out infinite',
-                }}
-              />
-              <Box sx={{ position: 'relative', zIndex: 1 }}>
-                <Typography variant="h2" sx={{ fontWeight: 900, mb: 1, fontSize: '3.5rem' }}>
+              <Box>
+                <Typography variant="h3" sx={{ fontWeight: 800, mb: 1 }}>
                   100%
                 </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
-                  ✨ Satisfacción
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                  Satisfacción
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '0.9rem' }}>
-                  Garantía total o te devolvemos tu dinero
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Garantizada
                 </Typography>
               </Box>
             </Card>
@@ -1209,7 +1013,7 @@ export default function HomePage() {
                           sx={{
                             width: 48,
                             height: 48,
-                            backgroundColor: designTokens.colors.golden[500],
+                            backgroundColor: designTokens.colors.golden[100],
                             fontSize: '1.1rem',
                             fontWeight: 700,
                             color: designTokens.colors.charcoal[900]
@@ -1538,3 +1342,5 @@ export default function HomePage() {
     </>
   )
 }
+
+

@@ -16,7 +16,8 @@ import {
   MenuItem,
   Avatar,
   Divider,
-  Tooltip
+  ListSubheader,
+  Collapse
 } from '@mui/material'
 import {
   Menu as MenuIcon,
@@ -27,37 +28,43 @@ import {
   Star,
   Inventory,
   Assessment,
-  Chat,
+  ContactMail,
   Logout,
   Person,
   Settings,
+  ExpandLess,
+  ExpandMore,
+  Business,
+  Analytics,
   MenuOpen
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import logo from '../../assets/logo.png'
 
-const DRAWER_WIDTH = 70 // Compact by default
+const DRAWER_WIDTH = 280
+const DRAWER_WIDTH_COLLAPSED = 70
 
 const AdminLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [profileMenu, setProfileMenu] = useState(null)
-  const [expanded, setExpanded] = useState(false)
+  const [businessOpen, setBusinessOpen] = useState(true)
+  const [analyticsOpen, setAnalyticsOpen] = useState(false)
+  const [drawerCollapsed, setDrawerCollapsed] = useState(true) // Compact by default
   const { logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
-  const currentDrawerWidth = expanded ? 240 : DRAWER_WIDTH
+  const currentDrawerWidth = drawerCollapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH
 
   const menuItems = [
-    { label: 'Dashboard', path: '/admin', icon: <Dashboard /> },
-    { label: 'Agendamientos', path: '/admin/agendamientos', icon: <Event /> },
-    { label: 'Eventos', path: '/admin/eventos', icon: <Restaurant /> },
-    { label: 'Galería', path: '/admin/galeria', icon: <Photo /> },
-    { label: 'Chat', path: '/admin/chat', icon: <Chat /> },
-    { label: 'Testimonios', path: '/admin/testimonios', icon: <Star /> },
-    { label: 'Inventario', path: '/admin/inventario', icon: <Inventory /> },
-    { label: 'Reportes', path: '/admin/reportes', icon: <Assessment /> },
+    { label: 'Dashboard', path: '/admin', icon: <Dashboard />, category: 'main' },
+    { label: 'Agendamientos', path: '/admin/agendamientos', icon: <Event />, category: 'business' },
+    { label: 'Eventos', path: '/admin/eventos', icon: <Restaurant />, category: 'business' },
+    { label: 'Contactos', path: '/admin/contactos', icon: <ContactMail />, category: 'business' },
+    { label: 'Testimonios', path: '/admin/testimonios', icon: <Star />, category: 'business' },
+    { label: 'Inventario', path: '/admin/inventario', icon: <Inventory />, category: 'analytics' },
+    { label: 'Reportes', path: '/admin/reportes', icon: <Assessment />, category: 'analytics' },
   ]
 
   const handleDrawerToggle = () => {
@@ -83,144 +90,228 @@ const AdminLayout = () => {
 
   const drawer = (
     <div>
-      <Toolbar sx={{ minHeight: '64px !important' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: expanded ? 'space-between' : 'center',
-            width: '100%'
-          }}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              cursor: 'pointer'
-            }}
-            onClick={() => navigate('/admin')}
-          >
-            <Avatar
-              src={logo}
-              alt="Pablo's Pizza Logo"
-              sx={{
-                width: expanded ? 32 : 28,
-                height: expanded ? 32 : 28,
-                mr: expanded ? 1 : 0,
-                border: '2px solid #FFD700'
-              }}
-            />
-            {expanded && (
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#FFD700' }}>
-                Pablo's
-              </Typography>
-            )}
-          </Box>
-
-          <IconButton
-            onClick={() => setExpanded(!expanded)}
-            sx={{ color: '#FFD700', p: 0.5 }}
-            size="small"
-          >
-            {expanded ? <MenuOpen /> : <MenuIcon />}
-          </IconButton>
+      <Toolbar>
+        <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', width: '100%' }} onClick={() => navigate('/admin')}>
+          {drawerCollapsed ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+              <Avatar
+                src={logo}
+                alt="Pablo's Pizza Logo"
+                sx={{
+                  width: 32,
+                  height: 32,
+                  border: '2px solid #FFD700'
+                }}
+              />
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Avatar
+                src={logo}
+                alt="Pablo's Pizza Logo"
+                sx={{
+                  width: 40,
+                  height: 40,
+                  mr: 2,
+                  border: '2px solid #FFD700'
+                }}
+              />
+              <Box>
+                <Typography variant="h6" noWrap sx={{ fontWeight: 'bold', color: '#FFD700' }}>
+                  Pablo's Pizza
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Panel Admin
+                </Typography>
+              </Box>
+            </Box>
+          )}
         </Box>
+        {!drawerCollapsed && (
+          <IconButton
+            onClick={() => setDrawerCollapsed(true)}
+            sx={{ color: '#FFD700', ml: 'auto' }}
+          >
+            <MenuOpen />
+          </IconButton>
+        )}
       </Toolbar>
 
-      <List sx={{ px: 1 }}>
-        {menuItems.map((item) => (
-          <Tooltip
-            key={item.path}
-            title={expanded ? '' : item.label}
-            placement="right"
-            arrow
+      {drawerCollapsed ? (
+        // Compact view - just icons
+        <List sx={{ px: 1 }}>
+          <ListItem
+            button
+            onClick={() => setDrawerCollapsed(false)}
+            sx={{
+              mb: 1,
+              borderRadius: 1,
+              justifyContent: 'center'
+            }}
           >
+            <ListItemIcon sx={{ justifyContent: 'center', minWidth: 'auto' }}>
+              <MenuIcon />
+            </ListItemIcon>
+          </ListItem>
+          {menuItems.map((item) => (
             <ListItem
               button
+              key={item.path}
               onClick={() => navigate(item.path)}
               selected={location.pathname === item.path}
               sx={{
-                mb: 0.5,
-                borderRadius: 2,
-                minHeight: 40,
-                justifyContent: expanded ? 'flex-start' : 'center',
-                px: expanded ? 2 : 1,
+                mb: 1,
+                borderRadius: 1,
+                justifyContent: 'center',
                 '&.Mui-selected': {
-                  backgroundColor: 'rgba(255, 215, 0, 0.15)',
-                  '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    left: 0,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: 3,
-                    height: '60%',
-                    backgroundColor: '#FFD700',
-                    borderRadius: '0 2px 2px 0'
-                  }
-                },
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 215, 0, 0.08)'
+                  backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                  borderLeft: '4px solid #FFD700'
                 }
               }}
             >
               <ListItemIcon sx={{
                 color: location.pathname === item.path ? '#FFD700' : 'inherit',
-                minWidth: expanded ? 40 : 'auto',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                minWidth: 'auto'
               }}>
                 {item.icon}
               </ListItemIcon>
-              {expanded && (
-                <ListItemText
-                  primary={item.label}
+            </ListItem>
+          ))}
+        </List>
+      ) : (
+        // Full view - with categories
+        <List>
+          {/* Main Dashboard */}
+          {menuItems.filter(item => item.category === 'main').map((item) => (
+            <ListItem
+              button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              selected={location.pathname === item.path}
+              sx={{
+                mb: 1,
+                borderRadius: 1,
+                mx: 1,
+                '&.Mui-selected': {
+                  backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                  borderLeft: '4px solid #FFD700'
+                }
+              }}
+            >
+              <ListItemIcon sx={{ color: location.pathname === item.path ? '#FFD700' : 'inherit' }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItem>
+          ))}
+
+          <Divider sx={{ my: 1 }} />
+
+          {/* Business Section */}
+          <ListSubheader sx={{ backgroundColor: 'transparent', fontWeight: 'bold' }}>
+            <ListItem button onClick={() => setBusinessOpen(!businessOpen)}>
+              <ListItemIcon>
+                <Business />
+              </ListItemIcon>
+              <ListItemText primary="Gestión de Negocio" />
+              {businessOpen ? <ExpandLess /> : <ExpandMore />}
+            </ListItem>
+          </ListSubheader>
+
+          <Collapse in={businessOpen} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              {menuItems.filter(item => item.category === 'business').map((item) => (
+                <ListItem
+                  button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  selected={location.pathname === item.path}
                   sx={{
-                    '& .MuiListItemText-primary': {
-                      fontSize: '0.875rem',
-                      fontWeight: location.pathname === item.path ? 600 : 400
+                    pl: 4,
+                    borderRadius: 1,
+                    mx: 1,
+                    '&.Mui-selected': {
+                      backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                      borderLeft: '4px solid #FFD700'
                     }
                   }}
-                />
-              )}
-            </ListItem>
-          </Tooltip>
-        ))}
-      </List>
+                >
+                  <ListItemIcon sx={{ color: location.pathname === item.path ? '#FFD700' : 'inherit' }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText primary={item.label} />
+                </ListItem>
+              ))}
+            </List>
+          </Collapse>
 
-      <Box sx={{ position: 'absolute', bottom: 16, left: 8, right: 8 }}>
-        <Tooltip title={expanded ? '' : 'Cerrar Sesión'} placement="right" arrow>
-          <Box>
-            {expanded ? (
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<Logout />}
-                onClick={handleLogout}
-                sx={{
-                  borderColor: 'error.main',
-                  color: 'error.main',
-                  fontSize: '0.75rem',
-                  py: 1
-                }}
-              >
-                Cerrar Sesión
-              </Button>
-            ) : (
-              <IconButton
-                onClick={handleLogout}
-                sx={{
-                  width: '100%',
-                  color: 'error.main',
-                  border: '1px solid',
-                  borderColor: 'error.main',
-                  borderRadius: 2
-                }}
-              >
-                <Logout fontSize="small" />
-              </IconButton>
-            )}
-          </Box>
-        </Tooltip>
+          <Divider sx={{ my: 1 }} />
+
+          {/* Analytics Section */}
+          <ListSubheader sx={{ backgroundColor: 'transparent', fontWeight: 'bold' }}>
+            <ListItem button onClick={() => setAnalyticsOpen(!analyticsOpen)}>
+              <ListItemIcon>
+                <Analytics />
+              </ListItemIcon>
+              <ListItemText primary="Analytics & Reportes" />
+              {analyticsOpen ? <ExpandLess /> : <ExpandMore />}
+            </ListItem>
+          </ListSubheader>
+
+          <Collapse in={analyticsOpen} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              {menuItems.filter(item => item.category === 'analytics').map((item) => (
+                <ListItem
+                  button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  selected={location.pathname === item.path}
+                  sx={{
+                    pl: 4,
+                    borderRadius: 1,
+                    mx: 1,
+                    '&.Mui-selected': {
+                      backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                      borderLeft: '4px solid #FFD700'
+                    }
+                  }}
+                >
+                  <ListItemIcon sx={{ color: location.pathname === item.path ? '#FFD700' : 'inherit' }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText primary={item.label} />
+                </ListItem>
+              ))}
+            </List>
+          </Collapse>
+        </List>
+      )}
+
+      <Box sx={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>
+        {drawerCollapsed ? (
+          <IconButton
+            onClick={handleLogout}
+            sx={{
+              width: '100%',
+              color: 'error.main',
+              border: '1px solid',
+              borderColor: 'error.main',
+              borderRadius: 2
+            }}
+          >
+            <Logout fontSize="small" />
+          </IconButton>
+        ) : (
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<Logout />}
+            onClick={handleLogout}
+          >
+            Cerrar Sesión
+          </Button>
+        )}
       </Box>
     </div>
   )
@@ -309,7 +400,7 @@ const AdminLayout = () => {
           }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH },
           }}
         >
           {drawer}

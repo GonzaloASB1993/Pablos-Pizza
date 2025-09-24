@@ -8,7 +8,6 @@ import { Toaster } from 'react-hot-toast'
 
 import App from './App.jsx'
 import { AuthProvider } from './contexts/AuthContext'
-import { ChatProvider } from './contexts/ChatContext'
 import theme from './utils/theme.js'
 
 // React Query client
@@ -28,7 +27,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <AuthProvider>
-            <ChatProvider>
               <App />
               <Toaster
                 position="top-right"
@@ -46,7 +44,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                   },
                 }}
               />
-            </ChatProvider>
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>

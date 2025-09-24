@@ -10,12 +10,16 @@ import {
   Button,
   Link,
   Alert,
-  CircularProgress
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material'
 import { WhatsApp, Phone, Email, Room, ArrowBack, Send } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { CONTACT_INFO } from '../../config/constants'
-import { chatAPI } from '../../services/api'
+import { contactAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
 export default function ContactPage() {
@@ -25,7 +29,8 @@ export default function ContactPage() {
     email: '',
     phone: '',
     subject: '',
-    message: ''
+    message: '',
+    priority: 'normal'
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -42,29 +47,19 @@ export default function ContactPage() {
     setIsSubmitting(true)
 
     try {
-      // Crear sala de chat
-      const chatRoom = await chatAPI.createRoom({ 
-        client_name: formData.name, 
-        client_email: formData.email 
-      })
+      // Crear mensaje de contacto
+      const contactData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        subject: formData.subject,
+        message: formData.message,
+        priority: formData.priority
+      }
 
-      // Crear mensaje inicial con toda la información del formulario
-      const initialMessage = `Consulta desde formulario de contacto:
+      await contactAPI.create(contactData)
 
-📝 Asunto: ${formData.subject}
-📞 Teléfono: ${formData.phone || 'No proporcionado'}
-
-💬 Mensaje:
-${formData.message}`
-
-      // Enviar mensaje inicial
-      await chatAPI.sendMessage(chatRoom.data.id, {
-        message: initialMessage,
-        sender_name: formData.name,
-        is_admin: false
-      })
-
-      toast.success('¡Mensaje enviado exitosamente! Un agente te contactará pronto.', {
+      toast.success('¡Mensaje enviado exitosamente! Te contactaremos pronto por WhatsApp.', {
         duration: 5000,
         icon: '✅'
       })
@@ -75,7 +70,8 @@ ${formData.message}`
         email: '',
         phone: '',
         subject: '',
-        message: ''
+        message: '',
+        priority: 'normal'
       })
 
     } catch (error) {
@@ -337,6 +333,22 @@ ${formData.message}`
                         variant="outlined"
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth variant="outlined" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
+                        <InputLabel>Prioridad</InputLabel>
+                        <Select
+                          name="priority"
+                          value={formData.priority}
+                          onChange={handleInputChange}
+                          label="Prioridad"
+                        >
+                          <MenuItem value="low">Baja - Consulta general</MenuItem>
+                          <MenuItem value="normal">Normal - Información de evento</MenuItem>
+                          <MenuItem value="high">Alta - Quiero agendar pronto</MenuItem>
+                          <MenuItem value="urgent">Urgente - Evento en menos de 7 días</MenuItem>
+                        </Select>
+                      </FormControl>
                     </Grid>
                     <Grid item xs={12}>
                       <TextField

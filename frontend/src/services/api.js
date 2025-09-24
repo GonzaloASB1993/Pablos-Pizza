@@ -442,14 +442,14 @@ export const bookingsAPI = {
   create: async (data) => {
     const url = '/bookings/'
     const fullUrl = `${BASE_URL}${url}`
-    
+
     console.log('🎯 BOOKING CREATE DEBUG:', {
       BASE_URL,
       url,
       fullUrl,
       data
     })
-    
+
     try {
       const response = await api.post(url, data)
       console.log('✅ BOOKING CREATE SUCCESS:', response.data)
@@ -465,7 +465,27 @@ export const bookingsAPI = {
   },
   getAll: (params = {}) => api.get('/bookings/', { params }),
   getById: (id) => api.get(`/bookings/${id}`),
-  update: (id, data) => api.put(`/bookings/${id}`, data),
+  update: async (id, data) => {
+    console.log('🎯 BOOKING UPDATE DEBUG:', {
+      id,
+      data,
+      url: `/bookings/${id}`,
+      fullUrl: `${BASE_URL}/bookings/${id}`
+    })
+    try {
+      const response = await api.put(`/bookings/${id}`, data)
+      console.log('✅ BOOKING UPDATE SUCCESS:', response.data)
+      return response
+    } catch (error) {
+      console.error('❌ BOOKING UPDATE ERROR:', {
+        message: error.message,
+        response: error.response,
+        config: error.config
+      })
+      throw error
+    }
+  },
+  delete: (id) => api.delete(`/bookings/${id}`),
   cancel: (id) => api.delete(`/bookings/${id}`),
   getCalendarEvents: (year, month) => api.get(`/bookings/calendar/${year}/${month}`),
   // Aún no existe endpoint real para disponibilidad; mantener mock temporalmente
@@ -535,13 +555,12 @@ export const notificationsAPI = {
   sendBulk: (data) => api.post('/notifications/bulk-send', data),
 }
 
-export const chatAPI = {
-  createRoom: (data) => api.post('/chat/rooms', data),
-  getRooms: (params = {}) => api.get('/chat/rooms', { params }),
-  getMessages: (roomId, params = {}) => api.get(`/chat/rooms/${roomId}/messages`, { params }),
-  sendMessage: (roomId, data) => api.post(`/chat/rooms/${roomId}/messages`, data),
-  closeRoom: (roomId) => api.put(`/chat/rooms/${roomId}/close`),
-  getRoomStatus: (roomId) => api.get(`/chat/rooms/${roomId}/status`),
+// Contact API
+export const contactAPI = {
+  create: (data) => api.post('/contacts', data),
+  getAll: (params = {}) => api.get('/contacts', { params }),
+  update: (id, data) => api.put(`/contacts/${id}`, data),
+  respond: (id, data) => api.post(`/contacts/${id}/respond`, data),
 }
 
 export default api

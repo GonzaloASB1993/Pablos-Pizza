@@ -53,7 +53,7 @@ const Footer = () => {
                                 Pablo's Pizza
                             </Typography>
                         </Box>
-                        <Typography variant="body1" paragraph sx={{ mb: 3 }}>
+                        <Typography variant="body1" paragraph sx={{ mb: 3, color: '#FFFFFF' }}>
                             Creamos experiencias gastronómicas únicas para niños y familias.
                             Talleres de pizza educativos y eventos memorables.
                         </Typography>

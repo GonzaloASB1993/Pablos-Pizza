@@ -17,7 +17,7 @@ import GalleryManagement from './pages/admin/GalleryManagement'
 import ReviewsManagement from './pages/admin/ReviewsManagement'
 import InventoryManagement from './pages/admin/InventoryManagement'
 import ReportsPage from './pages/admin/ReportsPage'
-import ChatManagement from './pages/admin/ChatManagement'
+import ContactManagement from './pages/admin/ContactManagement'
 import AdminLogin from './pages/admin/AdminLogin'
 
 // Layouts
@@ -27,7 +27,6 @@ import ProtectedRoute from './components/common/ProtectedRoute'
 
 // Components
 import LoadingSpinner from './components/common/LoadingSpinner'
-import ChatWidget from './components/chat/ChatWidget'
 
 function App() {
   const { loading } = useAuth()
@@ -68,15 +67,10 @@ function App() {
           <Route path="testimonios" element={<ReviewsManagement />} />
           <Route path="inventario" element={<InventoryManagement />} />
           <Route path="reportes" element={<ReportsPage />} />
-          <Route path="chat" element={<ChatManagement />} />
+          <Route path="contactos" element={<ContactManagement />} />
         </Route>
       </Routes>
 
-      {/* Chat Widget - Solo en páginas públicas */}
-      <Routes>
-        <Route path="/admin/*" element={null} />
-        <Route path="*" element={<ChatWidget />} />
-      </Routes>
     </div>
   )
 }

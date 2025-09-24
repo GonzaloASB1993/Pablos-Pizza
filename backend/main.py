@@ -2335,7 +2335,7 @@ def update_booking(booking_id):
             print(f"Actualizando status a: {data['status']}")
 
         # Add other updatable fields as needed
-        updatable_fields = ['status', 'notes', 'confirmed_price', 'confirmed_date', 'confirmed_time', 'event_cost', 'event_profit']
+        updatable_fields = ['status', 'notes', 'confirmed_price', 'confirmed_date', 'confirmed_time', 'event_cost', 'event_profit', 'estimated_price', 'client_name', 'client_email', 'client_phone', 'participants', 'event_date', 'event_time', 'service_type', 'location', 'special_requests']
         for field in updatable_fields:
             if field in data:
                 update_data[field] = data[field]
@@ -2353,11 +2353,14 @@ def update_booking(booking_id):
         updated_booking = updated_doc.to_dict()
         updated_booking['id'] = updated_doc.id
 
-        # Send email notification if status changed to confirmed
-        if 'status' in data and data['status'] == 'confirmed':
+        # Send email notification ONLY if status CHANGED from something else to 'confirmed'
+        if ('status' in data and
+            data['status'] == 'confirmed' and
+            current_booking.get('status') != 'confirmed'):
+
             client_email = updated_booking.get('client_email')
             if client_email:
-                print(f"Estado cambió a 'confirmed' - enviando email profesional a: {client_email}")
+                print(f"Estado cambió de '{current_booking.get('status')}' a 'confirmed' - enviando email profesional a: {client_email}")
 
                 email_sent = send_confirmation_email(updated_booking)
 
@@ -2367,21 +2370,57 @@ def update_booking(booking_id):
                     print(f"Error al enviar email de confirmación a {client_email}")
             else:
                 print("No se pudo enviar email: no hay email del cliente")
+        elif 'status' in data and data['status'] == 'confirmed' and current_booking.get('status') == 'confirmed':
+            print(f"Status sigue siendo 'confirmed' - NO enviando notificación duplicada")
 
-        # Create event automatically when booking is completed with costs
-        if ('status' in data and data['status'] == 'completed' and 
+        # Create event automatically ONLY when booking CHANGES to 'completed' and has costs
+        if ('status' in data and
+            data['status'] == 'completed' and
+            current_booking.get('status') != 'completed' and
             ('event_cost' in data or 'event_profit' in data)):
             try:
                 create_event_from_booking(updated_booking)
-                print(f"Evento creado automáticamente para booking {booking_id}")
+                print(f"Evento creado automáticamente para booking {booking_id} - status cambió a 'completed'")
             except Exception as e:
                 print(f"Error creando evento automático: {e}")
                 # No fallar la actualización del booking si falla la creación del evento
+        elif 'status' in data and data['status'] == 'completed' and current_booking.get('status') == 'completed':
+            print(f"Status sigue siendo 'completed' - NO creando evento duplicado")
 
         return jsonify(updated_booking), 200
 
     except Exception as e:
         print(f"Error updating booking {booking_id}: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# Delete booking endpoint
+@app.route('/api/bookings/<booking_id>', methods=['DELETE'])
+def delete_booking(booking_id):
+    """Delete/Cancel booking"""
+    try:
+        print(f"DELETE_BOOKING INICIADO para ID: {booking_id}")
+
+        db = get_db()
+        doc_ref = db.collection("bookings").document(booking_id)
+        doc = doc_ref.get()
+
+        if not doc.exists:
+            return jsonify({"error": "Booking not found"}), 404
+
+        # Instead of actually deleting, update status to 'cancelled'
+        update_data = {
+            'status': 'cancelled',
+            'cancelled_at': datetime.now(),
+            'updated_at': datetime.now()
+        }
+
+        doc_ref.update(update_data)
+        print(f"BOOKING CANCELADO EN FIRESTORE: {booking_id}")
+
+        return jsonify({"message": "Booking cancelled successfully", "id": booking_id}), 200
+
+    except Exception as e:
+        print(f"Error deleting booking {booking_id}: {e}")
         return jsonify({"error": str(e)}), 500
 
 # Firebase Functions entry point using new SDK
