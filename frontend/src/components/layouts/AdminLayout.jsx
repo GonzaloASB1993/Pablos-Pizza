@@ -88,7 +88,8 @@ const AdminLayout = () => {
     }
   }
 
-  const drawer = (
+  // Desktop drawer content (respects collapsed state)
+  const desktopDrawer = (
     <div>
       <Toolbar>
         <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', width: '100%' }} onClick={() => navigate('/admin')}>
@@ -316,6 +317,154 @@ const AdminLayout = () => {
     </div>
   )
 
+  // Mobile drawer content (always expanded with visible text)
+  const mobileDrawer = (
+    <div>
+      <Toolbar>
+        <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', width: '100%' }} onClick={() => navigate('/admin')}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Avatar
+              src={logo}
+              alt="Pablo's Pizza Logo"
+              sx={{
+                width: 40,
+                height: 40,
+                mr: 2,
+                border: '2px solid #FFD700'
+              }}
+            />
+            <Box>
+              <Typography variant="h6" noWrap sx={{ fontWeight: 'bold', color: '#FFD700' }}>
+                Pablo's Pizza
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                Panel Admin
+              </Typography>
+            </Box>
+          </Box>
+          <IconButton
+            onClick={handleDrawerToggle}
+            sx={{ color: '#FFD700', ml: 'auto' }}
+          >
+            <MenuOpen />
+          </IconButton>
+        </Box>
+      </Toolbar>
+
+      {/* Always show full view in mobile with all navigation options */}
+      <List>
+        {/* Main Dashboard */}
+        {menuItems.filter(item => item.category === 'main').map((item) => (
+          <ListItem
+            button
+            key={item.path}
+            onClick={() => {
+              navigate(item.path)
+              setMobileOpen(false) // Close drawer after navigation
+            }}
+            selected={location.pathname === item.path}
+            sx={{
+              mb: 1,
+              borderRadius: 1,
+              mx: 1,
+              '&.Mui-selected': {
+                backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                borderLeft: '4px solid #FFD700'
+              }
+            }}
+          >
+            <ListItemIcon sx={{ color: location.pathname === item.path ? '#FFD700' : 'inherit' }}>
+              {item.icon}
+            </ListItemIcon>
+            <ListItemText primary={item.label} />
+          </ListItem>
+        ))}
+
+        <Divider sx={{ my: 1 }} />
+
+        {/* Business Section - Always expanded on mobile */}
+        <ListSubheader sx={{ backgroundColor: 'transparent', fontWeight: 'bold', color: '#FFD700' }}>
+          Gestión de Negocio
+        </ListSubheader>
+
+        <List component="div" disablePadding>
+          {menuItems.filter(item => item.category === 'business').map((item) => (
+            <ListItem
+              button
+              key={item.path}
+              onClick={() => {
+                navigate(item.path)
+                setMobileOpen(false) // Close drawer after navigation
+              }}
+              selected={location.pathname === item.path}
+              sx={{
+                pl: 4,
+                borderRadius: 1,
+                mx: 1,
+                '&.Mui-selected': {
+                  backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                  borderLeft: '4px solid #FFD700'
+                }
+              }}
+            >
+              <ListItemIcon sx={{ color: location.pathname === item.path ? '#FFD700' : 'inherit' }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItem>
+          ))}
+        </List>
+
+        <Divider sx={{ my: 1 }} />
+
+        {/* Analytics Section - Always expanded on mobile */}
+        <ListSubheader sx={{ backgroundColor: 'transparent', fontWeight: 'bold', color: '#FFD700' }}>
+          Analytics & Reportes
+        </ListSubheader>
+
+        <List component="div" disablePadding>
+          {menuItems.filter(item => item.category === 'analytics').map((item) => (
+            <ListItem
+              button
+              key={item.path}
+              onClick={() => {
+                navigate(item.path)
+                setMobileOpen(false) // Close drawer after navigation
+              }}
+              selected={location.pathname === item.path}
+              sx={{
+                pl: 4,
+                borderRadius: 1,
+                mx: 1,
+                '&.Mui-selected': {
+                  backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                  borderLeft: '4px solid #FFD700'
+                }
+              }}
+            >
+              <ListItemIcon sx={{ color: location.pathname === item.path ? '#FFD700' : 'inherit' }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItem>
+          ))}
+        </List>
+      </List>
+
+      <Box sx={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>
+        <Button
+          fullWidth
+          variant="outlined"
+          startIcon={<Logout />}
+          onClick={handleLogout}
+          color="error"
+        >
+          Cerrar Sesión
+        </Button>
+      </Box>
+    </div>
+  )
+
   return (
     <Box sx={{ display: 'flex' }}>
       <AppBar
@@ -403,7 +552,7 @@ const AdminLayout = () => {
             '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH },
           }}
         >
-          {drawer}
+          {mobileDrawer}
         </Drawer>
         <Drawer
           variant="permanent"
@@ -417,7 +566,7 @@ const AdminLayout = () => {
           }}
           open
         >
-          {drawer}
+          {desktopDrawer}
         </Drawer>
       </Box>
 
