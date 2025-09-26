@@ -30,6 +30,8 @@ class BookingBase(BaseModel):
     event_time: str
     duration_hours: int
     participants: int
+    pizzeros_participants: Optional[int] = 0
+    party_participants: Optional[int] = 0
     location: str
     special_requests: Optional[str] = None
 
@@ -43,6 +45,8 @@ class BookingUpdate(BaseModel):
     event_date: Optional[datetime] = None
     event_time: Optional[str] = None
     participants: Optional[int] = None
+    pizzeros_participants: Optional[int] = None
+    party_participants: Optional[int] = None
     location: Optional[str] = None
     special_requests: Optional[str] = None
     status: Optional[BookingStatus] = None
@@ -58,6 +62,7 @@ class Booking(BookingBase):
     estimated_price: Optional[float] = None
     event_cost: Optional[float] = None
     event_profit: Optional[float] = None
+    expenses: Optional[List[Dict[str, Any]]] = []
 
 # Schemas para Events (eventos realizados)
 class EventFinancials(BaseModel):

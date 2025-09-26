@@ -55,10 +55,117 @@ async def send_whatsapp_notification(phone: str, message: str, notification_type
         print(f"Error sending WhatsApp to {phone}: {str(e)}")
         return False
 
+async def send_whatsapp_with_template_fallback(phone: str, message: str, notification_type: str, booking_data: dict) -> bool:
+    """
+    Send WhatsApp notification using template (always uses template now)
+    """
+    if not twilio_client:
+        print("Twilio client not configured")
+        return False
+
+    # Format phone number
+    if not phone.startswith('whatsapp:'):
+        if not phone.startswith('+'):
+            phone = '+' + phone
+        phone = f'whatsapp:{phone}'
+
+    try:
+        # Prepare template variables - Handle multiple services properly
+        service_types = booking_data.get('service_type', '')
+        services = [s.strip() for s in service_types.split(',') if s.strip()]
+
+        if len(services) > 1:
+            service_name = 'Pizza Party + Pizzeros en Acción'
+        elif 'workshop' in services or 'pizzeros' in services:
+            service_name = 'Pizzeros en Acción'
+        else:
+            service_name = 'Pizza Party'
+
+        # Format date properly
+        event_date = booking_data.get('event_date', '')
+        formatted_date = 'No especificada'
+        if event_date:
+            try:
+                from datetime import datetime
+                if 'T' in event_date:
+                    date_obj = datetime.fromisoformat(event_date.replace('Z', '+00:00'))
+                    formatted_date = date_obj.strftime('%d/%m/%Y')
+                else:
+                    date_obj = datetime.strptime(event_date, '%Y-%m-%d')
+                    formatted_date = date_obj.strftime('%d/%m/%Y')
+            except:
+                formatted_date = event_date
+
+        # Format time properly
+        event_time = booking_data.get('event_time', '')
+        formatted_time = 'No especificada'
+        if event_time:
+            formatted_time = event_time
+
+        # Format participants info based on new pizza structure
+        participants_info = "No especificado"
+        if booking_data.get('pizzeros_participants') and booking_data.get('party_participants'):
+            participants_info = f"Pizzeros: {booking_data['pizzeros_participants']} niños, Pizza Party: {booking_data.get('pizza_quantity', booking_data['party_participants'])} pizzas"
+        elif booking_data.get('pizzeros_participants'):
+            participants_info = f"{booking_data['pizzeros_participants']} niños (Pizzeros en Acción)"
+        elif booking_data.get('party_participants'):
+            pizza_qty = booking_data.get('pizza_quantity', booking_data['party_participants'])
+            participants_info = f"{pizza_qty} pizzas (Pizza Party)"
+        elif booking_data.get('participants'):
+            participants_info = f"{booking_data['participants']} participantes"
+
+        # Format price properly
+        estimated_price = booking_data.get('estimated_price', 0)
+        formatted_price = 'Por definir'
+        if estimated_price and estimated_price > 0:
+            try:
+                formatted_price = f"${estimated_price:,.0f} CLP"
+            except:
+                formatted_price = f"${estimated_price} CLP"
+
+        # Prepare template variables as JSON string (Twilio requirement)
+        template_vars = {
+            "1": str(formatted_date),
+            "2": str(formatted_time),
+            "3": str(participants_info),
+            "4": str(service_name),
+            "5": str(formatted_price),
+            "6": str(booking_data.get('client_name', 'No especificado')),
+            "7": str(booking_data.get('client_phone', 'No especificado'))
+        }
+
+        print(f"📱 Sending WhatsApp template to {phone}")
+        print(f"📋 Template variables: {template_vars}")
+
+        # Use template with properly formatted variables as JSON string
+        import json
+        template_message = twilio_client.messages.create(
+            from_=TWILIO_WHATSAPP_FROM,
+            to=phone,
+            content_sid='HXa33f59e4520c860c5024643fcb7139f3',
+            content_variables=json.dumps(template_vars)
+        )
+
+        print(f"✅ WhatsApp template sent successfully to {phone}, SID: {template_message.sid}")
+        return True
+
+    except Exception as template_error:
+        print(f"Template sending failed for {phone}: {str(template_error)}")
+        return False
+
 def send_admin_email_notification(booking_data: dict) -> bool:
     """Send email notification to admin about new booking"""
     try:
-        service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+        # Handle multiple services properly
+        service_types = booking_data.get('service_type', '')
+        services = [s.strip() for s in service_types.split(',') if s.strip()]
+
+        if len(services) > 1:
+            service_name = 'Pizza Party + Pizzeros en Acción'
+        elif 'workshop' in services or 'pizzeros' in services:
+            service_name = 'Pizzeros en Acción'
+        else:
+            service_name = 'Pizza Party'
 
         # Email configuration
         smtp_server = os.getenv('EMAIL_SERVER', 'smtp.gmail.com')
@@ -785,39 +892,74 @@ def send_confirmation_email(booking_data: dict) -> bool:
 
         return False
 
-def calculate_estimated_price(service_type: str, participants: int) -> float:
-    """Calculate estimated price based on service type and participants"""
-    print(f"[CALCULATE] Starting calculation: service_type='{service_type}', participants={participants}")
+def calculate_estimated_price(service_types: str, pizzeros_participants: int = 0, party_participants: int = 0, participants: int = 0) -> float:
+    """
+    Calculate estimated price based on service types and participants count per service
 
-    # Get pricing from environment variables
-    default_workshop_price = int(os.getenv('DEFAULT_WORKSHOP_PRICE', 13500))
-    default_pizza_party_price = int(os.getenv('DEFAULT_PIZZA_PARTY_PRICE', 11990))
+    Args:
+        service_types: Comma-separated service types (e.g., "workshop", "pizza_party", or "workshop,pizza_party")
+        pizzeros_participants: Number of participants for Pizzeros en Acción
+        party_participants: Number of participants for Pizza Party
+        participants: Legacy field for backward compatibility
+    """
+    print(f"[CALCULATE] Starting calculation:")
+    print(f"  service_types='{service_types}'")
+    print(f"  pizzeros_participants={pizzeros_participants}")
+    print(f"  party_participants={party_participants}")
+    print(f"  participants={participants} (legacy)")
 
-    if service_type == "workshop":
-        # Pizzeros en Acción pricing logic
-        if participants <= 15:
-            unit_final = default_workshop_price
-        elif participants <= 25:
-            unit_final = round(default_workshop_price * 0.9)  # 10% discount
+    total_price = 0
+    services = [s.strip() for s in service_types.split(',') if s.strip()]
+
+    for service in services:
+        if service == "workshop" or service == "pizzeros":
+            # Pizzeros en Acción pricing with new tiered structure
+            service_participants = pizzeros_participants if pizzeros_participants > 0 else participants
+            if service_participants <= 0:
+                print(f"  Skipping Pizzeros en Acción: no participants")
+                continue
+
+            if service_participants <= 10:
+                # 0-10 children: $13,500 minimum charge
+                service_total = 13500
+                print(f"  Pizzeros en Acción (0-10): {service_participants} niños -> $13,500 (mínimo)")
+            elif service_participants <= 14:
+                # 11-14 children: $10,500 per child
+                service_total = service_participants * 10500
+                print(f"  Pizzeros en Acción (11-14): {service_participants} niños x $10,500 -> ${service_total}")
+            elif service_participants <= 19:
+                # 15-19 children: $9,500 per child
+                service_total = service_participants * 9500
+                print(f"  Pizzeros en Acción (15-19): {service_participants} niños x $9,500 -> ${service_total}")
+            else:
+                # 20+ children: $9,000 per child
+                service_total = service_participants * 9000
+                print(f"  Pizzeros en Acción (20+): {service_participants} niños x $9,000 -> ${service_total}")
+
+            total_price += service_total
+
+        elif service == "pizza_party" or service == "party":
+            # Pizza Party pricing logic
+            service_participants = party_participants if party_participants > 0 else participants
+            if service_participants <= 0:
+                print(f"  Skipping Pizza Party: no participants")
+                continue
+
+            unit_base = int(os.getenv('DEFAULT_PIZZA_PARTY_PRICE', 11990))
+            if service_participants >= 20:
+                unit_final = round(unit_base * 0.9)  # 10% discount for 20+
+            else:
+                unit_final = unit_base
+
+            service_total = unit_final * service_participants
+            print(f"  Pizza Party: {service_participants} personas x ${unit_final} -> ${service_total}")
+            total_price += service_total
+
         else:
-            unit_final = round(default_workshop_price * 0.85)  # 15% discount
-        total = unit_final * participants
+            print(f"  Unknown service type: {service}")
 
-    elif service_type == "pizza_party":
-        # Pizza Party pricing logic
-        unit_base = default_pizza_party_price
-        if participants >= 20:
-            unit_final = round(unit_base * 0.9)  # 10% discount for 20+
-        else:
-            unit_final = unit_base
-        total = unit_final * participants
-
-    else:
-        # Fallback for other service types
-        total = 10000 * participants
-
-    result = round(total, 2)
-    print(f"[CALCULATE] Final result: {result}")
+    result = round(total_price, 2)
+    print(f"[CALCULATE] Final total: ${result}")
     return result
 
 def create_event_from_booking(booking_data: dict) -> bool:
@@ -829,7 +971,16 @@ def create_event_from_booking(booking_data: dict) -> bool:
         event_id = str(uuid.uuid4())
         
         # Determine service name for title
-        service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+        service_types = booking_data.get('service_type', '')
+        services = [s.strip() for s in service_types.split(',') if s.strip()]
+
+        if len(services) > 1:
+            service_name = 'Pizza Party + Pizzeros en Acción'
+        elif 'workshop' in services or 'pizzeros' in services:
+            service_name = 'Pizzeros en Acción'
+        else:
+            service_name = 'Pizza Party'
+
         event_title = f"{service_name} - {booking_data.get('client_name', 'Cliente')}"
         
         # Parse event date - keep as string for Firestore compatibility
@@ -924,7 +1075,7 @@ def root():
 def create_booking():
     """Create new booking"""
     try:
-        print("CREATE_BOOKING INICIADO - PRODUCTION VERSION")
+        print("CREATE_BOOKING INICIADO - PRODUCTION VERSION - TEST NUMBERS")
         data = request.get_json()
 
         if not data:
@@ -939,10 +1090,12 @@ def create_booking():
         # Generate booking ID
         booking_id = str(uuid.uuid4())
 
-        # Calculate estimated price
+        # Calculate estimated price using new structure
         estimated_price = calculate_estimated_price(
-            data.get('service_type'),
-            data.get('participants', 0)
+            service_types=data.get('service_type', ''),
+            pizzeros_participants=data.get('pizzeros_participants', 0),
+            party_participants=data.get('party_participants', 0),
+            participants=data.get('participants', 0)  # Legacy fallback
         )
 
         print(f"PRECIO CALCULADO: {data.get('service_type')} - {data.get('participants')} part = ${estimated_price} CLP")
@@ -977,8 +1130,29 @@ def create_booking():
 
         # Send WhatsApp notification to admin about new booking
         try:
-            admin_phone = os.getenv('ADMIN_WHATSAPP_NUMBER', '+56989424566')
-            service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+            admin_phone = os.getenv('ADMIN_WHATSAPP_NUMBER', '+56998960858')
+
+            # Handle multiple services properly
+            service_types = booking_data.get('service_type', '')
+            services = [s.strip() for s in service_types.split(',') if s.strip()]
+
+            if len(services) > 1:
+                service_name = 'Pizza Party + Pizzeros en Acción'
+            elif 'workshop' in services or 'pizzeros' in services:
+                service_name = 'Pizzeros en Acción'
+            else:
+                service_name = 'Pizza Party'
+
+            # Format participants info based on new structure
+            participants_info = ""
+            if booking_data.get('pizzeros_participants') and booking_data.get('party_participants'):
+                participants_info = f"Pizzeros: {booking_data['pizzeros_participants']} niños, Pizza Party: {booking_data['party_participants']} personas"
+            elif booking_data.get('pizzeros_participants'):
+                participants_info = f"{booking_data['pizzeros_participants']} niños"
+            elif booking_data.get('party_participants'):
+                participants_info = f"{booking_data['party_participants']} personas"
+            else:
+                participants_info = f"{booking_data.get('participants', 'No especificado')}"
 
             admin_whatsapp_message = f"""🍕 *Pablo's Pizza - NUEVO AGENDAMIENTO*
 
@@ -991,7 +1165,7 @@ def create_booking():
 🍕 *Servicio:* {service_name}
 📅 *Fecha:* {booking_data.get('event_date', 'No especificada')}
 ⏰ *Hora:* {booking_data.get('event_time', 'No especificada')}
-👥 *Participantes:* {booking_data.get('participants', 'No especificado')}
+👥 *Participantes:* {participants_info}
 📍 *Ubicación:* {booking_data.get('location', 'No especificada')}
 💰 *Precio estimado:* ${booking_data.get('estimated_price', 0):,.0f} CLP
 
@@ -1000,10 +1174,11 @@ def create_booking():
 ID: {booking_data.get('id', 'N/A')}"""
 
             print(f"Enviando WhatsApp de nueva reserva al admin: {admin_phone}")
-            admin_whatsapp_sent = asyncio.run(send_whatsapp_notification(
+            admin_whatsapp_sent = asyncio.run(send_whatsapp_with_template_fallback(
                 admin_phone,
                 admin_whatsapp_message,
-                "new_booking_admin_alert"
+                "new_booking_admin_alert",
+                booking_data
             ))
 
             if admin_whatsapp_sent:
@@ -1017,9 +1192,9 @@ ID: {booking_data.get('id', 'N/A')}"""
 
         # Send WhatsApp notification to business partner about new booking
         try:
-            partner_phone = os.getenv('PARTNER_WHATSAPP_NUMBER', '+56961093818')
-            service_name = 'Pizzeros en Acción' if booking_data.get('service_type') == 'workshop' else 'Pizza Party'
+            partner_phone = os.getenv('PARTNER_WHATSAPP_NUMBER', '+56998960858')
 
+            # Use same service logic as admin
             partner_message = f"""🍕 *Pablo's Pizza - NUEVO AGENDAMIENTO*
 
 ¡Hola! Te informo que acabamos de recibir una nueva reserva:
@@ -1030,17 +1205,18 @@ ID: {booking_data.get('id', 'N/A')}"""
 🍕 *Servicio:* {service_name}
 📅 *Fecha:* {booking_data.get('event_date', 'No especificada')}
 ⏰ *Hora:* {booking_data.get('event_time', 'No especificada')}
-👥 *Participantes:* {booking_data.get('participants', 'No especificado')}
+👥 *Participantes:* {participants_info}
 📍 *Ubicación:* {booking_data.get('location', 'No especificada')}
 💰 *Precio estimado:* ${booking_data.get('estimated_price', 0):,.0f} CLP
 
 ¡Excelente! 🎉"""
 
             print(f"Enviando WhatsApp de nueva reserva al socio: {partner_phone}")
-            whatsapp_sent = asyncio.run(send_whatsapp_notification(
+            whatsapp_sent = asyncio.run(send_whatsapp_with_template_fallback(
                 partner_phone,
                 partner_message,
-                "new_booking_partner_alert"
+                "new_booking_partner_alert",
+                booking_data
             ))
 
             if whatsapp_sent:
@@ -2335,7 +2511,7 @@ def update_booking(booking_id):
             print(f"Actualizando status a: {data['status']}")
 
         # Add other updatable fields as needed
-        updatable_fields = ['status', 'notes', 'confirmed_price', 'confirmed_date', 'confirmed_time', 'event_cost', 'event_profit', 'estimated_price', 'client_name', 'client_email', 'client_phone', 'participants', 'event_date', 'event_time', 'service_type', 'location', 'special_requests']
+        updatable_fields = ['status', 'notes', 'confirmed_price', 'confirmed_date', 'confirmed_time', 'event_cost', 'event_profit', 'estimated_price', 'client_name', 'client_email', 'client_phone', 'participants', 'event_date', 'event_time', 'service_type', 'location', 'special_requests', 'expenses', 'pizzeros_participants', 'party_participants']
         for field in updatable_fields:
             if field in data:
                 update_data[field] = data[field]
@@ -2370,6 +2546,58 @@ def update_booking(booking_id):
                     print(f"Error al enviar email de confirmación a {client_email}")
             else:
                 print("No se pudo enviar email: no hay email del cliente")
+
+            # Send WhatsApp notification to admin about confirmation
+            try:
+                admin_phone = os.getenv('ADMIN_WHATSAPP_NUMBER', '+56998960858')
+                service_name = 'Pizzeros en Acción' if updated_booking.get('service_type') == 'workshop' else 'Pizza Party'
+
+                # Format participants info based on new structure
+                participants_info = ""
+                if updated_booking.get('pizzeros_participants') and updated_booking.get('party_participants'):
+                    participants_info = f"Pizzeros: {updated_booking['pizzeros_participants']}, Pizza Party: {updated_booking['party_participants']}"
+                elif updated_booking.get('pizzeros_participants'):
+                    participants_info = f"{updated_booking['pizzeros_participants']} niños"
+                elif updated_booking.get('party_participants'):
+                    participants_info = f"{updated_booking['party_participants']} personas"
+                else:
+                    participants_info = f"{updated_booking.get('participants', 'No especificado')}"
+
+                admin_whatsapp_message = f"""✅ *Pablo's Pizza - EVENTO CONFIRMADO*
+
+¡El evento ha sido confirmado!
+
+👤 *Cliente:* {updated_booking.get('client_name', 'No especificado')}
+📱 *Teléfono:* {updated_booking.get('client_phone', 'No especificado')}
+📧 *Email:* {updated_booking.get('client_email', 'No especificado')}
+
+🍕 *Servicio:* {service_name}
+📅 *Fecha:* {updated_booking.get('event_date', 'No especificada')}
+⏰ *Hora:* {updated_booking.get('event_time', 'No especificada')}
+👥 *Participantes:* {participants_info}
+📍 *Ubicación:* {updated_booking.get('location', 'No especificada')}
+💰 *Precio:* ${updated_booking.get('estimated_price', 0):,.0f} CLP
+
+🎉 *El cliente ya ha sido notificado por email.*
+
+ID: {updated_booking.get('id', 'N/A')}"""
+
+                print(f"Enviando WhatsApp de confirmación al admin: {admin_phone}")
+                admin_whatsapp_sent = asyncio.run(send_whatsapp_with_template_fallback(
+                    admin_phone,
+                    admin_whatsapp_message,
+                    "booking_confirmed_admin_alert",
+                    updated_booking
+                ))
+
+                if admin_whatsapp_sent:
+                    print(f"WhatsApp de confirmación enviado exitosamente al admin")
+                else:
+                    print(f"Error al enviar WhatsApp de confirmación al admin")
+
+            except Exception as e:
+                print(f"Error enviando WhatsApp de confirmación al admin: {e}")
+                # No fallar la actualización del booking si falla la notificación
         elif 'status' in data and data['status'] == 'confirmed' and current_booking.get('status') == 'confirmed':
             print(f"Status sigue siendo 'confirmed' - NO enviando notificación duplicada")
 

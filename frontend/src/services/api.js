@@ -8,7 +8,7 @@ const isDevelopment = window.location.hostname === 'localhost' || window.locatio
 
 const BASE_URL = isDevelopment
   ? 'http://localhost:8000/api'  // Development
-  : 'https://main-4kqeqojbsq-uc.a.run.app/api'  // Production
+  : 'https://us-central1-pablospizza-d84bf.cloudfunctions.net/main/api'  // Production
 
 console.log('🔧 API Configuration:', {
   hostname: window.location.hostname,

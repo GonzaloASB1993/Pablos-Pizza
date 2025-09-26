@@ -45,7 +45,12 @@ import {
     EventAvailable,
     Assignment,
     TrendingUp,
-    Refresh
+    Refresh,
+    AddBox,
+    Search,
+    ArrowUpward,
+    ArrowDownward,
+    UnfoldMore
 } from '@mui/icons-material'
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
@@ -58,27 +63,38 @@ const locales = { 'es': es }
 const localizer = dateFnsLocalizer({
     format,
     parse,
-    startOfWeek,
+    startOfWeek: (date) => startOfWeek(date, { weekStartsOn: 1 }), // Monday = 1
     getDay,
     locales,
 })
 
 const BookingsManagement = () => {
     const [bookings, setBookings] = useState([])
-    const [view, setView] = useState('cards')
+    const [view, setView] = useState('table')
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
     const [selectedMonth, setSelectedMonth] = useState("")
+    const [searchQuery, setSearchQuery] = useState('')
     const [tabValue, setTabValue] = useState(0)
+    const [sortField, setSortField] = useState('event_date')
+    const [sortDirection, setSortDirection] = useState('asc')
     const [editDialog, setEditDialog] = useState(false)
     const [createDialog, setCreateDialog] = useState(false)
     const [deleteDialog, setDeleteDialog] = useState(false)
     const [costDialog, setCostDialog] = useState(false)
+    const [expenseDialog, setExpenseDialog] = useState(false)
+    const [editExpenseDialog, setEditExpenseDialog] = useState(false)
+    const [selectedExpenseIndex, setSelectedExpenseIndex] = useState(null)
     const [selectedBooking, setSelectedBooking] = useState(null)
     const [costData, setCostData] = useState({
         event_cost: '',
         event_profit: '',
         notes: ''
+    })
+    const [expenseData, setExpenseData] = useState({
+        description: '',
+        amount: '',
+        category: 'ingredientes'
     })
     const [formData, setFormData] = useState({
         status: '',
@@ -103,48 +119,14 @@ const BookingsManagement = () => {
         event_time: '',
         duration_hours: 4,
         participants: '',
+        pizzeros_participants: 0,
+        party_participants: 0,
+        pizza_quantity: 10,
         location: '',
         special_requests: ''
     })
 
-    const filteredBookings = useMemo(() => {
-        if (!selectedMonth) return bookings
-
-        return bookings.filter(booking => {
-            if (!booking.event_date) return false
-            const eventDate = new Date(booking.event_date)
-            const eventMonth = `${String(eventDate.getMonth() + 1).padStart(2, '0')}-${eventDate.getFullYear()}`
-            return eventMonth === selectedMonth
-        })
-    }, [bookings, selectedMonth])
-
-    useEffect(() => {
-        loadBookings()
-    }, [])
-
-    const loadBookings = async () => {
-        try {
-            setLoading(true)
-            const response = await bookingsAPI.getAll()
-            setBookings(response.data)
-        } catch (error) {
-            console.error('Error loading bookings:', error)
-            toast.error('Error al cargar agendamientos')
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const getStatusColor = (status) => {
-        const colors = {
-            pending: 'warning',
-            confirmed: 'success',
-            completed: 'info',
-            cancelled: 'error'
-        }
-        return colors[status] || 'default'
-    }
-
+    // Utility functions moved before their usage
     const getServiceLabel = (type) => {
         if (!type) return 'No especificado'
 
@@ -168,12 +150,166 @@ const BookingsManagement = () => {
         return labels[status] || status
     }
 
+    const getStatusColor = (status) => {
+        const colors = {
+            pending: 'warning',
+            confirmed: 'success',
+            completed: 'info',
+            cancelled: 'error'
+        }
+        return colors[status] || 'default'
+    }
+
+    const filteredBookings = useMemo(() => {
+        let filtered = bookings
+
+        // Filter by month
+        if (selectedMonth) {
+            filtered = filtered.filter(booking => {
+                if (!booking.event_date) return false
+                const eventDate = new Date(booking.event_date)
+                const eventMonth = `${String(eventDate.getMonth() + 1).padStart(2, '0')}-${eventDate.getFullYear()}`
+                return eventMonth === selectedMonth
+            })
+        }
+
+        // Filter by search query
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase()
+            filtered = filtered.filter(booking =>
+                booking.client_name?.toLowerCase().includes(query) ||
+                booking.client_phone?.toLowerCase().includes(query) ||
+                booking.client_email?.toLowerCase().includes(query) ||
+                booking.location?.toLowerCase().includes(query) ||
+                getServiceLabel(booking.service_type).toLowerCase().includes(query)
+            )
+        }
+
+        // Apply sorting
+        filtered.sort((a, b) => {
+            let aValue, bValue
+
+            switch (sortField) {
+                case 'client_name':
+                    aValue = (a.client_name || '').toLowerCase()
+                    bValue = (b.client_name || '').toLowerCase()
+                    break
+                case 'event_date':
+                    aValue = a.event_date ? new Date(a.event_date).getTime() : 0
+                    bValue = b.event_date ? new Date(b.event_date).getTime() : 0
+                    break
+                case 'service_type':
+                    aValue = getServiceLabel(a.service_type).toLowerCase()
+                    bValue = getServiceLabel(b.service_type).toLowerCase()
+                    break
+                case 'status':
+                    aValue = (a.status || '').toLowerCase()
+                    bValue = (b.status || '').toLowerCase()
+                    break
+                case 'participants':
+                    aValue = a.participants || 0
+                    bValue = b.participants || 0
+                    break
+                default:
+                    aValue = 0
+                    bValue = 0
+            }
+
+            if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+            if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+            return 0
+        })
+
+        return filtered
+    }, [bookings, selectedMonth, searchQuery, sortField, sortDirection])
+
+    const handleSort = (field) => {
+        if (sortField === field) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+        } else {
+            setSortField(field)
+            setSortDirection('asc')
+        }
+    }
+
+    const getSortIcon = (field) => {
+        if (sortField !== field) {
+            return <UnfoldMore sx={{ ml: 1, fontSize: 16, opacity: 0.5 }} />
+        }
+        return sortDirection === 'asc' ?
+            <ArrowUpward sx={{ ml: 1, fontSize: 16 }} /> :
+            <ArrowDownward sx={{ ml: 1, fontSize: 16 }} />
+    }
+
+    useEffect(() => {
+        loadBookings()
+    }, [])
+
+    // Helper function to safely parse date strings without timezone shifts
+    const parseEventDate = (dateString) => {
+        if (!dateString) return null
+
+        try {
+            if (dateString.includes('T')) {
+                // ISO format - extract date part only to avoid timezone issues
+                const dateOnly = dateString.split('T')[0]
+                const [year, month, day] = dateOnly.split('-').map(Number)
+                return new Date(year, month - 1, day)
+            } else {
+                // Date-only string
+                const [year, month, day] = dateString.split('-').map(Number)
+                return new Date(year, month - 1, day)
+            }
+        } catch (error) {
+            console.error('Error parsing date:', dateString, error)
+            return null
+        }
+    }
+
+    const loadBookings = async () => {
+        try {
+            setLoading(true)
+            const response = await bookingsAPI.getAll()
+            setBookings(response.data)
+        } catch (error) {
+            console.error('Error loading bookings:', error)
+            toast.error('Error al cargar agendamientos')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+
     const handleEditClick = (booking) => {
         setSelectedBooking(booking)
+
+        // Safe date processing
+        let formattedDate = ''
+        if (booking.event_date) {
+            try {
+                // Handle different date formats that might come from backend
+                let dateToProcess = booking.event_date
+
+                // If it's already in YYYY-MM-DD format, use it directly
+                if (typeof dateToProcess === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateToProcess)) {
+                    formattedDate = dateToProcess
+                } else {
+                    // Try to create a proper date object
+                    const dateObj = new Date(dateToProcess)
+                    if (!isNaN(dateObj.getTime())) {
+                        formattedDate = dateObj.toISOString().split('T')[0]
+                    }
+                }
+            } catch (error) {
+                console.error('Error processing event_date:', error, booking.event_date)
+                formattedDate = ''
+            }
+        }
+
         setFormData({
             status: booking.status,
             notes: booking.notes || '',
-            event_date: booking.event_date ? new Date(booking.event_date + 'T00:00:00').toISOString().split('T')[0] : '',
+            event_date: formattedDate,
             event_time: booking.event_time || '',
             service_type: booking.service_type || '',
             participants: booking.participants || '',
@@ -183,7 +319,9 @@ const BookingsManagement = () => {
             client_name: booking.client_name || '',
             client_email: booking.client_email || '',
             client_phone: booking.client_phone || '',
-            location: booking.location || ''
+            location: booking.location || '',
+            pizzeros_participants: booking.pizzeros_participants || 0,
+            party_participants: booking.party_participants || 0
         })
         setEditDialog(true)
     }
@@ -225,6 +363,8 @@ const BookingsManagement = () => {
             if (formData.client_email) updatePayload.client_email = formData.client_email
             if (formData.client_phone) updatePayload.client_phone = formData.client_phone
             if (formData.location) updatePayload.location = formData.location
+            if (formData.pizzeros_participants !== undefined) updatePayload.pizzeros_participants = parseInt(formData.pizzeros_participants) || 0
+            if (formData.party_participants !== undefined) updatePayload.party_participants = parseInt(formData.party_participants) || 0
 
             // Add cost and profit fields when completing
             if (formData.status === 'completed') {
@@ -265,8 +405,10 @@ const BookingsManagement = () => {
 
     const handleOpenCostDialog = (booking) => {
         setSelectedBooking(booking)
+        // Calculate accumulated expenses from expenses array
+        const accumulatedExpenses = (booking.expenses || []).reduce((sum, expense) => sum + expense.amount, 0)
         setCostData({
-            event_cost: booking.estimated_price || '',
+            event_cost: accumulatedExpenses || booking.event_cost || '',
             event_profit: booking.estimated_price || '',
             notes: ''
         })
@@ -292,6 +434,121 @@ const BookingsManagement = () => {
             console.error('Error completing booking:', error)
             toast.error('Error al completar evento')
         }
+    }
+
+    const handleAddExpense = async () => {
+        try {
+            if (!expenseData.description || !expenseData.amount) {
+                toast.error('Por favor completa todos los campos del gasto')
+                return
+            }
+
+            const currentExpenses = selectedBooking.expenses || []
+            const newExpense = {
+                id: Date.now().toString(),
+                description: expenseData.description,
+                amount: parseFloat(expenseData.amount),
+                category: expenseData.category,
+                date: new Date().toISOString()
+            }
+
+            const updatedExpenses = [...currentExpenses, newExpense]
+            const totalExpenses = updatedExpenses.reduce((sum, expense) => sum + expense.amount, 0)
+
+            const updateData = {
+                expenses: updatedExpenses,
+                event_cost: totalExpenses,
+                event_profit: (selectedBooking.estimated_price || 0) - totalExpenses
+            }
+
+            await bookingsAPI.update(selectedBooking.id, updateData)
+
+            toast.success('Gasto agregado correctamente')
+            setExpenseDialog(false)
+            setExpenseData({ description: '', amount: '', category: 'ingredientes' })
+            loadBookings()
+        } catch (error) {
+            console.error('Error adding expense:', error)
+            toast.error('Error al agregar gasto')
+        }
+    }
+
+    const handleEditExpense = (expenseIndex) => {
+        const expense = selectedBooking.expenses[expenseIndex]
+        setSelectedExpenseIndex(expenseIndex)
+        setExpenseData({
+            description: expense.description,
+            amount: expense.amount.toString(),
+            category: expense.category
+        })
+        setEditExpenseDialog(true)
+    }
+
+    const handleUpdateExpense = async () => {
+        try {
+            if (!expenseData.description || !expenseData.amount) {
+                toast.error('Por favor completa todos los campos del gasto')
+                return
+            }
+
+            const currentExpenses = [...selectedBooking.expenses]
+            currentExpenses[selectedExpenseIndex] = {
+                ...currentExpenses[selectedExpenseIndex],
+                description: expenseData.description,
+                amount: parseFloat(expenseData.amount),
+                category: expenseData.category,
+                date: currentExpenses[selectedExpenseIndex].date
+            }
+
+            const totalExpenses = currentExpenses.reduce((sum, expense) => sum + expense.amount, 0)
+
+            const updateData = {
+                expenses: currentExpenses,
+                event_cost: totalExpenses,
+                event_profit: (selectedBooking.estimated_price || 0) - totalExpenses
+            }
+
+            await bookingsAPI.update(selectedBooking.id, updateData)
+
+            toast.success('Gasto actualizado correctamente')
+            setEditExpenseDialog(false)
+            setExpenseData({ description: '', amount: '', category: 'ingredientes' })
+            setSelectedExpenseIndex(null)
+            loadBookings()
+        } catch (error) {
+            console.error('Error updating expense:', error)
+            toast.error('Error al actualizar gasto')
+        }
+    }
+
+    const handleDeleteExpense = async (expenseIndex) => {
+        if (!window.confirm('¿Estás seguro de que quieres eliminar este gasto?')) {
+            return
+        }
+
+        try {
+            const currentExpenses = selectedBooking.expenses.filter((_, index) => index !== expenseIndex)
+            const totalExpenses = currentExpenses.reduce((sum, expense) => sum + expense.amount, 0)
+
+            const updateData = {
+                expenses: currentExpenses,
+                event_cost: totalExpenses,
+                event_profit: (selectedBooking.estimated_price || 0) - totalExpenses
+            }
+
+            await bookingsAPI.update(selectedBooking.id, updateData)
+
+            toast.success('Gasto eliminado correctamente')
+            loadBookings()
+        } catch (error) {
+            console.error('Error deleting expense:', error)
+            toast.error('Error al eliminar gasto')
+        }
+    }
+
+    const handleOpenExpenseDialog = (booking) => {
+        setSelectedBooking(booking)
+        setExpenseDialog(true)
     }
 
     const handleNewBookingClick = () => {
@@ -357,37 +614,60 @@ const BookingsManagement = () => {
         }
     }
 
-    const calendarEvents = bookings
-        .filter(booking => booking.event_date && booking.status !== 'cancelled')
-        .map(booking => {
-            // Parse the event date - it could be in ISO format already or just a date string
-            let eventDate
-            if (booking.event_date.includes('T')) {
-                // Already has time in ISO format
-                eventDate = new Date(booking.event_date)
-            } else {
-                // Just a date string, add time
-                eventDate = new Date(booking.event_date + (booking.event_time ? `T${booking.event_time}` : 'T10:00'))
-            }
+    const calendarEvents = useMemo(() => {
+        return bookings
+            .filter(booking => booking.event_date && booking.status !== 'cancelled')
+            .map(booking => {
+                // Parse the event date - avoid timezone conversion issues
+                let eventDate
+                if (booking.event_date.includes('T')) {
+                    // Already has time in ISO format - parse carefully to avoid timezone issues
+                    const dateOnly = booking.event_date.split('T')[0]
+                    const timeOnly = booking.event_time || '10:00'
+                    eventDate = new Date(dateOnly + 'T' + timeOnly + ':00')
+                } else {
+                    // Just a date string - create date in local timezone to avoid shifting
+                    const [year, month, day] = booking.event_date.split('-').map(Number)
+                    const [hour, minute] = (booking.event_time || '10:00').split(':').map(Number)
+                    eventDate = new Date(year, month - 1, day, hour, minute)
+                }
 
-            return {
-                id: booking.id,
-                title: `${getServiceLabel(booking.service_type)} - ${booking.client_name}`,
-                start: eventDate,
-                end: new Date(eventDate.getTime() + (2 * 60 * 60 * 1000)), // Add 2 hours for end time
-                resource: booking
-            }
-        })
+                return {
+                    id: booking.id,
+                    title: `${getServiceLabel(booking.service_type)} - ${booking.client_name}`,
+                    start: eventDate,
+                    end: new Date(eventDate.getTime() + (2 * 60 * 60 * 1000)), // Add 2 hours for end time
+                    resource: booking
+                }
+            })
+    }, [bookings])
 
     const getMonthOptions = () => {
         const months = []
-        for (let i = 0; i < 12; i++) {
-            const date = new Date()
-            date.setMonth(date.getMonth() + i - 6)
-            const monthKey = `${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`
-            const monthLabel = format(date, 'MMMM yyyy', { locale: es })
-            months.push({ key: monthKey, label: monthLabel })
+        const today = new Date()
+        const startDate = new Date(2025, 8) // September 2025 (0-indexed months)
+
+        // Generate months from current month backward 1 month and forward 2 months
+        for (let i = -1; i <= 2; i++) {
+            const date = new Date(today.getFullYear(), today.getMonth() + i)
+
+            // Only include months from September 2025 onwards
+            if (date >= startDate) {
+                const monthKey = `${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`
+                const monthLabel = format(date, 'MMMM yyyy', { locale: es })
+                months.push({ key: monthKey, label: monthLabel })
+            }
         }
+
+        // Sort in descending order (newest first)
+        months.sort((a, b) => {
+            const [monthA, yearA] = a.key.split('-').map(Number)
+            const [monthB, yearB] = b.key.split('-').map(Number)
+
+            if (yearA !== yearB) return yearB - yearA
+            return monthB - monthA
+        })
+
         return months
     }
 
@@ -435,14 +715,31 @@ const BookingsManagement = () => {
                 </Box>
 
                 <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                    {booking.event_date ? format(new Date(booking.event_date), 'dd/MM/yyyy', { locale: es }) : 'Fecha por definir'}
+                    {booking.event_date ? (
+                        parseEventDate(booking.event_date) ?
+                        format(parseEventDate(booking.event_date), 'dd/MM/yyyy', { locale: es }) :
+                        'Fecha inválida'
+                    ) : 'Fecha por definir'}
                     {booking.event_time && ` a las ${booking.event_time}`}
                 </Typography>
 
-                <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                    <Typography variant="body2">
-                        <strong>Participantes:</strong> {booking.participants}
-                    </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
+                    {/* Mostrar participantes por servicio */}
+                    {booking.pizzeros_participants > 0 && (
+                        <Typography variant="body2">
+                            <strong>Pizzeros en Acción:</strong> {booking.pizzeros_participants} niños
+                        </Typography>
+                    )}
+                    {booking.party_participants > 0 && (
+                        <Typography variant="body2">
+                            <strong>Pizza Party:</strong> {booking.party_participants} personas
+                        </Typography>
+                    )}
+                    {(!booking.pizzeros_participants && !booking.party_participants) && (
+                        <Typography variant="body2">
+                            <strong>Participantes:</strong> {booking.participants}
+                        </Typography>
+                    )}
                     <Typography variant="body2">
                         <strong>Precio:</strong> ${booking.estimated_price ? booking.estimated_price.toLocaleString() : 'Por definir'}
                     </Typography>
@@ -463,15 +760,26 @@ const BookingsManagement = () => {
                         Editar
                     </Button>
                     {booking.status === 'confirmed' && (
-                        <Button
-                            size="small"
-                            variant="contained"
-                            color="info"
-                            startIcon={<CheckCircle />}
-                            onClick={() => handleOpenCostDialog(booking)}
-                        >
-                            Completar
-                        </Button>
+                        <>
+                            <Button
+                                size="small"
+                                variant="outlined"
+                                color="primary"
+                                startIcon={<AddBox />}
+                                onClick={() => handleOpenExpenseDialog(booking)}
+                            >
+                                +Agregar Gasto
+                            </Button>
+                            <Button
+                                size="small"
+                                variant="contained"
+                                color="info"
+                                startIcon={<CheckCircle />}
+                                onClick={() => handleOpenCostDialog(booking)}
+                            >
+                                Completar
+                            </Button>
+                        </>
                     )}
                     <Button
                         size="small"
@@ -518,9 +826,6 @@ const BookingsManagement = () => {
                         onChange={(e, newView) => newView && setView(newView)}
                         size="small"
                     >
-                        <ToggleButton value="cards">
-                            <ViewList />
-                        </ToggleButton>
                         <ToggleButton value="table">
                             <Assignment />
                         </ToggleButton>
@@ -593,6 +898,48 @@ const BookingsManagement = () => {
                 </Alert>
             )}
 
+            {/* Filters and Search - only show for table view */}
+            {view === 'table' && (
+                <Card sx={{ mb: 3, p: 2 }}>
+                    <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={12} sm={6} md={4}>
+                            <TextField
+                                fullWidth
+                                placeholder="Buscar por cliente, teléfono, email, ubicación..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                InputProps={{
+                                    startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
+                                }}
+                                size="small"
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel>Filtrar por mes</InputLabel>
+                                <Select
+                                    value={selectedMonth}
+                                    label="Filtrar por mes"
+                                    onChange={(e) => setSelectedMonth(e.target.value)}
+                                >
+                                    <MenuItem value="">Todos los meses</MenuItem>
+                                    {getMonthOptions().map(month => (
+                                        <MenuItem key={month.key} value={month.key}>
+                                            {month.label}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={12} md={5}>
+                            <Typography variant="body2" color="text.secondary">
+                                Mostrando {filteredBookings.length} de {bookings.length} agendamientos
+                            </Typography>
+                        </Grid>
+                    </Grid>
+                </Card>
+            )}
+
             {/* Tabs for different statuses - only show in cards view */}
             {view === 'cards' && (
                 <Paper sx={{ mb: 3 }}>
@@ -653,11 +1000,51 @@ const BookingsManagement = () => {
                             <Table>
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell>Cliente</TableCell>
-                                        <TableCell>Servicio</TableCell>
-                                        <TableCell>Fecha</TableCell>
-                                        <TableCell>Estado</TableCell>
-                                        <TableCell>Participantes</TableCell>
+                                        <TableCell
+                                            sx={{ cursor: 'pointer', userSelect: 'none' }}
+                                            onClick={() => handleSort('client_name')}
+                                        >
+                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                Cliente
+                                                {getSortIcon('client_name')}
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell
+                                            sx={{ cursor: 'pointer', userSelect: 'none' }}
+                                            onClick={() => handleSort('service_type')}
+                                        >
+                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                Servicio
+                                                {getSortIcon('service_type')}
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell
+                                            sx={{ cursor: 'pointer', userSelect: 'none' }}
+                                            onClick={() => handleSort('event_date')}
+                                        >
+                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                Fecha
+                                                {getSortIcon('event_date')}
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell
+                                            sx={{ cursor: 'pointer', userSelect: 'none' }}
+                                            onClick={() => handleSort('status')}
+                                        >
+                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                Estado
+                                                {getSortIcon('status')}
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell
+                                            sx={{ cursor: 'pointer', userSelect: 'none' }}
+                                            onClick={() => handleSort('participants')}
+                                        >
+                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                Participantes
+                                                {getSortIcon('participants')}
+                                            </Box>
+                                        </TableCell>
                                         <TableCell>Total</TableCell>
                                         <TableCell>Costo</TableCell>
                                         <TableCell>Utilidad</TableCell>
@@ -681,7 +1068,11 @@ const BookingsManagement = () => {
                                                 {getServiceLabel(booking.service_type)}
                                             </TableCell>
                                             <TableCell>
-                                                {booking.event_date ? format(new Date(booking.event_date), 'dd/MM/yyyy') : '-'}
+                                                {booking.event_date ? (
+                                                    parseEventDate(booking.event_date) ?
+                                                    format(parseEventDate(booking.event_date), 'dd/MM/yyyy') :
+                                                    'Fecha inválida'
+                                                ) : '-'}
                                                 {booking.event_time && (
                                                     <Typography variant="caption" display="block">
                                                         {booking.event_time}
@@ -695,7 +1086,23 @@ const BookingsManagement = () => {
                                                     size="small"
                                                 />
                                             </TableCell>
-                                            <TableCell>{booking.participants}</TableCell>
+                                            <TableCell>
+                                                {booking.pizzeros_participants > 0 && (
+                                                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                                                        Pizzeros: {booking.pizzeros_participants}
+                                                    </Typography>
+                                                )}
+                                                {booking.party_participants > 0 && (
+                                                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                                                        Party: {booking.party_participants}
+                                                    </Typography>
+                                                )}
+                                                {(!booking.pizzeros_participants && !booking.party_participants) && (
+                                                    <Typography variant="body2">
+                                                        {booking.participants}
+                                                    </Typography>
+                                                )}
+                                            </TableCell>
                                             <TableCell>
                                                 <Typography variant="body2" fontWeight="bold">
                                                     ${booking.estimated_price ? booking.estimated_price.toLocaleString() : '-'}
@@ -725,14 +1132,24 @@ const BookingsManagement = () => {
                                                         Editar
                                                     </Button>
                                                     {booking.status === 'confirmed' && (
-                                                        <Button
-                                                            size="small"
-                                                            color="info"
-                                                            startIcon={<CheckCircle />}
-                                                            onClick={() => handleOpenCostDialog(booking)}
-                                                        >
-                                                            Completar
-                                                        </Button>
+                                                        <>
+                                                            <Button
+                                                                size="small"
+                                                                color="primary"
+                                                                startIcon={<AddBox />}
+                                                                onClick={() => handleOpenExpenseDialog(booking)}
+                                                            >
+                                                                +Gasto
+                                                            </Button>
+                                                            <Button
+                                                                size="small"
+                                                                color="info"
+                                                                startIcon={<CheckCircle />}
+                                                                onClick={() => handleOpenCostDialog(booking)}
+                                                            >
+                                                                Completar
+                                                            </Button>
+                                                        </>
                                                     )}
                                                     <Button
                                                         size="small"
@@ -773,6 +1190,12 @@ const BookingsManagement = () => {
                                 startAccessor="start"
                                 endAccessor="end"
                                 culture="es"
+                                formats={{
+                                    dayHeaderFormat: (date, culture, localizer) => {
+                                        return localizer.format(date, 'eeeeee', culture)
+                                    },
+                                    dayFormat: 'dd'
+                                }}
                                 messages={{
                                     next: "Siguiente",
                                     previous: "Anterior",
@@ -825,6 +1248,7 @@ const BookingsManagement = () => {
                                 >
                                     <MenuItem value="workshop">Pizzeros en Acción</MenuItem>
                                     <MenuItem value="pizza_party">Pizza Party</MenuItem>
+                                    <MenuItem value="workshop,pizza_party">Ambos Servicios</MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>
@@ -856,10 +1280,31 @@ const BookingsManagement = () => {
                         <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
-                                label="Participantes"
+                                label="Participantes Total"
                                 value={formData.participants}
                                 onChange={(e) => setFormData(prev => ({ ...prev, participants: e.target.value }))}
                                 type="number"
+                                helperText="Total general de participantes"
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                label="Pizzeros en Acción - Niños"
+                                value={formData.pizzeros_participants}
+                                onChange={(e) => setFormData(prev => ({ ...prev, pizzeros_participants: e.target.value }))}
+                                type="number"
+                                helperText="Solo si el servicio incluye Pizzeros"
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                label="Pizza Party - Personas"
+                                value={formData.party_participants}
+                                onChange={(e) => setFormData(prev => ({ ...prev, party_participants: e.target.value }))}
+                                type="number"
+                                helperText="Solo si el servicio incluye Pizza Party"
                             />
                         </Grid>
                         <Grid item xs={12} sm={6}>
@@ -1051,6 +1496,23 @@ const BookingsManagement = () => {
                                 >
                                     <MenuItem value="workshop">Pizzeros en Acción</MenuItem>
                                     <MenuItem value="pizza_party">Pizza Party</MenuItem>
+                                    <MenuItem value="workshop,pizza_party">Ambos Servicios</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth>
+                                <InputLabel>Tipo de Evento</InputLabel>
+                                <Select
+                                    name="event_type"
+                                    value={newBookingData.event_type}
+                                    label="Tipo de Evento"
+                                    onChange={handleNewBookingChange}
+                                >
+                                    <MenuItem value="birthday">🎂 Cumpleaños</MenuItem>
+                                    <MenuItem value="school">🏫 Escolar</MenuItem>
+                                    <MenuItem value="corporate">🏢 Corporativo</MenuItem>
+                                    <MenuItem value="private">✨ Otro</MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>
@@ -1106,15 +1568,68 @@ const BookingsManagement = () => {
                                 <option value="20:30">20:30</option>
                             </TextField>
                         </Grid>
+                        {/* Dynamic participant fields based on service type */}
+                        {newBookingData.service_type.includes('workshop') && (
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Participantes en Pizzeros en Acción"
+                                    name="pizzeros_participants"
+                                    type="number"
+                                    value={newBookingData.pizzeros_participants}
+                                    onChange={handleNewBookingChange}
+                                    inputProps={{ min: 10, max: 200 }}
+                                    helperText="Mínimo 10 niños"
+                                    required
+                                />
+                            </Grid>
+                        )}
+                        {newBookingData.service_type.includes('pizza_party') && (
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Cantidad de Pizzas"
+                                    name="pizza_quantity"
+                                    type="number"
+                                    value={newBookingData.pizza_quantity}
+                                    onChange={(e) => {
+                                        const quantity = Math.max(10, parseInt(e.target.value || '10', 10))
+                                        setNewBookingData(prev => ({
+                                            ...prev,
+                                            pizza_quantity: quantity,
+                                            party_participants: quantity
+                                        }))
+                                    }}
+                                    inputProps={{ min: 10, max: 200 }}
+                                    helperText="Mínimo 10 pizzas"
+                                    required
+                                />
+                            </Grid>
+                        )}
+                        {!newBookingData.service_type && (
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Número de Participantes"
+                                    name="participants"
+                                    type="number"
+                                    value={newBookingData.participants}
+                                    onChange={handleNewBookingChange}
+                                    helperText="Selecciona un tipo de servicio primero"
+                                    disabled
+                                />
+                            </Grid>
+                        )}
                         <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
-                                label="Número de Participantes"
-                                name="participants"
+                                label="Duración (horas)"
+                                name="duration_hours"
                                 type="number"
-                                value={newBookingData.participants}
+                                value={newBookingData.duration_hours}
                                 onChange={handleNewBookingChange}
-                                required
+                                inputProps={{ min: 1, max: 8 }}
+                                helperText="Duración del evento en horas"
                             />
                         </Grid>
                         <Grid item xs={12} sm={6}>
@@ -1163,9 +1678,24 @@ const BookingsManagement = () => {
                         <Typography variant="body2" color="text.secondary" gutterBottom>
                             Fecha: {selectedBooking?.event_date} {selectedBooking?.event_time}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                            Precio estimado inicial: ${selectedBooking?.estimated_price}
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            Precio estimado: ${selectedBooking?.estimated_price?.toLocaleString()}
                         </Typography>
+                        {selectedBooking?.expenses && selectedBooking.expenses.length > 0 && (
+                            <Box sx={{ mb: 3 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                                    Gastos Registrados:
+                                </Typography>
+                                {selectedBooking.expenses.map((expense, index) => (
+                                    <Typography key={index} variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                                        • {expense.description}: ${expense.amount.toLocaleString()}
+                                    </Typography>
+                                ))}
+                                <Typography variant="body2" sx={{ fontWeight: 600, mt: 1 }}>
+                                    Total gastos: ${(selectedBooking.expenses.reduce((sum, expense) => sum + expense.amount, 0)).toLocaleString()}
+                                </Typography>
+                            </Box>
+                        )}
 
                         <Grid container spacing={3}>
                             <Grid item xs={12} sm={6}>
@@ -1224,13 +1754,230 @@ const BookingsManagement = () => {
                         Cancelar
                     </Button>
                     <Button
-                        onClick={handleCompleteWithCost}
+                        onClick={() => {
+                            if (window.confirm('¿Estás seguro de que quieres marcar este evento como completado? Esta acción calculará la ganancia final y cambiará el estado del evento.')) {
+                                handleCompleteWithCost()
+                            }
+                        }}
                         variant="contained"
                         color="success"
                         disabled={!costData.event_cost || !costData.event_profit}
                         startIcon={<CheckCircle />}
                     >
                         Completar Evento
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Expense Dialog */}
+            <Dialog open={expenseDialog} onClose={() => setExpenseDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>
+                    Agregar Gasto al Evento
+                    <IconButton
+                        onClick={() => setExpenseDialog(false)}
+                        sx={{ position: 'absolute', right: 8, top: 8 }}
+                    >
+                        <Close />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent>
+                    {selectedBooking && (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
+                                Cliente: {selectedBooking.client_name}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                                Fecha: {selectedBooking.event_date} {selectedBooking.event_time}
+                            </Typography>
+
+                            <Grid container spacing={2} sx={{ mt: 2 }}>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        label="Descripción del Gasto"
+                                        fullWidth
+                                        required
+                                        value={expenseData.description}
+                                        onChange={(e) => setExpenseData({...expenseData, description: e.target.value})}
+                                        placeholder="Ej: Ingredientes para pizzas"
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        label="Monto"
+                                        type="number"
+                                        fullWidth
+                                        required
+                                        value={expenseData.amount}
+                                        onChange={(e) => setExpenseData({...expenseData, amount: e.target.value})}
+                                        InputProps={{
+                                            startAdornment: '$'
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Categoría</InputLabel>
+                                        <Select
+                                            value={expenseData.category}
+                                            label="Categoría"
+                                            onChange={(e) => setExpenseData({...expenseData, category: e.target.value})}
+                                        >
+                                            <MenuItem value="ingredientes">Ingredientes</MenuItem>
+                                            <MenuItem value="transporte">Transporte</MenuItem>
+                                            <MenuItem value="equipos">Equipos/Materiales</MenuItem>
+                                            <MenuItem value="personal">Personal Extra</MenuItem>
+                                            <MenuItem value="otros">Otros</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            </Grid>
+
+                            {/* Mostrar gastos existentes */}
+                            {selectedBooking.expenses && selectedBooking.expenses.length > 0 && (
+                                <Box sx={{ mt: 3 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                                        Gastos Registrados:
+                                    </Typography>
+                                    {selectedBooking.expenses.map((expense, index) => (
+                                        <Box key={index} sx={{
+                                            p: 1,
+                                            border: '1px solid #e0e0e0',
+                                            borderRadius: 1,
+                                            mb: 1,
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center'
+                                        }}>
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                                    {expense.description}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {expense.category}
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <Typography variant="body2" sx={{ fontWeight: 600, mr: 1 }}>
+                                                    ${expense.amount.toLocaleString()}
+                                                </Typography>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleEditExpense(index)}
+                                                    sx={{ color: 'primary.main' }}
+                                                >
+                                                    <Edit fontSize="small" />
+                                                </IconButton>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleDeleteExpense(index)}
+                                                    sx={{ color: 'error.main' }}
+                                                >
+                                                    <Delete fontSize="small" />
+                                                </IconButton>
+                                            </Box>
+                                        </Box>
+                                    ))}
+                                    <Box sx={{
+                                        p: 1,
+                                        bgcolor: 'grey.100',
+                                        borderRadius: 1,
+                                        display: 'flex',
+                                        justifyContent: 'space-between'
+                                    }}>
+                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                            Total Gastos:
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                            ${(selectedBooking.event_cost || 0).toLocaleString()}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            )}
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setExpenseDialog(false)}>
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={handleAddExpense}
+                        variant="contained"
+                        color="primary"
+                        disabled={!expenseData.description || !expenseData.amount}
+                        startIcon={<AddBox />}
+                    >
+                        Agregar Gasto
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Edit Expense Dialog */}
+            <Dialog open={editExpenseDialog} onClose={() => setEditExpenseDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>
+                    Editar Gasto
+                    <IconButton
+                        onClick={() => setEditExpenseDialog(false)}
+                        sx={{ position: 'absolute', right: 8, top: 8 }}
+                    >
+                        <Close />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent>
+                    <Grid container spacing={2} sx={{ mt: 1 }}>
+                        <Grid item xs={12}>
+                            <TextField
+                                label="Descripción del Gasto"
+                                fullWidth
+                                required
+                                value={expenseData.description}
+                                onChange={(e) => setExpenseData({...expenseData, description: e.target.value})}
+                                placeholder="Ej: Ingredientes para pizzas"
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                label="Monto"
+                                type="number"
+                                fullWidth
+                                required
+                                value={expenseData.amount}
+                                onChange={(e) => setExpenseData({...expenseData, amount: e.target.value})}
+                                InputProps={{
+                                    startAdornment: '$'
+                                }}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth>
+                                <InputLabel>Categoría</InputLabel>
+                                <Select
+                                    value={expenseData.category}
+                                    label="Categoría"
+                                    onChange={(e) => setExpenseData({...expenseData, category: e.target.value})}
+                                >
+                                    <MenuItem value="ingredientes">Ingredientes</MenuItem>
+                                    <MenuItem value="transporte">Transporte</MenuItem>
+                                    <MenuItem value="equipos">Equipos/Materiales</MenuItem>
+                                    <MenuItem value="personal">Personal Extra</MenuItem>
+                                    <MenuItem value="otros">Otros</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                    </Grid>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setEditExpenseDialog(false)}>
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={handleUpdateExpense}
+                        variant="contained"
+                        color="primary"
+                        disabled={!expenseData.description || !expenseData.amount}
+                        startIcon={<Edit />}
+                    >
+                        Actualizar Gasto
                     </Button>
                 </DialogActions>
             </Dialog>

@@ -483,10 +483,10 @@ const AdminLayout = () => {
             sx={{
               mr: 2,
               display: { sm: 'none' },
-              color: 'white',
+              color: '#FFD700',
               p: 1.5,
               '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                backgroundColor: 'rgba(255, 215, 0, 0.1)',
                 color: '#FFD700',
                 transform: 'scale(1.05)',
               }

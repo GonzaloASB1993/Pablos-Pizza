@@ -2,9 +2,9 @@
 // Configuración corregida para production
 const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
-const API_BASE = isDevelopment 
+const API_BASE = isDevelopment
   ? '/api'  // En development usa proxy
-  : 'https://main-4kqeqojbsq-uc.a.run.app/api'  // En production usa URL completa
+  : 'https://us-central1-pablospizza-d84bf.cloudfunctions.net/main/api'  // En production usa URL completa
 
 console.log('🔧 BookingService Configuration:', {
   hostname: window.location.hostname,
@@ -68,6 +68,9 @@ export const createBooking = async (bookingData) => {
         // duración por defecto 4 horas si no viene del formulario
         duration_hours: bookingData.durationHours || 4,
         participants: Number(bookingData.participants) || 0,
+        // Agregar información detallada de participantes por servicio
+        pizzeros_participants: bookingData.participantsByService?.pizzeros || 0,
+        party_participants: bookingData.participantsByService?.party || 0,
         special_requests: bookingData.specialRequests || '',
         // Agregar información de servicios múltiples para el admin
         services_selected: Array.isArray(bookingData.services) ? bookingData.services : [bookingData.service]

@@ -231,13 +231,18 @@ const EventsManagement = () => {
   }
 
   const getEventType = (event) => {
-    // Determinar tipo basado en el título o descripción
-    if (event.title?.toLowerCase().includes('pizzeros en acción') || 
-        event.title?.toLowerCase().includes('workshop') ||
-        event.description?.toLowerCase().includes('taller')) {
-      return 'Taller'
-    } else if (event.title?.toLowerCase().includes('pizza party') ||
-               event.description?.toLowerCase().includes('pizza party')) {
+    const title = event.title?.toLowerCase() || ''
+    const description = event.description?.toLowerCase() || ''
+
+    // Detectar servicios combinados
+    const hasPizzeros = title.includes('pizzeros en acción') || title.includes('workshop') || description.includes('taller')
+    const hasPizzaParty = title.includes('pizza party') || description.includes('pizza party')
+
+    if (hasPizzeros && hasPizzaParty) {
+      return 'Pizza Party + Pizzeros en Acción'
+    } else if (hasPizzeros) {
+      return 'Pizzeros en Acción'
+    } else if (hasPizzaParty) {
       return 'Pizza Party'
     } else {
       return 'Evento'

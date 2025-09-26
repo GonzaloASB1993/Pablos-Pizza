@@ -25,9 +25,9 @@ async def create_booking(booking: BookingCreate):
     booking_id = str(uuid.uuid4())
 
     # Calcular precio estimado basado en servicio y participantes
-    print(f"[BEFORE CALL] About to call calculate_estimated_price with: service_type='{booking.service_type}', participants={booking.participants}")
-    estimated_price = calculate_estimated_price(booking.service_type, booking.participants)
-    print(f"[AFTER CALL] PRECIO CALCULADO: {booking.service_type} - {booking.participants} part = ${estimated_price} CLP")
+    print(f"[BEFORE CALL] About to call calculate_estimated_price with: service_type='{booking.service_type}', pizzeros_participants={booking.pizzeros_participants}, party_participants={booking.party_participants}")
+    estimated_price = calculate_estimated_price(booking.service_type, booking.participants, booking.pizzeros_participants, booking.party_participants)
+    print(f"[AFTER CALL] PRECIO CALCULADO: {booking.service_type} = ${estimated_price} CLP")
 
     booking_data = {
         "id": booking_id,
@@ -210,15 +210,22 @@ async def cancel_booking(booking_id: str):
             detail=f"Error al cancelar agendamiento: {str(e)}"
         )
 
-@router.get("/test-price/{service_type}/{participants}")
-async def test_price_calculation(service_type: str, participants: int):
+@router.get("/test-price/{service_type}/{pizzeros_participants}/{party_participants}")
+async def test_price_calculation(service_type: str, pizzeros_participants: int = 0, party_participants: int = 0):
     """Test endpoint to verify price calculation"""
-    price = calculate_estimated_price(service_type, participants)
+    total_participants = max(pizzeros_participants, party_participants)
+    price = calculate_estimated_price(service_type, total_participants, pizzeros_participants, party_participants)
     return {
         "service_type": service_type,
-        "participants": participants,
+        "pizzeros_participants": pizzeros_participants,
+        "party_participants": party_participants,
         "calculated_price": price,
-        "expected_for_workshop_12": 162000
+        "new_pricing_structure": {
+            "pizzeros_0_10": "13500 (minimum)",
+            "pizzeros_11_14": "10500 per child",
+            "pizzeros_15_19": "9500 per child",
+            "pizzeros_20_plus": "9000 per child"
+        }
     }
 
 @router.get("/calendar/{year}/{month}")
@@ -264,43 +271,75 @@ async def get_calendar_events(year: int, month: int):
         )
 
 # Funciones auxiliares
-def calculate_estimated_price(service_type: str, participants: int) -> float:
-    """Calcular precio estimado basado en el tipo de servicio y participantes"""
-    print(f"[CALCULATE] Starting calculation: service_type='{service_type}', participants={participants}")
+def calculate_estimated_price(service_type: str, total_participants: int, pizzeros_participants: int = 0, party_participants: int = 0) -> float:
+    """Calcular precio estimado basado en el tipo de servicio y participantes por servicio"""
+    print(f"[CALCULATE] Starting calculation: service_type='{service_type}', pizzeros_participants={pizzeros_participants}, party_participants={party_participants}")
 
-    # Lógica normal para todos los casos
-    if service_type == "workshop":  # Pizzeros en Acción
-        print(f"[DEBUG] Processing workshop...")
-        unit_base = 13500  # Precio base por niño
-        if participants <= 15:
-            unit_final = 13500
-            print(f"[DEBUG] <= 15 participants, unit_final = {unit_final}")
-        elif participants <= 25:
-            unit_final = 12150  # 10% descuento
-            print(f"[DEBUG] 16-25 participants, unit_final = {unit_final}")
+    total = 0
+
+    # Manejar múltiples servicios (separated by comma)
+    services = service_type.split(',') if ',' in service_type else [service_type]
+
+    for service in services:
+        service = service.strip()
+
+        if service == "workshop" and pizzeros_participants > 0:  # Pizzeros en Acción
+            print(f"[DEBUG] Processing workshop with {pizzeros_participants} children...")
+
+            # Nueva estructura de precios
+            if pizzeros_participants <= 10:
+                # 0-10 children: $13,500 (minimum charge)
+                service_total = 13500
+                print(f"[DEBUG] <= 10 participants, minimum charge = {service_total}")
+            elif pizzeros_participants <= 14:
+                # 11-14 children: $10,500 per child
+                service_total = 10500 * pizzeros_participants
+                print(f"[DEBUG] 11-14 participants, {10500} * {pizzeros_participants} = {service_total}")
+            elif pizzeros_participants <= 19:
+                # 15-19 children: $9,500 per child
+                service_total = 9500 * pizzeros_participants
+                print(f"[DEBUG] 15-19 participants, {9500} * {pizzeros_participants} = {service_total}")
+            else:
+                # 20+ children: $9,000 per child
+                service_total = 9000 * pizzeros_participants
+                print(f"[DEBUG] 20+ participants, {9000} * {pizzeros_participants} = {service_total}")
+
+            total += service_total
+            print(f"[DEBUG] Workshop subtotal: {service_total}")
+
+        elif service == "pizza_party" and party_participants > 0:  # Pizza Party
+            print(f"[DEBUG] Processing pizza_party with {party_participants} people...")
+            unit_base = 11990  # Precio base por persona
+            if party_participants >= 20:
+                unit_final = round(unit_base * 0.9)  # 10% descuento para 20+ = 10,791
+                print(f"[DEBUG] >= 20 participants, unit_final = {unit_final}")
+            else:
+                unit_final = unit_base
+                print(f"[DEBUG] < 20 participants, unit_final = {unit_final}")
+
+            service_total = unit_final * party_participants
+            total += service_total
+            print(f"[DEBUG] Pizza party subtotal: {service_total}")
+
+    # Fallback for single service types using total_participants
+    if total == 0:
+        print(f"[DEBUG] Using fallback calculation with total_participants={total_participants}")
+        if "workshop" in service_type:
+            # Use new workshop pricing with total_participants
+            if total_participants <= 10:
+                total = 13500
+            elif total_participants <= 14:
+                total = 10500 * total_participants
+            elif total_participants <= 19:
+                total = 9500 * total_participants
+            else:
+                total = 9000 * total_participants
+        elif "pizza_party" in service_type:
+            unit_base = 11990
+            unit_final = round(unit_base * 0.9) if total_participants >= 20 else unit_base
+            total = unit_final * total_participants
         else:
-            unit_final = 11475  # 15% descuento
-            print(f"[DEBUG] >25 participants, unit_final = {unit_final}")
-        total = unit_final * participants
-        print(f"[DEBUG] Workshop calculation: {unit_final} * {participants} = {total}")
-
-    elif service_type == "pizza_party":  # Pizza Party
-        print(f"[DEBUG] Processing pizza_party...")
-        unit_base = 11990  # Precio base por persona
-        if participants >= 20:
-            unit_final = round(unit_base * 0.9)  # 10% descuento para 20+ = 10,791
-            print(f"[DEBUG] >= 20 participants, unit_final = {unit_final}")
-        else:
-            unit_final = unit_base
-            print(f"[DEBUG] < 20 participants, unit_final = {unit_final}")
-        total = unit_final * participants
-        print(f"[DEBUG] Pizza party calculation: {unit_final} * {participants} = {total}")
-
-    else:
-        print(f"[DEBUG] Unknown service_type '{service_type}', using fallback")
-        # Fallback para otros tipos
-        total = 10000 * participants
-        print(f"[DEBUG] Fallback calculation: 10000 * {participants} = {total}")
+            total = 10000 * total_participants
 
     result = round(total, 2)
     print(f"[CALCULATE] Final result: {result}")
