@@ -1,7 +1,6 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
-console.log('🎯 API.JS LOADED - Version 2.0')
 
 // API Configuration - simplified for production
 const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -10,11 +9,6 @@ const BASE_URL = isDevelopment
   ? 'http://localhost:8000/api'  // Development
   : 'https://us-central1-pablospizza-d84bf.cloudfunctions.net/main/api'  // Production
 
-console.log('🔧 API Configuration:', {
-  hostname: window.location.hostname,
-  isDevelopment,
-  BASE_URL
-})
 
 // Create axios instance
 const api = axios.create({
@@ -25,23 +19,6 @@ const api = axios.create({
   },
 })
 
-// Add request logging
-api.interceptors.request.use(
-  (config) => {
-    console.log('🚀 API Request:', {
-      method: config.method.toUpperCase(),
-      url: config.url,
-      baseURL: config.baseURL,
-      fullURL: `${config.baseURL}${config.url}`,
-      data: config.data
-    })
-    return config
-  },
-  (error) => {
-    console.error('❌ Request Error:', error)
-    return Promise.reject(error)
-  }
-)
 
 // Mock data storage in localStorage for demo
 const getMockData = (key) => {
@@ -145,13 +122,7 @@ const mockAPI = {
 
         // Si el evento se confirma, simular envío de notificaciones
         if (oldStatus !== 'confirmed' && data.status === 'confirmed') {
-          console.log('📧 Enviando email de confirmación a:', bookings[index].client_email)
-          console.log('📱 Enviando WhatsApp de confirmación a:', bookings[index].client_phone)
-
-          // Simular delay de envío
-          setTimeout(() => {
-            console.log('✅ Notificaciones enviadas exitosamente')
-          }, 1000)
+          // Enviar notificaciones en producción
         }
       }
       return { data: bookings[index] }
@@ -374,23 +345,9 @@ api.interceptors.request.use(
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ API Response:', {
-      status: response.status,
-      url: response.config.url,
-      data: response.data
-    })
     return response
   },
   (error) => {
-    console.error('❌ API Error Details:', {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      url: error.config?.url,
-      fullURL: `${error.config?.baseURL}${error.config?.url}`,
-      responseData: error.response?.data,
-      responseText: typeof error.response?.data === 'string' ? error.response.data.substring(0, 200) : 'Not string'
-    })
     
     if (error.response) {
       // Server responded with error status
@@ -438,53 +395,13 @@ api.interceptors.response.use(
 
 // API methods for different entities (using mock data for now)
 export const bookingsAPI = {
-  // Conectar a backend real con debugging extra
   create: async (data) => {
-    const url = '/bookings/'
-    const fullUrl = `${BASE_URL}${url}`
-
-    console.log('🎯 BOOKING CREATE DEBUG:', {
-      BASE_URL,
-      url,
-      fullUrl,
-      data
-    })
-
-    try {
-      const response = await api.post(url, data)
-      console.log('✅ BOOKING CREATE SUCCESS:', response.data)
-      return response
-    } catch (error) {
-      console.error('❌ BOOKING CREATE ERROR:', {
-        message: error.message,
-        response: error.response,
-        config: error.config
-      })
-      throw error
-    }
+    const response = await api.post('/bookings/', data)
+    return response
   },
   getAll: (params = {}) => api.get('/bookings/', { params }),
   getById: (id) => api.get(`/bookings/${id}`),
-  update: async (id, data) => {
-    console.log('🎯 BOOKING UPDATE DEBUG:', {
-      id,
-      data,
-      url: `/bookings/${id}`,
-      fullUrl: `${BASE_URL}/bookings/${id}`
-    })
-    try {
-      const response = await api.put(`/bookings/${id}`, data)
-      console.log('✅ BOOKING UPDATE SUCCESS:', response.data)
-      return response
-    } catch (error) {
-      console.error('❌ BOOKING UPDATE ERROR:', {
-        message: error.message,
-        response: error.response,
-        config: error.config
-      })
-      throw error
-    }
-  },
+  update: (id, data) => api.put(`/bookings/${id}`, data),
   delete: (id) => api.delete(`/bookings/${id}`),
   cancel: (id) => api.delete(`/bookings/${id}`),
   getCalendarEvents: (year, month) => api.get(`/bookings/calendar/${year}/${month}`),
@@ -526,11 +443,12 @@ export const reviewsAPI = {
 }
 
 export const inventoryAPI = {
-  create: (data) => mockAPI.inventory.create(data),
-  getAll: (params = {}) => mockAPI.inventory.getAll(params),
-  update: (id, data) => mockAPI.inventory.update(id, data),
-  delete: (id) => mockAPI.inventory.delete(id),
-  updateStock: (id, data) => mockAPI.inventory.update(id, data),
+  create: (data) => api.post('/inventory/', data),
+  getAll: (params = {}) => api.get('/inventory/', { params }),
+  getById: (id) => api.get(`/inventory/${id}`),
+  update: (id, data) => api.put(`/inventory/${id}`, data),
+  delete: (id) => api.delete(`/inventory/${id}`),
+  updateStock: (id, data) => api.put(`/inventory/${id}/stock`, data),
   getCategories: () => api.get('/inventory/categories'),
   getAlerts: () => api.get('/inventory/alerts'),
 }

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, status
 from firebase_admin import firestore
-from models.schemas import InventoryItemCreate, InventoryItem
+from models.schemas import InventoryItemCreate, InventoryItemUpdate, InventoryItem
 from services.notification_service import send_inventory_alert
-from typing import List
+from typing import List, Optional
 import uuid
 from datetime import datetime
 
@@ -161,4 +161,87 @@ async def get_inventory_alerts():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al obtener alertas: {str(e)}"
+        )
+
+@router.get("/{item_id}", response_model=InventoryItem)
+async def get_inventory_item(item_id: str):
+    """Obtener un item específico de inventario"""
+    try:
+        doc = db.collection("inventory").document(item_id).get()
+
+        if not doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item de inventario no encontrado"
+            )
+
+        data = doc.to_dict()
+        return InventoryItem(**data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener item: {str(e)}"
+        )
+
+@router.put("/{item_id}", response_model=InventoryItem)
+async def update_inventory_item(item_id: str, item_update: InventoryItemUpdate):
+    """Actualizar un item de inventario"""
+    try:
+        item_ref = db.collection("inventory").document(item_id)
+        doc = item_ref.get()
+
+        if not doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item de inventario no encontrado"
+            )
+
+        # Solo actualizar campos que no son None
+        update_data = {k: v for k, v in item_update.model_dump().items() if v is not None}
+        update_data["last_updated"] = datetime.now()
+
+        # Recalcular needs_restock si se actualizaron stocks
+        if "current_stock" in update_data or "min_stock" in update_data:
+            current_data = doc.to_dict()
+            new_current = update_data.get("current_stock", current_data["current_stock"])
+            new_min = update_data.get("min_stock", current_data["min_stock"])
+            update_data["needs_restock"] = new_current <= new_min
+
+        item_ref.update(update_data)
+
+        # Obtener datos actualizados
+        updated_doc = item_ref.get()
+        return InventoryItem(**updated_doc.to_dict())
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al actualizar item: {str(e)}"
+        )
+
+@router.delete("/{item_id}")
+async def delete_inventory_item(item_id: str):
+    """Eliminar un item de inventario"""
+    try:
+        item_ref = db.collection("inventory").document(item_id)
+        doc = item_ref.get()
+
+        if not doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item de inventario no encontrado"
+            )
+
+        item_ref.delete()
+
+        return {"message": "Item de inventario eliminado exitosamente"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al eliminar item: {str(e)}"
         )

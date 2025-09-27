@@ -329,9 +329,6 @@ const BookingsManagement = () => {
     const handleUpdateBooking = async () => {
         try {
             setUpdating(true)
-            console.log('🔧 DEBUG: Starting handleUpdateBooking')
-            console.log('🔧 DEBUG: selectedBooking:', selectedBooking)
-            console.log('🔧 DEBUG: formData:', formData)
 
             const oldStatus = selectedBooking.status
             const updatePayload = {}
@@ -348,14 +345,11 @@ const BookingsManagement = () => {
             if (formData.participants) updatePayload.participants = parseInt(formData.participants)
 
             // Fixed estimated_price handling with better validation
-            console.log('🔧 DEBUG: formData.estimated_price raw:', formData.estimated_price, 'type:', typeof formData.estimated_price)
             const priceValue = formData.estimated_price
             if (priceValue !== '' && priceValue !== null && priceValue !== undefined) {
                 const parsedPrice = parseFloat(priceValue)
-                console.log('🔧 DEBUG: parsedPrice:', parsedPrice, 'isNaN:', isNaN(parsedPrice))
                 if (!isNaN(parsedPrice)) {
                     updatePayload.estimated_price = parsedPrice
-                    console.log('🔧 DEBUG: Added estimated_price to payload:', parsedPrice)
                 }
             }
 
@@ -372,11 +366,7 @@ const BookingsManagement = () => {
                 if (formData.event_profit !== undefined) updatePayload.event_profit = parseFloat(formData.event_profit) || 0
             }
 
-            console.log('🔧 DEBUG: Final updatePayload:', updatePayload)
-            console.log('🔧 DEBUG: Calling bookingsAPI.update with id:', selectedBooking.id)
-
             const response = await bookingsAPI.update(selectedBooking.id, updatePayload)
-            console.log('🔧 DEBUG: Update response:', response)
 
             if (oldStatus !== 'confirmed' && formData.status === 'confirmed') {
                 toast.success('Agendamiento confirmado - Notificaciones enviadas por email y WhatsApp', {
@@ -390,8 +380,8 @@ const BookingsManagement = () => {
             setEditDialog(false)
             loadBookings()
         } catch (error) {
-            console.error('🔧 DEBUG: Error updating booking:', error)
-            console.error('🔧 DEBUG: Error details:', {
+            console.error('Error updating booking:', error)
+            console.error('Error details:', {
                 message: error.message,
                 response: error.response,
                 status: error.response?.status,
@@ -1372,7 +1362,6 @@ const BookingsManagement = () => {
                                 value={formData.estimated_price}
                                 onChange={(e) => {
                                     const newValue = e.target.value
-                                    console.log('🔧 DEBUG: Precio field onChange:', newValue, 'type:', typeof newValue)
                                     setFormData(prev => ({ ...prev, estimated_price: newValue }))
                                 }}
                                 InputProps={{
@@ -1438,7 +1427,6 @@ const BookingsManagement = () => {
                     <Button onClick={() => setEditDialog(false)}>Cancelar</Button>
                     <Button
                         onClick={() => {
-                            console.log('🎯 DEBUG: Actualizar button clicked!')
                             handleUpdateBooking()
                         }}
                         variant="contained"

@@ -122,14 +122,28 @@ class Review(ReviewBase):
 # Schemas para Inventory
 class InventoryItemBase(BaseModel):
     name: str
-    category: str  # "ingredientes", "utensilios", "equipos"
-    current_stock: int
-    min_stock: int
+    category: str  # "ingredients", "utensils", "equipment"
+    current_stock: float
+    min_stock: float
+    max_stock: float
     unit: str  # "kg", "unidades", "litros"
     cost_per_unit: float
+    supplier: Optional[str] = None
+    notes: Optional[str] = None
 
 class InventoryItemCreate(InventoryItemBase):
     pass
+
+class InventoryItemUpdate(BaseModel):
+    name: Optional[str] = None
+    category: Optional[str] = None
+    current_stock: Optional[float] = None
+    min_stock: Optional[float] = None
+    max_stock: Optional[float] = None
+    unit: Optional[str] = None
+    cost_per_unit: Optional[float] = None
+    supplier: Optional[str] = None
+    notes: Optional[str] = None
 
 class InventoryItem(InventoryItemBase):
     id: str

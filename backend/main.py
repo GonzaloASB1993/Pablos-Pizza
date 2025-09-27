@@ -333,7 +333,7 @@ def get_db():
             try:
                 # Check if running in local development
                 service_account_path = os.path.join(os.path.dirname(__file__), 'ServiceAccount.json')
-                is_local = os.path.exists(service_account_path) and os.getenv('ENVIRONMENT') != 'production'
+                is_local = os.path.exists(service_account_path)
                 
                 if is_local:
                     print("LOCAL: Using service account credentials")
@@ -2684,6 +2684,271 @@ def main(req: https_fn.Request) -> https_fn.Response:
             status=500,
             headers={'Content-Type': 'application/json'}
         )
+
+# ===================== INVENTORY ENDPOINTS =====================
+
+@app.route('/api/inventory/', methods=['GET'])
+def get_inventory():
+    """Get all inventory items with optional filters"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        category = request.args.get('category')
+        needs_restock = request.args.get('needs_restock')
+
+        query = db.collection('inventory').order_by('name')
+
+        if category:
+            query = query.where('category', '==', category)
+
+        if needs_restock is not None:
+            query = query.where('needs_restock', '==', needs_restock.lower() == 'true')
+
+        docs = query.stream()
+        items = []
+        for doc in docs:
+            data = doc.to_dict()
+            data['id'] = doc.id
+            items.append(data)
+
+        return jsonify(items)
+    except Exception as e:
+        print(f"Error getting inventory: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/', methods=['POST'])
+def create_inventory_item():
+    """Create new inventory item"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        data = request.get_json()
+
+        # Generate unique ID
+        item_id = str(uuid.uuid4())
+
+        # Prepare item data
+        item_data = {
+            'id': item_id,
+            'name': data['name'],
+            'category': data['category'],
+            'current_stock': float(data['current_stock']),
+            'min_stock': float(data['min_stock']),
+            'max_stock': float(data['max_stock']),
+            'unit': data['unit'],
+            'cost_per_unit': float(data['cost_per_unit']),
+            'supplier': data.get('supplier', ''),
+            'notes': data.get('notes', ''),
+            'last_updated': datetime.now(),
+            'needs_restock': float(data['current_stock']) <= float(data['min_stock'])
+        }
+
+        # Save to Firestore
+        db.collection('inventory').document(item_id).set(item_data)
+
+        return jsonify(item_data), 201
+    except Exception as e:
+        print(f"Error creating inventory item: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/<item_id>', methods=['GET'])
+def get_inventory_item(item_id):
+    """Get specific inventory item"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        doc = db.collection('inventory').document(item_id).get()
+
+        if not doc.exists:
+            return jsonify({'error': 'Item not found'}), 404
+
+        data = doc.to_dict()
+        data['id'] = doc.id
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error getting inventory item: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/<item_id>', methods=['PUT'])
+def update_inventory_item(item_id):
+    """Update inventory item"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        data = request.get_json()
+
+        # Get current item
+        item_ref = db.collection('inventory').document(item_id)
+        doc = item_ref.get()
+
+        if not doc.exists:
+            return jsonify({'error': 'Item not found'}), 404
+
+        # Prepare update data
+        update_data = {}
+        if 'name' in data:
+            update_data['name'] = data['name']
+        if 'category' in data:
+            update_data['category'] = data['category']
+        if 'current_stock' in data:
+            update_data['current_stock'] = float(data['current_stock'])
+        if 'min_stock' in data:
+            update_data['min_stock'] = float(data['min_stock'])
+        if 'max_stock' in data:
+            update_data['max_stock'] = float(data['max_stock'])
+        if 'unit' in data:
+            update_data['unit'] = data['unit']
+        if 'cost_per_unit' in data:
+            update_data['cost_per_unit'] = float(data['cost_per_unit'])
+        if 'supplier' in data:
+            update_data['supplier'] = data['supplier']
+        if 'notes' in data:
+            update_data['notes'] = data['notes']
+
+        update_data['last_updated'] = datetime.now()
+
+        # Update needs_restock if stock values changed
+        if 'current_stock' in update_data or 'min_stock' in update_data:
+            current_data = doc.to_dict()
+            new_current = update_data.get('current_stock', current_data['current_stock'])
+            new_min = update_data.get('min_stock', current_data['min_stock'])
+            update_data['needs_restock'] = new_current <= new_min
+
+        # Update document
+        item_ref.update(update_data)
+
+        # Return updated data
+        updated_doc = item_ref.get()
+        result = updated_doc.to_dict()
+        result['id'] = updated_doc.id
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error updating inventory item: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/<item_id>', methods=['DELETE'])
+def delete_inventory_item(item_id):
+    """Delete inventory item"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        item_ref = db.collection('inventory').document(item_id)
+        doc = item_ref.get()
+
+        if not doc.exists:
+            return jsonify({'error': 'Item not found'}), 404
+
+        item_ref.delete()
+        return jsonify({'message': 'Item deleted successfully'})
+    except Exception as e:
+        print(f"Error deleting inventory item: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/categories', methods=['GET'])
+def get_inventory_categories():
+    """Get all inventory categories"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        docs = db.collection('inventory').stream()
+        categories = set()
+
+        for doc in docs:
+            data = doc.to_dict()
+            categories.add(data.get('category', ''))
+
+        return jsonify({'categories': sorted(list(categories))})
+    except Exception as e:
+        print(f"Error getting categories: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/alerts', methods=['GET'])
+def get_inventory_alerts():
+    """Get items that need restocking"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        docs = db.collection('inventory').where('needs_restock', '==', True).order_by('current_stock').stream()
+
+        alerts = []
+        for doc in docs:
+            data = doc.to_dict()
+            alerts.append({
+                'id': doc.id,
+                'name': data['name'],
+                'category': data['category'],
+                'current_stock': data['current_stock'],
+                'min_stock': data['min_stock'],
+                'unit': data['unit'],
+                'priority': 'high' if data['current_stock'] == 0 else 'medium'
+            })
+
+        return jsonify({'alerts': alerts, 'total': len(alerts)})
+    except Exception as e:
+        print(f"Error getting inventory alerts: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/<item_id>/stock', methods=['PUT'])
+def update_inventory_stock(item_id):
+    """Update stock of an inventory item"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        data = request.get_json()
+        new_stock = data.get('new_stock')
+        operation = data.get('operation', 'set')  # 'set', 'add', 'subtract'
+
+        item_ref = db.collection('inventory').document(item_id)
+        doc = item_ref.get()
+
+        if not doc.exists:
+            return jsonify({'error': 'Item not found'}), 404
+
+        current_data = doc.to_dict()
+        current_stock = current_data['current_stock']
+        min_stock = current_data['min_stock']
+
+        if operation == 'set':
+            final_stock = float(new_stock)
+        elif operation == 'add':
+            final_stock = current_stock + float(new_stock)
+        elif operation == 'subtract':
+            final_stock = max(0, current_stock - float(new_stock))
+        else:
+            return jsonify({'error': 'Invalid operation'}), 400
+
+        needs_restock = final_stock <= min_stock
+
+        item_ref.update({
+            'current_stock': final_stock,
+            'needs_restock': needs_restock,
+            'last_updated': datetime.now()
+        })
+
+        return jsonify({
+            'message': 'Stock updated successfully',
+            'new_stock': final_stock,
+            'needs_restock': needs_restock
+        })
+    except Exception as e:
+        print(f"Error updating stock: {e}")
+        return jsonify({'error': str(e)}), 500
 
 # Local development server
 if __name__ == '__main__':

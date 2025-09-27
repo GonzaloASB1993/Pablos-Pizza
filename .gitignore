@@ -16,6 +16,8 @@ backend/.env*
 firebase-service-account.json
 **/firebase-service-account.json
 serviceAccountKey.json
+ServiceAccount.json
+**/ServiceAccount.json
 
 # Build outputs
 dist/
