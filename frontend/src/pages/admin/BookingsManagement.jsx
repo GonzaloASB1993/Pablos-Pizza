@@ -56,6 +56,7 @@ import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { bookingsAPI, eventsAPI } from '../../services/api'
+import { formatCurrency, formatStock, safeFormatCost, formatDateTime } from '../../utils/formatters'
 import toast from 'react-hot-toast'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
@@ -1717,7 +1718,7 @@ const BookingsManagement = () => {
                                     <Typography variant="body2">
                                         <strong>Ganancia estimada:</strong> $
                                         {costData.event_profit && costData.event_cost
-                                            ? (parseFloat(costData.event_profit) - parseFloat(costData.event_cost)).toFixed(2)
+                                            ? formatCurrency(parseFloat(costData.event_profit) - parseFloat(costData.event_cost))
                                             : '0.00'
                                         }
                                     </Typography>

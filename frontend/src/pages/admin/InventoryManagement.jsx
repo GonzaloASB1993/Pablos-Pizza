@@ -34,8 +34,10 @@ import {
   ListItem,
   ListItemText
 } from '@mui/material'
-import { Add, Edit, Delete, Warning, Inventory, Kitchen, Build, Timeline, ArrowDownward, ArrowUpward, AddBox, Visibility } from '@mui/icons-material'
+import { Add, Edit, Delete, Warning, Inventory, Kitchen, Build, Timeline, ArrowDownward, ArrowUpward, AddBox, Visibility, SwapHoriz } from '@mui/icons-material'
 import { inventoryAPI, recipesAPI } from '../../services/api'
+import { formatCurrency, formatStock, safeFormatCost, formatDateTime } from '../../utils/formatters'
+import UnitConverter from '../../components/UnitConverter'
 import toast from 'react-hot-toast'
 
 const InventoryManagement = () => {
@@ -86,6 +88,7 @@ const InventoryManagement = () => {
   const [viewingItem, setViewingItem] = useState(null)
   const [itemMovements, setItemMovements] = useState([])
   const [loadingItemMovements, setLoadingItemMovements] = useState(false)
+  const [unitConverterOpen, setUnitConverterOpen] = useState(false)
 
   useEffect(() => {
     loadInventory()
@@ -1097,6 +1100,15 @@ const InventoryManagement = () => {
                     >
                       Agregar Ingrediente
                     </Button>
+
+                    <Button
+                      variant="outlined"
+                      startIcon={<SwapHoriz />}
+                      onClick={() => setUnitConverterOpen(true)}
+                      color="secondary"
+                    >
+                      🔄 Convertir Unidades
+                    </Button>
                   </Box>
 
                   {selectedIngredients.map((ingredient, index) => (
@@ -1284,16 +1296,16 @@ const InventoryManagement = () => {
                       <Typography variant="body2">
                         <strong>Resumen del Movimiento:</strong><br />
                         • Se agregarán {stockFormData.quantity} {stockItem.unit}<br />
-                        • Costo unitario de compra: ${newCostPerUnit.toFixed(2)}<br />
-                        • Costo total de compra: ${totalCost.toFixed(2)}<br />
+                        • Costo unitario de compra: ${formatCurrency(newCostPerUnit)}<br />
+                        • Costo total de compra: ${formatCurrency(totalCost)}<br />
                         • Stock actual: {stockItem.current_stock} {stockItem.unit}<br />
-                        • Stock después: {newTotalStock.toFixed(2)} {stockItem.unit}<br />
+                        • Stock después: {formatStock(newTotalStock)} {stockItem.unit}<br />
                         <br />
                         <strong>Cálculo Costo Promedio Ponderado:</strong><br />
-                        • Valor inventario actual: ${currentInventoryValue.toFixed(2)} ({currentStock} × ${currentCostPerUnit.toFixed(2)})<br />
-                        • Valor nueva compra: ${totalCost.toFixed(2)} ({newQuantity} × ${newCostPerUnit.toFixed(2)})<br />
-                        • Valor total inventario: ${newInventoryValue.toFixed(2)}<br />
-                        • <strong>Nuevo costo promedio: ${newWeightedAverageCost.toFixed(2)} por {stockItem.unit}</strong>
+                        • Valor inventario actual: ${formatCurrency(currentInventoryValue)} ({formatStock(currentStock)} × ${formatCurrency(currentCostPerUnit)})<br />
+                        • Valor nueva compra: ${formatCurrency(totalCost)} ({formatStock(newQuantity)} × ${formatCurrency(newCostPerUnit)})<br />
+                        • Valor total inventario: ${formatCurrency(newInventoryValue)}<br />
+                        • <strong>Nuevo costo promedio: ${formatCurrency(newWeightedAverageCost)} por {stockItem.unit}</strong>
                       </Typography>
                     </Alert>
                   )
@@ -1307,9 +1319,9 @@ const InventoryManagement = () => {
                 <Alert severity="info" sx={{ mt: 2 }}>
                   <Typography variant="body2">
                     <strong>Estado Actual del Inventario:</strong><br />
-                    • Costo promedio actual: ${stockItem.cost_per_unit?.toFixed(2) || '0.00'} por {stockItem.unit}<br />
+                    • Costo promedio actual: ${safeFormatCost(stockItem.cost_per_unit)} por {stockItem.unit}<br />
                     • Últimos movimientos: {itemMovements.length} registros<br />
-                    • Último costo promedio registrado: ${itemMovements[0]?.avg_cost_after?.toFixed(2) || 'N/A'}
+                    • Último costo promedio registrado: ${safeFormatCost(itemMovements[0]?.avg_cost_after, stockItem.cost_per_unit)}
                   </Typography>
                 </Alert>
               </Grid>
@@ -1369,22 +1381,22 @@ const InventoryManagement = () => {
                           </TableCell>
                           <TableCell align="right">
                             <Typography variant="body2">
-                              ${movement.cost_per_unit?.toFixed(2)}
+                              {formatCurrency(movement.cost_per_unit)}
                             </Typography>
                           </TableCell>
                           <TableCell align="right">
                             <Typography variant="body2">
-                              {movement.stock_before?.toFixed(2) || 'N/A'}
+                              {movement.stock_before ? formatStock(movement.stock_before) : 'N/A'}
                             </Typography>
                           </TableCell>
                           <TableCell align="right">
                             <Typography variant="body2">
-                              {movement.stock_after?.toFixed(2) || 'N/A'}
+                              {movement.stock_after ? formatStock(movement.stock_after) : 'N/A'}
                             </Typography>
                           </TableCell>
                           <TableCell align="right">
                             <Typography variant="body2" fontWeight="bold" color="primary">
-                              ${movement.avg_cost_after?.toFixed(2) || 'N/A'}
+                              {safeFormatCost(movement.avg_cost_after, movement.cost_per_unit)}
                             </Typography>
                           </TableCell>
                           <TableCell>
@@ -1420,6 +1432,12 @@ const InventoryManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Unit Converter Dialog */}
+      <UnitConverter
+        open={unitConverterOpen}
+        onClose={() => setUnitConverterOpen(false)}
+      />
 
     </Box>
   )
