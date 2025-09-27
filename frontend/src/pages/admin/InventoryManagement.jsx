@@ -34,7 +34,7 @@ import {
   ListItem,
   ListItemText
 } from '@mui/material'
-import { Add, Edit, Delete, Warning, Inventory, Kitchen, Build } from '@mui/icons-material'
+import { Add, Edit, Delete, Warning, Inventory, Kitchen, Build, Timeline, ArrowDownward, ArrowUpward, AddBox, Visibility } from '@mui/icons-material'
 import { inventoryAPI, recipesAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
@@ -74,6 +74,18 @@ const InventoryManagement = () => {
   })
   const [showRecipeForm, setShowRecipeForm] = useState(false)
   const [selectedIngredients, setSelectedIngredients] = useState([])
+  const [stockDialog, setStockDialog] = useState(false)
+  const [stockItem, setStockItem] = useState(null)
+  const [stockFormData, setStockFormData] = useState({
+    quantity: '',
+    cost_per_unit: '',
+    supplier: '',
+    notes: ''
+  })
+  const [movementsDialog, setMovementsDialog] = useState(false)
+  const [viewingItem, setViewingItem] = useState(null)
+  const [itemMovements, setItemMovements] = useState([])
+  const [loadingItemMovements, setLoadingItemMovements] = useState(false)
 
   useEffect(() => {
     loadInventory()
@@ -103,24 +115,54 @@ const InventoryManagement = () => {
     }
   }
 
+  const loadItemMovements = async (itemId, itemName) => {
+    try {
+      setLoadingItemMovements(true)
+      const response = await inventoryAPI.getMovements({ item_id: itemId, limit: 50 })
+      setItemMovements(response.data || [])
+      setViewingItem({ id: itemId, name: itemName })
+      setMovementsDialog(true)
+    } catch (error) {
+      console.error('Error loading item movements:', error)
+      toast.error('Error al cargar movimientos del producto')
+    } finally {
+      setLoadingItemMovements(false)
+    }
+  }
+
   const handleSubmit = async () => {
     try {
-      const itemData = {
-        ...formData,
-        current_stock: parseFloat(formData.current_stock),
-        min_stock: parseFloat(formData.min_stock),
-        max_stock: parseFloat(formData.max_stock),
-        cost_per_unit: parseFloat(formData.cost_per_unit),
-        batch_size: formData.batch_size ? parseFloat(formData.batch_size) : null,
-        shelf_life_days: formData.shelf_life_days ? parseInt(formData.shelf_life_days) : null
-      }
+      let itemData
 
       if (editingItem) {
+        // Al editar, NO incluir campos de stock ni costo - solo datos fijos
+        itemData = {
+          name: formData.name,
+          product_type: formData.product_type,
+          category: formData.category,
+          min_stock: parseFloat(formData.min_stock),
+          max_stock: parseFloat(formData.max_stock),
+          unit: formData.unit,
+          supplier: formData.supplier,
+          notes: formData.notes,
+          batch_size: formData.batch_size ? parseFloat(formData.batch_size) : null,
+          shelf_life_days: formData.shelf_life_days ? parseInt(formData.shelf_life_days) : null
+        }
         await inventoryAPI.update(editingItem.id, itemData)
-        toast.success('Producto actualizado')
+        toast.success('Datos del producto actualizados')
       } else {
+        // Al crear, usar valores del formulario para stock y costo inicial
+        itemData = {
+          ...formData,
+          current_stock: parseFloat(formData.current_stock) || 0,
+          min_stock: parseFloat(formData.min_stock),
+          max_stock: parseFloat(formData.max_stock),
+          cost_per_unit: parseFloat(formData.cost_per_unit) || 0,
+          batch_size: formData.batch_size ? parseFloat(formData.batch_size) : null,
+          shelf_life_days: formData.shelf_life_days ? parseInt(formData.shelf_life_days) : null
+        }
         await inventoryAPI.create(itemData)
-        toast.success('Producto agregado al inventario')
+        toast.success('Ingrediente creado exitosamente')
       }
 
       handleCloseDialog()
@@ -137,17 +179,85 @@ const InventoryManagement = () => {
       name: item.name || '',
       product_type: item.product_type || 'raw_material',
       category: item.category || 'flour',
-      current_stock: item.current_stock?.toString() || '',
+      current_stock: item.current_stock?.toString() || '', // Solo lectura en edición
       min_stock: item.min_stock?.toString() || '',
       max_stock: item.max_stock?.toString() || '',
       unit: item.unit || '',
       supplier: item.supplier || '',
-      cost_per_unit: item.cost_per_unit?.toString() || '',
+      cost_per_unit: item.cost_per_unit?.toString() || '', // Solo lectura en edición
       batch_size: item.batch_size?.toString() || '',
       shelf_life_days: item.shelf_life_days?.toString() || '',
       notes: item.notes || ''
     })
     setDialog(true)
+  }
+
+  const handleAddStock = (item) => {
+    setStockItem(item)
+    setStockFormData({
+      quantity: '',
+      cost_per_unit: item.cost_per_unit?.toString() || '',
+      supplier: item.supplier || '',
+      notes: ''
+    })
+    setStockDialog(true)
+    // Cargar movimientos del item automáticamente
+    loadItemMovements(item.id, item.name)
+  }
+
+  const handleStockSubmit = async () => {
+    try {
+      if (!stockFormData.quantity || !stockFormData.cost_per_unit) {
+        toast.error('Cantidad y costo son requeridos')
+        return
+      }
+
+      const movementData = {
+        item_id: stockItem.id,
+        movement_type: 'purchase',
+        quantity: parseFloat(stockFormData.quantity),
+        cost_per_unit: parseFloat(stockFormData.cost_per_unit),
+        reference_type: 'manual_purchase',
+        notes: stockFormData.notes || `Compra manual: ${stockFormData.quantity} ${stockItem.unit}`,
+        supplier: stockFormData.supplier || stockItem.supplier
+      }
+
+      await inventoryAPI.createMovement(movementData)
+      toast.success('Stock agregado exitosamente')
+
+      // Recargar inventario y movimientos
+      loadInventory()
+      // Recargar movimientos para mostrar el nuevo movimiento
+      loadItemMovements(stockItem.id, stockItem.name)
+
+      // Resetear solo el formulario, mantener modal abierto para ver el historial actualizado
+      setStockFormData({
+        quantity: '',
+        cost_per_unit: stockItem.cost_per_unit?.toString() || '',
+        supplier: stockItem.supplier || '',
+        notes: ''
+      })
+    } catch (error) {
+      console.error('Error adding stock:', error)
+      toast.error('Error al agregar stock')
+    }
+  }
+
+  const handleCloseStockDialog = () => {
+    setStockDialog(false)
+    setStockItem(null)
+    setStockFormData({
+      quantity: '',
+      cost_per_unit: '',
+      supplier: '',
+      notes: ''
+    })
+  }
+
+  const handleCloseMovementsDialog = () => {
+    setMovementsDialog(false)
+    setViewingItem(null)
+    setItemMovements([])
   }
 
   const handleDelete = async (itemId) => {
@@ -553,13 +663,21 @@ const InventoryManagement = () => {
                           ${item.cost_per_unit?.toLocaleString('es-CL') || '0'}
                         </TableCell>
                         <TableCell>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                             <Button
                               size="small"
                               startIcon={<Edit />}
                               onClick={() => handleEdit(item)}
                             >
                               Editar
+                            </Button>
+                            <Button
+                              size="small"
+                              color="success"
+                              startIcon={<AddBox />}
+                              onClick={() => handleAddStock(item)}
+                            >
+                              + Stock
                             </Button>
                             <Button
                               size="small"
@@ -596,6 +714,15 @@ const InventoryManagement = () => {
           {editingItem ? 'Editar Producto' : 'Agregar Nuevo Producto'}
         </DialogTitle>
         <DialogContent>
+          {!editingItem && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <strong>Crear Ingrediente:</strong><br />
+              • Complete los datos básicos del ingrediente<br />
+              • Opcionalmente ingrese stock inicial y costo<br />
+              • Luego use "+ Stock" para agregar más inventario<br />
+              • El costo promedio se calculará automáticamente con cada compra
+            </Alert>
+          )}
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -655,11 +782,14 @@ const InventoryManagement = () => {
             <Grid item xs={12} sm={4}>
               <TextField
                 fullWidth
-                label="Stock Actual"
+                label={editingItem ? "Stock Actual" : "Stock Inicial"}
                 type="number"
                 value={formData.current_stock}
-                onChange={(e) => setFormData({...formData, current_stock: e.target.value})}
-                required
+                onChange={editingItem ? undefined : (e) => setFormData({...formData, current_stock: e.target.value})}
+                InputProps={{
+                  readOnly: editingItem ? true : false
+                }}
+                helperText={editingItem ? "Use el botón '+ Stock' para agregar inventario" : "Cantidad inicial de inventario"}
               />
             </Grid>
             <Grid item xs={12} sm={4}>
@@ -694,13 +824,15 @@ const InventoryManagement = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Costo por Unidad"
+                label={editingItem ? "Costo por Unidad" : "Costo Inicial por Unidad"}
                 type="number"
                 value={formData.cost_per_unit}
-                onChange={(e) => setFormData({...formData, cost_per_unit: e.target.value})}
+                onChange={editingItem ? undefined : (e) => setFormData({...formData, cost_per_unit: e.target.value})}
                 InputProps={{
-                  startAdornment: '$'
+                  startAdornment: '$',
+                  readOnly: editingItem ? true : false
                 }}
+                helperText={editingItem ? "El costo se actualiza automáticamente con cada compra" : "Costo unitario del stock inicial"}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1070,6 +1202,225 @@ const InventoryManagement = () => {
           )}
         </DialogActions>
       </Dialog>
+
+      {/* Modal para Agregar Stock con Historial */}
+      <Dialog open={stockDialog} onClose={handleCloseStockDialog} maxWidth="lg" fullWidth>
+        <DialogTitle>
+          Agregar Stock - {stockItem?.name}
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                Esto creará un movimiento de compra y actualizará el costo promedio ponderado del producto.
+              </Alert>
+            </Grid>
+
+            <Grid item xs={6}>
+              <TextField
+                label="Cantidad a Agregar"
+                type="number"
+                value={stockFormData.quantity}
+                onChange={(e) => setStockFormData(prev => ({ ...prev, quantity: e.target.value }))}
+                fullWidth
+                required
+                inputProps={{ min: 0, step: 0.01 }}
+                helperText={`Unidad: ${stockItem?.unit || ''}`}
+              />
+            </Grid>
+
+            <Grid item xs={6}>
+              <TextField
+                label="Costo por Unidad"
+                type="number"
+                value={stockFormData.cost_per_unit}
+                onChange={(e) => setStockFormData(prev => ({ ...prev, cost_per_unit: e.target.value }))}
+                fullWidth
+                required
+                inputProps={{ min: 0, step: 0.01 }}
+                helperText="Precio de compra"
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                label="Proveedor"
+                value={stockFormData.supplier}
+                onChange={(e) => setStockFormData(prev => ({ ...prev, supplier: e.target.value }))}
+                fullWidth
+                placeholder="Nombre del proveedor"
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                label="Notas"
+                value={stockFormData.notes}
+                onChange={(e) => setStockFormData(prev => ({ ...prev, notes: e.target.value }))}
+                fullWidth
+                multiline
+                rows={2}
+                placeholder="Observaciones sobre esta compra..."
+              />
+            </Grid>
+
+            {stockItem && stockFormData.quantity && stockFormData.cost_per_unit && (
+              <Grid item xs={12}>
+                {(() => {
+                  const newQuantity = parseFloat(stockFormData.quantity)
+                  const newCostPerUnit = parseFloat(stockFormData.cost_per_unit)
+                  const currentStock = stockItem.current_stock
+                  const currentCostPerUnit = stockItem.cost_per_unit || 0
+                  const totalCost = newQuantity * newCostPerUnit
+                  const newTotalStock = currentStock + newQuantity
+
+                  // Cálculo del costo promedio ponderado
+                  const currentInventoryValue = currentStock * currentCostPerUnit
+                  const newInventoryValue = currentInventoryValue + totalCost
+                  const newWeightedAverageCost = newTotalStock > 0 ? newInventoryValue / newTotalStock : 0
+
+                  return (
+                    <Alert severity="success">
+                      <Typography variant="body2">
+                        <strong>Resumen del Movimiento:</strong><br />
+                        • Se agregarán {stockFormData.quantity} {stockItem.unit}<br />
+                        • Costo unitario de compra: ${newCostPerUnit.toFixed(2)}<br />
+                        • Costo total de compra: ${totalCost.toFixed(2)}<br />
+                        • Stock actual: {stockItem.current_stock} {stockItem.unit}<br />
+                        • Stock después: {newTotalStock.toFixed(2)} {stockItem.unit}<br />
+                        <br />
+                        <strong>Cálculo Costo Promedio Ponderado:</strong><br />
+                        • Valor inventario actual: ${currentInventoryValue.toFixed(2)} ({currentStock} × ${currentCostPerUnit.toFixed(2)})<br />
+                        • Valor nueva compra: ${totalCost.toFixed(2)} ({newQuantity} × ${newCostPerUnit.toFixed(2)})<br />
+                        • Valor total inventario: ${newInventoryValue.toFixed(2)}<br />
+                        • <strong>Nuevo costo promedio: ${newWeightedAverageCost.toFixed(2)} por {stockItem.unit}</strong>
+                      </Typography>
+                    </Alert>
+                  )
+                })()}
+              </Grid>
+            )}
+
+            {/* Información de Costo Promedio Actual */}
+            {stockItem && itemMovements.length > 0 && (
+              <Grid item xs={12}>
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  <Typography variant="body2">
+                    <strong>Estado Actual del Inventario:</strong><br />
+                    • Costo promedio actual: ${stockItem.cost_per_unit?.toFixed(2) || '0.00'} por {stockItem.unit}<br />
+                    • Últimos movimientos: {itemMovements.length} registros<br />
+                    • Último costo promedio registrado: ${itemMovements[0]?.avg_cost_after?.toFixed(2) || 'N/A'}
+                  </Typography>
+                </Alert>
+              </Grid>
+            )}
+
+            {/* Sección de Historial de Movimientos */}
+            <Grid item xs={12} sx={{ mt: 3 }}>
+              <Divider sx={{ mb: 2 }}>
+                <Typography variant="h6" color="text.secondary">
+                  Historial de Movimientos
+                </Typography>
+              </Divider>
+
+              {loadingItemMovements ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                  <LinearProgress sx={{ width: '100%' }} />
+                </Box>
+              ) : itemMovements.length === 0 ? (
+                <Alert severity="info">
+                  No hay movimientos registrados para este producto.
+                </Alert>
+              ) : (
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Fecha</TableCell>
+                        <TableCell>Tipo</TableCell>
+                        <TableCell align="right">Cantidad</TableCell>
+                        <TableCell align="right">Costo/Unidad</TableCell>
+                        <TableCell align="right">Stock Antes</TableCell>
+                        <TableCell align="right">Stock Después</TableCell>
+                        <TableCell align="right">Costo Promedio</TableCell>
+                        <TableCell>Proveedor</TableCell>
+                        <TableCell>Notas</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {itemMovements.map((movement, index) => (
+                        <TableRow key={movement.id || index}>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {new Date(movement.created_at).toLocaleDateString('es-ES')}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={movement.movement_type || 'compra'}
+                              color={movement.movement_type === 'purchase' ? 'success' : 'default'}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" color={movement.quantity > 0 ? 'success.main' : 'error.main'}>
+                              {movement.quantity > 0 ? '+' : ''}{movement.quantity} {movement.unit}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2">
+                              ${movement.cost_per_unit?.toFixed(2)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2">
+                              {movement.stock_before?.toFixed(2) || 'N/A'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2">
+                              {movement.stock_after?.toFixed(2) || 'N/A'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" fontWeight="bold" color="primary">
+                              ${movement.avg_cost_after?.toFixed(2) || 'N/A'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {movement.supplier || 'N/A'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {movement.notes || '-'}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseStockDialog}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleStockSubmit}
+            variant="contained"
+            color="success"
+            disabled={!stockFormData.quantity || !stockFormData.cost_per_unit}
+          >
+            Agregar Stock
+          </Button>
+        </DialogActions>
+      </Dialog>
+
     </Box>
   )
 }

@@ -1,6 +1,10 @@
 from fastapi import APIRouter, HTTPException, status
 from firebase_admin import firestore
-from models.schemas import InventoryItemCreate, InventoryItemUpdate, InventoryItem
+from models.schemas import (
+    InventoryItemCreate, InventoryItemUpdate, InventoryItem,
+    InventoryMovementCreate, InventoryMovement, StockUpdateRequest,
+    MovementType
+)
 from services.notification_service import send_inventory_alert
 from typing import List, Optional
 import uuid
@@ -244,4 +248,240 @@ async def delete_inventory_item(item_id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al eliminar item: {str(e)}"
+        )
+
+# Funciones auxiliares para costo promedio ponderado
+async def calculate_weighted_average_cost(item_id: str, new_quantity: float, new_cost: float):
+    """Calcular nuevo costo promedio ponderado"""
+    try:
+        item_ref = db.collection("inventory").document(item_id)
+        doc = item_ref.get()
+
+        if not doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item de inventario no encontrado"
+            )
+
+        current_data = doc.to_dict()
+        current_stock = current_data.get("current_stock", 0)
+        current_avg_cost = current_data.get("weighted_avg_cost", current_data.get("cost_per_unit", 0))
+
+        # Si no hay stock actual, el nuevo costo es el costo promedio
+        if current_stock <= 0:
+            new_avg_cost = new_cost
+            new_total_value = new_quantity * new_cost
+        else:
+            # Cálculo del costo promedio ponderado
+            current_total_value = current_stock * current_avg_cost
+            new_total_value = current_total_value + (new_quantity * new_cost)
+            new_total_stock = current_stock + new_quantity
+
+            if new_total_stock > 0:
+                new_avg_cost = new_total_value / new_total_stock
+            else:
+                new_avg_cost = current_avg_cost
+
+        return {
+            "new_avg_cost": new_avg_cost,
+            "new_total_value": new_total_value,
+            "previous_avg_cost": current_avg_cost
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al calcular costo promedio: {str(e)}"
+        )
+
+async def create_inventory_movement(movement_data: dict):
+    """Crear un movimiento de inventario"""
+    try:
+        movement_id = str(uuid.uuid4())
+        movement_data["id"] = movement_id
+        movement_data["created_at"] = datetime.now()
+
+        db.collection("inventory_movements").document(movement_id).set(movement_data)
+        return movement_id
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al crear movimiento: {str(e)}"
+        )
+
+@router.post("/movements/", response_model=dict)
+async def update_stock_with_movement(request: StockUpdateRequest):
+    """Actualizar stock con costo promedio ponderado y registrar movimiento"""
+    try:
+        item_ref = db.collection("inventory").document(request.item_id)
+        doc = item_ref.get()
+
+        if not doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item de inventario no encontrado"
+            )
+
+        current_data = doc.to_dict()
+        stock_before = current_data.get("current_stock", 0)
+        avg_cost_before = current_data.get("weighted_avg_cost", current_data.get("cost_per_unit", 0))
+
+        # Determinar si es entrada o salida
+        is_inbound = request.movement_type in [MovementType.PURCHASE, MovementType.PRODUCTION, MovementType.RETURN, MovementType.ADJUSTMENT]
+
+        if is_inbound and request.quantity > 0:
+            # Entrada de inventario - calcular nuevo costo promedio
+            cost_calc = await calculate_weighted_average_cost(
+                request.item_id,
+                request.quantity,
+                request.cost_per_unit
+            )
+
+            new_stock = stock_before + request.quantity
+            new_avg_cost = cost_calc["new_avg_cost"]
+            new_total_value = cost_calc["new_total_value"]
+
+        elif not is_inbound and request.quantity > 0:
+            # Salida de inventario - usar costo promedio actual
+            new_stock = max(0, stock_before - request.quantity)
+            new_avg_cost = avg_cost_before
+            new_total_value = new_stock * new_avg_cost
+            actual_quantity = -(min(request.quantity, stock_before))  # Negativo para salida
+
+        elif request.movement_type == MovementType.ADJUSTMENT:
+            # Ajuste - puede ser positivo o negativo
+            new_stock = max(0, stock_before + request.quantity)
+            if request.quantity > 0:
+                # Ajuste positivo - calcular nuevo promedio
+                cost_calc = await calculate_weighted_average_cost(
+                    request.item_id,
+                    request.quantity,
+                    request.cost_per_unit
+                )
+                new_avg_cost = cost_calc["new_avg_cost"]
+                new_total_value = cost_calc["new_total_value"]
+            else:
+                # Ajuste negativo - usar costo actual
+                new_avg_cost = avg_cost_before
+                new_total_value = new_stock * new_avg_cost
+            actual_quantity = request.quantity
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tipo de movimiento o cantidad inválidos"
+            )
+
+        # Actualizar item de inventario
+        needs_restock = new_stock <= current_data.get("min_stock", 0)
+
+        update_data = {
+            "current_stock": new_stock,
+            "weighted_avg_cost": new_avg_cost,
+            "total_value": new_total_value,
+            "cost_per_unit": new_avg_cost,  # Mantener compatibilidad
+            "needs_restock": needs_restock,
+            "last_updated": datetime.now()
+        }
+
+        item_ref.update(update_data)
+
+        # Crear movimiento de inventario
+        movement_data = {
+            "item_id": request.item_id,
+            "item_name": current_data.get("name"),
+            "movement_type": request.movement_type,
+            "quantity": actual_quantity if 'actual_quantity' in locals() else request.quantity,
+            "unit": current_data.get("unit"),
+            "cost_per_unit": request.cost_per_unit,
+            "total_cost": abs(actual_quantity if 'actual_quantity' in locals() else request.quantity) * request.cost_per_unit,
+            "reference_id": request.reference_id,
+            "reference_type": request.reference_type,
+            "notes": request.notes,
+            "supplier": request.supplier,
+            "stock_before": stock_before,
+            "stock_after": new_stock,
+            "avg_cost_before": avg_cost_before,
+            "avg_cost_after": new_avg_cost
+        }
+
+        movement_id = await create_inventory_movement(movement_data)
+
+        # Enviar alerta si es necesario
+        if needs_restock and not current_data.get("needs_restock", False):
+            await send_inventory_alert(
+                current_data["name"],
+                new_stock,
+                current_data.get("min_stock", 0)
+            )
+
+        return {
+            "message": "Stock actualizado exitosamente",
+            "movement_id": movement_id,
+            "stock_before": stock_before,
+            "stock_after": new_stock,
+            "avg_cost_before": avg_cost_before,
+            "avg_cost_after": new_avg_cost,
+            "needs_restock": needs_restock
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al actualizar stock: {str(e)}"
+        )
+
+@router.get("/movements/", response_model=List[InventoryMovement])
+async def get_inventory_movements(
+    item_id: str = None,
+    movement_type: MovementType = None,
+    limit: int = 100
+):
+    """Obtener movimientos de inventario"""
+    try:
+        query = db.collection("inventory_movements").order_by("created_at", direction=firestore.Query.DESCENDING)
+
+        if item_id:
+            query = query.where("item_id", "==", item_id)
+
+        if movement_type:
+            query = query.where("movement_type", "==", movement_type)
+
+        docs = query.limit(limit).stream()
+
+        movements = []
+        for doc in docs:
+            data = doc.to_dict()
+            movements.append(InventoryMovement(**data))
+
+        return movements
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener movimientos: {str(e)}"
+        )
+
+@router.get("/movements/{movement_id}", response_model=InventoryMovement)
+async def get_inventory_movement(movement_id: str):
+    """Obtener un movimiento específico"""
+    try:
+        doc = db.collection("inventory_movements").document(movement_id).get()
+
+        if not doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Movimiento no encontrado"
+            )
+
+        return InventoryMovement(**doc.to_dict())
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener movimiento: {str(e)}"
         )

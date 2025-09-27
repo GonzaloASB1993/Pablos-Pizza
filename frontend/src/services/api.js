@@ -379,6 +379,10 @@ export const inventoryAPI = {
   updateStock: (id, data) => api.put(`/inventory/${id}/stock`, data),
   getCategories: () => api.get('/inventory/categories'),
   getAlerts: () => api.get('/inventory/alerts'),
+  // Weighted average cost movements
+  createMovement: (data) => api.post('/inventory/movements/', data),
+  getMovements: (params = {}) => api.get('/inventory-movements/', { params }),
+  getMovement: (id) => api.get(`/inventory/movements/${id}`),
 }
 
 export const recipesAPI = {

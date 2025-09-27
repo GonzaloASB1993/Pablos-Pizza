@@ -64,7 +64,8 @@
       "Bash(firebase functions:deploy:*)",
       "Bash(findstr:*)",
       "Bash(grep:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "WebFetch(domain:us-central1-pablospizza-d84bf.cloudfunctions.net)"
     ],
     "deny": [],
     "ask": []

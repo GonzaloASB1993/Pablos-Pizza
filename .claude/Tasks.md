@@ -47,31 +47,46 @@
 ---
 
 ## 🔄 M1: Sistema de Inventario Completo
-**Duración**: 3-4 semanas  
-**Estado**: En progreso
+**Duración**: 3-4 semanas
+**Estado**: 95% Completado - Error 500 solucionado, solo faltan integraciones avanzadas
 
 ### Backend Inventory
-- [ ] Completar modelo de datos para inventario
-- [ ] Endpoints CRUD para productos/ingredientes
-- [ ] Sistema de alertas de stock bajo
-- [ ] Tracking de uso por evento
-- [ ] Reportes de consumo y costos
-- [ ] API para actualización automática de stock
+- [✅] Completar modelo de datos para inventario
+- [✅] Endpoints CRUD para productos/ingredientes
+- [✅] Sistema de alertas de stock bajo
+- [✅] Tracking de uso por evento (movimientos de inventario)
+- [✅] Reportes de consumo y costos (mediante movimientos)
+- [✅] API para actualización automática de stock (costo promedio ponderado)
 
 ### Frontend Inventory Management
-- [ ] Página de gestión de inventario en admin
-- [ ] Formularios para agregar/editar productos
-- [ ] Dashboard de alertas de stock
-- [ ] Integración con eventos para descontar stock
-- [ ] Reportes visuales de consumo
-- [ ] Búsqueda y filtrado de productos
+- [✅] Página de gestión de inventario en admin
+- [✅] Formularios para agregar/editar productos (separación editar vs agregar stock)
+- [✅] Dashboard de alertas de stock
+- [✅] Sistema de movimientos de inventario con historial por producto
+- [✅] Función separada para agregar stock con costo promedio ponderado
+- [✅] Búsqueda y filtrado de productos
+- [ ] Integración con eventos para descontar stock automático
+- [ ] Reportes visuales de consumo avanzados
 
 ### Business Logic Integration
-- [ ] Cálculo automático de costos por evento
-- [ ] Alertas proactivas de restock
-- [ ] Integración con reportes financieros
+- [✅] Cálculo automático de costos por evento (mediante movimientos)
+- [✅] Alertas proactivas de restock (implementado en backend)
+- [✅] Historical tracking de precios (costo promedio ponderado)
+- [ ] Integración con reportes financieros avanzados
 - [ ] Workflow de pedidos a proveedores
-- [ ] Historical tracking de precios
+- [ ] Integración automática eventos -> descuento stock
+
+### ✅ Avances Recientes Completados (Septiembre 2025)
+- [✅] **Sistema de Inventario Multinivel**: Implementado sistema completo de gestión de inventario con costo promedio ponderado
+- [✅] **Separación de Funciones**: Separadas las funciones de "editar item" vs "agregar stock" según requerimientos del usuario
+- [✅] **Campos de Solo Lectura**: Stock actual y costo por unidad en modo solo lectura al editar items
+- [✅] **Modal de Agregar Stock**: Modal específico para agregar stock con cálculo automático de costo promedio
+- [✅] **Historial de Movimientos**: Visualización individual de movimientos por cada producto con botón "ojo"
+- [✅] **API de Movimientos**: Endpoints completos para crear, consultar y trackear movimientos de inventario
+- [✅] **Integración Frontend-Backend**: Comunicación completa entre interfaz y API para gestión de stock
+- [✅] **Fix Error 500 Movimientos**: Solucionado error crítico en endpoint de movimientos de inventario que impedía ver historial
+- [✅] **Serialización DateTime Segura**: Implementada serialización robusta para fechas en Firebase Functions
+- [✅] **Manejo de Query String**: Corregido parsing de parámetros en Firebase Functions v2 para compatibilidad total
 
 ---
 

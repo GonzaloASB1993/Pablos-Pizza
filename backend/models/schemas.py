@@ -158,6 +158,8 @@ class InventoryItemBase(BaseModel):
     max_stock: float
     unit: str  # "kg", "unidades", "litros", "porciones"
     cost_per_unit: float
+    weighted_avg_cost: Optional[float] = None  # Costo promedio ponderado
+    total_value: Optional[float] = None  # Valor total del inventario (stock * avg_cost)
     supplier: Optional[str] = None
     notes: Optional[str] = None
     batch_size: Optional[float] = None  # Para productos que se producen en lotes
@@ -175,6 +177,8 @@ class InventoryItemUpdate(BaseModel):
     max_stock: Optional[float] = None
     unit: Optional[str] = None
     cost_per_unit: Optional[float] = None
+    weighted_avg_cost: Optional[float] = None
+    total_value: Optional[float] = None
     supplier: Optional[str] = None
     notes: Optional[str] = None
     batch_size: Optional[float] = None
@@ -312,4 +316,52 @@ class ContactMessage(ContactMessageCreate):
     response_sent: bool = False
     resolved_at: Optional[datetime] = None
     notes: Optional[str] = None
+
+# Enums para Inventory Movements
+class MovementType(str, Enum):
+    PURCHASE = "purchase"           # Compra de inventario
+    SALE = "sale"                  # Venta/consumo de inventario
+    PRODUCTION = "production"       # Producción (consume materias primas, crea intermedios)
+    ADJUSTMENT = "adjustment"       # Ajustes manuales
+    TRANSFER = "transfer"          # Transferencias entre ubicaciones
+    WASTE = "waste"                # Desperdicios/mermas
+    RETURN = "return"              # Devoluciones
+
+# Schemas para Inventory Movements
+class InventoryMovementBase(BaseModel):
+    item_id: str
+    item_name: Optional[str] = None
+    movement_type: MovementType
+    quantity: float                 # Positivo = entrada, Negativo = salida
+    unit: str
+    cost_per_unit: float
+    total_cost: float              # quantity * cost_per_unit
+    reference_id: Optional[str] = None  # ID del documento relacionado (factura, receta, etc)
+    reference_type: Optional[str] = None  # "purchase_order", "production_batch", "event", etc
+    notes: Optional[str] = None
+    supplier: Optional[str] = None
+    location: Optional[str] = None
+
+class InventoryMovementCreate(InventoryMovementBase):
+    pass
+
+class InventoryMovement(InventoryMovementBase):
+    id: str
+    stock_before: float            # Stock antes del movimiento
+    stock_after: float             # Stock después del movimiento
+    avg_cost_before: Optional[float] = None  # Costo promedio antes
+    avg_cost_after: Optional[float] = None   # Costo promedio después
+    created_at: datetime
+    created_by: Optional[str] = None  # Usuario que creó el movimiento
+
+# Schema para actualización de stock con costo promedio ponderado
+class StockUpdateRequest(BaseModel):
+    item_id: str
+    movement_type: MovementType
+    quantity: float
+    cost_per_unit: float
+    reference_id: Optional[str] = None
+    reference_type: Optional[str] = None
+    notes: Optional[str] = None
+    supplier: Optional[str] = None
 

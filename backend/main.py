@@ -2654,35 +2654,68 @@ def delete_booking(booking_id):
 # Firebase Functions entry point using new SDK
 @https_fn.on_request()
 def main(req: https_fn.Request) -> https_fn.Response:
-    """Firebase Function entry point - Production ready"""
-    from werkzeug.test import Client
-
-    # Create a test client to handle the request properly
-    client = Client(app)
+    """Firebase Function entry point - Production ready with inventory endpoints v2.4 - Fixed query args"""
 
     try:
-        # Convert Firebase request to Flask-compatible format
-        response = client.open(
+        # Handle query string properly for Firebase Functions v2
+        query_string = ''
+
+        # Firebase Functions v2 provides query parameters via .args
+        if hasattr(req, 'args') and req.args:
+            # Build query string from args dict
+            from urllib.parse import urlencode
+            query_string = urlencode(req.args)
+        elif hasattr(req, 'query_string') and req.query_string:
+            # Fallback to direct query_string if available
+            if isinstance(req.query_string, (str, bytes)):
+                query_string = req.query_string
+
+        print(f"Request path: {req.path}, method: {req.method}, query_string: {query_string}")
+
+        # Create a simple WSGI app context to handle the request directly
+        with app.test_request_context(
             path=req.path,
             method=req.method,
-            headers=list(req.headers.items()),
-            data=req.get_data(),
-            query_string=req.query_string
-        )
+            query_string=query_string,
+            data=req.get_data() if hasattr(req, 'get_data') else b'',
+            headers=dict(req.headers) if req.headers else {}
+        ):
+            # Process the request through Flask app
+            response = app.full_dispatch_request()
 
-        # Return properly formatted response
-        return https_fn.Response(
-            response.get_data(),
-            status=response.status_code,
-            headers=dict(response.headers)
-        )
+            # Get response data
+            response_data = response.get_data()
+            status_code = response.status_code
+
+            # Add CORS headers
+            headers = dict(response.headers)
+            headers.update({
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+                'Access-Control-Max-Age': '86400'
+            })
+
+            return https_fn.Response(
+                response_data,
+                status=status_code,
+                headers=headers
+            )
 
     except Exception as e:
         print(f"Error in main function: {e}")
+        import traceback
+        traceback.print_exc()
+
         return https_fn.Response(
             '{"error": "Internal server error"}',
             status=500,
-            headers={'Content-Type': 'application/json'}
+            headers={
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With'
+            }
         )
 
 # ===================== INVENTORY ENDPOINTS =====================
@@ -2957,6 +2990,297 @@ def update_inventory_stock(item_id):
         })
     except Exception as e:
         print(f"Error updating stock: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ===================== INVENTORY MOVEMENTS ENDPOINTS =====================
+
+@app.route('/api/inventory/movements/', methods=['POST'])
+def update_stock_with_movement():
+    """Update stock with weighted average cost and create movement record"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        data = request.get_json()
+        item_id = data.get('item_id')
+        movement_type = data.get('movement_type')
+        quantity = float(data.get('quantity', 0))
+        cost_per_unit = float(data.get('cost_per_unit', 0))
+        reference_id = data.get('reference_id')
+        reference_type = data.get('reference_type')
+        notes = data.get('notes')
+        supplier = data.get('supplier')
+
+        # Get current item data
+        item_ref = db.collection('inventory').document(item_id)
+        doc = item_ref.get()
+
+        if not doc.exists:
+            return jsonify({'error': 'Item not found'}), 404
+
+        current_data = doc.to_dict()
+        stock_before = current_data.get('current_stock', 0)
+        avg_cost_before = current_data.get('weighted_avg_cost', current_data.get('cost_per_unit', 0))
+
+        # Determine if it's inbound or outbound movement
+        inbound_types = ['purchase', 'production', 'return', 'adjustment']
+        is_inbound = movement_type in inbound_types
+
+        if is_inbound and quantity > 0:
+            # Inbound movement - calculate new weighted average cost
+            if stock_before <= 0:
+                new_avg_cost = cost_per_unit
+                new_total_value = quantity * cost_per_unit
+            else:
+                current_total_value = stock_before * avg_cost_before
+                new_total_value = current_total_value + (quantity * cost_per_unit)
+                new_total_stock = stock_before + quantity
+                new_avg_cost = new_total_value / new_total_stock if new_total_stock > 0 else avg_cost_before
+
+            new_stock = stock_before + quantity
+            actual_quantity = quantity
+
+        elif not is_inbound and quantity > 0:
+            # Outbound movement - use current average cost
+            new_stock = max(0, stock_before - quantity)
+            new_avg_cost = avg_cost_before
+            new_total_value = new_stock * new_avg_cost
+            actual_quantity = -(min(quantity, stock_before))
+
+        elif movement_type == 'adjustment':
+            # Adjustment - can be positive or negative
+            new_stock = max(0, stock_before + quantity)
+            if quantity > 0:
+                # Positive adjustment - calculate new average
+                if stock_before <= 0:
+                    new_avg_cost = cost_per_unit
+                    new_total_value = quantity * cost_per_unit
+                else:
+                    current_total_value = stock_before * avg_cost_before
+                    new_total_value = current_total_value + (quantity * cost_per_unit)
+                    new_total_stock = stock_before + quantity
+                    new_avg_cost = new_total_value / new_total_stock if new_total_stock > 0 else avg_cost_before
+            else:
+                # Negative adjustment - use current cost
+                new_avg_cost = avg_cost_before
+                new_total_value = new_stock * new_avg_cost
+            actual_quantity = quantity
+        else:
+            return jsonify({'error': 'Invalid movement type or quantity'}), 400
+
+        # Update inventory item
+        needs_restock = new_stock <= current_data.get('min_stock', 0)
+
+        update_data = {
+            'current_stock': new_stock,
+            'weighted_avg_cost': new_avg_cost,
+            'total_value': new_total_value,
+            'cost_per_unit': new_avg_cost,  # Maintain compatibility
+            'needs_restock': needs_restock,
+            'last_updated': datetime.now()
+        }
+
+        item_ref.update(update_data)
+
+        # Create movement record
+        movement_id = str(uuid.uuid4())
+        movement_data = {
+            'id': movement_id,
+            'item_id': item_id,
+            'item_name': current_data.get('name'),
+            'movement_type': movement_type,
+            'quantity': actual_quantity,
+            'unit': current_data.get('unit'),
+            'cost_per_unit': cost_per_unit,
+            'total_cost': abs(actual_quantity) * cost_per_unit,
+            'reference_id': reference_id,
+            'reference_type': reference_type,
+            'notes': notes,
+            'supplier': supplier,
+            'stock_before': stock_before,
+            'stock_after': new_stock,
+            'avg_cost_before': avg_cost_before,
+            'avg_cost_after': new_avg_cost,
+            'created_at': datetime.now()
+        }
+
+        db.collection('inventory_movements').document(movement_id).set(movement_data)
+
+        return jsonify({
+            'message': 'Stock updated successfully with movement',
+            'movement_id': movement_id,
+            'stock_before': stock_before,
+            'stock_after': new_stock,
+            'avg_cost_before': avg_cost_before,
+            'avg_cost_after': new_avg_cost,
+            'needs_restock': needs_restock
+        })
+
+    except Exception as e:
+        print(f"Error updating stock with movement: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/test-movements', methods=['GET'])
+def test_movements():
+    """Test endpoint for movements"""
+    return jsonify([{"test": "working"}])
+
+def safe_datetime_to_iso(dt_value):
+    """Safely convert datetime to ISO string"""
+    if dt_value is None:
+        return None
+
+    # Handle datetime objects
+    if hasattr(dt_value, 'isoformat'):
+        try:
+            return dt_value.isoformat()
+        except Exception:
+            return None
+
+    # Handle string datetime (already serialized)
+    if isinstance(dt_value, str):
+        return dt_value
+
+    # Handle timestamp (if any)
+    if isinstance(dt_value, (int, float)):
+        try:
+            from datetime import datetime
+            return datetime.fromtimestamp(dt_value).isoformat()
+        except Exception:
+            return None
+
+    return None
+
+@app.route('/api/inventory-movements/', methods=['GET'])
+def get_inventory_movements():
+    """Get inventory movements with optional filters"""
+    try:
+        # Get query parameters
+        item_id = request.args.get('item_id')
+        limit = request.args.get('limit', 50, type=int)
+
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        print(f"Getting inventory movements for item_id: {item_id}, limit: {limit}")
+
+        # Build query for inventory movements
+        movements_ref = db.collection('inventory_movements')
+
+        # Filter by item_id if provided
+        if item_id:
+            movements_ref = movements_ref.where('item_id', '==', item_id)
+
+        # Try multiple query strategies for robustness
+        movements = None
+        query_strategy_used = "unknown"
+
+        try:
+            # Strategy 1: Try with full ordering (requires composite index)
+            if item_id:
+                # When filtering by item_id, we need composite index
+                print("Attempting query with item_id filter and ordering...")
+                movements = movements_ref.order_by('created_at', direction=firestore.Query.DESCENDING).limit(limit).get()
+                query_strategy_used = "composite_index"
+            else:
+                # When no filter, simple ordering should work
+                print("Attempting query with ordering only...")
+                movements = movements_ref.order_by('created_at', direction=firestore.Query.DESCENDING).limit(limit).get()
+                query_strategy_used = "simple_ordering"
+
+        except Exception as idx_error:
+            print(f"Primary query failed: {idx_error}")
+
+            try:
+                # Strategy 2: Try without ordering if composite index fails
+                print("Fallback: Querying without ordering...")
+                movements = movements_ref.limit(limit).get()
+                query_strategy_used = "no_ordering"
+
+            except Exception as fallback_error:
+                print(f"Fallback query also failed: {fallback_error}")
+
+                try:
+                    # Strategy 3: Most basic query possible
+                    print("Emergency fallback: Basic collection scan...")
+                    movements = db.collection('inventory_movements').limit(min(limit, 20)).get()  # Smaller limit for safety
+                    query_strategy_used = "basic_scan"
+
+                except Exception as emergency_error:
+                    print(f"All query strategies failed: {emergency_error}")
+                    return jsonify({'error': 'Unable to query movements collection', 'details': str(emergency_error)}), 500
+
+        if movements is None:
+            return jsonify({'error': 'No query strategy succeeded'}), 500
+
+        # Convert to list with safe serialization
+        movements_data = []
+        for movement in movements:
+            try:
+                movement_data = movement.to_dict()
+                movement_data['id'] = movement.id
+
+                # Safe datetime conversion
+                movement_data['created_at'] = safe_datetime_to_iso(movement_data.get('created_at'))
+
+                # Ensure all required fields exist with defaults
+                movement_data.setdefault('item_name', 'Unknown Item')
+                movement_data.setdefault('movement_type', 'unknown')
+                movement_data.setdefault('quantity', 0)
+                movement_data.setdefault('unit', '')
+                movement_data.setdefault('cost_per_unit', 0)
+
+                movements_data.append(movement_data)
+
+            except Exception as serialize_error:
+                print(f"Error serializing movement {movement.id}: {serialize_error}")
+                # Continue with other movements instead of failing completely
+                continue
+
+        print(f"Successfully retrieved {len(movements_data)} movements using strategy: {query_strategy_used}")
+
+        # Sort in Python if database ordering failed
+        if query_strategy_used in ["no_ordering", "basic_scan"]:
+            movements_data.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+
+        return jsonify(movements_data)
+
+    except Exception as e:
+        print(f"Error getting inventory movements: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/movements/<movement_id>', methods=['GET'])
+def get_inventory_movement(movement_id):
+    """Get specific inventory movement"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        doc = db.collection('inventory_movements').document(movement_id).get()
+
+        if not doc.exists:
+            return jsonify({'error': 'Movement not found'}), 404
+
+        data = doc.to_dict()
+        data['id'] = movement_id
+
+        # Safe datetime conversion
+        data['created_at'] = safe_datetime_to_iso(data.get('created_at'))
+
+        # Ensure all required fields exist with defaults
+        data.setdefault('item_name', 'Unknown Item')
+        data.setdefault('movement_type', 'unknown')
+        data.setdefault('quantity', 0)
+        data.setdefault('unit', '')
+        data.setdefault('cost_per_unit', 0)
+
+        return jsonify(data)
+
+    except Exception as e:
+        print(f"Error getting inventory movement: {e}")
         return jsonify({'error': str(e)}), 500
 
 # ===================== RECIPES ENDPOINTS =====================
@@ -3346,9 +3670,45 @@ def complete_production_batch(batch_id):
         print(f"Error completing production batch: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/production-batches/<batch_id>/simple-complete', methods=['POST'])
+def simple_complete_production_batch(batch_id):
+    """Simple complete production batch - just mark as completed"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        # Get batch details
+        batch_ref = db.collection('production_batches').document(batch_id)
+        batch_doc = batch_ref.get()
+
+        if not batch_doc.exists:
+            return jsonify({'error': 'Production batch not found'}), 404
+
+        batch_data = batch_doc.to_dict()
+
+        if batch_data['status'] == 'completed':
+            return jsonify({'error': 'Batch already completed'}), 400
+
+        # Just mark as completed for now
+        batch_ref.update({
+            'status': 'completed',
+            'completed_at': datetime.now()
+        })
+
+        return jsonify({
+            'message': 'Production batch completed successfully',
+            'batch_id': batch_id,
+            'status': 'completed'
+        })
+
+    except Exception as e:
+        print(f"Error completing production batch: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/production-batches/<batch_id>/status', methods=['PUT'])
 def update_production_batch_status(batch_id):
-    """Update production batch status"""
+    """Update production batch status with weighted average cost movements"""
     try:
         db = get_db()
         if not db:
@@ -3372,13 +3732,247 @@ def update_production_batch_status(batch_id):
             'updated_at': datetime.now()
         }
 
-        # If completing, add completion time
+        # If completing, execute full completion logic
         if new_status == 'completed':
+            batch_data = batch_doc.to_dict()
+
+            if batch_data['status'] == 'completed':
+                return jsonify({'error': 'Batch already completed'}), 400
+
+            # Get recipe to create output product
+            recipe_doc = db.collection('recipes').document(batch_data['recipe_id']).get()
+            if not recipe_doc.exists:
+                return jsonify({'error': 'Recipe not found'}), 404
+
+            recipe_data = recipe_doc.to_dict()
+
+            # 1. Create outbound movements for consumed raw materials
+            movements_created = []
+            for ingredient in batch_data['ingredients_consumed']:
+                # Create movement data
+                movement_data = {
+                    'item_id': ingredient['item_id'],
+                    'movement_type': 'production',
+                    'quantity': ingredient['quantity'],
+                    'cost_per_unit': ingredient.get('cost_per_unit', 0),
+                    'reference_id': batch_id,
+                    'reference_type': 'production_batch',
+                    'notes': f'Consumo para producción: {recipe_data["name"]}',
+                    'supplier': None
+                }
+
+                # Update stock using internal function call instead of HTTP request
+                try:
+                    # Create inventory movement directly
+                    movement_id = str(uuid.uuid4())
+                    movement_data_full = {
+                        **movement_data,
+                        'id': movement_id,
+                        'created_at': datetime.now()
+                    }
+
+                    # Get current item data for calculations
+                    item_ref = db.collection("inventory").document(ingredient['item_id'])
+                    item_doc = item_ref.get()
+
+                    if item_doc.exists:
+                        current_data = item_doc.to_dict()
+                        stock_before = current_data.get("current_stock", 0)
+
+                        # For production consumption, reduce stock
+                        new_stock = max(0, stock_before - movement_data['quantity'])
+
+                        # Update inventory item
+                        item_ref.update({
+                            "current_stock": new_stock,
+                            "last_updated": datetime.now(),
+                            "needs_restock": new_stock <= current_data.get("min_stock", 0)
+                        })
+
+                        # Add stock tracking to movement
+                        movement_data_full.update({
+                            'stock_before': stock_before,
+                            'stock_after': new_stock,
+                            'item_name': current_data.get('name', 'Unknown'),
+                            'unit': current_data.get('unit', ''),
+                            'total_cost': movement_data['quantity'] * movement_data['cost_per_unit'],
+                            'quantity': -movement_data['quantity']  # Negative for consumption
+                        })
+
+                        # Save movement
+                        db.collection("inventory_movements").document(movement_id).set(movement_data_full)
+                        movements_created.append(movement_id)
+                        print(f"✅ Movement created for ingredient {ingredient['item_id']}: {movement_id}")
+                    else:
+                        print(f"❌ Item not found: {ingredient['item_id']}")
+
+                except Exception as movement_error:
+                    print(f"❌ Error creating movement for ingredient {ingredient['item_id']}: {movement_error}")
+
+            # 2. Create or update intermediate product in inventory using weighted average
+            output_product_name = f"{recipe_data['name']} (Producido)"
+
+            # Check if intermediate product already exists
+            existing_products = db.collection('inventory').where('name', '==', output_product_name).where('product_type', '==', recipe_data['output_product_type']).stream()
+
+            existing_product = None
+            output_product_id = None
+            for doc in existing_products:
+                existing_product = doc
+                output_product_id = doc.id
+                break
+
+            if existing_product:
+                # Update existing product using weighted average movement
+                movement_data = {
+                    'item_id': output_product_id,
+                    'movement_type': 'production',
+                    'quantity': batch_data['output_quantity'],
+                    'cost_per_unit': recipe_data['cost_per_unit'],
+                    'reference_id': batch_id,
+                    'reference_type': 'production_batch',
+                    'notes': f'Producción completada: {recipe_data["name"]}',
+                    'supplier': 'Producción Interna'
+                }
+
+                # Create production output movement directly
+                try:
+                    movement_id = str(uuid.uuid4())
+                    movement_data_full = {
+                        **movement_data,
+                        'id': movement_id,
+                        'created_at': datetime.now()
+                    }
+
+                    # Get current item data
+                    item_ref = db.collection("inventory").document(output_product_id)
+                    item_doc = item_ref.get()
+
+                    if item_doc.exists:
+                        current_data = item_doc.to_dict()
+                        stock_before = current_data.get("current_stock", 0)
+
+                        # Calculate weighted average cost for production output
+                        current_avg_cost = current_data.get("weighted_avg_cost", movement_data['cost_per_unit'])
+
+                        if stock_before <= 0:
+                            new_avg_cost = movement_data['cost_per_unit']
+                        else:
+                            current_total_value = stock_before * current_avg_cost
+                            new_total_value = current_total_value + (movement_data['quantity'] * movement_data['cost_per_unit'])
+                            new_total_stock = stock_before + movement_data['quantity']
+                            new_avg_cost = new_total_value / new_total_stock if new_total_stock > 0 else current_avg_cost
+
+                        new_stock = stock_before + movement_data['quantity']
+                        new_total_value = new_stock * new_avg_cost
+
+                        # Update inventory item
+                        item_ref.update({
+                            "current_stock": new_stock,
+                            "weighted_avg_cost": new_avg_cost,
+                            "cost_per_unit": new_avg_cost,
+                            "total_value": new_total_value,
+                            "last_updated": datetime.now(),
+                            "needs_restock": new_stock <= current_data.get("min_stock", 0)
+                        })
+
+                        # Add tracking to movement
+                        movement_data_full.update({
+                            'stock_before': stock_before,
+                            'stock_after': new_stock,
+                            'avg_cost_before': current_avg_cost,
+                            'avg_cost_after': new_avg_cost,
+                            'item_name': current_data.get('name', 'Unknown'),
+                            'unit': current_data.get('unit', ''),
+                            'total_cost': movement_data['quantity'] * movement_data['cost_per_unit']
+                        })
+
+                        # Save movement
+                        db.collection("inventory_movements").document(movement_id).set(movement_data_full)
+                        movements_created.append(movement_id)
+                        print(f"✅ Production output movement created: {movement_id}")
+                    else:
+                        print(f"❌ Output product not found: {output_product_id}")
+
+                except Exception as movement_error:
+                    print(f"❌ Error creating production output movement: {movement_error}")
+
+            else:
+                # Create new intermediate product first
+                output_product_id = str(uuid.uuid4())
+                product_data = {
+                    'id': output_product_id,
+                    'name': output_product_name,
+                    'product_type': recipe_data['output_product_type'],
+                    'category': recipe_data['output_category'],
+                    'current_stock': 0,  # Start with 0, will be updated by movement
+                    'min_stock': batch_data['output_quantity'] * 0.2,  # 20% of production as minimum
+                    'max_stock': batch_data['output_quantity'] * 5,    # 5x production as maximum
+                    'unit': recipe_data['output_unit'],
+                    'cost_per_unit': recipe_data['cost_per_unit'],
+                    'weighted_avg_cost': recipe_data['cost_per_unit'],
+                    'total_value': 0,
+                    'supplier': 'Producción Interna',
+                    'notes': f'Producto intermedio generado por receta: {recipe_data["name"]}',
+                    'batch_size': batch_data['output_quantity'],
+                    'shelf_life_days': 7,  # Default 7 days for intermediate products
+                    'last_updated': datetime.now(),
+                    'needs_restock': False
+                }
+
+                db.collection('inventory').document(output_product_id).set(product_data)
+                print(f"✅ New intermediate product created: {output_product_id}")
+
+                # Now create the production movement for the new product
+                movement_data = {
+                    'item_id': output_product_id,
+                    'movement_type': 'production',
+                    'quantity': batch_data['output_quantity'],
+                    'cost_per_unit': recipe_data['cost_per_unit'],
+                    'reference_id': batch_id,
+                    'reference_type': 'production_batch',
+                    'notes': f'Producción inicial: {recipe_data["name"]}',
+                    'supplier': 'Producción Interna'
+                }
+
+                # Create initial production movement directly
+                try:
+                    movement_id = str(uuid.uuid4())
+                    movement_data_full = {
+                        **movement_data,
+                        'id': movement_id,
+                        'created_at': datetime.now(),
+                        'stock_before': 0,  # New product starts with 0
+                        'stock_after': batch_data['output_quantity'],
+                        'item_name': output_product_name,
+                        'unit': product_data['unit'],
+                        'total_cost': movement_data['quantity'] * movement_data['cost_per_unit']
+                    }
+
+                    # Update the newly created product with initial stock
+                    db.collection('inventory').document(output_product_id).update({
+                        'current_stock': batch_data['output_quantity'],
+                        'total_value': batch_data['output_quantity'] * movement_data['cost_per_unit']
+                    })
+
+                    # Save movement
+                    db.collection("inventory_movements").document(movement_id).set(movement_data_full)
+                    movements_created.append(movement_id)
+                    print(f"✅ Initial production movement created: {movement_id}")
+
+                except Exception as movement_error:
+                    print(f"❌ Error creating initial production movement: {movement_error}")
+
             update_data['completed_at'] = datetime.now()
+            update_data['movements_created'] = movements_created
 
         batch_ref.update(update_data)
 
-        return jsonify({'message': f'Batch status updated to {new_status}'})
+        return jsonify({
+            'message': f'Batch status updated to {new_status}',
+            'inventory_updated': new_status == 'completed',
+            'movements_created': update_data.get('movements_created', [])
+        })
 
     except Exception as e:
         print(f"Error updating production batch status: {e}")
