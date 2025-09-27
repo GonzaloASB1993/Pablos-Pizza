@@ -245,10 +245,16 @@ const InventoryManagement = () => {
         }))
       }
 
-      await recipesAPI.create(recipeData)
-      toast.success('Receta creada exitosamente')
+      if (editingRecipe) {
+        await recipesAPI.update(editingRecipe.id, recipeData)
+        toast.success('Receta actualizada exitosamente')
+      } else {
+        await recipesAPI.create(recipeData)
+        toast.success('Receta creada exitosamente')
+      }
 
       setShowRecipeForm(false)
+      setEditingRecipe(null)
       setSelectedIngredients([])
       setRecipeFormData({
         name: '',
@@ -263,8 +269,8 @@ const InventoryManagement = () => {
       })
       loadRecipes()
     } catch (error) {
-      console.error('Error creating recipe:', error)
-      toast.error('Error al crear receta')
+      console.error('Error saving recipe:', error)
+      toast.error(`Error al ${editingRecipe ? 'actualizar' : 'crear'} receta`)
     }
   }
 
@@ -274,6 +280,42 @@ const InventoryManagement = () => {
       const cost = parseFloat(ing.cost_per_unit) || 0
       return total + (quantity * cost)
     }, 0)
+  }
+
+  const handleEditRecipe = (recipe) => {
+    setEditingRecipe(recipe)
+    setRecipeFormData({
+      name: recipe.name,
+      description: recipe.description || '',
+      output_product_type: recipe.output_product_type,
+      output_category: recipe.output_category,
+      output_quantity: recipe.output_quantity.toString(),
+      output_unit: recipe.output_unit,
+      prep_time_minutes: recipe.prep_time_minutes?.toString() || '',
+      instructions: recipe.instructions || '',
+      ingredients: []
+    })
+    setSelectedIngredients(recipe.ingredients.map(ing => ({
+      item_id: ing.item_id,
+      item_name: ing.item_name || '',
+      quantity: ing.quantity.toString(),
+      unit: ing.unit,
+      cost_per_unit: ing.cost_per_unit || 0
+    })))
+    setShowRecipeForm(true)
+  }
+
+  const handleDeleteRecipe = async (recipeId) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar esta receta?')) {
+      try {
+        await recipesAPI.delete(recipeId)
+        toast.success('Receta eliminada exitosamente')
+        loadRecipes()
+      } catch (error) {
+        console.error('Error deleting recipe:', error)
+        toast.error('Error al eliminar receta')
+      }
+    }
   }
 
   const getStockStatus = (item) => {
@@ -783,11 +825,26 @@ const InventoryManagement = () => {
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Tooltip title="Ver ingredientes">
-                              <IconButton size="small">
-                                <Inventory fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Tooltip title="Editar receta">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleEditRecipe(recipe)}
+                                >
+                                  <Edit fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Eliminar receta">
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeleteRecipe(recipe.id)}
+                                >
+                                  <Delete fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -811,7 +868,7 @@ const InventoryManagement = () => {
                   Volver a Recetas
                 </Button>
                 <Typography variant="h6">
-                  Crear Nueva Receta
+                  {editingRecipe ? 'Editar Receta' : 'Crear Nueva Receta'}
                 </Typography>
               </Box>
 
@@ -1005,7 +1062,7 @@ const InventoryManagement = () => {
                 variant="contained"
                 disabled={!recipeFormData.name || !recipeFormData.output_quantity || selectedIngredients.length === 0}
               >
-                Crear Receta
+                {editingRecipe ? 'Actualizar Receta' : 'Crear Receta'}
               </Button>
             </>
           ) : (

@@ -3346,6 +3346,44 @@ def complete_production_batch(batch_id):
         print(f"Error completing production batch: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/production-batches/<batch_id>/status', methods=['PUT'])
+def update_production_batch_status(batch_id):
+    """Update production batch status"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        data = request.get_json()
+        new_status = data.get('status')
+
+        if new_status not in ['pending', 'in_progress', 'completed', 'cancelled']:
+            return jsonify({'error': 'Invalid status'}), 400
+
+        batch_ref = db.collection('production_batches').document(batch_id)
+        batch_doc = batch_ref.get()
+
+        if not batch_doc.exists:
+            return jsonify({'error': 'Production batch not found'}), 404
+
+        # Update the status
+        update_data = {
+            'status': new_status,
+            'updated_at': datetime.now()
+        }
+
+        # If completing, add completion time
+        if new_status == 'completed':
+            update_data['completed_at'] = datetime.now()
+
+        batch_ref.update(update_data)
+
+        return jsonify({'message': f'Batch status updated to {new_status}'})
+
+    except Exception as e:
+        print(f"Error updating production batch status: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/production-batches/<batch_id>', methods=['DELETE'])
 def cancel_production_batch(batch_id):
     """Cancel production batch"""

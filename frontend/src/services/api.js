@@ -393,6 +393,7 @@ export const recipesAPI = {
 export const productionBatchesAPI = {
   create: (data) => api.post('/production-batches/', data),
   getAll: (params = {}) => api.get('/production-batches/', { params }),
+  updateStatus: (id, status) => api.put(`/production-batches/${id}/status`, { status }),
   complete: (id) => api.post(`/production-batches/${id}/complete`),
   cancel: (id) => api.delete(`/production-batches/${id}`),
 }
