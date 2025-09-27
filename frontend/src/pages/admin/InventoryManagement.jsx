@@ -68,6 +68,8 @@ const InventoryManagement = () => {
     instructions: '',
     ingredients: []
   })
+  const [showRecipeForm, setShowRecipeForm] = useState(false)
+  const [selectedIngredients, setSelectedIngredients] = useState([])
 
   useEffect(() => {
     loadInventory()
@@ -179,6 +181,8 @@ const InventoryManagement = () => {
   const handleCloseRecipeDialog = () => {
     setRecipeDialog(false)
     setEditingRecipe(null)
+    setShowRecipeForm(false)
+    setSelectedIngredients([])
     setRecipeFormData({
       name: '',
       description: '',
@@ -190,6 +194,82 @@ const InventoryManagement = () => {
       instructions: '',
       ingredients: []
     })
+  }
+
+  const handleAddIngredient = () => {
+    setSelectedIngredients([...selectedIngredients, {
+      item_id: '',
+      item_name: '',
+      quantity: '',
+      unit: '',
+      cost_per_unit: 0
+    }])
+  }
+
+  const handleRemoveIngredient = (index) => {
+    const newIngredients = selectedIngredients.filter((_, i) => i !== index)
+    setSelectedIngredients(newIngredients)
+  }
+
+  const handleIngredientChange = (index, field, value) => {
+    const newIngredients = [...selectedIngredients]
+    newIngredients[index][field] = value
+
+    // If selecting an item, auto-fill name and cost
+    if (field === 'item_id' && value) {
+      const selectedItem = inventory.find(item => item.id === value)
+      if (selectedItem) {
+        newIngredients[index].item_name = selectedItem.name
+        newIngredients[index].unit = selectedItem.unit
+        newIngredients[index].cost_per_unit = selectedItem.cost_per_unit
+      }
+    }
+
+    setSelectedIngredients(newIngredients)
+  }
+
+  const handleSubmitRecipe = async () => {
+    try {
+      const recipeData = {
+        ...recipeFormData,
+        output_quantity: parseFloat(recipeFormData.output_quantity),
+        prep_time_minutes: parseInt(recipeFormData.prep_time_minutes) || null,
+        ingredients: selectedIngredients.map(ing => ({
+          item_id: ing.item_id,
+          quantity: parseFloat(ing.quantity),
+          unit: ing.unit
+        }))
+      }
+
+      await recipesAPI.create(recipeData)
+      toast.success('Receta creada exitosamente')
+
+      setShowRecipeForm(false)
+      setSelectedIngredients([])
+      setRecipeFormData({
+        name: '',
+        description: '',
+        output_product_type: 'intermediate',
+        output_category: 'dough',
+        output_quantity: '',
+        output_unit: '',
+        prep_time_minutes: '',
+        instructions: '',
+        ingredients: []
+      })
+      loadRecipes()
+    } catch (error) {
+      console.error('Error creating recipe:', error)
+      toast.error('Error al crear receta')
+    }
+  }
+
+  const calculateRecipeEstimatedCost = () => {
+    return selectedIngredients.reduce((total, ing) => {
+      const quantity = parseFloat(ing.quantity) || 0
+      const cost = parseFloat(ing.cost_per_unit) || 0
+      return total + (quantity * cost)
+    }, 0)
   }
 
   const getStockStatus = (item) => {
@@ -632,78 +712,301 @@ const InventoryManagement = () => {
           Gestión de Recetas
         </DialogTitle>
         <DialogContent>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Recetas Existentes
-          </Typography>
+          {!showRecipeForm ? (
+            <>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                  Recetas Existentes
+                </Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={() => setShowRecipeForm(true)}
+                  disabled={inventory.length === 0}
+                >
+                  Nueva Receta
+                </Button>
+              </Box>
 
-          {recipes.length > 0 ? (
-            <TableContainer component={Paper} sx={{ mb: 3 }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Nombre</TableCell>
-                    <TableCell>Descripción</TableCell>
-                    <TableCell>Produce</TableCell>
-                    <TableCell>Costo por Lote</TableCell>
-                    <TableCell>Costo por Unidad</TableCell>
-                    <TableCell>Acciones</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {recipes.map((recipe) => (
-                    <TableRow key={recipe.id}>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="bold">
-                          {recipe.name}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">
-                          {recipe.description || 'Sin descripción'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {recipe.output_quantity} {recipe.output_unit}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {getCategoryLabel(recipe.output_category)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          ${recipe.cost_per_batch?.toLocaleString('es-CL') || '0'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          ${recipe.cost_per_unit?.toLocaleString('es-CL') || '0'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Tooltip title="Ver ingredientes">
-                          <IconButton size="small">
-                            <Inventory fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+              {inventory.length === 0 && (
+                <Alert severity="warning" sx={{ mb: 3 }}>
+                  Necesitas tener ingredientes en inventario antes de crear recetas.
+                </Alert>
+              )}
+
+              {recipes.length > 0 ? (
+                <TableContainer component={Paper} sx={{ mb: 3 }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Nombre</TableCell>
+                        <TableCell>Descripción</TableCell>
+                        <TableCell>Produce</TableCell>
+                        <TableCell>Costo por Lote</TableCell>
+                        <TableCell>Costo por Unidad</TableCell>
+                        <TableCell>Acciones</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {recipes.map((recipe) => (
+                        <TableRow key={recipe.id}>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight="bold">
+                              {recipe.name}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" color="text.secondary">
+                              {recipe.description || 'Sin descripción'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {recipe.output_quantity} {recipe.output_unit}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {getCategoryLabel(recipe.output_category)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              ${recipe.cost_per_batch?.toLocaleString('es-CL') || '0'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              ${recipe.cost_per_unit?.toLocaleString('es-CL') || '0'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Tooltip title="Ver ingredientes">
+                              <IconButton size="small">
+                                <Inventory fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : (
+                <Alert severity="info" sx={{ mb: 3 }}>
+                  No hay recetas creadas aún. Las recetas permiten convertir materias primas en productos intermedios.
+                </Alert>
+              )}
+            </>
           ) : (
-            <Alert severity="info" sx={{ mb: 3 }}>
-              No hay recetas creadas aún. Las recetas permiten convertir materias primas en productos intermedios.
-            </Alert>
-          )}
+            <>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <Button
+                  startIcon={<Kitchen />}
+                  onClick={() => setShowRecipeForm(false)}
+                  sx={{ mr: 2 }}
+                >
+                  Volver a Recetas
+                </Button>
+                <Typography variant="h6">
+                  Crear Nueva Receta
+                </Typography>
+              </Box>
 
-          <Typography variant="body2" color="text.secondary">
-            Para crear nuevas recetas, utiliza los endpoints de la API en /api/recipes/
-          </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Nombre de la Receta"
+                    value={recipeFormData.name}
+                    onChange={(e) => setRecipeFormData({...recipeFormData, name: e.target.value})}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Tiempo de Preparación (minutos)"
+                    type="number"
+                    value={recipeFormData.prep_time_minutes}
+                    onChange={(e) => setRecipeFormData({...recipeFormData, prep_time_minutes: e.target.value})}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Descripción"
+                    value={recipeFormData.description}
+                    onChange={(e) => setRecipeFormData({...recipeFormData, description: e.target.value})}
+                    multiline
+                    rows={2}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <FormControl fullWidth>
+                    <InputLabel>Tipo de Producto</InputLabel>
+                    <Select
+                      value={recipeFormData.output_product_type}
+                      onChange={(e) => setRecipeFormData({...recipeFormData, output_product_type: e.target.value})}
+                      label="Tipo de Producto"
+                    >
+                      <MenuItem value="intermediate">Producto Intermedio</MenuItem>
+                      <MenuItem value="finished_good">Producto Terminado</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <FormControl fullWidth>
+                    <InputLabel>Categoría</InputLabel>
+                    <Select
+                      value={recipeFormData.output_category}
+                      onChange={(e) => setRecipeFormData({...recipeFormData, output_category: e.target.value})}
+                      label="Categoría"
+                    >
+                      <MenuItem value="dough">Masas</MenuItem>
+                      <MenuItem value="sauces">Salsas</MenuItem>
+                      <MenuItem value="mixes">Mezclas</MenuItem>
+                      <MenuItem value="pizzas">Pizzas</MenuItem>
+                      <MenuItem value="desserts">Postres</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="Cantidad que Produce"
+                    type="number"
+                    value={recipeFormData.output_quantity}
+                    onChange={(e) => setRecipeFormData({...recipeFormData, output_quantity: e.target.value})}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Unidad de Salida"
+                    value={recipeFormData.output_unit}
+                    onChange={(e) => setRecipeFormData({...recipeFormData, output_unit: e.target.value})}
+                    placeholder="kg, unidades, porciones, etc."
+                    required
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6">
+                      Ingredientes
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      startIcon={<Add />}
+                      onClick={handleAddIngredient}
+                      disabled={inventory.length === 0}
+                    >
+                      Agregar Ingrediente
+                    </Button>
+                  </Box>
+
+                  {selectedIngredients.map((ingredient, index) => (
+                    <Card key={index} sx={{ mb: 2, p: 2 }}>
+                      <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={12} sm={4}>
+                          <FormControl fullWidth>
+                            <InputLabel>Ingrediente</InputLabel>
+                            <Select
+                              value={ingredient.item_id}
+                              onChange={(e) => handleIngredientChange(index, 'item_id', e.target.value)}
+                              label="Ingrediente"
+                            >
+                              {inventory.map((item) => (
+                                <MenuItem key={item.id} value={item.id}>
+                                  {item.name} ({item.unit})
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={3}>
+                          <TextField
+                            fullWidth
+                            label="Cantidad"
+                            type="number"
+                            value={ingredient.quantity}
+                            onChange={(e) => handleIngredientChange(index, 'quantity', e.target.value)}
+                            inputProps={{ step: 0.01 }}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={2}>
+                          <TextField
+                            fullWidth
+                            label="Unidad"
+                            value={ingredient.unit}
+                            InputProps={{ readOnly: true }}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={2}>
+                          <TextField
+                            fullWidth
+                            label="Costo/Unidad"
+                            value={`$${ingredient.cost_per_unit?.toLocaleString('es-CL') || '0'}`}
+                            InputProps={{ readOnly: true }}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={1}>
+                          <IconButton
+                            color="error"
+                            onClick={() => handleRemoveIngredient(index)}
+                          >
+                            <Delete />
+                          </IconButton>
+                        </Grid>
+                      </Grid>
+                    </Card>
+                  ))}
+
+                  {selectedIngredients.length > 0 && (
+                    <Alert severity="success" sx={{ mt: 2 }}>
+                      <Typography variant="body2">
+                        <strong>Costo Estimado por Lote:</strong> ${calculateRecipeEstimatedCost().toLocaleString('es-CL')}
+                      </Typography>
+                      {recipeFormData.output_quantity && (
+                        <Typography variant="body2">
+                          <strong>Costo por Unidad:</strong> ${(calculateRecipeEstimatedCost() / parseFloat(recipeFormData.output_quantity)).toLocaleString('es-CL')}
+                        </Typography>
+                      )}
+                    </Alert>
+                  )}
+                </Grid>
+
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Instrucciones"
+                    value={recipeFormData.instructions}
+                    onChange={(e) => setRecipeFormData({...recipeFormData, instructions: e.target.value})}
+                    multiline
+                    rows={4}
+                    placeholder="Describe los pasos para preparar esta receta..."
+                  />
+                </Grid>
+              </Grid>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseRecipeDialog}>Cerrar</Button>
+          {showRecipeForm ? (
+            <>
+              <Button onClick={() => setShowRecipeForm(false)}>Cancelar</Button>
+              <Button
+                onClick={handleSubmitRecipe}
+                variant="contained"
+                disabled={!recipeFormData.name || !recipeFormData.output_quantity || selectedIngredients.length === 0}
+              >
+                Crear Receta
+              </Button>
+            </>
+          ) : (
+            <Button onClick={handleCloseRecipeDialog}>Cerrar</Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>
