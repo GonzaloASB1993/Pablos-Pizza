@@ -119,24 +119,57 @@ class Review(ReviewBase):
     created_at: datetime
     is_approved: bool = False
 
+# Enums para Inventory
+class ProductType(str, Enum):
+    RAW_MATERIAL = "raw_material"        # Materias primas
+    INTERMEDIATE = "intermediate"        # Productos intermedios (masas, etc)
+    FINISHED_GOOD = "finished_good"      # Productos terminados
+    UTENSIL = "utensil"                 # Utensilios
+    EQUIPMENT = "equipment"             # Equipos
+
+class InventoryCategory(str, Enum):
+    # Raw Materials
+    FLOUR = "flour"                     # Harinas
+    DAIRY = "dairy"                     # Lácteos
+    PROTEINS = "proteins"               # Proteínas
+    VEGETABLES = "vegetables"           # Vegetales
+    SPICES = "spices"                   # Especias y condimentos
+    OILS = "oils"                       # Aceites y grasas
+    BEVERAGES = "beverages"             # Bebidas
+    PACKAGING = "packaging"             # Empaques
+    # Intermediate Products
+    DOUGH = "dough"                     # Masas preparadas
+    SAUCES = "sauces"                   # Salsas preparadas
+    MIXES = "mixes"                     # Mezclas preparadas
+    # Finished Goods
+    PIZZAS = "pizzas"                   # Pizzas terminadas
+    DESSERTS = "desserts"               # Postres
+    # Utensils & Equipment
+    UTENSILS = "utensils"               # Utensilios
+    EQUIPMENT = "equipment"             # Equipos
+
 # Schemas para Inventory
 class InventoryItemBase(BaseModel):
     name: str
-    category: str  # "ingredients", "utensils", "equipment"
+    product_type: ProductType
+    category: InventoryCategory
     current_stock: float
     min_stock: float
     max_stock: float
-    unit: str  # "kg", "unidades", "litros"
+    unit: str  # "kg", "unidades", "litros", "porciones"
     cost_per_unit: float
     supplier: Optional[str] = None
     notes: Optional[str] = None
+    batch_size: Optional[float] = None  # Para productos que se producen en lotes
+    shelf_life_days: Optional[int] = None  # Vida útil en días
 
 class InventoryItemCreate(InventoryItemBase):
     pass
 
 class InventoryItemUpdate(BaseModel):
     name: Optional[str] = None
-    category: Optional[str] = None
+    product_type: Optional[ProductType] = None
+    category: Optional[InventoryCategory] = None
     current_stock: Optional[float] = None
     min_stock: Optional[float] = None
     max_stock: Optional[float] = None
@@ -144,11 +177,95 @@ class InventoryItemUpdate(BaseModel):
     cost_per_unit: Optional[float] = None
     supplier: Optional[str] = None
     notes: Optional[str] = None
+    batch_size: Optional[float] = None
+    shelf_life_days: Optional[int] = None
 
 class InventoryItem(InventoryItemBase):
     id: str
     last_updated: datetime
     needs_restock: bool = False
+
+# Schemas para Recipes (Sistema de Recetas/BOM)
+class RecipeIngredient(BaseModel):
+    item_id: str                    # ID del item de inventario
+    item_name: Optional[str] = None # Nombre del item (para display)
+    quantity: float                 # Cantidad requerida
+    unit: str                      # Unidad de medida
+    cost_per_unit: Optional[float] = None  # Costo por unidad (cache)
+
+class RecipeBase(BaseModel):
+    name: str                      # Nombre de la receta
+    description: Optional[str] = None
+    output_product_type: ProductType  # Tipo de producto que produce
+    output_category: InventoryCategory  # Categoría del producto de salida
+    output_quantity: float         # Cantidad que produce
+    output_unit: str              # Unidad del producto de salida
+    prep_time_minutes: Optional[int] = None
+    instructions: Optional[str] = None
+    ingredients: List[RecipeIngredient]  # Lista de ingredientes
+
+class RecipeCreate(RecipeBase):
+    pass
+
+class RecipeUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    output_product_type: Optional[ProductType] = None
+    output_category: Optional[InventoryCategory] = None
+    output_quantity: Optional[float] = None
+    output_unit: Optional[str] = None
+    prep_time_minutes: Optional[int] = None
+    instructions: Optional[str] = None
+    ingredients: Optional[List[RecipeIngredient]] = None
+
+class Recipe(RecipeBase):
+    id: str
+    cost_per_batch: float          # Costo calculado automáticamente
+    cost_per_unit: float           # Costo por unidad de salida
+    created_at: datetime
+    last_updated: datetime
+
+# Schemas para Production Batches (Lotes de Producción)
+class ProductionBatchBase(BaseModel):
+    recipe_id: str
+    quantity_to_produce: float     # Cantidad de lotes a producir
+    notes: Optional[str] = None
+
+class ProductionBatchCreate(ProductionBatchBase):
+    pass
+
+class ProductionBatch(ProductionBatchBase):
+    id: str
+    recipe_name: Optional[str] = None
+    total_cost: float              # Costo total del lote
+    output_quantity: float         # Cantidad total producida
+    output_unit: str
+    status: str = "pending"        # pending, in_progress, completed, cancelled
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    ingredients_consumed: List[RecipeIngredient]  # Ingredientes realmente consumidos
+
+# Schemas para Event Consumption (Consumo por Eventos)
+class EventConsumptionItem(BaseModel):
+    item_id: str
+    item_name: Optional[str] = None
+    quantity_consumed: float
+    unit: str
+    cost_per_unit: float
+    total_cost: float
+
+class EventConsumptionBase(BaseModel):
+    event_id: str
+    items_consumed: List[EventConsumptionItem]
+    total_cost: float
+    notes: Optional[str] = None
+
+class EventConsumptionCreate(EventConsumptionBase):
+    pass
+
+class EventConsumption(EventConsumptionBase):
+    id: str
+    created_at: datetime
 
 # Schemas para Reports
 class MonthlyReport(BaseModel):

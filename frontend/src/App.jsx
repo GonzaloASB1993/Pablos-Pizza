@@ -16,6 +16,7 @@ import EventsManagement from './pages/admin/EventsManagement'
 import GalleryManagement from './pages/admin/GalleryManagement'
 import ReviewsManagement from './pages/admin/ReviewsManagement'
 import InventoryManagement from './pages/admin/InventoryManagement'
+import ProductionManagement from './pages/admin/ProductionManagement'
 import ReportsPage from './pages/admin/ReportsPage'
 import ContactManagement from './pages/admin/ContactManagement'
 import AdminLogin from './pages/admin/AdminLogin'
@@ -66,6 +67,7 @@ function App() {
           <Route path="galeria" element={<GalleryManagement />} />
           <Route path="testimonios" element={<ReviewsManagement />} />
           <Route path="inventario" element={<InventoryManagement />} />
+          <Route path="produccion" element={<ProductionManagement />} />
           <Route path="reportes" element={<ReportsPage />} />
           <Route path="contactos" element={<ContactManagement />} />
         </Route>

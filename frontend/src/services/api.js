@@ -20,6 +20,11 @@ const api = axios.create({
 })
 
 
+// Clear old mock inventory data on load
+if (localStorage.getItem('inventory')) {
+  localStorage.removeItem('inventory')
+}
+
 // Mock data storage in localStorage for demo
 const getMockData = (key) => {
   try {
@@ -29,49 +34,8 @@ const getMockData = (key) => {
     if (data.length === 0) {
       switch (key) {
         case 'inventory':
-          const defaultInventory = [
-            {
-              id: 1,
-              name: 'Harina de Trigo',
-              category: 'ingredients',
-              current_stock: 25,
-              min_stock: 10,
-              max_stock: 50,
-              unit: 'kg',
-              supplier: 'Molinos del Norte',
-              cost_per_unit: 1200,
-              notes: 'Harina tipo 000 para pizzas',
-              created_at: new Date().toISOString()
-            },
-            {
-              id: 2,
-              name: 'Queso Mozzarella',
-              category: 'ingredients',
-              current_stock: 5,
-              min_stock: 8,
-              max_stock: 20,
-              unit: 'kg',
-              supplier: 'Lácteos Premium',
-              cost_per_unit: 8500,
-              notes: 'Mantener refrigerado',
-              created_at: new Date().toISOString()
-            },
-            {
-              id: 3,
-              name: 'Salsa de Tomate',
-              category: 'ingredients',
-              current_stock: 15,
-              min_stock: 5,
-              max_stock: 30,
-              unit: 'litros',
-              supplier: 'Conservas del Sur',
-              cost_per_unit: 2500,
-              notes: 'Salsa especial para pizzas',
-              created_at: new Date().toISOString()
-            }
-          ]
-          setMockData('inventory', defaultInventory)
-          return defaultInventory
+          // No more mock data initialization for inventory - using real API
+          return []
         case 'events':
           // Limpiar eventos existentes - empezar desde cero
           setMockData('events', [])
@@ -202,43 +166,7 @@ const mockAPI = {
       }
     }
   },
-  inventory: {
-    getAll: async () => {
-      const inventory = getMockData('inventory')
-      return { data: inventory }
-    },
-    create: async (data) => {
-      const inventory = getMockData('inventory')
-      const newItem = {
-        ...data,
-        id: Date.now(),
-        created_at: new Date().toISOString()
-      }
-      inventory.push(newItem)
-      setMockData('inventory', inventory)
-      return { data: newItem }
-    },
-    update: async (id, data) => {
-      const inventory = getMockData('inventory')
-      const index = inventory.findIndex(item => item.id === parseInt(id))
-      if (index !== -1) {
-        inventory[index] = { ...inventory[index], ...data }
-        setMockData('inventory', inventory)
-      }
-      return { data: inventory[index] }
-    },
-    delete: async (id) => {
-      const inventory = getMockData('inventory')
-      const index = inventory.findIndex(item => item.id === parseInt(id))
-      if (index !== -1) {
-        inventory.splice(index, 1)
-        setMockData('inventory', inventory)
-        return { data: { message: 'Producto eliminado' } }
-      } else {
-        throw new Error('Producto no encontrado')
-      }
-    }
-  },
+  // inventory: Removed - now using real API
   events: {
     create: async (data) => {
       const events = getMockData('events')
@@ -451,6 +379,22 @@ export const inventoryAPI = {
   updateStock: (id, data) => api.put(`/inventory/${id}/stock`, data),
   getCategories: () => api.get('/inventory/categories'),
   getAlerts: () => api.get('/inventory/alerts'),
+}
+
+export const recipesAPI = {
+  create: (data) => api.post('/recipes/', data),
+  getAll: (params = {}) => api.get('/recipes/', { params }),
+  getById: (id) => api.get(`/recipes/${id}`),
+  update: (id, data) => api.put(`/recipes/${id}`, data),
+  delete: (id) => api.delete(`/recipes/${id}`),
+  calculateCost: (id) => api.post(`/recipes/${id}/calculate-cost`),
+}
+
+export const productionBatchesAPI = {
+  create: (data) => api.post('/production-batches/', data),
+  getAll: (params = {}) => api.get('/production-batches/', { params }),
+  complete: (id) => api.post(`/production-batches/${id}/complete`),
+  cancel: (id) => api.delete(`/production-batches/${id}`),
 }
 
 export const reportsAPI = {

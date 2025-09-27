@@ -36,7 +36,8 @@ import {
   ExpandMore,
   Business,
   Analytics,
-  MenuOpen
+  MenuOpen,
+  Factory
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -64,6 +65,7 @@ const AdminLayout = () => {
     { label: 'Contactos', path: '/admin/contactos', icon: <ContactMail />, category: 'business' },
     { label: 'Testimonios', path: '/admin/testimonios', icon: <Star />, category: 'business' },
     { label: 'Inventario', path: '/admin/inventario', icon: <Inventory />, category: 'analytics' },
+    { label: 'Producción', path: '/admin/produccion', icon: <Factory />, category: 'analytics' },
     { label: 'Reportes', path: '/admin/reportes', icon: <Assessment />, category: 'analytics' },
   ]
 

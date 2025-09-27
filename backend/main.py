@@ -2735,6 +2735,7 @@ def create_inventory_item():
         item_data = {
             'id': item_id,
             'name': data['name'],
+            'product_type': data.get('product_type', 'raw_material'),
             'category': data['category'],
             'current_stock': float(data['current_stock']),
             'min_stock': float(data['min_stock']),
@@ -2743,6 +2744,8 @@ def create_inventory_item():
             'cost_per_unit': float(data['cost_per_unit']),
             'supplier': data.get('supplier', ''),
             'notes': data.get('notes', ''),
+            'batch_size': float(data['batch_size']) if data.get('batch_size') else None,
+            'shelf_life_days': int(data['shelf_life_days']) if data.get('shelf_life_days') else None,
             'last_updated': datetime.now(),
             'needs_restock': float(data['current_stock']) <= float(data['min_stock'])
         }
@@ -2796,6 +2799,8 @@ def update_inventory_item(item_id):
         update_data = {}
         if 'name' in data:
             update_data['name'] = data['name']
+        if 'product_type' in data:
+            update_data['product_type'] = data['product_type']
         if 'category' in data:
             update_data['category'] = data['category']
         if 'current_stock' in data:
@@ -2812,6 +2817,10 @@ def update_inventory_item(item_id):
             update_data['supplier'] = data['supplier']
         if 'notes' in data:
             update_data['notes'] = data['notes']
+        if 'batch_size' in data:
+            update_data['batch_size'] = float(data['batch_size']) if data['batch_size'] else None
+        if 'shelf_life_days' in data:
+            update_data['shelf_life_days'] = int(data['shelf_life_days']) if data['shelf_life_days'] else None
 
         update_data['last_updated'] = datetime.now()
 
@@ -2948,6 +2957,423 @@ def update_inventory_stock(item_id):
         })
     except Exception as e:
         print(f"Error updating stock: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ===================== RECIPES ENDPOINTS =====================
+
+@app.route('/api/recipes/', methods=['GET'])
+def get_recipes():
+    """Get all recipes"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        docs = db.collection('recipes').order_by('name').stream()
+        recipes = []
+        for doc in docs:
+            data = doc.to_dict()
+            data['id'] = doc.id
+            recipes.append(data)
+
+        return jsonify(recipes)
+    except Exception as e:
+        print(f"Error getting recipes: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/recipes/', methods=['POST'])
+def create_recipe():
+    """Create new recipe with automatic cost calculation"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        data = request.get_json()
+        recipe_id = str(uuid.uuid4())
+
+        # Calculate recipe cost
+        total_cost = 0.0
+        for ingredient in data['ingredients']:
+            # Get current cost from inventory
+            inventory_doc = db.collection('inventory').document(ingredient['item_id']).get()
+            if inventory_doc.exists:
+                inventory_data = inventory_doc.to_dict()
+                cost_per_unit = inventory_data.get('cost_per_unit', 0)
+                ingredient['cost_per_unit'] = cost_per_unit
+                total_cost += cost_per_unit * ingredient['quantity']
+
+        cost_per_unit_output = total_cost / data['output_quantity'] if data['output_quantity'] > 0 else 0
+
+        recipe_data = {
+            'id': recipe_id,
+            'name': data['name'],
+            'description': data.get('description', ''),
+            'output_product_type': data['output_product_type'],
+            'output_category': data['output_category'],
+            'output_quantity': float(data['output_quantity']),
+            'output_unit': data['output_unit'],
+            'prep_time_minutes': int(data['prep_time_minutes']) if data.get('prep_time_minutes') else None,
+            'instructions': data.get('instructions', ''),
+            'ingredients': data['ingredients'],
+            'cost_per_batch': total_cost,
+            'cost_per_unit': cost_per_unit_output,
+            'created_at': datetime.now(),
+            'last_updated': datetime.now()
+        }
+
+        db.collection('recipes').document(recipe_id).set(recipe_data)
+        return jsonify(recipe_data), 201
+    except Exception as e:
+        print(f"Error creating recipe: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/recipes/<recipe_id>', methods=['GET'])
+def get_recipe(recipe_id):
+    """Get specific recipe"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        doc = db.collection('recipes').document(recipe_id).get()
+        if not doc.exists:
+            return jsonify({'error': 'Recipe not found'}), 404
+
+        data = doc.to_dict()
+        data['id'] = doc.id
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error getting recipe: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/recipes/<recipe_id>', methods=['PUT'])
+def update_recipe(recipe_id):
+    """Update recipe and recalculate costs"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        data = request.get_json()
+        recipe_ref = db.collection('recipes').document(recipe_id)
+        doc = recipe_ref.get()
+
+        if not doc.exists:
+            return jsonify({'error': 'Recipe not found'}), 404
+
+        update_data = {}
+        for field in ['name', 'description', 'output_product_type', 'output_category',
+                     'output_quantity', 'output_unit', 'prep_time_minutes', 'instructions']:
+            if field in data:
+                update_data[field] = data[field]
+
+        # Recalculate costs if ingredients changed
+        if 'ingredients' in data:
+            total_cost = 0.0
+            for ingredient in data['ingredients']:
+                inventory_doc = db.collection('inventory').document(ingredient['item_id']).get()
+                if inventory_doc.exists:
+                    inventory_data = inventory_doc.to_dict()
+                    cost_per_unit = inventory_data.get('cost_per_unit', 0)
+                    ingredient['cost_per_unit'] = cost_per_unit
+                    total_cost += cost_per_unit * ingredient['quantity']
+
+            output_quantity = data.get('output_quantity', doc.to_dict().get('output_quantity', 1))
+            cost_per_unit_output = total_cost / output_quantity if output_quantity > 0 else 0
+
+            update_data['ingredients'] = data['ingredients']
+            update_data['cost_per_batch'] = total_cost
+            update_data['cost_per_unit'] = cost_per_unit_output
+
+        update_data['last_updated'] = datetime.now()
+        recipe_ref.update(update_data)
+
+        # Return updated recipe
+        updated_doc = recipe_ref.get()
+        result = updated_doc.to_dict()
+        result['id'] = updated_doc.id
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error updating recipe: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/recipes/<recipe_id>', methods=['DELETE'])
+def delete_recipe(recipe_id):
+    """Delete recipe"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        recipe_ref = db.collection('recipes').document(recipe_id)
+        doc = recipe_ref.get()
+
+        if not doc.exists:
+            return jsonify({'error': 'Recipe not found'}), 404
+
+        recipe_ref.delete()
+        return jsonify({'message': 'Recipe deleted successfully'})
+    except Exception as e:
+        print(f"Error deleting recipe: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/recipes/<recipe_id>/calculate-cost', methods=['POST'])
+def recalculate_recipe_cost(recipe_id):
+    """Recalculate recipe cost based on current inventory prices"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        recipe_ref = db.collection('recipes').document(recipe_id)
+        doc = recipe_ref.get()
+
+        if not doc.exists:
+            return jsonify({'error': 'Recipe not found'}), 404
+
+        recipe_data = doc.to_dict()
+        total_cost = 0.0
+        updated_ingredients = []
+
+        for ingredient in recipe_data['ingredients']:
+            inventory_doc = db.collection('inventory').document(ingredient['item_id']).get()
+            if inventory_doc.exists:
+                inventory_data = inventory_doc.to_dict()
+                current_cost = inventory_data.get('cost_per_unit', 0)
+                ingredient['cost_per_unit'] = current_cost
+                total_cost += current_cost * ingredient['quantity']
+            updated_ingredients.append(ingredient)
+
+        cost_per_unit_output = total_cost / recipe_data['output_quantity'] if recipe_data['output_quantity'] > 0 else 0
+
+        # Update recipe with new costs
+        recipe_ref.update({
+            'ingredients': updated_ingredients,
+            'cost_per_batch': total_cost,
+            'cost_per_unit': cost_per_unit_output,
+            'last_updated': datetime.now()
+        })
+
+        return jsonify({
+            'message': 'Recipe cost recalculated successfully',
+            'cost_per_batch': total_cost,
+            'cost_per_unit': cost_per_unit_output
+        })
+    except Exception as e:
+        print(f"Error recalculating recipe cost: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ===================== PRODUCTION BATCHES ENDPOINTS =====================
+
+@app.route('/api/production-batches/', methods=['GET'])
+def get_production_batches():
+    """Get all production batches"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        docs = db.collection('production_batches').order_by('created_at', direction=firestore.Query.DESCENDING).stream()
+        batches = []
+        for doc in docs:
+            data = doc.to_dict()
+            data['id'] = doc.id
+            batches.append(data)
+
+        return jsonify(batches)
+    except Exception as e:
+        print(f"Error getting production batches: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/production-batches/', methods=['POST'])
+def create_production_batch():
+    """Create new production batch"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        data = request.get_json()
+        batch_id = str(uuid.uuid4())
+
+        # Get recipe details
+        recipe_doc = db.collection('recipes').document(data['recipe_id']).get()
+        if not recipe_doc.exists:
+            return jsonify({'error': 'Recipe not found'}), 404
+
+        recipe_data = recipe_doc.to_dict()
+
+        # Calculate batch details
+        quantity_to_produce = float(data['quantity_to_produce'])
+        total_cost = recipe_data['cost_per_batch'] * quantity_to_produce
+        output_quantity = recipe_data['output_quantity'] * quantity_to_produce
+
+        # Prepare ingredients list with quantities scaled
+        ingredients_consumed = []
+        for ingredient in recipe_data['ingredients']:
+            scaled_ingredient = {
+                'item_id': ingredient['item_id'],
+                'item_name': ingredient.get('item_name', ''),
+                'quantity': ingredient['quantity'] * quantity_to_produce,
+                'unit': ingredient['unit'],
+                'cost_per_unit': ingredient.get('cost_per_unit', 0),
+                'total_cost': ingredient.get('cost_per_unit', 0) * ingredient['quantity'] * quantity_to_produce
+            }
+            ingredients_consumed.append(scaled_ingredient)
+
+        batch_data = {
+            'id': batch_id,
+            'recipe_id': data['recipe_id'],
+            'recipe_name': recipe_data['name'],
+            'quantity_to_produce': quantity_to_produce,
+            'total_cost': total_cost,
+            'output_quantity': output_quantity,
+            'output_unit': recipe_data['output_unit'],
+            'status': 'pending',
+            'notes': data.get('notes', ''),
+            'created_at': datetime.now(),
+            'completed_at': None,
+            'ingredients_consumed': ingredients_consumed
+        }
+
+        db.collection('production_batches').document(batch_id).set(batch_data)
+        return jsonify(batch_data), 201
+    except Exception as e:
+        print(f"Error creating production batch: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/production-batches/<batch_id>/complete', methods=['POST'])
+def complete_production_batch(batch_id):
+    """Complete production batch and update inventory"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        # Get batch details
+        batch_ref = db.collection('production_batches').document(batch_id)
+        batch_doc = batch_ref.get()
+
+        if not batch_doc.exists:
+            return jsonify({'error': 'Production batch not found'}), 404
+
+        batch_data = batch_doc.to_dict()
+
+        if batch_data['status'] == 'completed':
+            return jsonify({'error': 'Batch already completed'}), 400
+
+        # Get recipe to create output product
+        recipe_doc = db.collection('recipes').document(batch_data['recipe_id']).get()
+        if not recipe_doc.exists:
+            return jsonify({'error': 'Recipe not found'}), 404
+
+        recipe_data = recipe_doc.to_dict()
+
+        # 1. Reduce raw materials from inventory
+        for ingredient in batch_data['ingredients_consumed']:
+            item_ref = db.collection('inventory').document(ingredient['item_id'])
+            item_doc = item_ref.get()
+
+            if item_doc.exists:
+                item_data = item_doc.to_dict()
+                new_stock = max(0, item_data['current_stock'] - ingredient['quantity'])
+                needs_restock = new_stock <= item_data['min_stock']
+
+                item_ref.update({
+                    'current_stock': new_stock,
+                    'needs_restock': needs_restock,
+                    'last_updated': datetime.now()
+                })
+
+        # 2. Create or update intermediate product in inventory
+        output_product_name = f"{recipe_data['name']} (Producido)"
+
+        # Check if intermediate product already exists
+        existing_products = db.collection('inventory').where('name', '==', output_product_name).where('product_type', '==', recipe_data['output_product_type']).stream()
+
+        existing_product = None
+        for doc in existing_products:
+            existing_product = doc
+            break
+
+        if existing_product:
+            # Update existing product
+            existing_data = existing_product.to_dict()
+            new_stock = existing_data['current_stock'] + batch_data['output_quantity']
+
+            existing_product.reference.update({
+                'current_stock': new_stock,
+                'last_updated': datetime.now(),
+                'needs_restock': new_stock <= existing_data['min_stock']
+            })
+        else:
+            # Create new intermediate product
+            product_id = str(uuid.uuid4())
+            product_data = {
+                'id': product_id,
+                'name': output_product_name,
+                'product_type': recipe_data['output_product_type'],
+                'category': recipe_data['output_category'],
+                'current_stock': batch_data['output_quantity'],
+                'min_stock': batch_data['output_quantity'] * 0.2,  # 20% of production as minimum
+                'max_stock': batch_data['output_quantity'] * 5,    # 5x production as maximum
+                'unit': recipe_data['output_unit'],
+                'cost_per_unit': recipe_data['cost_per_unit'],
+                'supplier': 'Produccion Interna',
+                'notes': f'Producto intermedio generado por receta: {recipe_data["name"]}',
+                'batch_size': batch_data['output_quantity'],
+                'shelf_life_days': 7,  # Default 7 days for intermediate products
+                'last_updated': datetime.now(),
+                'needs_restock': False
+            }
+
+            db.collection('inventory').document(product_id).set(product_data)
+
+        # 3. Mark batch as completed
+        batch_ref.update({
+            'status': 'completed',
+            'completed_at': datetime.now()
+        })
+
+        return jsonify({
+            'message': 'Production batch completed successfully',
+            'output_quantity': batch_data['output_quantity'],
+            'output_unit': batch_data['output_unit']
+        })
+
+    except Exception as e:
+        print(f"Error completing production batch: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/production-batches/<batch_id>', methods=['DELETE'])
+def cancel_production_batch(batch_id):
+    """Cancel production batch"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        batch_ref = db.collection('production_batches').document(batch_id)
+        batch_doc = batch_ref.get()
+
+        if not batch_doc.exists:
+            return jsonify({'error': 'Production batch not found'}), 404
+
+        batch_data = batch_doc.to_dict()
+
+        if batch_data['status'] == 'completed':
+            return jsonify({'error': 'Cannot cancel completed batch'}), 400
+
+        # Mark as cancelled or delete
+        batch_ref.update({
+            'status': 'cancelled',
+            'completed_at': datetime.now()
+        })
+
+        return jsonify({'message': 'Production batch cancelled successfully'})
+    except Exception as e:
+        print(f"Error cancelling production batch: {e}")
         return jsonify({'error': str(e)}), 500
 
 # Local development server

@@ -24,31 +24,54 @@ import {
   Select,
   MenuItem,
   Alert,
-  LinearProgress
+  LinearProgress,
+  Tabs,
+  Tab,
+  Tooltip,
+  IconButton
 } from '@mui/material'
-import { Add, Edit, Delete, Warning } from '@mui/icons-material'
-import { inventoryAPI } from '../../services/api'
+import { Add, Edit, Delete, Warning, Inventory, Kitchen, Build } from '@mui/icons-material'
+import { inventoryAPI, recipesAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
 const InventoryManagement = () => {
   const [inventory, setInventory] = useState([])
+  const [recipes, setRecipes] = useState([])
   const [loading, setLoading] = useState(true)
   const [dialog, setDialog] = useState(false)
+  const [recipeDialog, setRecipeDialog] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
+  const [editingRecipe, setEditingRecipe] = useState(null)
+  const [currentTab, setCurrentTab] = useState(0)
   const [formData, setFormData] = useState({
     name: '',
-    category: 'ingredients',
+    product_type: 'raw_material',
+    category: 'flour',
     current_stock: '',
     min_stock: '',
     max_stock: '',
     unit: '',
     supplier: '',
     cost_per_unit: '',
+    batch_size: '',
+    shelf_life_days: '',
     notes: ''
+  })
+  const [recipeFormData, setRecipeFormData] = useState({
+    name: '',
+    description: '',
+    output_product_type: 'intermediate',
+    output_category: 'dough',
+    output_quantity: '',
+    output_unit: '',
+    prep_time_minutes: '',
+    instructions: '',
+    ingredients: []
   })
 
   useEffect(() => {
     loadInventory()
+    loadRecipes()
   }, [])
 
   const loadInventory = async () => {
@@ -64,6 +87,16 @@ const InventoryManagement = () => {
     }
   }
 
+  const loadRecipes = async () => {
+    try {
+      const response = await recipesAPI.getAll()
+      setRecipes(response.data || [])
+    } catch (error) {
+      console.error('Error loading recipes:', error)
+      toast.error('Error al cargar recetas')
+    }
+  }
+
   const handleSubmit = async () => {
     try {
       const itemData = {
@@ -71,7 +104,9 @@ const InventoryManagement = () => {
         current_stock: parseFloat(formData.current_stock),
         min_stock: parseFloat(formData.min_stock),
         max_stock: parseFloat(formData.max_stock),
-        cost_per_unit: parseFloat(formData.cost_per_unit)
+        cost_per_unit: parseFloat(formData.cost_per_unit),
+        batch_size: formData.batch_size ? parseFloat(formData.batch_size) : null,
+        shelf_life_days: formData.shelf_life_days ? parseInt(formData.shelf_life_days) : null
       }
 
       if (editingItem) {
@@ -94,13 +129,16 @@ const InventoryManagement = () => {
     setEditingItem(item)
     setFormData({
       name: item.name || '',
-      category: item.category || 'ingredients',
+      product_type: item.product_type || 'raw_material',
+      category: item.category || 'flour',
       current_stock: item.current_stock?.toString() || '',
       min_stock: item.min_stock?.toString() || '',
       max_stock: item.max_stock?.toString() || '',
       unit: item.unit || '',
       supplier: item.supplier || '',
       cost_per_unit: item.cost_per_unit?.toString() || '',
+      batch_size: item.batch_size?.toString() || '',
+      shelf_life_days: item.shelf_life_days?.toString() || '',
       notes: item.notes || ''
     })
     setDialog(true)
@@ -124,14 +162,33 @@ const InventoryManagement = () => {
     setEditingItem(null)
     setFormData({
       name: '',
-      category: 'ingredients',
+      product_type: 'raw_material',
+      category: 'flour',
       current_stock: '',
       min_stock: '',
       max_stock: '',
       unit: '',
       supplier: '',
       cost_per_unit: '',
+      batch_size: '',
+      shelf_life_days: '',
       notes: ''
+    })
+  }
+
+  const handleCloseRecipeDialog = () => {
+    setRecipeDialog(false)
+    setEditingRecipe(null)
+    setRecipeFormData({
+      name: '',
+      description: '',
+      output_product_type: 'intermediate',
+      output_category: 'dough',
+      output_quantity: '',
+      output_unit: '',
+      prep_time_minutes: '',
+      instructions: '',
+      ingredients: []
     })
   }
 
@@ -161,18 +218,65 @@ const InventoryManagement = () => {
     }
   }
 
+  const getProductTypeLabel = (type) => {
+    switch (type) {
+      case 'raw_material': return 'Materia Prima'
+      case 'intermediate': return 'Producto Intermedio'
+      case 'finished_good': return 'Producto Terminado'
+      case 'utensil': return 'Utensilio'
+      case 'equipment': return 'Equipo'
+      default: return type
+    }
+  }
+
   const getCategoryLabel = (category) => {
-    switch (category) {
-      case 'ingredients': return 'Ingredientes'
-      case 'utensils': return 'Utensilios'
-      case 'equipment': return 'Equipos'
-      default: return category
+    const labels = {
+      // Raw Materials
+      flour: 'Harinas',
+      dairy: 'Lácteos',
+      proteins: 'Proteínas',
+      vegetables: 'Vegetales',
+      spices: 'Especias',
+      oils: 'Aceites',
+      beverages: 'Bebidas',
+      packaging: 'Empaques',
+      // Intermediate Products
+      dough: 'Masas',
+      sauces: 'Salsas',
+      mixes: 'Mezclas',
+      // Finished Goods
+      pizzas: 'Pizzas',
+      desserts: 'Postres',
+      // Utensils & Equipment
+      utensils: 'Utensilios',
+      equipment: 'Equipos'
+    }
+    return labels[category] || category
+  }
+
+  const getTabIcon = (index) => {
+    switch (index) {
+      case 0: return <Inventory />
+      case 1: return <Kitchen />
+      case 2: return <Build />
+      default: return <Inventory />
+    }
+  }
+
+  const getFilteredInventory = () => {
+    switch (currentTab) {
+      case 0: return inventory.filter(item => item.product_type === 'raw_material')
+      case 1: return inventory.filter(item => item.product_type === 'intermediate')
+      case 2: return inventory.filter(item => ['finished_good', 'utensil', 'equipment'].includes(item.product_type))
+      default: return inventory
     }
   }
 
   const lowStockItems = inventory.filter(item =>
     getStockStatus(item) === 'critical' || getStockStatus(item) === 'low'
   )
+
+  const filteredInventory = getFilteredInventory()
 
   return (
     <Box>
@@ -182,16 +286,25 @@ const InventoryManagement = () => {
             Gestión de Inventario
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Controla ingredientes, utensilios y equipos
+            Controla materias primas, productos intermedios y equipos
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => setDialog(true)}
-        >
-          Agregar Producto
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<Kitchen />}
+            onClick={() => setRecipeDialog(true)}
+          >
+            Gestionar Recetas
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => setDialog(true)}
+          >
+            Agregar Producto
+          </Button>
+        </Box>
       </Box>
 
       {/* Low Stock Alert */}
@@ -206,6 +319,31 @@ const InventoryManagement = () => {
         </Alert>
       )}
 
+      {/* Tabs */}
+      <Card sx={{ mb: 3 }}>
+        <Tabs
+          value={currentTab}
+          onChange={(e, newTab) => setCurrentTab(newTab)}
+          sx={{ borderBottom: 1, borderColor: 'divider' }}
+        >
+          <Tab
+            icon={getTabIcon(0)}
+            label="Materias Primas"
+            iconPosition="start"
+          />
+          <Tab
+            icon={getTabIcon(1)}
+            label="Productos Intermedios"
+            iconPosition="start"
+          />
+          <Tab
+            icon={getTabIcon(2)}
+            label="Productos Terminados"
+            iconPosition="start"
+          />
+        </Tabs>
+      </Card>
+
       {loading ? (
         <Card>
           <CardContent>
@@ -215,22 +353,31 @@ const InventoryManagement = () => {
       ) : (
         <Card>
           <CardContent>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              {currentTab === 0 ? 'Materias Primas' :
+               currentTab === 1 ? 'Productos Intermedios' : 'Productos Terminados'}
+              <Chip
+                label={`${filteredInventory.length} items`}
+                size="small"
+                sx={{ ml: 2 }}
+              />
+            </Typography>
             <TableContainer component={Paper}>
               <Table>
                 <TableHead>
                   <TableRow>
                     <TableCell>Producto</TableCell>
+                    <TableCell>Tipo</TableCell>
                     <TableCell>Categoría</TableCell>
                     <TableCell>Stock Actual</TableCell>
                     <TableCell>Stock Mínimo</TableCell>
-                    <TableCell>Stock Máximo</TableCell>
                     <TableCell>Estado</TableCell>
-                    <TableCell>Proveedor</TableCell>
+                    <TableCell>Costo/Unidad</TableCell>
                     <TableCell>Acciones</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {inventory.map((item) => {
+                  {filteredInventory.map((item) => {
                     const stockStatus = getStockStatus(item)
                     const stockPercentage = (item.current_stock / item.max_stock) * 100
 
@@ -245,6 +392,14 @@ const InventoryManagement = () => {
                               {item.unit && `Unidad: ${item.unit}`}
                             </Typography>
                           </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={getProductTypeLabel(item.product_type)}
+                            size="small"
+                            color={item.product_type === 'raw_material' ? 'primary' :
+                                   item.product_type === 'intermediate' ? 'secondary' : 'default'}
+                          />
                         </TableCell>
                         <TableCell>{getCategoryLabel(item.category)}</TableCell>
                         <TableCell>
@@ -261,7 +416,6 @@ const InventoryManagement = () => {
                           </Box>
                         </TableCell>
                         <TableCell>{item.min_stock} {item.unit}</TableCell>
-                        <TableCell>{item.max_stock} {item.unit}</TableCell>
                         <TableCell>
                           <Chip
                             label={getStockLabel(stockStatus)}
@@ -269,7 +423,9 @@ const InventoryManagement = () => {
                             size="small"
                           />
                         </TableCell>
-                        <TableCell>{item.supplier || 'N/A'}</TableCell>
+                        <TableCell>
+                          ${item.cost_per_unit?.toLocaleString('es-CL') || '0'}
+                        </TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
@@ -292,11 +448,11 @@ const InventoryManagement = () => {
                       </TableRow>
                     )
                   })}
-                  {inventory.length === 0 && (
+                  {filteredInventory.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={8} align="center">
                         <Typography color="text.secondary">
-                          No hay productos en inventario
+                          No hay productos en esta categoría
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -326,13 +482,45 @@ const InventoryManagement = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
+                <InputLabel>Tipo de Producto</InputLabel>
+                <Select
+                  value={formData.product_type}
+                  onChange={(e) => setFormData({...formData, product_type: e.target.value})}
+                  label="Tipo de Producto"
+                >
+                  <MenuItem value="raw_material">Materia Prima</MenuItem>
+                  <MenuItem value="intermediate">Producto Intermedio</MenuItem>
+                  <MenuItem value="finished_good">Producto Terminado</MenuItem>
+                  <MenuItem value="utensil">Utensilio</MenuItem>
+                  <MenuItem value="equipment">Equipo</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
                 <InputLabel>Categoría</InputLabel>
                 <Select
                   value={formData.category}
                   onChange={(e) => setFormData({...formData, category: e.target.value})}
                   label="Categoría"
                 >
-                  <MenuItem value="ingredients">Ingredientes</MenuItem>
+                  {/* Raw Materials */}
+                  <MenuItem value="flour">Harinas</MenuItem>
+                  <MenuItem value="dairy">Lácteos</MenuItem>
+                  <MenuItem value="proteins">Proteínas</MenuItem>
+                  <MenuItem value="vegetables">Vegetales</MenuItem>
+                  <MenuItem value="spices">Especias</MenuItem>
+                  <MenuItem value="oils">Aceites</MenuItem>
+                  <MenuItem value="beverages">Bebidas</MenuItem>
+                  <MenuItem value="packaging">Empaques</MenuItem>
+                  {/* Intermediate Products */}
+                  <MenuItem value="dough">Masas</MenuItem>
+                  <MenuItem value="sauces">Salsas</MenuItem>
+                  <MenuItem value="mixes">Mezclas</MenuItem>
+                  {/* Finished Goods */}
+                  <MenuItem value="pizzas">Pizzas</MenuItem>
+                  <MenuItem value="desserts">Postres</MenuItem>
+                  {/* Utensils & Equipment */}
                   <MenuItem value="utensils">Utensilios</MenuItem>
                   <MenuItem value="equipment">Equipos</MenuItem>
                 </Select>
@@ -389,12 +577,32 @@ const InventoryManagement = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Proveedor"
                 value={formData.supplier}
                 onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Tamaño de Lote"
+                type="number"
+                value={formData.batch_size}
+                onChange={(e) => setFormData({...formData, batch_size: e.target.value})}
+                placeholder="Opcional - para productos que se producen en lotes"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Vida Útil (días)"
+                type="number"
+                value={formData.shelf_life_days}
+                onChange={(e) => setFormData({...formData, shelf_life_days: e.target.value})}
+                placeholder="Opcional - para productos perecederos"
               />
             </Grid>
             <Grid item xs={12}>
@@ -415,6 +623,87 @@ const InventoryManagement = () => {
           <Button onClick={handleSubmit} variant="contained">
             {editingItem ? 'Actualizar' : 'Agregar'} Producto
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Recipe Management Dialog */}
+      <Dialog open={recipeDialog} onClose={handleCloseRecipeDialog} maxWidth="lg" fullWidth>
+        <DialogTitle>
+          Gestión de Recetas
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Recetas Existentes
+          </Typography>
+
+          {recipes.length > 0 ? (
+            <TableContainer component={Paper} sx={{ mb: 3 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Nombre</TableCell>
+                    <TableCell>Descripción</TableCell>
+                    <TableCell>Produce</TableCell>
+                    <TableCell>Costo por Lote</TableCell>
+                    <TableCell>Costo por Unidad</TableCell>
+                    <TableCell>Acciones</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {recipes.map((recipe) => (
+                    <TableRow key={recipe.id}>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="bold">
+                          {recipe.name}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {recipe.description || 'Sin descripción'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {recipe.output_quantity} {recipe.output_unit}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {getCategoryLabel(recipe.output_category)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          ${recipe.cost_per_batch?.toLocaleString('es-CL') || '0'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          ${recipe.cost_per_unit?.toLocaleString('es-CL') || '0'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip title="Ver ingredientes">
+                          <IconButton size="small">
+                            <Inventory fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Alert severity="info" sx={{ mb: 3 }}>
+              No hay recetas creadas aún. Las recetas permiten convertir materias primas en productos intermedios.
+            </Alert>
+          )}
+
+          <Typography variant="body2" color="text.secondary">
+            Para crear nuevas recetas, utiliza los endpoints de la API en /api/recipes/
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseRecipeDialog}>Cerrar</Button>
         </DialogActions>
       </Dialog>
     </Box>
