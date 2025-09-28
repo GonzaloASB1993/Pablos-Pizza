@@ -147,6 +147,44 @@ const BookingsManagement = () => {
         special_requests: ''
     })
 
+    // Calculate estimated price based on service types and participants
+    const calculateEstimatedPrice = (serviceTypes, pizParams = 0, partyParams = 0, legacyParams = 0) => {
+        let totalPrice = 0
+        const services = serviceTypes ? serviceTypes.split(',').map(s => s.trim()).filter(s => s) : []
+
+        for (const service of services) {
+            if (service === 'workshop' || service === 'pizzeros') {
+                // Pizzeros en Acción pricing
+                const participants = pizParams > 0 ? pizParams : legacyParams
+                if (participants <= 0) continue
+
+                let serviceTotal = 0
+                if (participants <= 10) {
+                    serviceTotal = 13500  // Minimum charge
+                } else if (participants <= 14) {
+                    serviceTotal = participants * 10500
+                } else if (participants <= 19) {
+                    serviceTotal = participants * 9500
+                } else {
+                    serviceTotal = participants * 9000
+                }
+                totalPrice += serviceTotal
+
+            } else if (service === 'pizza_party' || service === 'party') {
+                // Pizza Party pricing
+                const participants = partyParams > 0 ? partyParams : legacyParams
+                if (participants <= 0) continue
+
+                const unitBase = 11990  // DEFAULT_PIZZA_PARTY_PRICE
+                const unitFinal = participants >= 20 ? Math.round(unitBase * 0.9) : unitBase
+                const serviceTotal = unitFinal * participants
+                totalPrice += serviceTotal
+            }
+        }
+
+        return Math.round(totalPrice)
+    }
+
     // Utility functions moved before their usage
     const getServiceLabel = (type) => {
         if (!type) return 'No especificado'
@@ -557,6 +595,7 @@ const BookingsManagement = () => {
 
     const handleEditClick = (booking) => {
         setSelectedBooking(booking)
+
 
         // Safe date processing
         let formattedDate = ''
@@ -1588,19 +1627,32 @@ const BookingsManagement = () => {
                             />
                         </Grid>
                         {/* Campos condicionales según tipo de servicio */}
-                        {(formData.service_type?.includes('workshop') || formData.service_type?.includes('pizzeros')) && (
+                        {formData.service_type?.includes('workshop') && (
                             <Grid item xs={12} sm={6}>
                                 <TextField
                                     fullWidth
                                     label="Pizzeros en Acción - Niños"
                                     value={formData.pizzeros_participants}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, pizzeros_participants: e.target.value }))}
+                                    onChange={(e) => {
+                                        const participants = parseInt(e.target.value || '0', 10)
+                                        const newPrice = calculateEstimatedPrice(
+                                            formData.service_type,
+                                            participants,
+                                            formData.pizza_quantity || formData.party_participants,
+                                            formData.participants
+                                        )
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            pizzeros_participants: participants,
+                                            estimated_price: newPrice
+                                        }))
+                                    }}
                                     type="number"
                                     helperText="Cantidad de niños participantes"
                                 />
                             </Grid>
                         )}
-                        {(formData.service_type?.includes('party') || formData.service_type?.includes('pizza_party')) && (
+                        {formData.service_type?.includes('pizza_party') && (
                             <>
                                 <Grid item xs={12} sm={6}>
                                     <TextField
@@ -1611,11 +1663,19 @@ const BookingsManagement = () => {
                                             const guests = parseInt(e.target.value || '0', 10)
                                             setFormData(prev => {
                                                 const suggested = guests > 0 ? calculateSuggestedPizzas(guests) : 0
+                                                const pizzaQuantity = Math.max(10, suggested)
+                                                const newPrice = calculateEstimatedPrice(
+                                                    prev.service_type,
+                                                    prev.pizzeros_participants,
+                                                    pizzaQuantity,
+                                                    prev.participants
+                                                )
                                                 return {
                                                     ...prev,
                                                     party_guests: guests,
-                                                    pizza_quantity: Math.max(10, suggested),
-                                                    party_participants: Math.max(10, suggested) // Para pricing
+                                                    pizza_quantity: pizzaQuantity,
+                                                    party_participants: pizzaQuantity, // Para pricing
+                                                    estimated_price: newPrice
                                                 }
                                             })
                                         }}
@@ -1630,11 +1690,21 @@ const BookingsManagement = () => {
                                         value={formData.pizza_quantity}
                                         onChange={(e) => {
                                             const quantity = parseInt(e.target.value || '10', 10)
-                                            setFormData(prev => ({
-                                                ...prev,
-                                                pizza_quantity: Math.max(10, quantity),
-                                                party_participants: Math.max(10, quantity) // Para pricing
-                                            }))
+                                            setFormData(prev => {
+                                                const finalQuantity = Math.max(10, quantity)
+                                                const newPrice = calculateEstimatedPrice(
+                                                    prev.service_type,
+                                                    prev.pizzeros_participants,
+                                                    finalQuantity,
+                                                    prev.participants
+                                                )
+                                                return {
+                                                    ...prev,
+                                                    pizza_quantity: finalQuantity,
+                                                    party_participants: finalQuantity, // Para pricing
+                                                    estimated_price: newPrice
+                                                }
+                                            })
                                         }}
                                         type="number"
                                         helperText="Mínimo 10 pizzas - Ajustable según necesidades"
@@ -1643,7 +1713,7 @@ const BookingsManagement = () => {
                             </>
                         )}
                         {/* Campo total solo para servicios mixtos */}
-                        {(formData.service_type?.includes('workshop') && formData.service_type?.includes('party')) && (
+                        {(formData.service_type?.includes('workshop') && formData.service_type?.includes('pizza_party')) && (
                             <Grid item xs={12} sm={6}>
                                 <TextField
                                     fullWidth

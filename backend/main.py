@@ -1177,11 +1177,13 @@ def create_booking():
             # Format participants info based on new structure
             participants_info = ""
             if booking_data.get('pizzeros_participants') and booking_data.get('party_participants'):
-                participants_info = f"Pizzeros: {booking_data['pizzeros_participants']} niños, Pizza Party: {booking_data['party_participants']} personas"
+                pizza_qty = booking_data.get('pizza_quantity', booking_data['party_participants'])
+                participants_info = f"Pizzeros: {booking_data['pizzeros_participants']} niños, Pizza Party: {pizza_qty} pizzas"
             elif booking_data.get('pizzeros_participants'):
-                participants_info = f"{booking_data['pizzeros_participants']} niños"
+                participants_info = f"{booking_data['pizzeros_participants']} niños (Pizzeros en Acción)"
             elif booking_data.get('party_participants'):
-                participants_info = f"{booking_data['party_participants']} personas"
+                pizza_qty = booking_data.get('pizza_quantity', booking_data['party_participants'])
+                participants_info = f"{pizza_qty} pizzas (Pizza Party)"
             else:
                 participants_info = f"{booking_data.get('participants', 'No especificado')}"
 
@@ -2586,11 +2588,13 @@ def update_booking(booking_id):
                 # Format participants info based on new structure
                 participants_info = ""
                 if updated_booking.get('pizzeros_participants') and updated_booking.get('party_participants'):
-                    participants_info = f"Pizzeros: {updated_booking['pizzeros_participants']}, Pizza Party: {updated_booking['party_participants']}"
+                    pizza_qty = updated_booking.get('pizza_quantity', updated_booking['party_participants'])
+                    participants_info = f"Pizzeros: {updated_booking['pizzeros_participants']} niños, Pizza Party: {pizza_qty} pizzas"
                 elif updated_booking.get('pizzeros_participants'):
-                    participants_info = f"{updated_booking['pizzeros_participants']} niños"
+                    participants_info = f"{updated_booking['pizzeros_participants']} niños (Pizzeros en Acción)"
                 elif updated_booking.get('party_participants'):
-                    participants_info = f"{updated_booking['party_participants']} personas"
+                    pizza_qty = updated_booking.get('pizza_quantity', updated_booking['party_participants'])
+                    participants_info = f"{pizza_qty} pizzas (Pizza Party)"
                 else:
                     participants_info = f"{updated_booking.get('participants', 'No especificado')}"
 
