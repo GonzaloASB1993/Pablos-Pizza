@@ -16,10 +16,10 @@ import {
   CircularProgress,
   Alert,
   Chip,
-  LinearProgress,
   Divider,
   IconButton,
-  Tooltip
+  Tooltip,
+  Stack
 } from '@mui/material'
 import {
   TrendingUp,
@@ -31,331 +31,384 @@ import {
   Assessment,
   FileDownload,
   Refresh,
-  DateRange,
   AttachMoney,
   Inventory,
-  ThumbUp,
   CalendarToday,
   ShowChart,
-  PieChart,
-  BarChart
+  Warning
 } from '@mui/icons-material'
-import { reportsAPI } from '../../services/api'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip as ChartTooltip,
+  Legend,
+  ArcElement
+} from 'chart.js'
+import { Line, Bar, Pie } from 'react-chartjs-2'
+import { reportsAPI, inventoryAPI } from '../../services/api'
 import toast from 'react-hot-toast'
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
-import { es } from 'date-fns/locale'
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  ChartTooltip,
+  Legend
+)
+
+// Enhanced KPI Card Component
+const KPICard = ({ title, value, subtitle, icon: Icon, trend, color = 'primary' }) => (
+  <Card sx={{ height: '100%', position: 'relative', overflow: 'visible' }}>
+    <CardContent>
+      <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+        <Box>
+          <Typography color="textSecondary" gutterBottom variant="body2">
+            {title}
+          </Typography>
+          <Typography variant="h4" component="div" color={color + '.main'}>
+            {value}
+          </Typography>
+          {subtitle && (
+            <Typography variant="body2" color="textSecondary">
+              {subtitle}
+            </Typography>
+          )}
+          {trend && (
+            <Box display="flex" alignItems="center" mt={1}>
+              {trend > 0 ? (
+                <TrendingUp color="success" fontSize="small" />
+              ) : (
+                <TrendingDown color="error" fontSize="small" />
+              )}
+              <Typography
+                variant="body2"
+                color={trend > 0 ? 'success.main' : 'error.main'}
+                ml={0.5}
+              >
+                {Math.abs(trend)}%
+              </Typography>
+            </Box>
+          )}
+        </Box>
+        <Box
+          sx={{
+            backgroundColor: color + '.main',
+            borderRadius: '50%',
+            p: 1,
+            color: 'white'
+          }}
+        >
+          <Icon />
+        </Box>
+      </Box>
+    </CardContent>
+  </Card>
+)
+
+// Alert Card Component
+const AlertCard = ({ title, count, severity = 'warning', icon: Icon, onClick }) => (
+  <Card
+    sx={{
+      cursor: onClick ? 'pointer' : 'default',
+      '&:hover': onClick ? { elevation: 4 } : {}
+    }}
+    onClick={onClick}
+  >
+    <CardContent>
+      <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box display="flex" alignItems="center">
+          <Icon color={severity} sx={{ mr: 1 }} />
+          <Box>
+            <Typography variant="body2" color="textSecondary">
+              {title}
+            </Typography>
+            <Typography variant="h6" color={severity + '.main'}>
+              {count}
+            </Typography>
+          </Box>
+        </Box>
+        <Chip
+          label={count}
+          color={severity}
+          size="small"
+        />
+      </Box>
+    </CardContent>
+  </Card>
+)
 
 export default function ReportsPage() {
   const [loading, setLoading] = useState(true)
   const [tabValue, setTabValue] = useState(0)
   const [selectedPeriod, setSelectedPeriod] = useState('current_month')
-  const [dashboardData, setDashboardData] = useState({
-    today: {
-      new_bookings: 0,
-      date: new Date().toISOString().split('T')[0]
-    },
-    current_month: {
-      month_name: format(new Date(), 'MMMM', { locale: es }),
-      events: 0,
-      income: 0,
-      profit: 0,
-      avg_rating: 0,
-      total_participants: 0
-    },
-    upcoming_events: 0,
-    alerts: {
-      low_stock_items: 0,
-      pending_reviews: 0,
-      overdue_payments: 0
-    },
-    growth: {
-      revenue_growth: 0,
-      event_growth: 0,
-      customer_growth: 0
-    }
-  })
-
-  const [monthlyData, setMonthlyData] = useState({
-    total_events: 0,
-    total_income: 0,
-    total_expenses: 0,
-    total_profit: 0,
-    avg_participants: 0,
-    most_popular_service: '',
-    client_retention_rate: 0,
-    revenue_by_service: {},
-    profit_margin: 0
-  })
+  const [dashboardData, setDashboardData] = useState(null)
+  const [monthlyData, setMonthlyData] = useState(null)
+  const [annualData, setAnnualData] = useState(null)
+  const [inventoryAlerts, setInventoryAlerts] = useState([])
+  const [topClients, setTopClients] = useState([])
 
   useEffect(() => {
-    loadDashboardData()
-    loadMonthlyData()
+    loadReportsData()
   }, [selectedPeriod])
 
-  const loadDashboardData = async () => {
+  const loadReportsData = async () => {
     try {
       setLoading(true)
-      const response = await reportsAPI.getDashboard()
-      setDashboardData(response.data)
+
+      // Load dashboard stats
+      const dashboardResponse = await reportsAPI.getDashboard()
+      setDashboardData(dashboardResponse.data)
+
+      // Load current month data
+      const currentDate = new Date()
+      const monthlyResponse = await reportsAPI.getMonthly(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1
+      )
+      setMonthlyData(monthlyResponse.data)
+
+      // Load annual data
+      const annualResponse = await reportsAPI.getAnnual(currentDate.getFullYear())
+      setAnnualData(annualResponse.data)
+
+      // Load inventory alerts
+      const inventoryResponse = await inventoryAPI.getAlerts()
+      setInventoryAlerts(inventoryResponse.data.alerts || [])
+
+      // Load top clients
+      const clientsResponse = await reportsAPI.getTopClients({ limit: 5 })
+      setTopClients(clientsResponse.data.clients || [])
+
     } catch (error) {
-      console.error('Error loading dashboard data:', error)
-      toast.error('Error al cargar datos del dashboard')
+      console.error('Error loading reports data:', error)
+      toast.error('Error al cargar datos de reportes')
     } finally {
       setLoading(false)
     }
   }
 
-  const loadMonthlyData = async () => {
+  const handleExportReport = async () => {
     try {
-      const now = new Date()
-      const year = now.getFullYear()
-      const month = now.getMonth() + 1
-      const response = await reportsAPI.getMonthly(year, month)
-      setMonthlyData(response.data)
+      const currentDate = new Date()
+      const response = await reportsAPI.exportMonthly(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1,
+        'excel'
+      )
+
+      // Create download link
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `reporte_mensual_${currentDate.getFullYear()}_${(currentDate.getMonth() + 1).toString().padStart(2, '0')}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      toast.success('Reporte exportado exitosamente')
     } catch (error) {
-      console.error('Error loading monthly data:', error)
+      console.error('Error exporting report:', error)
+      toast.error('Error al exportar reporte')
     }
   }
 
-  const KPICard = ({ title, value, subtitle, icon, color, trend, trendValue }) => (
-    <Card sx={{
-      height: '100%',
-      background: `linear-gradient(135deg, ${color}15, ${color}05)`,
-      border: `1px solid ${color}30`,
-      '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: `0 8px 25px ${color}20`
+  // Chart configurations
+  const getMonthlyTrendData = () => {
+    if (!annualData?.monthly_reports) return null
+
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+
+    return {
+      labels: months,
+      datasets: [
+        {
+          label: 'Ingresos',
+          data: annualData.monthly_reports.map(report => report.total_income),
+          borderColor: '#1976d2',
+          backgroundColor: 'rgba(25, 118, 210, 0.1)',
+          tension: 0.4,
+          fill: true
+        },
+        {
+          label: 'Gastos',
+          data: annualData.monthly_reports.map(report => report.total_expenses),
+          borderColor: '#d32f2f',
+          backgroundColor: 'rgba(211, 47, 47, 0.1)',
+          tension: 0.4,
+          fill: true
+        }
+      ]
+    }
+  }
+
+  const getServiceDistributionData = () => {
+    if (!annualData?.monthly_reports) return null
+
+    const serviceCount = {}
+    annualData.monthly_reports.forEach(report => {
+      if (report.most_popular_service !== 'N/A') {
+        serviceCount[report.most_popular_service] = (serviceCount[report.most_popular_service] || 0) + 1
+      }
+    })
+
+    return {
+      labels: Object.keys(serviceCount),
+      datasets: [{
+        data: Object.values(serviceCount),
+        backgroundColor: [
+          '#FF6384',
+          '#36A2EB',
+          '#FFCE56',
+          '#4BC0C0',
+          '#9966FF'
+        ]
+      }]
+    }
+  }
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
       },
-      transition: 'all 0.3s ease'
-    }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{
-            bgcolor: color,
-            borderRadius: '12px',
-            p: 1.5,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            {React.cloneElement(icon, { sx: { fontSize: 28, color: 'white' } })}
-          </Box>
-          {trend && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              {trend === 'up' ?
-                <TrendingUp sx={{ fontSize: 20, color: '#4caf50' }} /> :
-                <TrendingDown sx={{ fontSize: 20, color: '#f44336' }} />
-              }
-              <Typography variant="caption" sx={{
-                color: trend === 'up' ? '#4caf50' : '#f44336',
-                fontWeight: 600
-              }}>
-                {trendValue}%
-              </Typography>
-            </Box>
-          )}
-        </Box>
-        <Typography variant="h4" sx={{ fontWeight: 700, color: color, mb: 0.5 }}>
-          {value}
-        </Typography>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-          {title}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {subtitle}
-        </Typography>
-      </CardContent>
-    </Card>
-  )
-
-  const MetricCard = ({ title, value, change, changeLabel, icon, color }) => (
-    <Card sx={{ height: '100%' }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{
-            bgcolor: `${color}20`,
-            borderRadius: 2,
-            p: 1,
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            {React.cloneElement(icon, { sx: { fontSize: 24, color } })}
-          </Box>
-          <Chip
-            label={`${change > 0 ? '+' : ''}${change}%`}
-            size="small"
-            sx={{
-              bgcolor: change >= 0 ? '#e8f5e8' : '#ffebee',
-              color: change >= 0 ? '#4caf50' : '#f44336',
-              fontWeight: 600
-            }}
-          />
-        </Box>
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-          {value}
-        </Typography>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
-          {title}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {changeLabel}
-        </Typography>
-      </CardContent>
-    </Card>
-  )
-
-  const ProgressCard = ({ title, current, target, unit, color }) => {
-    const percentage = (current / target) * 100
-    return (
-      <Card>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            {title}
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-            <Typography variant="h4" sx={{ fontWeight: 700, color }}>
-              {current.toLocaleString()}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              / {target.toLocaleString()} {unit}
-            </Typography>
-          </Box>
-          <LinearProgress
-            variant="determinate"
-            value={Math.min(percentage, 100)}
-            sx={{
-              height: 8,
-              borderRadius: 4,
-              bgcolor: `${color}20`,
-              '& .MuiLinearProgress-bar': {
-                bgcolor: color,
-                borderRadius: 4
-              }
-            }}
-          />
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            {percentage.toFixed(1)}% del objetivo mensual
-          </Typography>
-        </CardContent>
-      </Card>
-    )
+      title: {
+        display: false,
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(value) {
+            return new Intl.NumberFormat('es-CL', {
+              style: 'currency',
+              currency: 'CLP',
+              minimumFractionDigits: 0
+            }).format(value)
+          }
+        }
+      }
+    }
   }
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-        <CircularProgress size={60} />
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
       </Box>
     )
   }
 
   return (
-    <Box>
+    <Box sx={{ flexGrow: 1, p: 3 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>
-          📊 Reportes y Analytics
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4" gutterBottom>
+          📊 Reportes Financieros
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Período</InputLabel>
-            <Select
-              value={selectedPeriod}
-              label="Período"
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-            >
-              <MenuItem value="current_month">Mes Actual</MenuItem>
-              <MenuItem value="last_month">Mes Anterior</MenuItem>
-              <MenuItem value="quarter">Trimestre</MenuItem>
-              <MenuItem value="year">Año</MenuItem>
-            </Select>
-          </FormControl>
+        <Stack direction="row" spacing={2}>
           <Tooltip title="Actualizar datos">
-            <IconButton onClick={loadDashboardData}>
+            <IconButton onClick={loadReportsData}>
               <Refresh />
             </IconButton>
           </Tooltip>
           <Button
             variant="contained"
             startIcon={<FileDownload />}
-            sx={{ bgcolor: '#FFD700', color: '#000', '&:hover': { bgcolor: '#E6C200' } }}
+            onClick={handleExportReport}
           >
-            Exportar
+            Exportar Excel
           </Button>
-        </Box>
+        </Stack>
       </Box>
 
       {/* KPI Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={3} mb={4}>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Ingresos del Mes"
-            value={`$${dashboardData.current_month.income.toLocaleString()}`}
-            subtitle={`${dashboardData.current_month.month_name} ${new Date().getFullYear()}`}
-            icon={<AttachMoney />}
-            color="#4caf50"
-            trend="up"
-            trendValue={dashboardData.growth.revenue_growth}
+            value={new Intl.NumberFormat('es-CL', {
+              style: 'currency',
+              currency: 'CLP',
+              minimumFractionDigits: 0
+            }).format(dashboardData?.current_month?.income || 0)}
+            subtitle={dashboardData?.current_month?.month_name || ''}
+            icon={AttachMoney}
+            color="success"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Eventos Realizados"
-            value={dashboardData.current_month.events}
-            subtitle={`${dashboardData.upcoming_events} próximos eventos`}
-            icon={<Event />}
-            color="#2196f3"
-            trend="up"
-            trendValue={dashboardData.growth.event_growth}
+            value={dashboardData?.current_month?.events || 0}
+            subtitle="Este mes"
+            icon={Event}
+            color="primary"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
-            title="Satisfacción Cliente"
-            value={`${dashboardData.current_month.avg_rating.toFixed(1)}/5`}
-            subtitle="Promedio de calificaciones"
-            icon={<Star />}
-            color="#ff9800"
-            trend="up"
-            trendValue="2.5"
+            title="Utilidad del Mes"
+            value={new Intl.NumberFormat('es-CL', {
+              style: 'currency',
+              currency: 'CLP',
+              minimumFractionDigits: 0
+            }).format(dashboardData?.current_month?.profit || 0)}
+            subtitle="Ganancia neta"
+            icon={TrendingUp}
+            color="warning"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
-            title="Participantes Total"
-            value={dashboardData.current_month.total_participants}
-            subtitle="En eventos del mes"
-            icon={<People />}
-            color="#9c27b0"
-            trend="up"
-            trendValue={dashboardData.growth.customer_growth}
+            title="Próximos Eventos"
+            value={dashboardData?.upcoming_events || 0}
+            subtitle="Próximos 7 días"
+            icon={CalendarToday}
+            color="info"
           />
         </Grid>
       </Grid>
 
-      {/* Alerts Section */}
-      {(dashboardData.alerts.low_stock_items > 0 || dashboardData.alerts.pending_reviews > 0) && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-            Atención requerida:
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {dashboardData.alerts.low_stock_items > 0 && (
-              <Chip
-                label={`${dashboardData.alerts.low_stock_items} items con stock bajo`}
-                color="warning"
-                size="small"
+      {/* Alerts */}
+      {(inventoryAlerts.length > 0 || (dashboardData?.alerts?.pending_reviews > 0)) && (
+        <Grid container spacing={2} mb={4}>
+          {inventoryAlerts.length > 0 && (
+            <Grid item xs={12} sm={6}>
+              <AlertCard
+                title="Items con Stock Bajo"
+                count={inventoryAlerts.length}
+                severity="warning"
+                icon={Inventory}
               />
-            )}
-            {dashboardData.alerts.pending_reviews > 0 && (
-              <Chip
-                label={`${dashboardData.alerts.pending_reviews} reseñas pendientes`}
-                color="info"
-                size="small"
+            </Grid>
+          )}
+          {dashboardData?.alerts?.pending_reviews > 0 && (
+            <Grid item xs={12} sm={6}>
+              <AlertCard
+                title="Reseñas Pendientes"
+                count={dashboardData.alerts.pending_reviews}
+                severity="info"
+                icon={Star}
               />
-            )}
-          </Box>
-        </Alert>
+            </Grid>
+          )}
+        </Grid>
       )}
 
       {/* Tabs */}
@@ -363,109 +416,112 @@ export default function ReportsPage() {
         <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
           <Tab label="Resumen Ejecutivo" icon={<Assessment />} />
           <Tab label="Análisis Financiero" icon={<ShowChart />} />
-          <Tab label="Clientes y Satisfacción" icon={<People />} />
-          <Tab label="Operaciones" icon={<BarChart />} />
+          <Tab label="Clientes Top" icon={<People />} />
+          <Tab label="Operaciones" icon={<Inventory />} />
         </Tabs>
       </Paper>
 
       {/* Tab Content */}
       {tabValue === 0 && (
         <Grid container spacing={3}>
-          {/* Progress Cards */}
-          <Grid item xs={12} md={4}>
-            <ProgressCard
-              title="Meta de Ingresos"
-              current={dashboardData.current_month.income}
-              target={50000}
-              unit="pesos"
-              color="#4caf50"
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <ProgressCard
-              title="Meta de Eventos"
-              current={dashboardData.current_month.events}
-              target={25}
-              unit="eventos"
-              color="#2196f3"
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <ProgressCard
-              title="Meta de Participantes"
-              current={dashboardData.current_month.total_participants}
-              target={300}
-              unit="personas"
-              color="#9c27b0"
-            />
-          </Grid>
-
-          {/* Quick Metrics */}
-          <Grid item xs={12} md={6}>
+          {/* Monthly Performance */}
+          <Grid item xs={12} lg={8}>
             <Card>
               <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                  Métricas Rápidas
+                <Typography variant="h6" gutterBottom>
+                  Tendencia Mensual - Ingresos vs Gastos
                 </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Box sx={{ textAlign: 'center', p: 2 }}>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#4caf50' }}>
-                        ${monthlyData.profit_margin?.toFixed(1) || '0'}%
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Margen de Ganancia
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Box sx={{ textAlign: 'center', p: 2 }}>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#2196f3' }}>
-                        {monthlyData.avg_participants?.toFixed(1) || '0'}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Promedio por Evento
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Box sx={{ textAlign: 'center', p: 2 }}>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#ff9800' }}>
-                        {monthlyData.client_retention_rate?.toFixed(1) || '0'}%
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Retención de Clientes
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Box sx={{ textAlign: 'center', p: 2 }}>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: '#9c27b0' }}>
-                        {monthlyData.most_popular_service === 'workshop' ? 'Talleres' : 'Fiestas'}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Servicio Más Popular
-                      </Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
+                {getMonthlyTrendData() && (
+                  <Line data={getMonthlyTrendData()} options={chartOptions} />
+                )}
               </CardContent>
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          {/* Service Distribution */}
+          <Grid item xs={12} lg={4}>
             <Card>
               <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                  Tendencias del Negocio
+                <Typography variant="h6" gutterBottom>
+                  Distribución de Servicios
                 </Typography>
-                <Box sx={{ height: 250, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="body1" color="text.secondary">
-                    📈 Gráfico de tendencias de ingresos
-                    <br />
-                    (Implementar con Chart.js)
-                  </Typography>
-                </Box>
+                {getServiceDistributionData() && (
+                  <Pie
+                    data={getServiceDistributionData()}
+                    options={{
+                      responsive: true,
+                      plugins: {
+                        legend: {
+                          position: 'bottom',
+                        }
+                      }
+                    }}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Monthly Summary */}
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Resumen del Mes Actual
+                </Typography>
+                {monthlyData && (
+                  <Grid container spacing={2}>
+                    <Grid item xs={6} md={2}>
+                      <Typography variant="body2" color="textSecondary">
+                        Total Eventos
+                      </Typography>
+                      <Typography variant="h6">
+                        {monthlyData.total_events}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6} md={2}>
+                      <Typography variant="body2" color="textSecondary">
+                        Participantes Promedio
+                      </Typography>
+                      <Typography variant="h6">
+                        {monthlyData.avg_participants}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6} md={3}>
+                      <Typography variant="body2" color="textSecondary">
+                        Servicio Más Popular
+                      </Typography>
+                      <Typography variant="h6">
+                        {monthlyData.most_popular_service}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6} md={2}>
+                      <Typography variant="body2" color="textSecondary">
+                        Retención de Clientes
+                      </Typography>
+                      <Typography variant="h6">
+                        {monthlyData.client_retention_rate}%
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <Typography variant="body2" color="textSecondary">
+                        Margen de Utilidad
+                      </Typography>
+                      <Typography variant="h6" color={
+                        monthlyData.total_income > 0
+                          ? (monthlyData.total_profit / monthlyData.total_income * 100) > 20
+                            ? 'success.main'
+                            : 'warning.main'
+                          : 'error.main'
+                      }>
+                        {monthlyData.total_income > 0
+                          ? `${((monthlyData.total_profit / monthlyData.total_income) * 100).toFixed(1)}%`
+                          : '0%'
+                        }
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -474,39 +530,61 @@ export default function ReportsPage() {
 
       {tabValue === 1 && (
         <Grid container spacing={3}>
-          <Grid item xs={12} md={8}>
+          {/* Annual Financial Summary */}
+          <Grid item xs={12}>
             <Card>
               <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                  Análisis de Ingresos vs Gastos
+                <Typography variant="h6" gutterBottom>
+                  Resumen Financiero Anual
                 </Typography>
-                <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="body1" color="text.secondary">
-                    📊 Gráfico de barras comparativo
-                    <br />
-                    Ingresos: ${monthlyData.total_income?.toLocaleString() || '0'}
-                    <br />
-                    Gastos: ${monthlyData.total_expenses?.toLocaleString() || '0'}
-                    <br />
-                    Ganancia: ${monthlyData.total_profit?.toLocaleString() || '0'}
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                  Distribución de Ingresos
-                </Typography>
-                <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="body1" color="text.secondary">
-                    🥧 Gráfico circular
-                    <br />
-                    Por tipo de servicio
-                  </Typography>
-                </Box>
+                {annualData?.annual_totals && (
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={3}>
+                      <Typography variant="body2" color="textSecondary">
+                        Ingresos Totales
+                      </Typography>
+                      <Typography variant="h5" color="success.main">
+                        {new Intl.NumberFormat('es-CL', {
+                          style: 'currency',
+                          currency: 'CLP',
+                          minimumFractionDigits: 0
+                        }).format(annualData.annual_totals.total_income)}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <Typography variant="body2" color="textSecondary">
+                        Gastos Totales
+                      </Typography>
+                      <Typography variant="h5" color="error.main">
+                        {new Intl.NumberFormat('es-CL', {
+                          style: 'currency',
+                          currency: 'CLP',
+                          minimumFractionDigits: 0
+                        }).format(annualData.annual_totals.total_expenses)}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <Typography variant="body2" color="textSecondary">
+                        Utilidad Total
+                      </Typography>
+                      <Typography variant="h5" color="primary.main">
+                        {new Intl.NumberFormat('es-CL', {
+                          style: 'currency',
+                          currency: 'CLP',
+                          minimumFractionDigits: 0
+                        }).format(annualData.annual_totals.total_profit)}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <Typography variant="body2" color="textSecondary">
+                        Total Eventos
+                      </Typography>
+                      <Typography variant="h5">
+                        {annualData.annual_totals.total_events}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -515,47 +593,39 @@ export default function ReportsPage() {
 
       {tabValue === 2 && (
         <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
-            <MetricCard
-              title="Clientes Nuevos"
-              value="23"
-              change={15}
-              changeLabel="vs mes anterior"
-              icon={<People />}
-              color="#2196f3"
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <MetricCard
-              title="Clientes Recurrentes"
-              value="18"
-              change={8}
-              changeLabel="vs mes anterior"
-              icon={<ThumbUp />}
-              color="#4caf50"
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <MetricCard
-              title="Satisfacción Promedio"
-              value={`${dashboardData.current_month.avg_rating.toFixed(1)}/5`}
-              change={5}
-              changeLabel="vs mes anterior"
-              icon={<Star />}
-              color="#ff9800"
-            />
-          </Grid>
           <Grid item xs={12}>
             <Card>
               <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                  Análisis de Satisfacción del Cliente
+                <Typography variant="h6" gutterBottom>
+                  Clientes Más Frecuentes
                 </Typography>
-                <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="body1" color="text.secondary">
-                    ⭐ Distribución de calificaciones y comentarios destacados
-                  </Typography>
-                </Box>
+                {topClients.map((client, index) => (
+                  <Box key={client.email} mb={2}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                      <Box>
+                        <Typography variant="subtitle1">
+                          {client.name}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {client.email}
+                        </Typography>
+                      </Box>
+                      <Box textAlign="right">
+                        <Typography variant="h6">
+                          {client.total_bookings} eventos
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {new Intl.NumberFormat('es-CL', {
+                            style: 'currency',
+                            currency: 'CLP',
+                            minimumFractionDigits: 0
+                          }).format(client.total_spent)}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    {index < topClients.length - 1 && <Divider sx={{ mt: 2 }} />}
+                  </Box>
+                ))}
               </CardContent>
             </Card>
           </Grid>
@@ -564,52 +634,46 @@ export default function ReportsPage() {
 
       {tabValue === 3 && (
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <Card>
               <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                  Eficiencia Operacional
+                <Typography variant="h6" gutterBottom>
+                  Alertas de Inventario
                 </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, bgcolor: '#f5f5f5', borderRadius: 2, mb: 2 }}>
-                      <Typography variant="body1">Tasa de Conversión</Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: '#4caf50' }}>
-                        85%
-                      </Typography>
+                {inventoryAlerts.length > 0 ? (
+                  inventoryAlerts.map((alert, index) => (
+                    <Box key={alert.id} mb={2}>
+                      <Box display="flex" alignItems="center" justifyContent="space-between">
+                        <Box display="flex" alignItems="center">
+                          <Warning color="warning" sx={{ mr: 1 }} />
+                          <Box>
+                            <Typography variant="subtitle1">
+                              {alert.name}
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary">
+                              {alert.category} - {alert.unit}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Box textAlign="right">
+                          <Typography variant="h6" color="warning.main">
+                            {alert.current_stock} / {alert.min_stock}
+                          </Typography>
+                          <Chip
+                            label={alert.priority}
+                            color={alert.priority === 'high' ? 'error' : 'warning'}
+                            size="small"
+                          />
+                        </Box>
+                      </Box>
+                      {index < inventoryAlerts.length - 1 && <Divider sx={{ mt: 2 }} />}
                     </Box>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, bgcolor: '#f5f5f5', borderRadius: 2, mb: 2 }}>
-                      <Typography variant="body1">Tiempo de Respuesta Promedio</Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: '#2196f3' }}>
-                        2.3h
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
-                      <Typography variant="body1">Tasa de Cancelación</Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: '#ff9800' }}>
-                        8%
-                      </Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                  Calendario de Eventos
-                </Typography>
-                <Box sx={{ height: 250, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="body1" color="text.secondary">
-                    📅 Vista de calendario con eventos próximos
-                  </Typography>
-                </Box>
+                  ))
+                ) : (
+                  <Alert severity="success">
+                    No hay alertas de inventario pendientes
+                  </Alert>
+                )}
               </CardContent>
             </Card>
           </Grid>
