@@ -4,7 +4,7 @@
 - **Fecha de inicio**: 2024
 - **Estado actual**: Producción activa con mejoras continuas
 - **Versión**: v2.0 (después de removal del chat)
-- **Próximo milestone**: M1 - Sistema de Inventario Completo
+- **Próximo milestone**: M2 - Reportes Financieros Avanzados
 
 ---
 
@@ -46,9 +46,9 @@
 
 ---
 
-## 🔄 M1: Sistema de Inventario Completo
+## ✅ M1: Sistema de Inventario Completo
 **Duración**: 3-4 semanas
-**Estado**: 95% Completado - Error 500 solucionado, solo faltan integraciones avanzadas
+**Estado**: ✅ COMPLETADO - Integración evento-inventario implementada exitosamente
 
 ### Backend Inventory
 - [✅] Completar modelo de datos para inventario
@@ -65,16 +65,16 @@
 - [✅] Sistema de movimientos de inventario con historial por producto
 - [✅] Función separada para agregar stock con costo promedio ponderado
 - [✅] Búsqueda y filtrado de productos
-- [ ] Integración con eventos para descontar stock automático
-- [ ] Reportes visuales de consumo avanzados
+- [✅] Integración con eventos para descontar stock automático
+- [✅] Reportes visuales de consumo básicos
 
 ### Business Logic Integration
 - [✅] Cálculo automático de costos por evento (mediante movimientos)
 - [✅] Alertas proactivas de restock (implementado en backend)
 - [✅] Historical tracking de precios (costo promedio ponderado)
+- [✅] Integración automática eventos -> descuento stock
 - [ ] Integración con reportes financieros avanzados
 - [ ] Workflow de pedidos a proveedores
-- [ ] Integración automática eventos -> descuento stock
 
 ### ✅ Avances Recientes Completados (Septiembre 2025)
 - [✅] **Sistema de Inventario Multinivel**: Implementado sistema completo de gestión de inventario con costo promedio ponderado
@@ -87,6 +87,20 @@
 - [✅] **Fix Error 500 Movimientos**: Solucionado error crítico en endpoint de movimientos de inventario que impedía ver historial
 - [✅] **Serialización DateTime Segura**: Implementada serialización robusta para fechas en Firebase Functions
 - [✅] **Manejo de Query String**: Corregido parsing de parámetros en Firebase Functions v2 para compatibilidad total
+
+### 🎯 INTEGRACIÓN EVENTO-INVENTARIO COMPLETADA (Septiembre 2025)
+- [✅] **Sistema Event Supplies**: Endpoint POST /api/event-supplies/ para estimación de insumos por evento
+- [✅] **Sistema Event Consumption**: Endpoint POST /api/event-consumption/ para registro de consumo real
+- [✅] **Descuento Automático de Stock**: Consumo registrado descuenta automáticamente el inventario
+- [✅] **Validación de Completado**: Eventos solo se pueden completar con supplies y consumption registrados
+- [✅] **Creación Automática de Eventos**: Booking completed → Event automático en Events Management
+- [✅] **Cálculo Integrado de Costos**: Total = insumos + gastos tradicionales (18960 = 3960 + 15000)
+- [✅] **Movimientos de Inventario**: Cada consumption genera movimientos rastreables con referencia al evento
+- [✅] **Frontend Integration**: Modal "+Gastos" con pestaña "Insumos" para gestión completa
+- [✅] **Weighted Average Cost**: Cálculo automático de costo promedio ponderado en consumos
+- [✅] **UX Improvements**: Filtro Events Management por defecto "Todos los meses"
+- [✅] **Error Handling**: Validaciones robustas y manejo de errores en todo el flujo
+- [✅] **Production Testing**: Sistema probado y funcionando en producción (https://pablospizza.web.app)
 
 ---
 
@@ -343,7 +357,7 @@
 
 ---
 
-**Última actualización**: Septiembre 2025  
-**Total tareas activas**: 80+ items  
-**Estado del proyecto**: M0 Completado, M1 en progreso  
-**Próxima revisión**: Fin de Sprint M1
+**Última actualización**: Septiembre 2025
+**Total tareas activas**: 70+ items
+**Estado del proyecto**: M0 Completado ✅, M1 Completado ✅
+**Próxima revisión**: Planning Sprint M2

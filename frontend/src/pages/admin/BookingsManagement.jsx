@@ -55,7 +55,7 @@ import {
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { bookingsAPI, eventsAPI } from '../../services/api'
+import { bookingsAPI, eventsAPI, inventoryAPI, eventSuppliesAPI, eventConsumptionAPI } from '../../services/api'
 import { formatCurrency, formatStock, safeFormatCost, formatDateTime } from '../../utils/formatters'
 import toast from 'react-hot-toast'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
@@ -97,6 +97,21 @@ const BookingsManagement = () => {
         amount: '',
         category: 'ingredientes'
     })
+
+    // States for integrated supplies and consumption management
+    const [costTabValue, setCostTabValue] = useState(0) // 0: gastos, 1: insumos
+    const [inventoryItems, setInventoryItems] = useState([])
+    const [integratedSupplies, setIntegratedSupplies] = useState({
+        items: [], // Each item has: estimated_quantity, actual_quantity_consumed, item_id, etc.
+        notes: '',
+        consumption_notes: ''
+    })
+    const [supplyStatus, setSupplyStatus] = useState({
+        has_supplies: false,
+        has_consumption: false,
+        can_complete_event: false
+    })
+    const [loadingSupplies, setLoadingSupplies] = useState(false)
     const [formData, setFormData] = useState({
         status: '',
         notes: '',
@@ -280,6 +295,254 @@ const BookingsManagement = () => {
         }
     }
 
+    // Helper function to calculate total cost (supplies + expenses)
+    const calculateTotalCost = (booking) => {
+        const accumulatedExpenses = (booking.expenses || []).reduce((sum, expense) => sum + expense.amount, 0)
+        const supplyCost = booking.financials?.total_expenses || 0
+        return supplyCost + accumulatedExpenses || booking.event_cost || 0
+    }
+
+    // Load inventory items for supplies management
+    const loadInventoryItems = async () => {
+        try {
+            const response = await inventoryAPI.getAll()
+            setInventoryItems(response.data || [])
+        } catch (error) {
+            console.error('Error loading inventory:', error)
+            toast.error('Error al cargar inventario')
+        }
+    }
+
+    // Load supply status for a booking
+    const loadSupplyStatus = async (bookingId) => {
+        try {
+            setLoadingSupplies(true)
+            const response = await eventSuppliesAPI.getStatus(bookingId)
+            setSupplyStatus(response.data)
+
+            // Merge supplies and consumption data into integrated structure
+            let integratedItems = []
+
+            if (response.data.has_supplies && response.data.supplies) {
+                // Start with supplies data (estimated quantities)
+                integratedItems = response.data.supplies.items.map(supplyItem => ({
+                    item_id: supplyItem.item_id,
+                    item_name: supplyItem.item_name,
+                    estimated_quantity: supplyItem.estimated_quantity,
+                    actual_quantity_consumed: 0, // Will be filled from consumption if exists
+                    unit: supplyItem.unit,
+                    cost_per_unit: supplyItem.cost_per_unit,
+                    estimated_total_cost: supplyItem.estimated_total_cost,
+                    actual_total_cost: 0,
+                    variance: 0,
+                    batch_id: supplyItem.batch_id
+                }))
+            }
+
+            if (response.data.has_consumption && response.data.consumption) {
+                // Merge consumption data with supplies
+                const consumptionItems = response.data.consumption.items_consumed
+
+                consumptionItems.forEach(consItem => {
+                    const existingItemIndex = integratedItems.findIndex(item => item.item_id === consItem.item_id)
+
+                    if (existingItemIndex >= 0) {
+                        // Update existing item with consumption data
+                        integratedItems[existingItemIndex].actual_quantity_consumed = consItem.actual_quantity_consumed
+                        integratedItems[existingItemIndex].actual_total_cost = consItem.total_cost
+                        integratedItems[existingItemIndex].variance = consItem.variance || 0
+                    } else {
+                        // Add consumption-only item (if somehow not in supplies)
+                        integratedItems.push({
+                            item_id: consItem.item_id,
+                            item_name: consItem.item_name,
+                            estimated_quantity: consItem.estimated_quantity || 0,
+                            actual_quantity_consumed: consItem.actual_quantity_consumed,
+                            unit: consItem.unit,
+                            cost_per_unit: consItem.cost_per_unit,
+                            estimated_total_cost: 0,
+                            actual_total_cost: consItem.total_cost,
+                            variance: consItem.variance || 0,
+                            batch_id: consItem.batch_id
+                        })
+                    }
+                })
+            }
+
+            setIntegratedSupplies({
+                items: integratedItems,
+                notes: response.data.supplies?.notes || '',
+                consumption_notes: response.data.consumption?.notes || ''
+            })
+        } catch (error) {
+            console.error('Error loading supply status:', error)
+            setSupplyStatus({
+                has_supplies: false,
+                has_consumption: false,
+                can_complete_event: false
+            })
+        } finally {
+            setLoadingSupplies(false)
+        }
+    }
+
+    // Add item to integrated supplies
+    const handleAddSupplyItem = () => {
+        setIntegratedSupplies(prev => ({
+            ...prev,
+            items: [...prev.items, {
+                item_id: '',
+                item_name: '',
+                estimated_quantity: 0,
+                actual_quantity_consumed: 0,
+                unit: '',
+                cost_per_unit: 0,
+                estimated_total_cost: 0,
+                actual_total_cost: 0,
+                variance: 0,
+                batch_id: null
+            }]
+        }))
+    }
+
+    // Remove item from supplies
+    const handleRemoveSupplyItem = (index) => {
+        setIntegratedSupplies(prev => ({
+            ...prev,
+            items: prev.items.filter((_, i) => i !== index)
+        }))
+    }
+
+    // Update integrated supply item
+    const handleSupplyItemChange = (index, field, value) => {
+        setIntegratedSupplies(prev => {
+            const newItems = [...prev.items]
+            const item = { ...newItems[index] }
+
+            if (field === 'item_id') {
+                const inventoryItem = inventoryItems.find(inv => inv.id === value)
+                if (inventoryItem) {
+                    item.item_id = value
+                    item.item_name = inventoryItem.name
+                    item.unit = inventoryItem.unit
+                    item.cost_per_unit = inventoryItem.weighted_avg_cost || inventoryItem.cost_per_unit || 0
+                    // Recalculate costs
+                    item.estimated_total_cost = item.estimated_quantity * item.cost_per_unit
+                    item.actual_total_cost = item.actual_quantity_consumed * item.cost_per_unit
+                }
+            } else if (field === 'estimated_quantity') {
+                item[field] = parseFloat(value) || 0
+                item.estimated_total_cost = item.estimated_quantity * item.cost_per_unit
+                // Update variance
+                item.variance = item.actual_quantity_consumed - item.estimated_quantity
+            } else if (field === 'actual_quantity_consumed') {
+                item[field] = parseFloat(value) || 0
+                item.actual_total_cost = item.actual_quantity_consumed * item.cost_per_unit
+                // Update variance
+                item.variance = item.actual_quantity_consumed - item.estimated_quantity
+            } else {
+                item[field] = value
+            }
+
+            newItems[index] = item
+            return { ...prev, items: newItems }
+        })
+    }
+
+    // Save supplies estimation
+    const handleSaveSupplies = async () => {
+        try {
+            if (!selectedBooking) return
+
+            // Validate items
+            const validItems = integratedSupplies.items.filter(item =>
+                item.item_id && item.estimated_quantity > 0
+            )
+
+            if (validItems.length === 0) {
+                toast.error('Agrega al menos un insumo válido')
+                return
+            }
+
+            const suppliesPayload = {
+                booking_id: selectedBooking.id,
+                items: validItems.map(item => ({
+                    item_id: item.item_id,
+                    estimated_quantity: item.estimated_quantity,
+                    batch_id: item.batch_id || null,
+                    notes: item.notes || ''
+                })),
+                notes: integratedSupplies.notes
+            }
+
+            if (supplyStatus.has_supplies) {
+                // Update existing supplies
+                await eventSuppliesAPI.update(supplyStatus.supplies.id, suppliesPayload)
+                toast.success('Insumos estimados actualizados exitosamente')
+            } else {
+                // Create new supplies
+                await eventSuppliesAPI.create(suppliesPayload)
+                toast.success('Insumos estimados guardados exitosamente')
+            }
+
+            // Reload supply status
+            await loadSupplyStatus(selectedBooking.id)
+        } catch (error) {
+            console.error('Error saving supplies:', error)
+            toast.error('Error al guardar insumos: ' + (error.response?.data?.error || error.message))
+        }
+    }
+
+    // Save consumption (confirmed quantities)
+    const handleSaveConsumption = async () => {
+        try {
+            if (!selectedBooking) return
+
+            // Validate that we have consumption data
+            const itemsWithConsumption = integratedSupplies.items.filter(item =>
+                item.item_id && item.actual_quantity_consumed > 0
+            )
+
+            if (itemsWithConsumption.length === 0) {
+                toast.error('Agrega las cantidades consumidas')
+                return
+            }
+
+            const consumptionPayload = {
+                booking_id: selectedBooking.id,
+                items_consumed: itemsWithConsumption.map(item => ({
+                    item_id: item.item_id,
+                    actual_quantity_consumed: item.actual_quantity_consumed,
+                    batch_id: item.batch_id || null
+                })),
+                total_other_expenses: parseFloat(costData.event_cost) || 0,
+                notes: integratedSupplies.consumption_notes
+            }
+
+            await eventConsumptionAPI.create(consumptionPayload)
+            toast.success('Consumo registrado exitosamente')
+
+            // Reload supply status and bookings to get updated financials
+            await loadSupplyStatus(selectedBooking.id)
+            await loadBookings()
+        } catch (error) {
+            console.error('Error saving consumption:', error)
+            toast.error('Error al registrar consumo: ' + (error.response?.data?.error || error.message))
+        }
+    }
+
+    // Calculate total costs
+    const getTotalEstimatedCost = () => {
+        return integratedSupplies.items.reduce((total, item) => {
+            return total + (item.estimated_total_cost || 0)
+        }, 0)
+    }
+
+    const getTotalActualCost = () => {
+        return integratedSupplies.items.reduce((total, item) => {
+            return total + (item.actual_total_cost || 0)
+        }, 0)
+    }
 
     const handleEditClick = (booking) => {
         setSelectedBooking(booking)
@@ -394,15 +657,24 @@ const BookingsManagement = () => {
         }
     }
 
-    const handleOpenCostDialog = (booking) => {
+    const handleOpenCostDialog = async (booking) => {
         setSelectedBooking(booking)
-        // Calculate accumulated expenses from expenses array
-        const accumulatedExpenses = (booking.expenses || []).reduce((sum, expense) => sum + expense.amount, 0)
+
+        // Calculate total cost using helper function
+        const totalCostWithSupplies = calculateTotalCost(booking)
+
         setCostData({
-            event_cost: accumulatedExpenses || booking.event_cost || '',
+            event_cost: totalCostWithSupplies,
             event_profit: booking.estimated_price || '',
             notes: ''
         })
+
+        // Load inventory and supply status
+        await loadInventoryItems()
+        await loadSupplyStatus(booking.id)
+
+        // Reset tab to gastos (expenses) by default
+        setCostTabValue(0)
         setCostDialog(true)
     }
 
@@ -454,8 +726,12 @@ const BookingsManagement = () => {
 
             await bookingsAPI.update(selectedBooking.id, updateData)
 
+            // Update selectedBooking with new data to reflect changes immediately
+            const updatedBooking = { ...selectedBooking, ...updateData }
+            setSelectedBooking(updatedBooking)
+
             toast.success('Gasto agregado correctamente')
-            setExpenseDialog(false)
+            // Don't close dialog - setExpenseDialog(false) removed for better UX
             setExpenseData({ description: '', amount: '', category: 'ingredientes' })
             loadBookings()
         } catch (error) {
@@ -501,6 +777,10 @@ const BookingsManagement = () => {
 
             await bookingsAPI.update(selectedBooking.id, updateData)
 
+            // Update selectedBooking with new data to reflect changes immediately
+            const updatedBooking = { ...selectedBooking, ...updateData }
+            setSelectedBooking(updatedBooking)
+
             toast.success('Gasto actualizado correctamente')
             setEditExpenseDialog(false)
             setExpenseData({ description: '', amount: '', category: 'ingredientes' })
@@ -529,6 +809,10 @@ const BookingsManagement = () => {
 
             await bookingsAPI.update(selectedBooking.id, updateData)
 
+            // Update selectedBooking with new data to reflect changes immediately
+            const updatedBooking = { ...selectedBooking, ...updateData }
+            setSelectedBooking(updatedBooking)
+
             toast.success('Gasto eliminado correctamente')
             loadBookings()
         } catch (error) {
@@ -537,8 +821,15 @@ const BookingsManagement = () => {
         }
     }
 
-    const handleOpenExpenseDialog = (booking) => {
+    const handleOpenExpenseDialog = async (booking) => {
         setSelectedBooking(booking)
+
+        // Load inventory and supply status for the enhanced expense dialog
+        await loadInventoryItems()
+        await loadSupplyStatus(booking.id)
+
+        // Reset to expenses tab by default
+        setCostTabValue(0)
         setExpenseDialog(true)
     }
 
@@ -1100,8 +1391,8 @@ const BookingsManagement = () => {
                                                 </Typography>
                                             </TableCell>
                                             <TableCell>
-                                                <Typography variant="body2" color={booking.event_cost ? 'text.primary' : 'text.secondary'}>
-                                                    ${booking.event_cost ? booking.event_cost.toLocaleString() : '-'}
+                                                <Typography variant="body2" color={calculateTotalCost(booking) ? 'text.primary' : 'text.secondary'}>
+                                                    ${calculateTotalCost(booking) ? calculateTotalCost(booking).toLocaleString() : '-'}
                                                 </Typography>
                                             </TableCell>
                                             <TableCell>
@@ -1651,91 +1942,376 @@ const BookingsManagement = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* Cost Dialog */}
-            <Dialog open={costDialog} onClose={() => setCostDialog(false)} maxWidth="md" fullWidth>
+            {/* Enhanced Cost Dialog with Supplies and Consumption */}
+            <Dialog open={costDialog} onClose={() => setCostDialog(false)} maxWidth="lg" fullWidth>
                 <DialogTitle>
-                    Completar Evento - Registrar Costos
+                    Gestión de Evento - {selectedBooking?.client_name}
                 </DialogTitle>
                 <DialogContent>
                     <Box sx={{ mt: 2 }}>
-                        <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-                            Cliente: {selectedBooking?.client_name}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                            Evento: {selectedBooking?.event_type} - {selectedBooking?.participants} participantes
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                            Fecha: {selectedBooking?.event_date} {selectedBooking?.event_time}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                            Precio estimado: ${selectedBooking?.estimated_price?.toLocaleString()}
-                        </Typography>
-                        {selectedBooking?.expenses && selectedBooking.expenses.length > 0 && (
-                            <Box sx={{ mb: 3 }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                                    Gastos Registrados:
-                                </Typography>
-                                {selectedBooking.expenses.map((expense, index) => (
-                                    <Typography key={index} variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-                                        • {expense.description}: ${expense.amount.toLocaleString()}
-                                    </Typography>
-                                ))}
-                                <Typography variant="body2" sx={{ fontWeight: 600, mt: 1 }}>
-                                    Total gastos: ${(selectedBooking.expenses.reduce((sum, expense) => sum + expense.amount, 0)).toLocaleString()}
-                                </Typography>
+                        {/* Event Summary */}
+                        <Card sx={{ mb: 3, bgcolor: 'grey.50' }}>
+                            <CardContent>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            <strong>Evento:</strong> {selectedBooking?.event_type} - {selectedBooking?.participants} participantes
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            <strong>Fecha:</strong> {selectedBooking?.event_date} {selectedBooking?.event_time}
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            <strong>Precio estimado:</strong> ${selectedBooking?.estimated_price?.toLocaleString()}
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            <strong>Estado:</strong> {selectedBooking?.status}
+                                        </Typography>
+                                    </Grid>
+                                </Grid>
+                            </CardContent>
+                        </Card>
+
+                        {/* Tabs for Gastos and Insumos */}
+                        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                            <Tabs
+                                value={costTabValue}
+                                onChange={(e, newValue) => setCostTabValue(newValue)}
+                                aria-label="cost management tabs"
+                            >
+                                <Tab label="Gastos del Evento" />
+                                <Tab label="Insumos Estimados" />
+                            </Tabs>
+                        </Box>
+
+                        {/* Tab Panel 0: Gastos (Expenses) */}
+                        {costTabValue === 0 && (
+                            <Box>
+                                {/* Existing expenses */}
+                                {selectedBooking?.expenses && selectedBooking.expenses.length > 0 && (
+                                    <Card sx={{ mb: 3 }}>
+                                        <CardContent>
+                                            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+                                                Gastos Registrados:
+                                            </Typography>
+                                            {selectedBooking.expenses.map((expense, index) => (
+                                                <Box key={index} sx={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    py: 1,
+                                                    borderBottom: index < selectedBooking.expenses.length - 1 ? '1px solid #eee' : 'none'
+                                                }}>
+                                                    <Box>
+                                                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                                            {expense.description}
+                                                        </Typography>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {expense.category}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                        ${expense.amount.toLocaleString()}
+                                                    </Typography>
+                                                </Box>
+                                            ))}
+                                            <Box sx={{ mt: 2, pt: 2, borderTop: '2px solid #e0e0e0' }}>
+                                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                                    Total gastos: ${(selectedBooking.expenses.reduce((sum, expense) => sum + expense.amount, 0)).toLocaleString()}
+                                                </Typography>
+                                            </Box>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Cost calculation fields */}
+                                <Grid container spacing={3}>
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            label="Costo Real del Evento"
+                                            type="number"
+                                            fullWidth
+                                            value={costData.event_cost}
+                                            onChange={(e) => setCostData({...costData, event_cost: e.target.value})}
+                                            helperText="Total calculado automáticamente desde insumos + gastos"
+                                            InputProps={{
+                                                startAdornment: '$'
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            label="Precio Final Cobrado"
+                                            type="number"
+                                            fullWidth
+                                            value={costData.event_profit}
+                                            onChange={(e) => setCostData({...costData, event_profit: e.target.value})}
+                                            helperText="Monto total cobrado al cliente"
+                                            InputProps={{
+                                                startAdornment: '$'
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Alert severity="info" sx={{ mb: 2 }}>
+                                            <Typography variant="body2">
+                                                <strong>Ganancia estimada:</strong> $
+                                                {costData.event_profit && costData.event_cost
+                                                    ? formatCurrency(parseFloat(costData.event_profit) - parseFloat(costData.event_cost))
+                                                    : '0.00'
+                                                }
+                                            </Typography>
+                                        </Alert>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            label="Notas del Evento (Opcional)"
+                                            multiline
+                                            rows={3}
+                                            fullWidth
+                                            value={costData.notes}
+                                            onChange={(e) => setCostData({...costData, notes: e.target.value})}
+                                            helperText="Observaciones, problemas, comentarios del cliente, etc."
+                                        />
+                                    </Grid>
+                                </Grid>
                             </Box>
                         )}
 
-                        <Grid container spacing={3}>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    label="Costo Real del Evento"
-                                    type="number"
-                                    fullWidth
-                                    value={costData.event_cost}
-                                    onChange={(e) => setCostData({...costData, event_cost: e.target.value})}
-                                    helperText="Incluye ingredientes, transporte, equipos, etc."
-                                    InputProps={{
-                                        startAdornment: '$'
-                                    }}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    label="Precio Final Cobrado"
-                                    type="number"
-                                    fullWidth
-                                    value={costData.event_profit}
-                                    onChange={(e) => setCostData({...costData, event_profit: e.target.value})}
-                                    helperText="Monto total cobrado al cliente"
-                                    InputProps={{
-                                        startAdornment: '$'
-                                    }}
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <Alert severity="info" sx={{ mb: 2 }}>
-                                    <Typography variant="body2">
-                                        <strong>Ganancia estimada:</strong> $
-                                        {costData.event_profit && costData.event_cost
-                                            ? formatCurrency(parseFloat(costData.event_profit) - parseFloat(costData.event_cost))
-                                            : '0.00'
-                                        }
-                                    </Typography>
-                                </Alert>
-                            </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    label="Notas del Evento (Opcional)"
-                                    multiline
-                                    rows={3}
-                                    fullWidth
-                                    value={costData.notes}
-                                    onChange={(e) => setCostData({...costData, notes: e.target.value})}
-                                    helperText="Observaciones, problemas, comentarios del cliente, etc."
-                                />
-                            </Grid>
-                        </Grid>
+                        {/* Tab Panel 1: Integrated Supplies Table */}
+                        {costTabValue === 1 && (
+                            <Box>
+                                {loadingSupplies ? (
+                                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                                        <CircularProgress />
+                                    </Box>
+                                ) : (
+                                    <>
+                                        {/* Supply Status Alert */}
+                                        <Alert
+                                            severity={supplyStatus.can_complete_event ? "success" : "warning"}
+                                            sx={{ mb: 3 }}
+                                        >
+                                            {supplyStatus.can_complete_event
+                                                ? `✅ Insumos y consumo completos. Listo para completar evento.`
+                                                : supplyStatus.has_supplies && !supplyStatus.has_consumption
+                                                    ? "⚠️ Insumos estimados listos. Falta registrar consumo real."
+                                                    : "⚠️ Necesitas registrar los insumos para este evento."
+                                            }
+                                        </Alert>
+
+                                        {/* Integrated Supplies Table */}
+                                        <Card sx={{ mb: 3 }}>
+                                            <CardContent>
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                                                    <Typography variant="h6">
+                                                        Gestión de Insumos
+                                                    </Typography>
+                                                    <Button
+                                                        onClick={handleAddSupplyItem}
+                                                        startIcon={<Add />}
+                                                        variant="outlined"
+                                                        size="small"
+                                                    >
+                                                        Agregar Insumo
+                                                    </Button>
+                                                </Box>
+
+                                                {integratedSupplies.items.length === 0 ? (
+                                                    <Alert severity="info">
+                                                        No hay insumos agregados. Haz clic en "Agregar Insumo" para empezar.
+                                                    </Alert>
+                                                ) : (
+                                                    <TableContainer component={Paper} variant="outlined">
+                                                        <Table>
+                                                            <TableHead>
+                                                                <TableRow sx={{ bgcolor: 'grey.50' }}>
+                                                                    <TableCell><strong>Insumo</strong></TableCell>
+                                                                    <TableCell align="center"><strong>Estimado</strong></TableCell>
+                                                                    <TableCell align="center"><strong>Confirmado</strong></TableCell>
+                                                                    <TableCell align="center"><strong>Costo/Unidad</strong></TableCell>
+                                                                    <TableCell align="center"><strong>Costo Total</strong></TableCell>
+                                                                    <TableCell align="center"><strong>Variación</strong></TableCell>
+                                                                    <TableCell align="center"><strong>Acciones</strong></TableCell>
+                                                                </TableRow>
+                                                            </TableHead>
+                                                            <TableBody>
+                                                                {integratedSupplies.items.map((item, index) => (
+                                                                    <TableRow key={index}>
+                                                                        <TableCell>
+                                                                            <FormControl fullWidth size="small">
+                                                                                <Select
+                                                                                    value={item.item_id}
+                                                                                    onChange={(e) => handleSupplyItemChange(index, 'item_id', e.target.value)}
+                                                                                    displayEmpty
+                                                                                >
+                                                                                    <MenuItem value="">
+                                                                                        <em>Seleccionar...</em>
+                                                                                    </MenuItem>
+                                                                                    {inventoryItems.map((inv) => (
+                                                                                        <MenuItem key={inv.id} value={inv.id}>
+                                                                                            {inv.name}
+                                                                                            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                                                                                                ({inv.current_stock} {inv.unit})
+                                                                                            </Typography>
+                                                                                        </MenuItem>
+                                                                                    ))}
+                                                                                </Select>
+                                                                            </FormControl>
+                                                                        </TableCell>
+                                                                        <TableCell align="center">
+                                                                            <TextField
+                                                                                type="number"
+                                                                                size="small"
+                                                                                value={item.estimated_quantity}
+                                                                                onChange={(e) => handleSupplyItemChange(index, 'estimated_quantity', e.target.value)}
+                                                                                InputProps={{
+                                                                                    endAdornment: <Typography variant="caption">{item.unit}</Typography>
+                                                                                }}
+                                                                                sx={{ width: 100 }}
+                                                                            />
+                                                                        </TableCell>
+                                                                        <TableCell align="center">
+                                                                            <TextField
+                                                                                type="number"
+                                                                                size="small"
+                                                                                value={item.actual_quantity_consumed}
+                                                                                onChange={(e) => handleSupplyItemChange(index, 'actual_quantity_consumed', e.target.value)}
+                                                                                InputProps={{
+                                                                                    endAdornment: <Typography variant="caption">{item.unit}</Typography>
+                                                                                }}
+                                                                                sx={{ width: 100 }}
+                                                                                disabled={!supplyStatus.has_supplies}
+                                                                            />
+                                                                        </TableCell>
+                                                                        <TableCell align="center">
+                                                                            <Typography variant="body2">
+                                                                                ${item.cost_per_unit?.toFixed(2) || '0.00'}
+                                                                            </Typography>
+                                                                        </TableCell>
+                                                                        <TableCell align="center">
+                                                                            <Box>
+                                                                                <Typography variant="body2" color="text.secondary">
+                                                                                    Est: ${item.estimated_total_cost?.toFixed(2) || '0.00'}
+                                                                                </Typography>
+                                                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                                                    Real: ${item.actual_total_cost?.toFixed(2) || '0.00'}
+                                                                                </Typography>
+                                                                            </Box>
+                                                                        </TableCell>
+                                                                        <TableCell align="center">
+                                                                            {item.variance !== 0 && (
+                                                                                <Chip
+                                                                                    label={`${item.variance > 0 ? '+' : ''}${item.variance?.toFixed(1)} ${item.unit}`}
+                                                                                    size="small"
+                                                                                    color={item.variance > 0 ? "error" : "success"}
+                                                                                    variant="outlined"
+                                                                                />
+                                                                            )}
+                                                                        </TableCell>
+                                                                        <TableCell align="center">
+                                                                            <IconButton
+                                                                                onClick={() => handleRemoveSupplyItem(index)}
+                                                                                color="error"
+                                                                                size="small"
+                                                                            >
+                                                                                <Delete />
+                                                                            </IconButton>
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ))}
+                                                            </TableBody>
+                                                        </Table>
+                                                    </TableContainer>
+                                                )}
+
+                                                {/* Summary Cards */}
+                                                {integratedSupplies.items.length > 0 && (
+                                                    <Grid container spacing={2} sx={{ mt: 2 }}>
+                                                        <Grid item xs={12} sm={6}>
+                                                            <Card variant="outlined" sx={{ bgcolor: 'blue.50' }}>
+                                                                <CardContent sx={{ py: 1 }}>
+                                                                    <Typography variant="body2" color="text.secondary">
+                                                                        Costo Estimado
+                                                                    </Typography>
+                                                                    <Typography variant="h6">
+                                                                        ${getTotalEstimatedCost().toFixed(2)}
+                                                                    </Typography>
+                                                                </CardContent>
+                                                            </Card>
+                                                        </Grid>
+                                                        <Grid item xs={12} sm={6}>
+                                                            <Card variant="outlined" sx={{ bgcolor: 'green.50' }}>
+                                                                <CardContent sx={{ py: 1 }}>
+                                                                    <Typography variant="body2" color="text.secondary">
+                                                                        Costo Real
+                                                                    </Typography>
+                                                                    <Typography variant="h6">
+                                                                        ${getTotalActualCost().toFixed(2)}
+                                                                    </Typography>
+                                                                </CardContent>
+                                                            </Card>
+                                                        </Grid>
+                                                    </Grid>
+                                                )}
+
+                                                {/* Notes Section */}
+                                                <Box sx={{ mt: 3 }}>
+                                                    <Grid container spacing={2}>
+                                                        <Grid item xs={12} sm={6}>
+                                                            <TextField
+                                                                label="Notas de Estimación"
+                                                                multiline
+                                                                rows={2}
+                                                                fullWidth
+                                                                value={integratedSupplies.notes}
+                                                                onChange={(e) => setIntegratedSupplies({...integratedSupplies, notes: e.target.value})}
+                                                                placeholder="Observaciones sobre los insumos estimados..."
+                                                            />
+                                                        </Grid>
+                                                        <Grid item xs={12} sm={6}>
+                                                            <TextField
+                                                                label="Notas de Consumo"
+                                                                multiline
+                                                                rows={2}
+                                                                fullWidth
+                                                                value={integratedSupplies.consumption_notes}
+                                                                onChange={(e) => setIntegratedSupplies({...integratedSupplies, consumption_notes: e.target.value})}
+                                                                placeholder="Observaciones sobre el consumo real..."
+                                                                disabled={!supplyStatus.has_supplies}
+                                                            />
+                                                        </Grid>
+                                                    </Grid>
+                                                </Box>
+
+                                                {/* Action Buttons */}
+                                                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                                                    <Button
+                                                        onClick={handleSaveSupplies}
+                                                        variant="contained"
+                                                        disabled={integratedSupplies.items.length === 0}
+                                                        color="primary"
+                                                    >
+                                                        {supplyStatus.has_supplies ? 'Actualizar Estimación' : 'Guardar Estimación'}
+                                                    </Button>
+
+                                                    {supplyStatus.has_supplies && (
+                                                        <Button
+                                                            onClick={handleSaveConsumption}
+                                                            variant="contained"
+                                                            disabled={!supplyStatus.has_supplies || supplyStatus.has_consumption}
+                                                            color="success"
+                                                        >
+                                                            {supplyStatus.has_consumption ? 'Consumo Registrado' : 'Registrar Consumo'}
+                                                        </Button>
+                                                    )}
+                                                </Box>
+                                            </CardContent>
+                                        </Card>
+                                    </>
+                                )}
+                            </Box>
+                        )}
                     </Box>
                 </DialogContent>
                 <DialogActions>
@@ -1744,13 +2320,17 @@ const BookingsManagement = () => {
                     </Button>
                     <Button
                         onClick={() => {
+                            if (!supplyStatus.can_complete_event) {
+                                toast.error('Necesitas registrar insumos y consumo antes de completar el evento')
+                                return
+                            }
                             if (window.confirm('¿Estás seguro de que quieres marcar este evento como completado? Esta acción calculará la ganancia final y cambiará el estado del evento.')) {
                                 handleCompleteWithCost()
                             }
                         }}
                         variant="contained"
                         color="success"
-                        disabled={!costData.event_cost || !costData.event_profit}
+                        disabled={!supplyStatus.can_complete_event}
                         startIcon={<CheckCircle />}
                     >
                         Completar Evento
@@ -1758,10 +2338,10 @@ const BookingsManagement = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* Expense Dialog */}
-            <Dialog open={expenseDialog} onClose={() => setExpenseDialog(false)} maxWidth="sm" fullWidth>
+            {/* Enhanced Expense Dialog with Tabs (Gastos | Insumos) */}
+            <Dialog open={expenseDialog} onClose={() => setExpenseDialog(false)} maxWidth="lg" fullWidth>
                 <DialogTitle>
-                    Agregar Gasto al Evento
+                    Gestión de Gastos e Insumos - {selectedBooking?.client_name}
                     <IconButton
                         onClick={() => setExpenseDialog(false)}
                         sx={{ position: 'absolute', right: 8, top: 8 }}
@@ -1772,114 +2352,406 @@ const BookingsManagement = () => {
                 <DialogContent>
                     {selectedBooking && (
                         <Box sx={{ mt: 2 }}>
-                            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-                                Cliente: {selectedBooking.client_name}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                                Fecha: {selectedBooking.event_date} {selectedBooking.event_time}
-                            </Typography>
+                            {/* Event Summary */}
+                            <Card sx={{ mb: 3, bgcolor: 'grey.50' }}>
+                                <CardContent>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} sm={6}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                <strong>Evento:</strong> {selectedBooking.event_type} - {selectedBooking.participants} participantes
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                <strong>Fecha:</strong> {selectedBooking.event_date} {selectedBooking.event_time}
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                <strong>Precio estimado:</strong> ${selectedBooking.estimated_price?.toLocaleString()}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                <strong>Estado:</strong> {selectedBooking.status}
+                                            </Typography>
+                                        </Grid>
+                                    </Grid>
+                                </CardContent>
+                            </Card>
 
-                            <Grid container spacing={2} sx={{ mt: 2 }}>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        label="Descripción del Gasto"
-                                        fullWidth
-                                        required
-                                        value={expenseData.description}
-                                        onChange={(e) => setExpenseData({...expenseData, description: e.target.value})}
-                                        placeholder="Ej: Ingredientes para pizzas"
-                                    />
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        label="Monto"
-                                        type="number"
-                                        fullWidth
-                                        required
-                                        value={expenseData.amount}
-                                        onChange={(e) => setExpenseData({...expenseData, amount: e.target.value})}
-                                        InputProps={{
-                                            startAdornment: '$'
-                                        }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <FormControl fullWidth>
-                                        <InputLabel>Categoría</InputLabel>
-                                        <Select
-                                            value={expenseData.category}
-                                            label="Categoría"
-                                            onChange={(e) => setExpenseData({...expenseData, category: e.target.value})}
-                                        >
-                                            <MenuItem value="ingredientes">Ingredientes</MenuItem>
-                                            <MenuItem value="transporte">Transporte</MenuItem>
-                                            <MenuItem value="equipos">Equipos/Materiales</MenuItem>
-                                            <MenuItem value="personal">Personal Extra</MenuItem>
-                                            <MenuItem value="otros">Otros</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-                            </Grid>
+                            {/* Tabs for Gastos and Insumos */}
+                            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                                <Tabs
+                                    value={costTabValue}
+                                    onChange={(e, newValue) => setCostTabValue(newValue)}
+                                    aria-label="gastos e insumos tabs"
+                                >
+                                    <Tab label="Gastos" />
+                                    <Tab label="Insumos" />
+                                </Tabs>
+                            </Box>
 
-                            {/* Mostrar gastos existentes */}
-                            {selectedBooking.expenses && selectedBooking.expenses.length > 0 && (
-                                <Box sx={{ mt: 3 }}>
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                                        Gastos Registrados:
-                                    </Typography>
-                                    {selectedBooking.expenses.map((expense, index) => (
-                                        <Box key={index} sx={{
-                                            p: 1,
-                                            border: '1px solid #e0e0e0',
-                                            borderRadius: 1,
-                                            mb: 1,
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center'
-                                        }}>
-                                            <Box sx={{ flex: 1 }}>
-                                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                                    {expense.description}
+                            {/* Tab Panel 0: Gastos (Expenses) */}
+                            {costTabValue === 0 && (
+                                <Box>
+                                    {/* Add new expense */}
+                                    <Card sx={{ mb: 3 }}>
+                                        <CardContent>
+                                            <Typography variant="h6" sx={{ mb: 2 }}>
+                                                Agregar Nuevo Gasto
+                                            </Typography>
+                                            <Grid container spacing={2}>
+                                                <Grid item xs={12}>
+                                                    <TextField
+                                                        label="Descripción del Gasto"
+                                                        fullWidth
+                                                        required
+                                                        value={expenseData.description}
+                                                        onChange={(e) => setExpenseData({...expenseData, description: e.target.value})}
+                                                        placeholder="Ej: Ingredientes para pizzas"
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={12} sm={6}>
+                                                    <TextField
+                                                        label="Monto"
+                                                        type="number"
+                                                        fullWidth
+                                                        required
+                                                        value={expenseData.amount}
+                                                        onChange={(e) => setExpenseData({...expenseData, amount: e.target.value})}
+                                                        InputProps={{
+                                                            startAdornment: '$'
+                                                        }}
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={12} sm={6}>
+                                                    <FormControl fullWidth>
+                                                        <InputLabel>Categoría</InputLabel>
+                                                        <Select
+                                                            value={expenseData.category}
+                                                            label="Categoría"
+                                                            onChange={(e) => setExpenseData({...expenseData, category: e.target.value})}
+                                                        >
+                                                            <MenuItem value="ingredientes">Ingredientes</MenuItem>
+                                                            <MenuItem value="transporte">Transporte</MenuItem>
+                                                            <MenuItem value="equipos">Equipos/Materiales</MenuItem>
+                                                            <MenuItem value="personal">Personal Extra</MenuItem>
+                                                            <MenuItem value="otros">Otros</MenuItem>
+                                                        </Select>
+                                                    </FormControl>
+                                                </Grid>
+                                                <Grid item xs={12}>
+                                                    <Button
+                                                        onClick={handleAddExpense}
+                                                        variant="contained"
+                                                        color="primary"
+                                                        disabled={!expenseData.description || !expenseData.amount}
+                                                        startIcon={<AddBox />}
+                                                    >
+                                                        Agregar Gasto
+                                                    </Button>
+                                                </Grid>
+                                            </Grid>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Existing expenses */}
+                                    {selectedBooking.expenses && selectedBooking.expenses.length > 0 && (
+                                        <Card>
+                                            <CardContent>
+                                                <Typography variant="h6" sx={{ mb: 2 }}>
+                                                    Gastos Registrados
                                                 </Typography>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {expense.category}
-                                                </Typography>
-                                            </Box>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <Typography variant="body2" sx={{ fontWeight: 600, mr: 1 }}>
-                                                    ${expense.amount.toLocaleString()}
-                                                </Typography>
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={() => handleEditExpense(index)}
-                                                    sx={{ color: 'primary.main' }}
-                                                >
-                                                    <Edit fontSize="small" />
-                                                </IconButton>
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={() => handleDeleteExpense(index)}
-                                                    sx={{ color: 'error.main' }}
-                                                >
-                                                    <Delete fontSize="small" />
-                                                </IconButton>
-                                            </Box>
+                                                {selectedBooking.expenses.map((expense, index) => (
+                                                    <Box key={index} sx={{
+                                                        p: 2,
+                                                        border: '1px solid #e0e0e0',
+                                                        borderRadius: 1,
+                                                        mb: 1,
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center'
+                                                    }}>
+                                                        <Box sx={{ flex: 1 }}>
+                                                            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                                                {expense.description}
+                                                            </Typography>
+                                                            <Typography variant="caption" color="text.secondary">
+                                                                {expense.category}
+                                                            </Typography>
+                                                        </Box>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                            <Typography variant="h6" sx={{ fontWeight: 600, mr: 2 }}>
+                                                                ${expense.amount.toLocaleString()}
+                                                            </Typography>
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => handleEditExpense(index)}
+                                                                sx={{ color: 'primary.main' }}
+                                                            >
+                                                                <Edit fontSize="small" />
+                                                            </IconButton>
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => handleDeleteExpense(index)}
+                                                                sx={{ color: 'error.main' }}
+                                                            >
+                                                                <Delete fontSize="small" />
+                                                            </IconButton>
+                                                        </Box>
+                                                    </Box>
+                                                ))}
+                                                <Box sx={{
+                                                    p: 2,
+                                                    bgcolor: 'grey.100',
+                                                    borderRadius: 1,
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    mt: 2
+                                                }}>
+                                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                                        Total Gastos:
+                                                    </Typography>
+                                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                                        ${(selectedBooking.expenses.reduce((sum, expense) => sum + expense.amount, 0)).toLocaleString()}
+                                                    </Typography>
+                                                </Box>
+                                            </CardContent>
+                                        </Card>
+                                    )}
+                                </Box>
+                            )}
+
+                            {/* Tab Panel 1: Integrated Supplies Table */}
+                            {costTabValue === 1 && (
+                                <Box>
+                                    {loadingSupplies ? (
+                                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                                            <CircularProgress />
                                         </Box>
-                                    ))}
-                                    <Box sx={{
-                                        p: 1,
-                                        bgcolor: 'grey.100',
-                                        borderRadius: 1,
-                                        display: 'flex',
-                                        justifyContent: 'space-between'
-                                    }}>
-                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                            Total Gastos:
-                                        </Typography>
-                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                            ${(selectedBooking.event_cost || 0).toLocaleString()}
-                                        </Typography>
-                                    </Box>
+                                    ) : (
+                                        <>
+                                            {/* Supply Status Alert */}
+                                            <Alert
+                                                severity={supplyStatus.has_consumption ? "success" : supplyStatus.has_supplies ? "info" : "warning"}
+                                                sx={{ mb: 3 }}
+                                            >
+                                                {supplyStatus.has_consumption
+                                                    ? `✅ Consumo registrado. Evento listo para completar.`
+                                                    : supplyStatus.has_supplies
+                                                        ? "⚠️ Insumos estimados guardados. Registra el consumo real al terminar el evento."
+                                                        : "ℹ️ Primero registra los insumos estimados para el evento."
+                                                }
+                                            </Alert>
+
+                                            {/* Integrated Supplies Table */}
+                                            <Card sx={{ mb: 3 }}>
+                                                <CardContent>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                                                        <Typography variant="h6">
+                                                            Gestión de Insumos
+                                                        </Typography>
+                                                        <Button
+                                                            onClick={handleAddSupplyItem}
+                                                            startIcon={<Add />}
+                                                            variant="outlined"
+                                                            size="small"
+                                                        >
+                                                            Agregar Insumo
+                                                        </Button>
+                                                    </Box>
+
+                                                    {integratedSupplies.items.length === 0 ? (
+                                                        <Alert severity="info">
+                                                            No hay insumos agregados. Haz clic en "Agregar Insumo" para empezar.
+                                                        </Alert>
+                                                    ) : (
+                                                        <TableContainer component={Paper} variant="outlined">
+                                                            <Table>
+                                                                <TableHead>
+                                                                    <TableRow sx={{ bgcolor: 'grey.50' }}>
+                                                                        <TableCell><strong>Insumo</strong></TableCell>
+                                                                        <TableCell align="center"><strong>Estimado</strong></TableCell>
+                                                                        <TableCell align="center"><strong>Confirmado</strong></TableCell>
+                                                                        <TableCell align="center"><strong>Costo/Unidad</strong></TableCell>
+                                                                        <TableCell align="center"><strong>Costo Total</strong></TableCell>
+                                                                        <TableCell align="center"><strong>Variación</strong></TableCell>
+                                                                        <TableCell align="center"><strong>Acciones</strong></TableCell>
+                                                                    </TableRow>
+                                                                </TableHead>
+                                                                <TableBody>
+                                                                    {integratedSupplies.items.map((item, index) => (
+                                                                        <TableRow key={index}>
+                                                                            <TableCell>
+                                                                                <FormControl fullWidth size="small">
+                                                                                    <Select
+                                                                                        value={item.item_id}
+                                                                                        onChange={(e) => handleSupplyItemChange(index, 'item_id', e.target.value)}
+                                                                                        displayEmpty
+                                                                                    >
+                                                                                        <MenuItem value="">
+                                                                                            <em>Seleccionar...</em>
+                                                                                        </MenuItem>
+                                                                                        {inventoryItems.map((inv) => (
+                                                                                            <MenuItem key={inv.id} value={inv.id}>
+                                                                                                {inv.name}
+                                                                                                <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                                                                                                    ({inv.current_stock} {inv.unit})
+                                                                                                </Typography>
+                                                                                            </MenuItem>
+                                                                                        ))}
+                                                                                    </Select>
+                                                                                </FormControl>
+                                                                            </TableCell>
+                                                                            <TableCell align="center">
+                                                                                <TextField
+                                                                                    type="number"
+                                                                                    size="small"
+                                                                                    value={item.estimated_quantity}
+                                                                                    onChange={(e) => handleSupplyItemChange(index, 'estimated_quantity', e.target.value)}
+                                                                                    InputProps={{
+                                                                                        endAdornment: <Typography variant="caption">{item.unit}</Typography>
+                                                                                    }}
+                                                                                    sx={{ width: 100 }}
+                                                                                />
+                                                                            </TableCell>
+                                                                            <TableCell align="center">
+                                                                                <TextField
+                                                                                    type="number"
+                                                                                    size="small"
+                                                                                    value={item.actual_quantity_consumed}
+                                                                                    onChange={(e) => handleSupplyItemChange(index, 'actual_quantity_consumed', e.target.value)}
+                                                                                    InputProps={{
+                                                                                        endAdornment: <Typography variant="caption">{item.unit}</Typography>
+                                                                                    }}
+                                                                                    sx={{ width: 100 }}
+                                                                                    disabled={!supplyStatus.has_supplies}
+                                                                                    placeholder="Después del evento"
+                                                                                />
+                                                                            </TableCell>
+                                                                            <TableCell align="center">
+                                                                                <Typography variant="body2">
+                                                                                    ${item.cost_per_unit?.toFixed(2) || '0.00'}
+                                                                                </Typography>
+                                                                            </TableCell>
+                                                                            <TableCell align="center">
+                                                                                <Box>
+                                                                                    <Typography variant="body2" color="text.secondary">
+                                                                                        Est: ${item.estimated_total_cost?.toFixed(2) || '0.00'}
+                                                                                    </Typography>
+                                                                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                                                        Real: ${item.actual_total_cost?.toFixed(2) || '0.00'}
+                                                                                    </Typography>
+                                                                                </Box>
+                                                                            </TableCell>
+                                                                            <TableCell align="center">
+                                                                                {item.variance !== 0 && (
+                                                                                    <Chip
+                                                                                        label={`${item.variance > 0 ? '+' : ''}${item.variance?.toFixed(1)} ${item.unit}`}
+                                                                                        size="small"
+                                                                                        color={item.variance > 0 ? "error" : "success"}
+                                                                                        variant="outlined"
+                                                                                    />
+                                                                                )}
+                                                                            </TableCell>
+                                                                            <TableCell align="center">
+                                                                                <IconButton
+                                                                                    onClick={() => handleRemoveSupplyItem(index)}
+                                                                                    color="error"
+                                                                                    size="small"
+                                                                                >
+                                                                                    <Delete />
+                                                                                </IconButton>
+                                                                            </TableCell>
+                                                                        </TableRow>
+                                                                    ))}
+                                                                </TableBody>
+                                                            </Table>
+                                                        </TableContainer>
+                                                    )}
+
+                                                    {/* Summary Cards */}
+                                                    {integratedSupplies.items.length > 0 && (
+                                                        <Grid container spacing={2} sx={{ mt: 2 }}>
+                                                            <Grid item xs={12} sm={6}>
+                                                                <Card variant="outlined" sx={{ bgcolor: 'blue.50' }}>
+                                                                    <CardContent sx={{ py: 1 }}>
+                                                                        <Typography variant="body2" color="text.secondary">
+                                                                            Costo Estimado
+                                                                        </Typography>
+                                                                        <Typography variant="h6">
+                                                                            ${getTotalEstimatedCost().toFixed(2)}
+                                                                        </Typography>
+                                                                    </CardContent>
+                                                                </Card>
+                                                            </Grid>
+                                                            <Grid item xs={12} sm={6}>
+                                                                <Card variant="outlined" sx={{ bgcolor: 'green.50' }}>
+                                                                    <CardContent sx={{ py: 1 }}>
+                                                                        <Typography variant="body2" color="text.secondary">
+                                                                            Costo Real
+                                                                        </Typography>
+                                                                        <Typography variant="h6">
+                                                                            ${getTotalActualCost().toFixed(2)}
+                                                                        </Typography>
+                                                                    </CardContent>
+                                                                </Card>
+                                                            </Grid>
+                                                        </Grid>
+                                                    )}
+
+                                                    {/* Notes Section */}
+                                                    <Box sx={{ mt: 3 }}>
+                                                        <Grid container spacing={2}>
+                                                            <Grid item xs={12} sm={6}>
+                                                                <TextField
+                                                                    label="Notas de Estimación"
+                                                                    multiline
+                                                                    rows={2}
+                                                                    fullWidth
+                                                                    value={integratedSupplies.notes}
+                                                                    onChange={(e) => setIntegratedSupplies({...integratedSupplies, notes: e.target.value})}
+                                                                    placeholder="Observaciones sobre los insumos estimados..."
+                                                                />
+                                                            </Grid>
+                                                            <Grid item xs={12} sm={6}>
+                                                                <TextField
+                                                                    label="Notas de Consumo"
+                                                                    multiline
+                                                                    rows={2}
+                                                                    fullWidth
+                                                                    value={integratedSupplies.consumption_notes}
+                                                                    onChange={(e) => setIntegratedSupplies({...integratedSupplies, consumption_notes: e.target.value})}
+                                                                    placeholder="Observaciones sobre el consumo real..."
+                                                                    disabled={!supplyStatus.has_supplies}
+                                                                />
+                                                            </Grid>
+                                                        </Grid>
+                                                    </Box>
+
+                                                    {/* Action Buttons */}
+                                                    <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                                                        <Button
+                                                            onClick={handleSaveSupplies}
+                                                            variant="contained"
+                                                            disabled={integratedSupplies.items.length === 0}
+                                                            color="primary"
+                                                        >
+                                                            {supplyStatus.has_supplies ? 'Actualizar Estimación' : 'Guardar Estimación'}
+                                                        </Button>
+
+                                                        {supplyStatus.has_supplies && (
+                                                            <Button
+                                                                onClick={handleSaveConsumption}
+                                                                variant="contained"
+                                                                disabled={!supplyStatus.has_supplies || supplyStatus.has_consumption}
+                                                                color="success"
+                                                            >
+                                                                {supplyStatus.has_consumption ? 'Consumo Registrado' : 'Registrar Consumo'}
+                                                            </Button>
+                                                        )}
+                                                    </Box>
+                                                </CardContent>
+                                            </Card>
+                                        </>
+                                    )}
                                 </Box>
                             )}
                         </Box>
@@ -1887,16 +2759,7 @@ const BookingsManagement = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setExpenseDialog(false)}>
-                        Cancelar
-                    </Button>
-                    <Button
-                        onClick={handleAddExpense}
-                        variant="contained"
-                        color="primary"
-                        disabled={!expenseData.description || !expenseData.amount}
-                        startIcon={<AddBox />}
-                    >
-                        Agregar Gasto
+                        Cerrar
                     </Button>
                 </DialogActions>
             </Dialog>

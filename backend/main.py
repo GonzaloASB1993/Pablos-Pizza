@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv('.env')
+# Force deployment update - event-inventory integration - fix event_doc error
 
 # Import after loading env variables
 import firebase_admin
@@ -993,15 +994,31 @@ def create_event_from_booking(booking_data: dict) -> bool:
                 # Fallback to current date as string
                 event_date = datetime.now().strftime('%Y-%m-%d')
         
-        # Calculate profit if we have both estimated price and cost
+        # Get costs from consumption data (new integrated system)
+        db = get_db()
+        consumption_docs = list(db.collection('event_consumption').where('booking_id', '==', booking_data.get('id')).limit(1).stream())
+
+        if consumption_docs:
+            consumption_data = consumption_docs[0].to_dict()
+            event_cost = consumption_data.get('total_cost', 0)
+            supply_cost = consumption_data.get('total_supply_cost', 0)
+            other_expenses = consumption_data.get('total_other_expenses', 0)
+            print(f"Using consumption data - Total cost: {event_cost}, Supply cost: {supply_cost}, Other expenses: {other_expenses}")
+        else:
+            # Fallback to old method if no consumption data
+            event_cost = booking_data.get('event_cost', 0)
+            supply_cost = 0
+            other_expenses = event_cost
+            print(f"Using fallback cost data - Total cost: {event_cost}")
+
+        # Calculate profit
         estimated_price = booking_data.get('estimated_price', 0)
-        event_cost = booking_data.get('event_cost', 0)
         calculated_profit = estimated_price - event_cost if estimated_price and event_cost else 0
-        
+
         # Use provided profit or calculated profit
         final_profit = booking_data.get('event_profit', calculated_profit)
         
-        # Create event data
+        # Create event data with integrated financials
         event_data = {
             "id": event_id,
             "booking_id": booking_data.get('id'),
@@ -1016,7 +1033,16 @@ def create_event_from_booking(booking_data: dict) -> bool:
             "status": "completed",
             "created_at": datetime.now(),
             "photos": [],  # Array vacío para fotos que se pueden agregar después
-            "source": "auto_booking"  # Indicador de que fue creado automáticamente
+            "source": "auto_booking",  # Indicador de que fue creado automáticamente
+            # Enhanced financials with breakdown
+            "financials": {
+                "income": estimated_price,
+                "total_expenses": event_cost,
+                "supply_cost": supply_cost,
+                "other_expenses": other_expenses,
+                "profit": final_profit,
+                "profit_margin": round((final_profit / estimated_price * 100), 2) if estimated_price > 0 else 0
+            }
         }
         
         # Save to Firestore events collection
@@ -2601,17 +2627,42 @@ ID: {updated_booking.get('id', 'N/A')}"""
         elif 'status' in data and data['status'] == 'confirmed' and current_booking.get('status') == 'confirmed':
             print(f"Status sigue siendo 'confirmed' - NO enviando notificación duplicada")
 
-        # Create event automatically ONLY when booking CHANGES to 'completed' and has costs
+        # Create event automatically ONLY when booking CHANGES to 'completed'
+        # BUT FIRST validate that supplies and consumption are registered
         if ('status' in data and
             data['status'] == 'completed' and
-            current_booking.get('status') != 'completed' and
-            ('event_cost' in data or 'event_profit' in data)):
+            current_booking.get('status') != 'completed'):
+
+            # Check if supplies and consumption are registered
             try:
+                # Verificar supplies
+                supplies_docs = list(db.collection('event_supplies').where('booking_id', '==', booking_id).limit(1).stream())
+                has_supplies = len(supplies_docs) > 0
+
+                # Verificar consumption
+                consumption_docs = list(db.collection('event_consumption').where('booking_id', '==', booking_id).limit(1).stream())
+                has_consumption = len(consumption_docs) > 0
+
+                if not has_supplies:
+                    return jsonify({
+                        'error': 'Cannot complete event without supplies estimation. Please add supplies first.',
+                        'missing': 'supplies'
+                    }), 400
+
+                if not has_consumption:
+                    return jsonify({
+                        'error': 'Cannot complete event without consumption tracking. Please register actual consumption first.',
+                        'missing': 'consumption'
+                    }), 400
+
+                # If both exist, create the event
                 create_event_from_booking(updated_booking)
                 print(f"Evento creado automáticamente para booking {booking_id} - status cambió a 'completed'")
+
             except Exception as e:
                 print(f"Error creando evento automático: {e}")
-                # No fallar la actualización del booking si falla la creación del evento
+                return jsonify({'error': f'Error creating event: {str(e)}'}), 500
+
         elif 'status' in data and data['status'] == 'completed' and current_booking.get('status') == 'completed':
             print(f"Status sigue siendo 'completed' - NO creando evento duplicado")
 
@@ -4008,6 +4059,500 @@ def cancel_production_batch(batch_id):
         print(f"Error cancelling production batch: {e}")
         return jsonify({'error': str(e)}), 500
 
+# ==========================================
+# EVENT SUPPLIES (STOCK ESTIMADO) ENDPOINTS
+# ==========================================
+
+@app.route('/api/event-supplies/', methods=['POST', 'OPTIONS'])
+def create_event_supplies():
+    """Crear estimación de insumos para un evento (Stock Estimado)"""
+    if request.method == 'OPTIONS':
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        return response
+
+    try:
+        data = request.get_json()
+        supplies_id = str(uuid.uuid4())
+
+        # Validar datos requeridos
+        if not data or 'booking_id' not in data or 'items' not in data:
+            return jsonify({'error': 'booking_id and items are required'}), 400
+
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        # Verificar que el booking existe y está confirmado
+        booking_ref = db.collection('bookings').document(data['booking_id'])
+        booking_doc = booking_ref.get()
+
+        if not booking_doc.exists:
+            return jsonify({'error': 'Booking not found'}), 404
+
+        booking_data = booking_doc.to_dict()
+        if booking_data.get('status') != 'confirmed':
+            return jsonify({'error': 'Booking must be confirmed to add supplies'}), 400
+
+        # Verificar disponibilidad de stock para todos los items
+        total_estimated_cost = 0
+        processed_items = []
+
+        for item in data['items']:
+            if not all(k in item for k in ['item_id', 'estimated_quantity']):
+                return jsonify({'error': 'Each item must have item_id and estimated_quantity'}), 400
+
+            inventory_ref = db.collection('inventory').document(item['item_id'])
+            inventory_doc = inventory_ref.get()
+
+            if not inventory_doc.exists:
+                return jsonify({'error': f'Inventory item {item["item_id"]} not found'}), 404
+
+            inventory_data = inventory_doc.to_dict()
+
+            if inventory_data['current_stock'] < item['estimated_quantity']:
+                return jsonify({
+                    'error': f'Insufficient stock for {inventory_data["name"]}. '
+                             f'Available: {inventory_data["current_stock"]}, '
+                             f'Required: {item["estimated_quantity"]}'
+                }), 400
+
+            # Calcular costo usando el costo promedio ponderado
+            cost_per_unit = inventory_data.get('weighted_avg_cost', inventory_data.get('cost_per_unit', 0))
+            estimated_total_cost = item['estimated_quantity'] * cost_per_unit
+            total_estimated_cost += estimated_total_cost
+
+            processed_item = {
+                'item_id': item['item_id'],
+                'item_name': inventory_data['name'],
+                'estimated_quantity': item['estimated_quantity'],
+                'unit': inventory_data['unit'],
+                'cost_per_unit': cost_per_unit,
+                'estimated_total_cost': estimated_total_cost,
+                'batch_id': item.get('batch_id'),
+                'notes': item.get('notes')
+            }
+            processed_items.append(processed_item)
+
+        # Crear registro de supplies
+        supplies_data = {
+            'id': supplies_id,
+            'booking_id': data['booking_id'],
+            'items': processed_items,
+            'estimated_total_cost': total_estimated_cost,
+            'notes': data.get('notes'),
+            'created_at': datetime.now()
+        }
+
+        db.collection('event_supplies').document(supplies_id).set(supplies_data)
+
+        return jsonify({
+            'message': 'Event supplies created successfully',
+            'supplies_id': supplies_id,
+            'supplies': supplies_data
+        }), 201
+
+    except Exception as e:
+        print(f"Error creating event supplies: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/event-supplies/booking/<booking_id>', methods=['GET', 'OPTIONS'])
+def get_event_supplies_by_booking(booking_id):
+    """Obtener supplies de un booking específico"""
+    if request.method == 'OPTIONS':
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        return response
+
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        # Buscar supplies para el booking
+        docs = list(db.collection('event_supplies').where('booking_id', '==', booking_id).limit(1).stream())
+
+        if not docs:
+            return jsonify({'error': 'Supplies not found for this booking'}), 404
+
+        supplies_data = docs[0].to_dict()
+
+        # Serializar fechas
+        if 'created_at' in supplies_data:
+            supplies_data['created_at'] = safe_datetime_to_iso(supplies_data['created_at'])
+        if 'updated_at' in supplies_data:
+            supplies_data['updated_at'] = safe_datetime_to_iso(supplies_data['updated_at'])
+
+        return jsonify(supplies_data), 200
+
+    except Exception as e:
+        print(f"Error getting event supplies: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/event-supplies/<supplies_id>', methods=['PUT', 'OPTIONS'])
+def update_event_supplies(supplies_id):
+    """Actualizar supplies estimadas"""
+    if request.method == 'OPTIONS':
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        return response
+
+    try:
+        data = request.get_json()
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        supplies_ref = db.collection('event_supplies').document(supplies_id)
+        doc = supplies_ref.get()
+
+        if not doc.exists:
+            return jsonify({'error': 'Supplies not found'}), 404
+
+        # Verificar que no exista consumption registrado
+        consumption_docs = list(db.collection('event_consumption').where('supplies_id', '==', supplies_id).limit(1).stream())
+        if consumption_docs:
+            return jsonify({'error': 'Cannot modify supplies that already have consumption registered'}), 400
+
+        # Procesar items si se proporcionan
+        update_data = {}
+        if 'items' in data:
+            total_estimated_cost = 0
+            processed_items = []
+
+            for item in data['items']:
+                inventory_ref = db.collection('inventory').document(item['item_id'])
+                inventory_doc = inventory_ref.get()
+
+                if not inventory_doc.exists:
+                    return jsonify({'error': f'Inventory item {item["item_id"]} not found'}), 404
+
+                inventory_data = inventory_doc.to_dict()
+
+                if inventory_data['current_stock'] < item['estimated_quantity']:
+                    return jsonify({
+                        'error': f'Insufficient stock for {inventory_data["name"]}'
+                    }), 400
+
+                cost_per_unit = inventory_data.get('weighted_avg_cost', inventory_data.get('cost_per_unit', 0))
+                estimated_total_cost = item['estimated_quantity'] * cost_per_unit
+                total_estimated_cost += estimated_total_cost
+
+                processed_item = {
+                    'item_id': item['item_id'],
+                    'item_name': inventory_data['name'],
+                    'estimated_quantity': item['estimated_quantity'],
+                    'unit': inventory_data['unit'],
+                    'cost_per_unit': cost_per_unit,
+                    'estimated_total_cost': estimated_total_cost,
+                    'batch_id': item.get('batch_id'),
+                    'notes': item.get('notes')
+                }
+                processed_items.append(processed_item)
+
+            update_data['items'] = processed_items
+            update_data['estimated_total_cost'] = total_estimated_cost
+
+        if 'notes' in data:
+            update_data['notes'] = data['notes']
+
+        update_data['updated_at'] = datetime.now()
+
+        supplies_ref.update(update_data)
+
+        # Obtener datos actualizados
+        updated_doc = supplies_ref.get()
+        updated_data = updated_doc.to_dict()
+
+        # Serializar fechas
+        if 'created_at' in updated_data:
+            updated_data['created_at'] = safe_datetime_to_iso(updated_data['created_at'])
+        if 'updated_at' in updated_data:
+            updated_data['updated_at'] = safe_datetime_to_iso(updated_data['updated_at'])
+
+        return jsonify({
+            'message': 'Supplies updated successfully',
+            'supplies': updated_data
+        }), 200
+
+    except Exception as e:
+        print(f"Error updating event supplies: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ==========================================
+# EVENT CONSUMPTION (STOCK CONFIRMADO) ENDPOINTS
+# ==========================================
+
+@app.route('/api/event-consumption/', methods=['POST', 'OPTIONS'])
+def create_event_consumption():
+    """Registrar consumo real de insumos y descontar del stock (Stock Confirmado)"""
+    if request.method == 'OPTIONS':
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        return response
+
+    try:
+        data = request.get_json()
+        consumption_id = str(uuid.uuid4())
+
+        # Validar datos requeridos
+        required_fields = ['booking_id', 'items_consumed', 'total_other_expenses']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({'error': f'Required fields: {", ".join(required_fields)}'}), 400
+
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        # Verificar que el booking existe
+        booking_ref = db.collection('bookings').document(data['booking_id'])
+        booking_doc = booking_ref.get()
+        if not booking_doc.exists:
+            return jsonify({'error': 'Booking not found'}), 404
+
+        # Verificar que no exista ya un consumption para este booking
+        existing_docs = list(db.collection('event_consumption').where('booking_id', '==', data['booking_id']).limit(1).stream())
+        if existing_docs:
+            return jsonify({'error': 'Consumption already registered for this event'}), 400
+
+        # Obtener supplies estimadas si existen
+        supplies_data = None
+        supplies_docs = list(db.collection('event_supplies').where('booking_id', '==', data['booking_id']).limit(1).stream())
+        if supplies_docs:
+            supplies_data = supplies_docs[0].to_dict()
+
+        # Procesar cada item consumido y crear movimientos de inventario
+        processed_items = []
+        total_supply_cost = 0
+
+        for item in data['items_consumed']:
+            if not all(k in item for k in ['item_id', 'actual_quantity_consumed']):
+                return jsonify({'error': 'Each item must have item_id and actual_quantity_consumed'}), 400
+
+            # Verificar item de inventario
+            inventory_ref = db.collection('inventory').document(item['item_id'])
+            inventory_doc = inventory_ref.get()
+
+            if not inventory_doc.exists:
+                return jsonify({'error': f'Inventory item {item["item_id"]} not found'}), 404
+
+            inventory_data = inventory_doc.to_dict()
+
+            # Verificar stock suficiente
+            if inventory_data['current_stock'] < item['actual_quantity_consumed']:
+                return jsonify({
+                    'error': f'Insufficient stock for {inventory_data["name"]}. '
+                             f'Available: {inventory_data["current_stock"]}, '
+                             f'Required: {item["actual_quantity_consumed"]}'
+                }), 400
+
+            # Calcular variance si hay datos estimados
+            variance = None
+            estimated_quantity = 0
+            if supplies_data:
+                estimated_item = next(
+                    (s for s in supplies_data.get('items', []) if s['item_id'] == item['item_id']),
+                    None
+                )
+                if estimated_item:
+                    estimated_quantity = estimated_item['estimated_quantity']
+                    variance = item['actual_quantity_consumed'] - estimated_quantity
+
+            # Usar costo promedio ponderado actual
+            cost_per_unit = inventory_data.get('weighted_avg_cost', inventory_data.get('cost_per_unit', 0))
+            total_cost = item['actual_quantity_consumed'] * cost_per_unit
+            total_supply_cost += total_cost
+
+            # Crear item procesado
+            processed_item = {
+                'item_id': item['item_id'],
+                'item_name': inventory_data['name'],
+                'estimated_quantity': estimated_quantity,
+                'actual_quantity_consumed': item['actual_quantity_consumed'],
+                'unit': inventory_data['unit'],
+                'cost_per_unit': cost_per_unit,
+                'total_cost': total_cost,
+                'batch_id': item.get('batch_id'),
+                'variance': variance
+            }
+            processed_items.append(processed_item)
+
+            # Crear movimiento de inventario (salida por consumo en evento)
+            movement_id = str(uuid.uuid4())
+            movement_data = {
+                'id': movement_id,
+                'item_id': item['item_id'],
+                'item_name': inventory_data['name'],
+                'movement_type': 'sale',  # Salida por consumo
+                'quantity': -item['actual_quantity_consumed'],  # Negativo para salida
+                'unit': inventory_data['unit'],
+                'cost_per_unit': cost_per_unit,
+                'total_cost': total_cost,
+                'reference_id': data.get('event_id', data['booking_id']),
+                'reference_type': 'event_consumption',
+                'notes': f"Consumo en evento - {data.get('notes', '')}",
+                'stock_before': inventory_data['current_stock'],
+                'stock_after': inventory_data['current_stock'] - item['actual_quantity_consumed'],
+                'avg_cost_before': cost_per_unit,
+                'avg_cost_after': cost_per_unit,
+                'created_at': datetime.now()
+            }
+
+            db.collection('inventory_movements').document(movement_id).set(movement_data)
+
+            # Actualizar stock en inventario
+            new_stock = inventory_data['current_stock'] - item['actual_quantity_consumed']
+            needs_restock = new_stock <= inventory_data.get('min_stock', 0)
+
+            inventory_ref.update({
+                'current_stock': new_stock,
+                'needs_restock': needs_restock,
+                'last_updated': datetime.now()
+            })
+
+        # Calcular costo total
+        total_cost = total_supply_cost + data['total_other_expenses']
+
+        # Crear registro de consumption
+        consumption_data = {
+            'id': consumption_id,
+            'event_id': data.get('event_id'),  # Puede ser None si es solo booking
+            'booking_id': data['booking_id'],
+            'items_consumed': processed_items,
+            'total_supply_cost': total_supply_cost,
+            'total_other_expenses': data['total_other_expenses'],
+            'total_cost': total_cost,
+            'notes': data.get('notes'),
+            'supplies_id': supplies_data['id'] if supplies_data else None,
+            'created_at': datetime.now()
+        }
+
+        db.collection('event_consumption').document(consumption_id).set(consumption_data)
+
+        # Actualizar el booking con el costo total calculado
+        print(f"DEBUG: About to update booking {data['booking_id']} with financials")
+        booking_data = booking_doc.to_dict()
+        financials = booking_data.get('financials', {})
+
+        # Actualizar financials con los nuevos costos
+        financials.update({
+            'total_expenses': total_cost,
+            'supply_cost': total_supply_cost,
+            'other_expenses': data['total_other_expenses']
+        })
+
+        print(f"DEBUG: Calculated financials: {financials}")
+
+        # Recalcular profit si hay income
+        if 'income' in financials:
+            financials['profit'] = financials['income'] - total_cost
+
+        update_data = {
+            'financials': financials,
+            'updated_at': datetime.now()
+        }
+
+        print(f"DEBUG: Updating booking with: {update_data}")
+        booking_ref.update(update_data)
+        print(f"DEBUG: Booking update completed successfully")
+
+        # Serializar fecha para respuesta
+        consumption_data['created_at'] = safe_datetime_to_iso(consumption_data['created_at'])
+
+        return jsonify({
+            'message': 'Event consumption registered successfully',
+            'consumption_id': consumption_id,
+            'consumption': consumption_data
+        }), 201
+
+    except Exception as e:
+        print(f"Error creating event consumption: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/event-consumption/event/<event_id>', methods=['GET', 'OPTIONS'])
+def get_event_consumption(event_id):
+    """Obtener registro de consumo de un evento"""
+    if request.method == 'OPTIONS':
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        return response
+
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        docs = list(db.collection('event_consumption').where('event_id', '==', event_id).limit(1).stream())
+
+        if not docs:
+            return jsonify({'error': 'Consumption not found for this event'}), 404
+
+        consumption_data = docs[0].to_dict()
+
+        # Serializar fecha
+        if 'created_at' in consumption_data:
+            consumption_data['created_at'] = safe_datetime_to_iso(consumption_data['created_at'])
+
+        return jsonify(consumption_data), 200
+
+    except Exception as e:
+        print(f"Error getting event consumption: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/event-supplies/status/<booking_id>', methods=['GET', 'OPTIONS'])
+def get_consumption_status(booking_id):
+    """Verificar si un booking tiene supplies y consumption registrados"""
+    if request.method == 'OPTIONS':
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        return response
+
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        # Verificar supplies
+        supplies_docs = list(db.collection('event_supplies').where('booking_id', '==', booking_id).limit(1).stream())
+        has_supplies = len(supplies_docs) > 0
+        supplies_data = supplies_docs[0].to_dict() if has_supplies else None
+
+        # Verificar consumption
+        consumption_docs = list(db.collection('event_consumption').where('booking_id', '==', booking_id).limit(1).stream())
+        has_consumption = len(consumption_docs) > 0
+        consumption_data = consumption_docs[0].to_dict() if has_consumption else None
+
+        # Serializar fechas si existen
+        if supplies_data and 'created_at' in supplies_data:
+            supplies_data['created_at'] = safe_datetime_to_iso(supplies_data['created_at'])
+        if consumption_data and 'created_at' in consumption_data:
+            consumption_data['created_at'] = safe_datetime_to_iso(consumption_data['created_at'])
+
+        return jsonify({
+            'booking_id': booking_id,
+            'has_supplies': has_supplies,
+            'has_consumption': has_consumption,
+            'can_complete_event': has_supplies and has_consumption,
+            'supplies': supplies_data,
+            'consumption': consumption_data
+        }), 200
+
+    except Exception as e:
+        print(f"Error checking consumption status: {e}")
+        return jsonify({'error': str(e)}), 500
+
 # Local development server
 if __name__ == '__main__':
     print("Starting Pablo's Pizza Backend in LOCAL DEVELOPMENT mode...")
@@ -4018,6 +4563,10 @@ if __name__ == '__main__':
     print("   - GET /api/bookings/ - List bookings")
     print("   - GET /api/events/ - List events")
     print("   - GET /api/gallery/ - Gallery images")
+    print("   - POST /api/event-supplies/ - Create supplies estimation")
+    print("   - GET /api/event-supplies/booking/<id> - Get supplies by booking")
+    print("   - POST /api/event-consumption/ - Register consumption")
+    print("   - GET /api/event-supplies/status/<id> - Check supplies & consumption status")
     print("Use Ctrl+C to stop the server")
     
     # Run Flask development server

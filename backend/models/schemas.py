@@ -249,19 +249,55 @@ class ProductionBatch(ProductionBatchBase):
     completed_at: Optional[datetime] = None
     ingredients_consumed: List[RecipeIngredient]  # Ingredientes realmente consumidos
 
-# Schemas para Event Consumption (Consumo por Eventos)
+# Schemas para Event Supplies (Estimación de Insumos)
+class EventSupplyItem(BaseModel):
+    item_id: str
+    item_name: Optional[str] = None
+    estimated_quantity: float
+    unit: str
+    cost_per_unit: float
+    estimated_total_cost: float
+    batch_id: Optional[str] = None  # Para productos intermedios con lote específico
+    notes: Optional[str] = None
+
+class EventSuppliesBase(BaseModel):
+    booking_id: str  # Asociado al booking, no al evento aún
+    items: List[EventSupplyItem]
+    estimated_total_cost: float
+    notes: Optional[str] = None
+
+class EventSuppliesCreate(EventSuppliesBase):
+    pass
+
+class EventSuppliesUpdate(BaseModel):
+    items: Optional[List[EventSupplyItem]] = None
+    estimated_total_cost: Optional[float] = None
+    notes: Optional[str] = None
+
+class EventSupplies(EventSuppliesBase):
+    id: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+# Schemas para Event Consumption (Consumo Real por Eventos)
 class EventConsumptionItem(BaseModel):
     item_id: str
     item_name: Optional[str] = None
-    quantity_consumed: float
+    estimated_quantity: float  # Lo que se estimó llevar
+    actual_quantity_consumed: float  # Lo que realmente se consumió
     unit: str
     cost_per_unit: float
-    total_cost: float
+    total_cost: float  # actual_quantity_consumed * cost_per_unit
+    batch_id: Optional[str] = None  # Para productos intermedios
+    variance: Optional[float] = None  # Diferencia entre estimado y real
 
 class EventConsumptionBase(BaseModel):
     event_id: str
+    booking_id: str  # Para referenciar las supplies estimadas
     items_consumed: List[EventConsumptionItem]
-    total_cost: float
+    total_supply_cost: float  # Costo total de insumos
+    total_other_expenses: float  # Gastos adicionales (ya implementado)
+    total_cost: float  # supply_cost + other_expenses
     notes: Optional[str] = None
 
 class EventConsumptionCreate(EventConsumptionBase):
@@ -270,6 +306,7 @@ class EventConsumptionCreate(EventConsumptionBase):
 class EventConsumption(EventConsumptionBase):
     id: str
     created_at: datetime
+    supplies_id: Optional[str] = None  # Referencia a las supplies estimadas
 
 # Schemas para Reports
 class MonthlyReport(BaseModel):

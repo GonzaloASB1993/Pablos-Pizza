@@ -7,7 +7,7 @@ const isDevelopment = window.location.hostname === 'localhost' || window.locatio
 
 const BASE_URL = isDevelopment
   ? 'http://localhost:8000/api'  // Development
-  : 'https://us-central1-pablospizza-d84bf.cloudfunctions.net/main/api'  // Production
+  : 'https://main-4kqeqojbsq-uc.a.run.app/api'  // Production Cloud Run
 
 
 // Create axios instance
@@ -420,6 +420,20 @@ export const notificationsAPI = {
   sendTest: (phone, message) => api.post('/notifications/test', { phone, message }),
   sendDailyReminders: () => api.post('/notifications/reminders/send-daily'),
   sendBulk: (data) => api.post('/notifications/bulk-send', data),
+}
+
+// Event Supplies API
+export const eventSuppliesAPI = {
+  create: (data) => api.post('/event-supplies/', data),
+  getByBooking: (bookingId) => api.get(`/event-supplies/booking/${bookingId}`),
+  update: (suppliesId, data) => api.put(`/event-supplies/${suppliesId}`, data),
+  getStatus: (bookingId) => api.get(`/event-supplies/status/${bookingId}`),
+}
+
+// Event Consumption API
+export const eventConsumptionAPI = {
+  create: (data) => api.post('/event-consumption/', data),
+  getByEvent: (eventId) => api.get(`/event-consumption/event/${eventId}`),
 }
 
 // Contact API
