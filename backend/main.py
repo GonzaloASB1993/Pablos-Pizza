@@ -4615,91 +4615,95 @@ def calculate_client_retention_rate(year: int, month: int) -> float:
     except:
         return 0.0
 
+def get_monthly_report_data(year: int, month: int):
+    """Generar datos de reporte mensual (función auxiliar)"""
+    db = get_db()
+
+    # Rango de fechas del mes (convertir a datetime para comparar con event_date)
+    start_date = datetime(year, month, 1)
+    if month == 12:
+        end_date = datetime(year + 1, 1, 1)
+    else:
+        end_date = datetime(year, month + 1, 1)
+
+    # Obtener agendamientos del mes (confirmed y completed)
+    bookings_query = db.collection("bookings").where(
+        "event_date", ">=", start_date
+    ).where(
+        "event_date", "<", end_date
+    )
+
+    all_bookings = list(bookings_query.stream())
+    # Filtrar solo agendamientos confirmados o completados
+    bookings = [b for b in all_bookings if b.to_dict().get("status") in ["confirmed", "completed"]]
+    total_events = len(bookings)
+
+    if total_events == 0:
+        return {
+            "month": month,
+            "year": year,
+            "total_events": 0,
+            "total_income": 0.0,
+            "total_expenses": 0.0,
+            "total_profit": 0.0,
+            "avg_participants": 0.0,
+            "most_popular_service": "N/A",
+            "client_retention_rate": 0.0
+        }
+
+    # Calcular métricas financieras desde los agendamientos
+    total_income = 0.0
+    total_expenses = 0.0
+    total_participants = 0
+    service_counts = {}
+
+    for booking_doc in bookings:
+        booking_data = booking_doc.to_dict()
+
+        # Obtener ingresos del precio estimado o final
+        estimated_price = booking_data.get("estimated_price", 0.0)
+        final_price = booking_data.get("final_price", estimated_price)
+        total_income += final_price
+
+        # Obtener gastos del costo del evento o calcular profit
+        event_cost = booking_data.get("event_cost", 0.0)
+        total_expenses += event_cost
+
+        # Obtener participantes
+        participants = booking_data.get("participant_count", 0)
+        total_participants += participants
+
+        # Contar servicios directamente del booking
+        service_type = booking_data.get("service_type", "unknown")
+        service_counts[service_type] = service_counts.get(service_type, 0) + 1
+
+    total_profit = total_income - total_expenses
+    avg_participants = total_participants / total_events if total_events > 0 else 0
+
+    # Servicio más popular
+    most_popular_service = max(service_counts.items(), key=lambda x: x[1])[0] if service_counts else "N/A"
+
+    # Calcular tasa de retención (clientes que volvieron)
+    client_retention_rate = calculate_client_retention_rate(year, month)
+
+    return {
+        "month": month,
+        "year": year,
+        "total_events": total_events,
+        "total_income": round(total_income, 2),
+        "total_expenses": round(total_expenses, 2),
+        "total_profit": round(total_profit, 2),
+        "avg_participants": round(avg_participants, 1),
+        "most_popular_service": most_popular_service,
+        "client_retention_rate": round(client_retention_rate, 2)
+    }
+
 @app.route('/api/reports/monthly/<int:year>/<int:month>', methods=['GET'])
 def get_monthly_report(year: int, month: int):
     """Generar reporte mensual"""
     try:
-        db = get_db()
-
-        # Rango de fechas del mes (convertir a datetime para comparar con event_date)
-        start_date = datetime(year, month, 1)
-        if month == 12:
-            end_date = datetime(year + 1, 1, 1)
-        else:
-            end_date = datetime(year, month + 1, 1)
-
-        # Obtener agendamientos del mes (confirmed y completed)
-        bookings_query = db.collection("bookings").where(
-            "event_date", ">=", start_date
-        ).where(
-            "event_date", "<", end_date
-        )
-
-        all_bookings = list(bookings_query.stream())
-        # Filtrar solo agendamientos confirmados o completados
-        bookings = [b for b in all_bookings if b.to_dict().get("status") in ["confirmed", "completed"]]
-        total_events = len(bookings)
-
-        if total_events == 0:
-            return jsonify({
-                "month": month,
-                "year": year,
-                "total_events": 0,
-                "total_income": 0.0,
-                "total_expenses": 0.0,
-                "total_profit": 0.0,
-                "avg_participants": 0.0,
-                "most_popular_service": "N/A",
-                "client_retention_rate": 0.0
-            })
-
-        # Calcular métricas financieras desde los agendamientos
-        total_income = 0.0
-        total_expenses = 0.0
-        total_participants = 0
-        service_counts = {}
-
-        for booking_doc in bookings:
-            booking_data = booking_doc.to_dict()
-
-            # Obtener ingresos del precio estimado o final
-            estimated_price = booking_data.get("estimated_price", 0.0)
-            final_price = booking_data.get("final_price", estimated_price)
-            total_income += final_price
-
-            # Obtener gastos del costo del evento o calcular profit
-            event_cost = booking_data.get("event_cost", 0.0)
-            total_expenses += event_cost
-
-            # Obtener participantes
-            participants = booking_data.get("participant_count", 0)
-            total_participants += participants
-
-            # Contar servicios directamente del booking
-            service_type = booking_data.get("service_type", "unknown")
-            service_counts[service_type] = service_counts.get(service_type, 0) + 1
-
-        total_profit = total_income - total_expenses
-        avg_participants = total_participants / total_events if total_events > 0 else 0
-
-        # Servicio más popular
-        most_popular_service = max(service_counts.items(), key=lambda x: x[1])[0] if service_counts else "N/A"
-
-        # Calcular tasa de retención (clientes que volvieron)
-        client_retention_rate = calculate_client_retention_rate(year, month)
-
-        return jsonify({
-            "month": month,
-            "year": year,
-            "total_events": total_events,
-            "total_income": round(total_income, 2),
-            "total_expenses": round(total_expenses, 2),
-            "total_profit": round(total_profit, 2),
-            "avg_participants": round(avg_participants, 1),
-            "most_popular_service": most_popular_service,
-            "client_retention_rate": round(client_retention_rate, 2)
-        })
-
+        report_data = get_monthly_report_data(year, month)
+        return jsonify(report_data)
     except Exception as e:
         return jsonify({"error": f"Error al generar reporte mensual: {str(e)}"}), 500
 
@@ -4711,24 +4715,9 @@ def get_annual_summary(year: int):
 
         for month in range(1, 13):
             try:
-                # Llamar a la función get_monthly_report internamente
-                response = get_monthly_report(year, month)
-                if response[1] == 200:  # Status code 200
-                    report_data = response[0].get_json()
-                    monthly_reports.append(report_data)
-                else:
-                    # Si hay error en un mes, usar valores por defecto
-                    monthly_reports.append({
-                        "month": month,
-                        "year": year,
-                        "total_events": 0,
-                        "total_income": 0.0,
-                        "total_expenses": 0.0,
-                        "total_profit": 0.0,
-                        "avg_participants": 0.0,
-                        "most_popular_service": "N/A",
-                        "client_retention_rate": 0.0
-                    })
+                # Llamar a la función auxiliar get_monthly_report_data
+                report_data = get_monthly_report_data(year, month)
+                monthly_reports.append(report_data)
             except:
                 # Si hay error en un mes, usar valores por defecto
                 monthly_reports.append({
@@ -4781,11 +4770,10 @@ def get_dashboard_stats():
             "created_at", "<=", today_end
         ).stream()))
 
-        # Estadísticas del mes actual - llamar a la función get_monthly_report
-        monthly_response = get_monthly_report(current_year, current_month)
-        if monthly_response[1] == 200:
-            monthly_report = monthly_response[0].get_json()
-        else:
+        # Estadísticas del mes actual - llamar a la función auxiliar get_monthly_report_data
+        try:
+            monthly_report = get_monthly_report_data(current_year, current_month)
+        except:
             monthly_report = {
                 "total_events": 0,
                 "total_income": 0.0,
@@ -4887,11 +4875,7 @@ def export_monthly_report(year: int, month: int):
         from flask import Response
 
         # Obtener reporte
-        monthly_response = get_monthly_report(year, month)
-        if monthly_response[1] != 200:
-            return jsonify({"error": "Error al generar reporte"}), 500
-
-        report = monthly_response[0].get_json()
+        report = get_monthly_report_data(year, month)
 
         # Crear Excel con pandas
         data = {
