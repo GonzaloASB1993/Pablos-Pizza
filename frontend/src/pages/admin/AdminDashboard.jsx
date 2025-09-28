@@ -8,7 +8,11 @@ import {
   CardContent,
   Button,
   Alert,
-  CircularProgress
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material'
 import {
   TrendingUp,
@@ -26,6 +30,12 @@ import logo from '../../assets/logo.png'
 const AdminDashboard = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
+
+  // Estado para el filtro de mes
+  const currentDate = new Date()
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
+
   const [stats, setStats] = useState({
     newBookings: 0,
     monthlyEvents: 0,
@@ -41,7 +51,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     loadDashboardData()
-  }, [])
+  }, [selectedMonth, selectedYear])
 
   const loadDashboardData = async () => {
     try {
@@ -72,26 +82,21 @@ const AdminDashboard = () => {
         return createdDate === todayStr
       })
 
-      // Calculate monthly stats
-      const currentMonth = today.getMonth()
-      const currentYear = today.getFullYear()
-
+      // Calculate monthly stats using selected month/year
       const monthlyEvents = events.filter(event => {
         const eventDate = event.event_date ? new Date(event.event_date) : null
-        return eventDate && eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
+        return eventDate && eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear
       })
 
-      // Calculate monthly income from confirmed bookings (include future confirmed events)
+      // Calculate monthly income from confirmed bookings for selected month
       const confirmedBookings = bookings.filter(booking => {
         if (booking.status !== 'confirmed' && booking.status !== 'completed') return false
         const eventDate = booking.event_date ? new Date(booking.event_date) : null
 
-        // For revenue calculation, include current month + future confirmed events
+        // For revenue calculation, include selected month events
         let includeInRevenue = false
         if (eventDate) {
-          const isThisMonth = eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear
-          const isFutureConfirmed = booking.status === 'confirmed' && eventDate >= today
-          includeInRevenue = isThisMonth || isFutureConfirmed
+          includeInRevenue = eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear
         }
 
         // Debug each booking
@@ -143,6 +148,30 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Funciones para el manejo del filtro de mes
+  const monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ]
+
+  const handleMonthChange = (event) => {
+    setSelectedMonth(event.target.value)
+  }
+
+  const handleYearChange = (event) => {
+    setSelectedYear(event.target.value)
+  }
+
+  // Generar años disponibles (3 años atrás hasta 1 año adelante)
+  const generateYearOptions = () => {
+    const currentYear = new Date().getFullYear()
+    const years = []
+    for (let i = currentYear - 3; i <= currentYear + 1; i++) {
+      years.push(i)
+    }
+    return years
   }
 
   const StatCard = ({ title, value, icon, color = 'primary' }) => (
@@ -203,6 +232,53 @@ const AdminDashboard = () => {
         </Button>
       </Box>
 
+      {/* Filtro de Mes */}
+      <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        mb: 3,
+        p: 2,
+        borderRadius: 2,
+        bgcolor: 'background.paper',
+        boxShadow: 1
+      }}>
+        <Typography variant="h6" sx={{ mr: 2 }}>
+          Período:
+        </Typography>
+        <FormControl size="small" sx={{ minWidth: 120 }}>
+          <InputLabel>Mes</InputLabel>
+          <Select
+            value={selectedMonth}
+            label="Mes"
+            onChange={handleMonthChange}
+          >
+            {monthNames.map((month, index) => (
+              <MenuItem key={index} value={index}>
+                {month}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ minWidth: 100 }}>
+          <InputLabel>Año</InputLabel>
+          <Select
+            value={selectedYear}
+            label="Año"
+            onChange={handleYearChange}
+          >
+            {generateYearOptions().map((year) => (
+              <MenuItem key={year} value={year}>
+                {year}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
+          Mostrando datos de {monthNames[selectedMonth]} {selectedYear}
+        </Typography>
+      </Box>
+
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
           <CircularProgress />
@@ -220,7 +296,7 @@ const AdminDashboard = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <StatCard
-                title="Eventos del Mes"
+                title={`Eventos - ${monthNames[selectedMonth]}`}
                 value={stats.monthlyEvents}
                 icon={<People />}
                 color="secondary"
@@ -228,7 +304,7 @@ const AdminDashboard = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <StatCard
-                title="Ingresos Confirmados"
+                title={`Ingresos - ${monthNames[selectedMonth]}`}
                 value={`$${stats.monthlyIncome.toLocaleString('es-CL')}`}
                 icon={<AttachMoney />}
                 color="success"
@@ -236,7 +312,7 @@ const AdminDashboard = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <StatCard
-                title="Utilidad del Mes"
+                title={`Utilidad - ${monthNames[selectedMonth]}`}
                 value={`$${stats.monthlyProfit.toLocaleString('es-CL')}`}
                 icon={<TrendingUp />}
                 color="warning"
