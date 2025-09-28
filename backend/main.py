@@ -21,6 +21,11 @@ from email.mime.multipart import MIMEMultipart
 import asyncio
 from twilio.rest import Client
 
+# Reports service imports
+import pandas as pd
+from io import BytesIO
+import calendar
+
 # Initialize Flask app
 app = Flask(__name__)
 
@@ -4554,9 +4559,6 @@ def get_consumption_status(booking_id):
         return jsonify({'error': str(e)}), 500
 
 # ==================== REPORTS API ROUTES ====================
-import pandas as pd
-from io import BytesIO
-import calendar
 
 def calculate_client_retention_rate(year: int, month: int) -> float:
     """Calcular tasa de retención de clientes para el mes"""

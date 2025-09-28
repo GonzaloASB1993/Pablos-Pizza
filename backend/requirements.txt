@@ -5,3 +5,5 @@ flask-cors==4.0.0
 python-dotenv==1.0.0
 twilio==8.10.0
 python-decouple==3.8
+pandas==2.1.4
+openpyxl==3.1.2
