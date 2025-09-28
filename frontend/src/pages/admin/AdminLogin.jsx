@@ -12,7 +12,20 @@ import {
 import { Login as LoginIcon } from '@mui/icons-material'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { keyframes } from '@mui/material/styles'
 import logo from '../../assets/logo.png'
+
+const borderBeam = keyframes`
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+`
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('')
@@ -56,8 +69,23 @@ const AdminLogin = () => {
       }}
     >
       <Container maxWidth="sm">
-        <Card>
-          <CardContent sx={{ p: 4 }}>
+        <Box
+          sx={{
+            position: 'relative',
+            p: '3px',
+            borderRadius: '12px',
+            background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #f9ca24, #ff6b6b)',
+            backgroundSize: '300% 300%',
+            animation: `${borderBeam} 4s ease infinite`,
+          }}
+        >
+          <Card
+            sx={{
+              borderRadius: '9px',
+              overflow: 'hidden',
+            }}
+          >
+            <CardContent sx={{ p: 4 }}>
             <Box sx={{ textAlign: 'center', mb: 4 }}>
               <Box
                 component="img"
@@ -125,8 +153,9 @@ const AdminLogin = () => {
                 ¿Problemas para acceder? Contacta al administrador del sistema
               </Typography>
             </Box>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Box>
       </Container>
     </Box>
   )
