@@ -163,8 +163,8 @@ const BookingsManagement = () => {
 
     // Función para calcular pizzas sugeridas
     const calculateSuggestedPizzas = (guests) => {
-        // Cada persona come aprox. 3.5 rebanadas, cada pizza tiene 8 rebanadas
-        return Math.ceil((guests * 3.5) / 8)
+        // Cada persona come 5 rebanadas, cada pizza tiene 8 rebanadas
+        return Math.ceil((guests * 5) / 8)
     }
 
     const getStatusLabel = (status) => {
