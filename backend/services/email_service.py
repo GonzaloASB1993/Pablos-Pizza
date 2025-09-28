@@ -428,7 +428,11 @@ async def send_confirmation_email(booking_data: dict) -> bool:
                         <div class="detail-row">
                             <span class="detail-icon">👥</span>
                             <span class="detail-label">Participantes:</span>
-                            <span class="detail-value">{booking_data['participants']} personas</span>
+                            <span class="detail-value">""" + \
+                            (f"{booking_data.get('pizzeros_participants', 0)} niños" if booking_data.get('pizzeros_participants', 0) > 0 else "") + \
+                            (f"{booking_data.get('party_guests', booking_data.get('party_participants', 0))} personas, {booking_data.get('pizza_quantity', booking_data.get('party_participants', 0))} pizzas" if booking_data.get('party_participants', 0) > 0 else "") + \
+                            (f"{booking_data['participants']} personas" if not booking_data.get('pizzeros_participants', 0) and not booking_data.get('party_participants', 0) else "") + \
+                            """</span>
                         </div>
 
                         <div class="detail-row">

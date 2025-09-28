@@ -123,7 +123,11 @@ const BookingsManagement = () => {
         client_name: '',
         client_email: '',
         client_phone: '',
-        location: ''
+        location: '',
+        pizzeros_participants: 0,
+        party_participants: 0,
+        party_guests: 0, // Nueva field para personas en pizza party
+        pizza_quantity: 10
     })
     const [newBookingData, setNewBookingData] = useState({
         client_name: '',
@@ -137,6 +141,7 @@ const BookingsManagement = () => {
         participants: '',
         pizzeros_participants: 0,
         party_participants: 0,
+        party_guests: 0, // Nueva field para personas en pizza party
         pizza_quantity: 10,
         location: '',
         special_requests: ''
@@ -154,6 +159,12 @@ const BookingsManagement = () => {
 
         // Servicio único
         return type === 'workshop' ? 'Pizzeros en Acción' : 'Pizza Party'
+    }
+
+    // Función para calcular pizzas sugeridas
+    const calculateSuggestedPizzas = (guests) => {
+        // Cada persona come aprox. 3.5 rebanadas, cada pizza tiene 8 rebanadas
+        return Math.ceil((guests * 3.5) / 8)
     }
 
     const getStatusLabel = (status) => {
@@ -585,7 +596,9 @@ const BookingsManagement = () => {
             client_phone: booking.client_phone || '',
             location: booking.location || '',
             pizzeros_participants: booking.pizzeros_participants || 0,
-            party_participants: booking.party_participants || 0
+            party_participants: booking.party_participants || 0,
+            party_guests: booking.party_guests || 0,
+            pizza_quantity: booking.pizza_quantity || 10
         })
         setEditDialog(true)
     }
@@ -623,6 +636,8 @@ const BookingsManagement = () => {
             if (formData.location) updatePayload.location = formData.location
             if (formData.pizzeros_participants !== undefined) updatePayload.pizzeros_participants = parseInt(formData.pizzeros_participants) || 0
             if (formData.party_participants !== undefined) updatePayload.party_participants = parseInt(formData.party_participants) || 0
+            if (formData.party_guests !== undefined) updatePayload.party_guests = parseInt(formData.party_guests) || 0
+            if (formData.pizza_quantity !== undefined) updatePayload.pizza_quantity = parseInt(formData.pizza_quantity) || 10
 
             // Add cost and profit fields when completing
             if (formData.status === 'completed') {
@@ -1014,7 +1029,7 @@ const BookingsManagement = () => {
                     )}
                     {booking.party_participants > 0 && (
                         <Typography variant="body2">
-                            <strong>Pizza Party:</strong> {booking.party_participants} personas
+                            <strong>Pizza Party:</strong> {booking.party_guests || booking.party_participants} personas, {booking.pizza_quantity || booking.party_participants} pizzas
                         </Typography>
                     )}
                     {(!booking.pizzeros_participants && !booking.party_participants) && (
@@ -1376,7 +1391,7 @@ const BookingsManagement = () => {
                                                 )}
                                                 {booking.party_participants > 0 && (
                                                     <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                                                        Party: {booking.party_participants}
+                                                        Party: {booking.party_guests || booking.party_participants}p / {booking.pizza_quantity || booking.party_participants}π
                                                     </Typography>
                                                 )}
                                                 {(!booking.pizzeros_participants && !booking.party_participants) && (
@@ -1582,11 +1597,39 @@ const BookingsManagement = () => {
                         <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
-                                label="Pizza Party - Personas"
-                                value={formData.party_participants}
-                                onChange={(e) => setFormData(prev => ({ ...prev, party_participants: e.target.value }))}
+                                label="Pizza Party - Cantidad de personas"
+                                value={formData.party_guests}
+                                onChange={(e) => {
+                                    const guests = parseInt(e.target.value || '0', 10)
+                                    setFormData(prev => {
+                                        const suggested = guests > 0 ? calculateSuggestedPizzas(guests) : 0
+                                        return {
+                                            ...prev,
+                                            party_guests: guests,
+                                            pizza_quantity: Math.max(10, suggested),
+                                            party_participants: Math.max(10, suggested) // Para pricing
+                                        }
+                                    })
+                                }}
                                 type="number"
-                                helperText="Solo si el servicio incluye Pizza Party"
+                                helperText="Número de invitados al evento (si es Pizza Party)"
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                label="Pizza Party - Pizzas sugeridas"
+                                value={formData.pizza_quantity}
+                                onChange={(e) => {
+                                    const quantity = parseInt(e.target.value || '10', 10)
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        pizza_quantity: Math.max(10, quantity),
+                                        party_participants: Math.max(10, quantity) // Para pricing
+                                    }))
+                                }}
+                                type="number"
+                                helperText="Mínimo 10 pizzas - Ajustable según necesidades"
                             />
                         </Grid>
                         <Grid item xs={12} sm={6}>
@@ -1865,26 +1908,50 @@ const BookingsManagement = () => {
                             </Grid>
                         )}
                         {newBookingData.service_type.includes('pizza_party') && (
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Cantidad de Pizzas"
-                                    name="pizza_quantity"
-                                    type="number"
-                                    value={newBookingData.pizza_quantity}
-                                    onChange={(e) => {
-                                        const quantity = Math.max(10, parseInt(e.target.value || '10', 10))
-                                        setNewBookingData(prev => ({
-                                            ...prev,
-                                            pizza_quantity: quantity,
-                                            party_participants: quantity
-                                        }))
-                                    }}
-                                    inputProps={{ min: 10, max: 200 }}
-                                    helperText="Mínimo 10 pizzas"
-                                    required
-                                />
-                            </Grid>
+                            <>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Pizza Party - Cantidad de personas"
+                                        name="party_guests"
+                                        type="number"
+                                        value={newBookingData.party_guests}
+                                        onChange={(e) => {
+                                            const guests = parseInt(e.target.value || '0', 10)
+                                            const suggested = guests > 0 ? calculateSuggestedPizzas(guests) : 0
+                                            setNewBookingData(prev => ({
+                                                ...prev,
+                                                party_guests: guests,
+                                                pizza_quantity: Math.max(10, suggested),
+                                                party_participants: Math.max(10, suggested)
+                                            }))
+                                        }}
+                                        inputProps={{ min: 1, max: 200 }}
+                                        helperText="Número de invitados al evento"
+                                        required
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Pizza Party - Pizzas sugeridas"
+                                        name="pizza_quantity"
+                                        type="number"
+                                        value={newBookingData.pizza_quantity}
+                                        onChange={(e) => {
+                                            const quantity = Math.max(10, parseInt(e.target.value || '10', 10))
+                                            setNewBookingData(prev => ({
+                                                ...prev,
+                                                pizza_quantity: quantity,
+                                                party_participants: quantity
+                                            }))
+                                        }}
+                                        inputProps={{ min: 10, max: 200 }}
+                                        helperText="Mínimo 10 pizzas - Ajustable según necesidades"
+                                        required
+                                    />
+                                </Grid>
+                            </>
                         )}
                         {!newBookingData.service_type && (
                             <Grid item xs={12} sm={6}>

@@ -55,7 +55,11 @@ async def send_whatsapp_confirmation(booking_data: dict) -> bool:
 🍕 Servicio: {service_name}
 📅 Fecha: {booking_data['event_date'].strftime('%d/%m/%Y')}
 ⏰ Hora: {booking_data['event_time']}
-👥 Participantes: {booking_data['participants']}
+👥 Participantes: {
+    f"{booking_data.get('pizzeros_participants', 0)} niños" if booking_data.get('pizzeros_participants', 0) > 0
+    else f"{booking_data.get('party_guests', booking_data.get('party_participants', 0))} personas, {booking_data.get('pizza_quantity', booking_data.get('party_participants', 0))} pizzas" if booking_data.get('party_participants', 0) > 0
+    else f"{booking_data['participants']} personas"
+}
 📍 Ubicación: {booking_data['location']}
 💰 Precio estimado: ${booking_data.get('estimated_price', 0):,.0f} CLP
 
