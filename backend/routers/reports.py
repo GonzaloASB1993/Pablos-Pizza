@@ -14,22 +14,24 @@ db = firestore.client()
 async def get_monthly_report(year: int, month: int):
     """Generar reporte mensual"""
     try:
-        # Rango de fechas del mes
-        start_date = date(year, month, 1)
+        # Rango de fechas del mes (convertir a datetime para comparar con event_date)
+        start_date = datetime(year, month, 1)
         if month == 12:
-            end_date = date(year + 1, 1, 1)
+            end_date = datetime(year + 1, 1, 1)
         else:
-            end_date = date(year, month + 1, 1)
-        
-        # Obtener eventos del mes
-        events_query = db.collection("events").where(
-            "start_time", ">=", start_date
+            end_date = datetime(year, month + 1, 1)
+
+        # Obtener agendamientos del mes (confirmed y completed)
+        bookings_query = db.collection("bookings").where(
+            "event_date", ">=", start_date
         ).where(
-            "start_time", "<", end_date
+            "event_date", "<", end_date
         )
-        
-        events = list(events_query.stream())
-        total_events = len(events)
+
+        all_bookings = list(bookings_query.stream())
+        # Filtrar solo agendamientos confirmados o completados
+        bookings = [b for b in all_bookings if b.to_dict().get("status") in ["confirmed", "completed"]]
+        total_events = len(bookings)
         
         if total_events == 0:
             return MonthlyReport(
@@ -44,28 +46,31 @@ async def get_monthly_report(year: int, month: int):
                 client_retention_rate=0.0
             )
         
-        # Calcular métricas financieras
+        # Calcular métricas financieras desde los agendamientos
         total_income = 0.0
         total_expenses = 0.0
         total_participants = 0
         service_counts = {}
-        
-        for event_doc in events:
-            event_data = event_doc.to_dict()
-            financials = event_data.get("financials", {})
-            
-            total_income += financials.get("income", 0.0)
-            total_expenses += financials.get("total_expenses", 0.0)
-            total_participants += event_data.get("actual_participants", 0)
-            
-            # Contar servicios (obtener del booking)
-            booking_id = event_data.get("booking_id")
-            if booking_id:
-                booking_doc = db.collection("bookings").document(booking_id).get()
-                if booking_doc.exists:
-                    booking_data = booking_doc.to_dict()
-                    service_type = booking_data.get("service_type", "unknown")
-                    service_counts[service_type] = service_counts.get(service_type, 0) + 1
+
+        for booking_doc in bookings:
+            booking_data = booking_doc.to_dict()
+
+            # Obtener ingresos del precio estimado o final
+            estimated_price = booking_data.get("estimated_price", 0.0)
+            final_price = booking_data.get("final_price", estimated_price)
+            total_income += final_price
+
+            # Obtener gastos del costo del evento o calcular profit
+            event_cost = booking_data.get("event_cost", 0.0)
+            total_expenses += event_cost
+
+            # Obtener participantes
+            participants = booking_data.get("participant_count", 0)
+            total_participants += participants
+
+            # Contar servicios directamente del booking
+            service_type = booking_data.get("service_type", "unknown")
+            service_counts[service_type] = service_counts.get(service_type, 0) + 1
         
         total_profit = total_income - total_expenses
         avg_participants = total_participants / total_events if total_events > 0 else 0
@@ -266,34 +271,31 @@ async def export_monthly_report(year: int, month: int, format: str = "excel"):
 async def get_top_clients(limit: int = 10):
     """Obtener clientes más frecuentes"""
     try:
-        # Obtener todos los bookings
-        bookings = list(db.collection("bookings").stream())
-        
+        # Obtener todos los bookings confirmados y completados
+        all_bookings = list(db.collection("bookings").stream())
+        bookings = [b for b in all_bookings if b.to_dict().get("status") in ["confirmed", "completed"]]
+
         client_stats = {}
         for booking_doc in bookings:
             booking_data = booking_doc.to_dict()
             client_email = booking_data.get("client_email")
             client_name = booking_data.get("client_name")
-            
-            if client_email not in client_stats:
+
+            if client_email and client_email not in client_stats:
                 client_stats[client_email] = {
                     "name": client_name,
                     "email": client_email,
                     "total_bookings": 0,
                     "total_spent": 0.0
                 }
-            
-            client_stats[client_email]["total_bookings"] += 1
-            
-            # Buscar evento asociado para obtener ingresos
-            events = list(db.collection("events").where(
-                "booking_id", "==", booking_data.get("id")
-            ).stream())
-            
-            for event_doc in events:
-                event_data = event_doc.to_dict()
-                income = event_data.get("financials", {}).get("income", 0.0)
-                client_stats[client_email]["total_spent"] += income
+
+            if client_email:
+                client_stats[client_email]["total_bookings"] += 1
+
+                # Obtener ingresos directamente del booking
+                estimated_price = booking_data.get("estimated_price", 0.0)
+                final_price = booking_data.get("final_price", estimated_price)
+                client_stats[client_email]["total_spent"] += final_price
         
         # Ordenar por número de bookings
         top_clients = sorted(
@@ -315,17 +317,20 @@ async def calculate_client_retention_rate(year: int, month: int) -> float:
     """Calcular tasa de retención de clientes para el mes"""
     try:
         # Obtener clientes del mes actual
-        start_date = date(year, month, 1)
+        start_date = datetime(year, month, 1)
         if month == 12:
-            end_date = date(year + 1, 1, 1)
+            end_date = datetime(year + 1, 1, 1)
         else:
-            end_date = date(year, month + 1, 1)
-        
-        current_bookings = list(db.collection("bookings").where(
+            end_date = datetime(year, month + 1, 1)
+
+        all_current_bookings = list(db.collection("bookings").where(
             "event_date", ">=", start_date
         ).where(
             "event_date", "<", end_date
         ).stream())
+
+        # Filtrar solo confirmados/completados
+        current_bookings = [b for b in all_current_bookings if b.to_dict().get("status") in ["confirmed", "completed"]]
         
         if not current_bookings:
             return 0.0
@@ -333,17 +338,24 @@ async def calculate_client_retention_rate(year: int, month: int) -> float:
         current_clients = set()
         for booking_doc in current_bookings:
             booking_data = booking_doc.to_dict()
-            current_clients.add(booking_data.get("client_email"))
+            client_email = booking_data.get("client_email")
+            if client_email:
+                current_clients.add(client_email)
         
         # Obtener clientes de meses anteriores
-        previous_bookings = list(db.collection("bookings").where(
+        all_previous_bookings = list(db.collection("bookings").where(
             "event_date", "<", start_date
         ).stream())
-        
+
+        # Filtrar solo confirmados/completados
+        previous_bookings = [b for b in all_previous_bookings if b.to_dict().get("status") in ["confirmed", "completed"]]
+
         previous_clients = set()
         for booking_doc in previous_bookings:
             booking_data = booking_doc.to_dict()
-            previous_clients.add(booking_data.get("client_email"))
+            client_email = booking_data.get("client_email")
+            if client_email:
+                previous_clients.add(client_email)
         
         # Calcular retención
         returning_clients = current_clients.intersection(previous_clients)
