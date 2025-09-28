@@ -83,8 +83,10 @@ const AdminDashboard = () => {
       })
 
       // Calculate monthly stats using selected month/year
-      const monthlyEvents = events.filter(event => {
-        const eventDate = event.event_date ? new Date(event.event_date) : null
+      // Count events from bookings (confirmed/completed) for the selected month
+      const monthlyEvents = bookings.filter(booking => {
+        if (booking.status !== 'confirmed' && booking.status !== 'completed') return false
+        const eventDate = booking.event_date ? new Date(booking.event_date) : null
         return eventDate && eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear
       })
 
@@ -113,9 +115,9 @@ const AdminDashboard = () => {
         return total + price
       }, 0)
 
-      const monthlyProfit = monthlyEvents.reduce((total, event) => {
-        const profit = event.profit || 0
-        console.log(`💸 Event profit: ${profit} (total so far: ${total + profit})`)
+      const monthlyProfit = monthlyEvents.reduce((total, booking) => {
+        const profit = booking.profit || 0
+        console.log(`💸 Booking profit: ${profit} (total so far: ${total + profit})`)
         return total + profit
       }, 0)
 
