@@ -1213,10 +1213,11 @@ const BookingsManagement = () => {
                         </Grid>
                         <Grid item xs={12} sm={6} md={3}>
                             <FormControl fullWidth size="small">
-                                <InputLabel>Filtrar por mes</InputLabel>
                                 <Select
                                     value={selectedMonth}
                                     label="Filtrar por mes"
+                                    displayEmpty
+                                    renderValue={(value) => value || 'Filtrar por mes'}
                                     onChange={(e) => setSelectedMonth(e.target.value)}
                                 >
                                     <MenuItem value="">Todos los meses</MenuItem>
@@ -1522,10 +1523,17 @@ const BookingsManagement = () => {
                     <Grid container spacing={2} sx={{ mt: 1 }}>
                         <Grid item xs={12} sm={6}>
                             <FormControl fullWidth>
-                                <InputLabel>Estado</InputLabel>
                                 <Select
                                     value={formData.status}
                                     label="Estado"
+                                    displayEmpty
+                                    renderValue={(value) => value ? {
+                                        'pending': 'Pendiente',
+                                        'confirmed': 'Confirmado',
+                                        'in_progress': 'En Progreso',
+                                        'completed': 'Completado',
+                                        'cancelled': 'Cancelado'
+                                    }[value] : 'Selecciona Estado'}
                                     onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
                                 >
                                     <MenuItem value="pending">Pendiente</MenuItem>
@@ -1537,10 +1545,15 @@ const BookingsManagement = () => {
                         </Grid>
                         <Grid item xs={12} sm={6}>
                             <FormControl fullWidth>
-                                <InputLabel>Tipo de Servicio</InputLabel>
                                 <Select
                                     value={formData.service_type}
                                     label="Tipo de Servicio"
+                                    displayEmpty
+                                    renderValue={(value) => value ? {
+                                        'workshop': 'Pizzeros en Acción',
+                                        'pizza_party': 'Pizza Party',
+                                        'workshop,pizza_party': 'Ambos Servicios'
+                                    }[value] : 'Selecciona Tipo de Servicio'}
                                     onChange={(e) => setFormData(prev => ({ ...prev, service_type: e.target.value }))}
                                 >
                                     <MenuItem value="workshop">Pizzeros en Acción</MenuItem>
@@ -1660,6 +1673,7 @@ const BookingsManagement = () => {
                                 value={formData.event_time}
                                 onChange={(e) => setFormData(prev => ({ ...prev, event_time: e.target.value }))}
                                 SelectProps={{ native: true }}
+                                InputLabelProps={{ shrink: true }}
                                 helperText="Solo horarios :00 y :30"
                             >
                                 <option value="">Seleccionar hora...</option>
@@ -1820,11 +1834,15 @@ const BookingsManagement = () => {
                         </Grid>
                         <Grid item xs={12} sm={6}>
                             <FormControl fullWidth>
-                                <InputLabel>Tipo de Servicio</InputLabel>
                                 <Select
                                     name="service_type"
                                     value={newBookingData.service_type}
-                                    label="Tipo de Servicio"
+                                    displayEmpty
+                                    renderValue={(value) => value ? {
+                                        'workshop': 'Pizzeros en Acción',
+                                        'pizza_party': 'Pizza Party',
+                                        'workshop,pizza_party': 'Ambos Servicios'
+                                    }[value] : 'Selecciona Tipo de Servicio'}
                                     onChange={handleNewBookingChange}
                                 >
                                     <MenuItem value="workshop">Pizzeros en Acción</MenuItem>
@@ -1835,12 +1853,17 @@ const BookingsManagement = () => {
                         </Grid>
                         <Grid item xs={12} sm={6}>
                             <FormControl fullWidth>
-                                <InputLabel>Tipo de Evento</InputLabel>
                                 <Select
                                     name="event_type"
                                     value={newBookingData.event_type}
-                                    label="Tipo de Evento"
                                     onChange={handleNewBookingChange}
+                                    displayEmpty
+                                    renderValue={(value) => value ? {
+                                        'birthday': '🎂 Cumpleaños',
+                                        'school': '🏫 Escolar',
+                                        'corporate': '🏢 Corporativo',
+                                        'private': '✨ Otro'
+                                    }[value] : 'Selecciona Tipo de Evento'}
                                 >
                                     <MenuItem value="birthday">🎂 Cumpleaños</MenuItem>
                                     <MenuItem value="school">🏫 Escolar</MenuItem>
@@ -1870,6 +1893,7 @@ const BookingsManagement = () => {
                                 value={newBookingData.event_time}
                                 onChange={handleNewBookingChange}
                                 SelectProps={{ native: true }}
+                                InputLabelProps={{ shrink: true }}
                                 helperText="Solo horarios :00 y :30"
                             >
                                 <option value="">Seleccionar hora...</option>
@@ -2500,10 +2524,16 @@ const BookingsManagement = () => {
                                                 </Grid>
                                                 <Grid item xs={12} sm={6}>
                                                     <FormControl fullWidth>
-                                                        <InputLabel>Categoría</InputLabel>
                                                         <Select
                                                             value={expenseData.category}
                                                             label="Categoría"
+                                                            displayEmpty
+                                                            renderValue={(value) => value ? {
+                                                                'ingredients': 'Ingredientes',
+                                                                'transport': 'Transporte',
+                                                                'supplies': 'Materiales',
+                                                                'other': 'Otros'
+                                                            }[value] : 'Selecciona Categoría'}
                                                             onChange={(e) => setExpenseData({...expenseData, category: e.target.value})}
                                                         >
                                                             <MenuItem value="ingredientes">Ingredientes</MenuItem>
@@ -2879,10 +2909,16 @@ const BookingsManagement = () => {
                         </Grid>
                         <Grid item xs={12} sm={6}>
                             <FormControl fullWidth>
-                                <InputLabel>Categoría</InputLabel>
                                 <Select
                                     value={expenseData.category}
                                     label="Categoría"
+                                    displayEmpty
+                                    renderValue={(value) => value ? {
+                                        'ingredients': 'Ingredientes',
+                                        'transport': 'Transporte',
+                                        'supplies': 'Materiales',
+                                        'other': 'Otros'
+                                    }[value] : 'Selecciona Categoría'}
                                     onChange={(e) => setExpenseData({...expenseData, category: e.target.value})}
                                 >
                                     <MenuItem value="ingredientes">Ingredientes</MenuItem>
