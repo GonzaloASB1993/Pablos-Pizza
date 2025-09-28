@@ -1574,64 +1574,74 @@ const BookingsManagement = () => {
                                 onChange={(e) => setFormData(prev => ({ ...prev, client_phone: e.target.value }))}
                             />
                         </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                fullWidth
-                                label="Participantes Total"
-                                value={formData.participants}
-                                onChange={(e) => setFormData(prev => ({ ...prev, participants: e.target.value }))}
-                                type="number"
-                                helperText="Total general de participantes"
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                fullWidth
-                                label="Pizzeros en Acción - Niños"
-                                value={formData.pizzeros_participants}
-                                onChange={(e) => setFormData(prev => ({ ...prev, pizzeros_participants: e.target.value }))}
-                                type="number"
-                                helperText="Solo si el servicio incluye Pizzeros"
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                fullWidth
-                                label="Pizza Party - Cantidad de personas"
-                                value={formData.party_guests}
-                                onChange={(e) => {
-                                    const guests = parseInt(e.target.value || '0', 10)
-                                    setFormData(prev => {
-                                        const suggested = guests > 0 ? calculateSuggestedPizzas(guests) : 0
-                                        return {
-                                            ...prev,
-                                            party_guests: guests,
-                                            pizza_quantity: Math.max(10, suggested),
-                                            party_participants: Math.max(10, suggested) // Para pricing
-                                        }
-                                    })
-                                }}
-                                type="number"
-                                helperText="Número de invitados al evento (si es Pizza Party)"
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                fullWidth
-                                label="Pizza Party - Pizzas sugeridas"
-                                value={formData.pizza_quantity}
-                                onChange={(e) => {
-                                    const quantity = parseInt(e.target.value || '10', 10)
-                                    setFormData(prev => ({
-                                        ...prev,
-                                        pizza_quantity: Math.max(10, quantity),
-                                        party_participants: Math.max(10, quantity) // Para pricing
-                                    }))
-                                }}
-                                type="number"
-                                helperText="Mínimo 10 pizzas - Ajustable según necesidades"
-                            />
-                        </Grid>
+                        {/* Campos condicionales según tipo de servicio */}
+                        {(formData.service_type?.includes('workshop') || formData.service_type?.includes('pizzeros')) && (
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Pizzeros en Acción - Niños"
+                                    value={formData.pizzeros_participants}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, pizzeros_participants: e.target.value }))}
+                                    type="number"
+                                    helperText="Cantidad de niños participantes"
+                                />
+                            </Grid>
+                        )}
+                        {(formData.service_type?.includes('party') || formData.service_type?.includes('pizza_party')) && (
+                            <>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Pizza Party - Cantidad de personas"
+                                        value={formData.party_guests}
+                                        onChange={(e) => {
+                                            const guests = parseInt(e.target.value || '0', 10)
+                                            setFormData(prev => {
+                                                const suggested = guests > 0 ? calculateSuggestedPizzas(guests) : 0
+                                                return {
+                                                    ...prev,
+                                                    party_guests: guests,
+                                                    pizza_quantity: Math.max(10, suggested),
+                                                    party_participants: Math.max(10, suggested) // Para pricing
+                                                }
+                                            })
+                                        }}
+                                        type="number"
+                                        helperText="Número de invitados al evento"
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Pizza Party - Pizzas sugeridas"
+                                        value={formData.pizza_quantity}
+                                        onChange={(e) => {
+                                            const quantity = parseInt(e.target.value || '10', 10)
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                pizza_quantity: Math.max(10, quantity),
+                                                party_participants: Math.max(10, quantity) // Para pricing
+                                            }))
+                                        }}
+                                        type="number"
+                                        helperText="Mínimo 10 pizzas - Ajustable según necesidades"
+                                    />
+                                </Grid>
+                            </>
+                        )}
+                        {/* Campo total solo para servicios mixtos */}
+                        {(formData.service_type?.includes('workshop') && formData.service_type?.includes('party')) && (
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Participantes Total (ambos servicios)"
+                                    value={formData.participants}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, participants: e.target.value }))}
+                                    type="number"
+                                    helperText="Total cuando hay ambos servicios"
+                                />
+                            </Grid>
+                        )}
                         <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
