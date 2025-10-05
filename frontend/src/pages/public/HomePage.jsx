@@ -19,7 +19,9 @@ import {
   IconButton,
   Tooltip,
   useMediaQuery,
-  alpha
+  alpha,
+  Dialog,
+  DialogContent
 } from '@mui/material'
 import {
   Restaurant,
@@ -38,7 +40,9 @@ import {
   Favorite,
   Instagram,
   CheckCircle,
-  AutoAwesome
+  AutoAwesome,
+  Close as CloseIcon,
+  CheckCircle as CheckCircleIcon
 } from '@mui/icons-material'
 import { useTheme } from '@mui/material/styles'
 import { Swiper, SwiperSlide } from 'swiper/react'
@@ -50,6 +54,106 @@ import 'swiper/css/navigation'
 import { designTokens } from '../../utils/theme'
 import logo from '../../assets/logo.png'
 import { listenTestimonials } from '../../services/testimonialsService'
+
+// Event Categories Data
+const eventCategories = [
+  {
+    id: 'corporate',
+    title: 'Eventos Corporativos',
+    subtitle: 'Team building delicioso y efectivo',
+    tag: 'Empresas',
+    icon: '💼',
+    mainImage: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800',
+    gallery: [
+      'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800',
+      'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800',
+      'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800'
+    ],
+    description: 'Actividades de team building únicas donde tu equipo aprende a hacer pizzas artesanales mientras fortalece vínculos. Ideal para empresas que buscan eventos memorables.',
+    services: ['Pizza Party', 'Pizzeros en Acción'],
+    duration: '2-3 horas',
+    capacity: '15-100 personas',
+    features: [
+      'Chef profesional guiando',
+      'Ingredientes premium',
+      'Competencias por equipos',
+      'Premios y reconocimientos',
+      'Show completo'
+    ]
+  },
+  {
+    id: 'birthday',
+    title: 'Cumpleaños Especiales',
+    subtitle: 'Celebraciones únicas e inolvidables',
+    tag: 'Cumpleaños',
+    icon: '🎂',
+    mainImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
+    gallery: [
+      'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
+      'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800',
+      'https://images.unsplash.com/photo-1558636508-e0db3814bd1d?w=800'
+    ],
+    description: 'Fiestas de cumpleaños donde los niños son los protagonistas. Aprenden, juegan y crean sus propias pizzas en una experiencia educativa y deliciosa.',
+    services: ['Pizza Party', 'Pizzeros en Acción'],
+    duration: '2-3 horas',
+    capacity: '10-50 niños',
+    features: [
+      'Animación incluida',
+      'Gorros de chef para todos',
+      'Decoración temática',
+      'Ingredientes ilimitados',
+      'Certificado de chef'
+    ]
+  },
+  {
+    id: 'wedding',
+    title: 'Matrimonios',
+    subtitle: 'Pizza gourmet para tu día especial',
+    tag: 'Eventos',
+    icon: '💒',
+    mainImage: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800',
+    gallery: [
+      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800',
+      'https://images.unsplash.com/photo-1520854221256-17451cc331bf?w=800',
+      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800'
+    ],
+    description: 'Estación de pizza artesanal para matrimonios. Una opción gourmet y divertida que encanta a todos los invitados.',
+    services: ['Pizza Party'],
+    duration: 'Flexible',
+    capacity: 'Sin límite',
+    features: [
+      'Menú personalizado',
+      'Horno profesional',
+      'Pizzeros uniformados',
+      'Ingredientes premium',
+      'Setup elegante'
+    ]
+  },
+  {
+    id: 'school',
+    title: 'Talleres Educativos',
+    subtitle: 'Niños aprendiendo técnicas culinarias',
+    tag: 'Educación',
+    icon: '🎓',
+    mainImage: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800',
+    gallery: [
+      'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800',
+      'https://images.unsplash.com/photo-1544025162-d76694265947?w=800',
+      'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800'
+    ],
+    description: 'Talleres gastronómicos para colegios donde los niños desarrollan habilidades culinarias, trabajan en equipo y aprenden sobre nutrición.',
+    services: ['Pizzeros en Acción'],
+    duration: '2-3 horas',
+    capacity: '15-30 niños',
+    features: [
+      'Contenido educativo',
+      'Certificado para cada niño',
+      'Material didáctico',
+      'Chef instructor',
+      'Seguridad alimentaria'
+    ]
+  }
+]
 
 // Hero Logo 3D con efectos glassmorphism
 const Hero3DLogo = () => (
@@ -262,6 +366,377 @@ const AnimatedSection = ({ children, delay = 0 }) => {
       }}
     >
       {children}
+    </Box>
+  )
+}
+
+// Event Detail Modal Component
+function EventDetailModal({ event, open, onClose }) {
+  if (!event) return null
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          maxHeight: '90vh'
+        }
+      }}
+    >
+      {/* Header con botón cerrar */}
+      <Box
+        sx={{
+          position: 'sticky',
+          top: 0,
+          backgroundColor: '#000',
+          color: '#FFD700',
+          p: 2,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          zIndex: 10
+        }}
+      >
+        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+          {event.icon} {event.title}
+        </Typography>
+        <IconButton onClick={onClose} sx={{ color: '#FFD700' }}>
+          <CloseIcon />
+        </IconButton>
+      </Box>
+
+      <DialogContent sx={{ p: 0 }}>
+        {/* Carousel de imágenes */}
+        <Box sx={{ mb: 3 }}>
+          <Swiper
+            modules={[Autoplay, Pagination, Navigation]}
+            spaceBetween={0}
+            slidesPerView={1}
+            autoplay={{ delay: 4000 }}
+            pagination={{ clickable: true }}
+            navigation
+            loop
+          >
+            {event.gallery.map((image, index) => (
+              <SwiperSlide key={index}>
+                <Box
+                  component="img"
+                  src={image}
+                  alt={`${event.title} ${index + 1}`}
+                  sx={{
+                    width: '100%',
+                    height: '400px',
+                    objectFit: 'cover'
+                  }}
+                />
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </Box>
+
+        {/* Contenido del modal */}
+        <Box sx={{ p: 3 }}>
+          {/* Descripción */}
+          <Typography variant="body1" sx={{ mb: 3, lineHeight: 1.8 }}>
+            {event.description}
+          </Typography>
+
+          {/* Info rápida */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={6}>
+              <Box sx={{ p: 2, backgroundColor: '#FFF9E6', borderRadius: 2 }}>
+                <Typography variant="caption" sx={{ color: '#666' }}>
+                  Duración
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  {event.duration}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={6}>
+              <Box sx={{ p: 2, backgroundColor: '#FFF9E6', borderRadius: 2 }}>
+                <Typography variant="caption" sx={{ color: '#666' }}>
+                  Capacidad
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  {event.capacity}
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+
+          {/* Servicios disponibles */}
+          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+            Servicios Disponibles
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+            {event.services.map((service) => (
+              <Chip
+                key={service}
+                label={service}
+                sx={{
+                  backgroundColor: '#FFD700',
+                  fontWeight: 'bold'
+                }}
+              />
+            ))}
+          </Box>
+
+          {/* Features */}
+          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+            ¿Qué Incluye?
+          </Typography>
+          <Grid container spacing={1}>
+            {event.features.map((feature, index) => (
+              <Grid item xs={12} key={index}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CheckCircleIcon sx={{ color: '#4CAF50' }} />
+                  <Typography variant="body2">{feature}</Typography>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+
+          {/* CTA */}
+          <Box sx={{ mt: 4, textAlign: 'center' }}>
+            <Button
+              variant="contained"
+              size="large"
+              href="/agendar"
+              sx={{
+                backgroundColor: '#FFD700',
+                color: '#000',
+                fontWeight: 'bold',
+                px: 6,
+                py: 2,
+                '&:hover': {
+                  backgroundColor: '#FFC700'
+                }
+              }}
+            >
+              Cotizar Este Evento
+            </Button>
+          </Box>
+        </Box>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// Event Gallery Section Component
+function EventGallerySection({ navigate }) {
+  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [modalOpen, setModalOpen] = useState(false)
+
+  const { ref, inView } = useInView({
+    threshold: 0.2,
+    triggerOnce: false
+  })
+
+  const handleCardClick = (event) => {
+    setSelectedEvent(event)
+    setModalOpen(true)
+  }
+
+  return (
+    <Box
+      ref={ref}
+      component="section"
+      sx={{
+        minHeight: '100vh',
+        py: 8,
+        backgroundColor: '#F5F5F5',
+        display: 'flex',
+        alignItems: 'center'
+      }}
+    >
+      <Container maxWidth="lg">
+        {/* Header con animación */}
+        <Box
+          sx={{
+            textAlign: 'center',
+            mb: 6,
+            opacity: inView ? 1 : 0,
+            transform: inView ? 'translateY(0)' : 'translateY(30px)',
+            transition: 'all 0.8s ease-out'
+          }}
+        >
+          <Typography
+            variant="h2"
+            sx={{
+              fontWeight: 'bold',
+              color: '#FFD700',
+              mb: 2
+            }}
+          >
+            Momentos Mágicos
+          </Typography>
+          <Typography variant="h6" sx={{ color: '#666' }}>
+            Capturamos cada sonrisa, cada momento de aprendizaje y diversión
+          </Typography>
+        </Box>
+
+        {/* Grid de cards en fila */}
+        <Grid container spacing={3}>
+          {eventCategories.map((event, index) => (
+            <Grid
+              item
+              xs={12}
+              sm={6}
+              md={3}
+              key={event.id}
+              sx={{
+                opacity: inView ? 1 : 0,
+                transform: inView ? 'translateY(0)' : 'translateY(30px)',
+                transition: `all 0.8s ease-out ${index * 0.2}s`
+              }}
+            >
+              <Card
+                onClick={() => handleCardClick(event)}
+                sx={{
+                  height: '400px',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  borderRadius: 3,
+                  transition: 'transform 0.3s ease',
+                  '&:hover': {
+                    transform: 'scale(1.02)',
+                    '& .overlay': {
+                      backgroundColor: 'rgba(0,0,0,0.5)'
+                    },
+                    '& .content': {
+                      transform: 'translateY(-10px)'
+                    }
+                  }
+                }}
+              >
+                {/* Imagen de fondo */}
+                <CardMedia
+                  component="img"
+                  image={event.mainImage}
+                  alt={event.title}
+                  sx={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                />
+
+                {/* Overlay oscuro para mejor contraste */}
+                <Box
+                  className="overlay"
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.6)',
+                    transition: 'background-color 0.3s ease',
+                    zIndex: 1
+                  }}
+                />
+
+                {/* Contenido con mejor contraste */}
+                <CardContent
+                  className="content"
+                  sx={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    zIndex: 2,
+                    color: '#FFF',
+                    p: 3,
+                    transition: 'transform 0.3s ease'
+                  }}
+                >
+                  <Chip
+                    label={event.tag}
+                    icon={<span>{event.icon}</span>}
+                    sx={{
+                      backgroundColor: '#FFD700',
+                      color: '#000',
+                      fontWeight: 'bold',
+                      mb: 2
+                    }}
+                  />
+
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 'bold',
+                      color: '#FFF',
+                      mb: 1,
+                      textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+                    }}
+                  >
+                    {event.title}
+                  </Typography>
+
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: '#FFF',
+                      textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                    }}
+                  >
+                    {event.subtitle}
+                  </Typography>
+
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: 'block',
+                      mt: 2,
+                      color: '#FFD700',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    👆 Click para ver más detalles
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
+        {/* Botón Ver Galería Completa */}
+        <Box sx={{ textAlign: 'center', mt: 6 }}>
+          <Button
+            variant="outlined"
+            size="large"
+            endIcon={<ArrowForward />}
+            onClick={() => navigate('/galeria')}
+            sx={{
+              borderColor: '#FFD700',
+              color: '#FFD700',
+              fontWeight: 'bold',
+              px: 4,
+              py: 1.5,
+              '&:hover': {
+                borderColor: '#FFD700',
+                backgroundColor: 'rgba(255,215,0,0.1)'
+              }
+            }}
+          >
+            Ver Galería Completa
+          </Button>
+        </Box>
+      </Container>
+
+      {/* Modal con detalles del evento */}
+      <EventDetailModal
+        event={selectedEvent}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+      />
     </Box>
   )
 }
@@ -635,7 +1110,7 @@ export default function HomePage() {
         `}</style>
       </Box>
 
-      {/* SECCIÓN 1: PIZZEROS EN ACCIÓN - Fondo Blanco */}
+      {/* SECCIÓN 1: PIZZEROS EN ACCIÓN - Imagen Full con Gradiente */}
       <AnimatedSection>
         <Box
           component="section"
@@ -644,14 +1119,42 @@ export default function HomePage() {
             width: '100%',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: { xs: '40px 20px', md: '80px 40px' },
             backgroundColor: '#FFFFFF',
             position: 'relative',
             overflow: 'hidden'
           }}
         >
-          <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, width: '100%' }}>
+          {/* IMAGEN DE FONDO - Cubre lado derecho */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: { xs: '0%', md: '55%' },
+              backgroundImage: `url(${publicBase}images/talleres/taller-corporativo.jpg)`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center left',
+              zIndex: 0,
+              display: { xs: 'none', md: 'block' }
+            }}
+          />
+
+          {/* GRADIENTE DE DIFUMINADO */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: { xs: '0%', md: '55%' },
+              background: 'linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.4) 40%, rgba(255,255,255,0) 100%)',
+              zIndex: 1,
+              display: { xs: 'none', md: 'block' }
+            }}
+          />
+
+          <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2, py: 8 }}>
             <Grid container spacing={4} alignItems="center">
               {/* Columna izquierda: Contenido de texto */}
               <Grid item xs={12} md={6}>
@@ -670,16 +1173,16 @@ export default function HomePage() {
                     <School sx={{ fontSize: 42, color: '#000' }} />
                   </Box>
                   <Box>
-                    <Typography variant="h2" sx={{ color: '#000', fontWeight: 'bold', fontSize: { xs: '2rem', md: '2.5rem' } }}>
+                    <Typography variant="h2" sx={{ color: '#000', fontWeight: 'bold', fontSize: { xs: '1.75rem', md: '2.25rem' } }}>
                       Pizzeros en Acción
                     </Typography>
-                    <Chip label="EXPERIENCIA EDUCATIVA PREMIUM" sx={{ backgroundColor: '#FFD700', color: '#000', fontWeight: 700, mt: 1 }} />
+                    <Chip label="EXPERIENCIA EDUCATIVA" sx={{ backgroundColor: '#FFD700', color: '#000', fontWeight: 700, mt: 1 }} />
                   </Box>
                 </Box>
 
-                <Typography variant="h6" sx={{ color: '#000', mb: 3, lineHeight: 1.6 }}>
+                <Typography variant="body1" sx={{ color: '#000', mb: 3, lineHeight: 1.7, fontSize: { xs: '1rem', md: '1.1rem' } }}>
                   <span style={{ color: '#FFD700', fontWeight: 700 }}>Talleres gastronómicos únicos</span> donde los niños se transforman en verdaderos chefs profesionales.
-                  Aprenden técnicas culinarias auténticas mientras crean pizzas artesanales con ingredientes 100% premium.
+                  Aprenden técnicas culinarias auténticas mientras crean pizzas artesanales con ingredientes de primera calidad.
                 </Typography>
 
                 <Box sx={{ mb: 4 }}>
@@ -751,26 +1254,32 @@ export default function HomePage() {
                 </Box>
               </Grid>
 
-              {/* Columna derecha: Imagen */}
-              <Grid item xs={12} md={6}>
+              {/* Columna derecha: Imagen (solo mobile) */}
+              <Grid item xs={12} md={6} sx={{ display: { xs: 'block', md: 'none' } }}>
                 <Box
                   component="img"
                   src={`${publicBase}images/talleres/taller-corporativo.jpg`}
                   alt="Niños en taller de pizza"
                   sx={{
                     width: '100%',
-                    height: 'auto',
+                    height: '280px',
+                    objectFit: 'cover',
                     borderRadius: 2,
                     boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
                   }}
                 />
+              </Grid>
+
+              {/* Columna derecha: Espacio vacío (desktop - imagen está como fondo) */}
+              <Grid item xs={12} md={6} sx={{ display: { xs: 'none', md: 'block' } }}>
+                {/* Espacio reservado para la imagen de fondo con gradiente */}
               </Grid>
             </Grid>
           </Container>
         </Box>
       </AnimatedSection>
 
-      {/* SECCIÓN 2: PIZZA PARTY - Fondo Negro */}
+      {/* SECCIÓN 2: PIZZA PARTY - Imagen Full con Gradiente */}
       <AnimatedSection delay={200}>
         <Box
           component="section"
@@ -779,41 +1288,62 @@ export default function HomePage() {
             width: '100%',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: { xs: '40px 20px', md: '80px 40px' },
             backgroundColor: '#000000',
             position: 'relative',
             overflow: 'hidden'
           }}
         >
-          {/* Overlay negro semi-transparente */}
+          {/* IMAGEN DE FONDO - Cubre lado izquierdo */}
           <Box
             sx={{
               position: 'absolute',
               top: 0,
               left: 0,
-              right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.6)',
-              zIndex: 0
+              width: { xs: '0%', md: '55%' },
+              backgroundImage: `url(${publicBase}images/pizza-party.png)`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center right',
+              zIndex: 0,
+              display: { xs: 'none', md: 'block' }
             }}
           />
 
-          <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, width: '100%' }}>
+          {/* GRADIENTE DE DIFUMINADO */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              bottom: 0,
+              width: { xs: '0%', md: '55%' },
+              background: 'linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0) 100%)',
+              zIndex: 1,
+              display: { xs: 'none', md: 'block' }
+            }}
+          />
+
+          <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2, py: 8 }}>
             <Grid container spacing={4} alignItems="center">
-              {/* Columna izquierda: Imagen */}
-              <Grid item xs={12} md={6}>
+              {/* Columna izquierda: Imagen (solo mobile) */}
+              <Grid item xs={12} md={6} sx={{ display: { xs: 'block', md: 'none' } }}>
                 <Box
                   component="img"
-                  src={`${publicBase}momentoS/p2.jpg`}
+                  src={`${publicBase}images/pizza-party.png`}
                   alt="Fiesta de pizza"
                   sx={{
                     width: '100%',
-                    height: 'auto',
+                    height: '280px',
+                    objectFit: 'cover',
                     borderRadius: 2,
                     boxShadow: '0 8px 32px rgba(255,215,0,0.3)'
                   }}
                 />
+              </Grid>
+
+              {/* Columna izquierda: Espacio vacío (desktop - imagen está como fondo) */}
+              <Grid item xs={12} md={6} sx={{ display: { xs: 'none', md: 'block' } }}>
+                {/* Espacio reservado para la imagen de fondo con gradiente */}
               </Grid>
 
               {/* Columna derecha: Contenido de texto */}
@@ -833,16 +1363,16 @@ export default function HomePage() {
                     <Celebration sx={{ fontSize: 42, color: '#000' }} />
                   </Box>
                   <Box>
-                    <Typography variant="h2" sx={{ color: '#FFF', fontWeight: 'bold', fontSize: { xs: '2rem', md: '2.5rem' } }}>
-                      Pizza Parties
+                    <Typography variant="h2" sx={{ color: '#FFF', fontWeight: 'bold', fontSize: { xs: '1.75rem', md: '2.25rem' } }}>
+                      Pizza Party
                     </Typography>
-                    <Chip label="CATERING PREMIUM GOURMET" sx={{ backgroundColor: '#FFD700', color: '#000', fontWeight: 700, mt: 1 }} />
+                    <Chip label="CATERING GOURMET" sx={{ backgroundColor: '#FFD700', color: '#000', fontWeight: 700, mt: 1 }} />
                   </Box>
                 </Box>
 
-                <Typography variant="h6" sx={{ color: '#FFF', mb: 3, lineHeight: 1.6 }}>
+                <Typography variant="body1" sx={{ color: '#FFF', mb: 3, lineHeight: 1.7, fontSize: { xs: '1rem', md: '1.1rem' } }}>
                   <span style={{ color: '#FFD700', fontWeight: 700 }}>Catering gourmet especializado</span> en pizzas artesanales para eventos únicos y memorables.
-                  Servicio integral con preparación en vivo e ingredientes premium para hacer de tu celebración algo extraordinario.
+                  Servicio integral con preparación en vivo e ingredientes de primera calidad para hacer de tu celebración algo extraordinario.
                 </Typography>
 
                 <Box
@@ -977,17 +1507,17 @@ export default function HomePage() {
                 <SwiperSlide key={t.id || `${t.name}-${index}`}>
                   <Card
                     sx={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                      color: '#FFF',
+                      backgroundColor: '#FFFFFF',
+                      color: '#000',
                       height: '280px',
                       p: 3,
-                      border: '1px solid rgba(255, 215, 0, 0.2)',
+                      border: '2px solid rgba(255, 215, 0, 0.3)',
                       borderRadius: 2,
                       transition: 'all 0.3s ease',
                       '&:hover': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        borderColor: '#FFD700',
                         transform: 'translateY(-8px)',
-                        boxShadow: '0 8px 32px rgba(255, 215, 0, 0.3)'
+                        boxShadow: '0 8px 32px rgba(255, 215, 0, 0.4)'
                       }
                     }}
                   >
@@ -1023,7 +1553,7 @@ export default function HomePage() {
                         sx={{
                           fontStyle: 'italic',
                           lineHeight: 1.6,
-                          color: 'rgba(255,255,255,0.9)',
+                          color: '#333',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           display: '-webkit-box',
@@ -1079,137 +1609,8 @@ export default function HomePage() {
         </Box>
       </AnimatedSection>
 
-      {/* Galería Visual Moderna */}
-      <Container maxWidth="xl" sx={{ py: { xs: 8, md: 12 } }}>
-        <Box sx={{ textAlign: 'center', mb: 8 }}>
-          <Typography
-            variant="h2"
-            sx={{
-              mb: 3,
-              background: designTokens.colors.aurora.golden,
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            Momentos Mágicos
-          </Typography>
-          <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto' }}>
-            Capturamos cada sonrisa, cada momento de aprendizaje y diversión
-          </Typography>
-        </Box>
-
-        <Grid container spacing={3}>
-          {[
-            {
-              title: 'Talleres Educativos',
-              img: `${publicBase}momentoS/p1.jpg`,
-              desc: 'Niños aprendiendo técnicas culinarias básicas',
-              category: 'Educación'
-            },
-            {
-              title: 'Pizza Parties',
-              img: `${publicBase}momentoS/p2.jpg`,
-              desc: 'Celebraciones familiares llenas de sabor',
-              category: 'Eventos'
-            },
-            {
-              title: 'Cumpleaños Especiales',
-              img: `${publicBase}momentoS/p3.jpg`,
-              desc: 'Celebraciones únicas e inolvidables',
-              category: 'Cumpleaños'
-            },
-            {
-              title: 'Eventos Corporativos',
-              img: `${publicBase}momentoS/p4.jpg`,
-              desc: 'Team building delicioso y efectivo',
-              category: 'Empresas'
-            }
-          ].map((moment, index) => (
-            <Grid item xs={12} sm={6} md={3} key={moment.title}>
-              <Fade in timeout={800 + (index * 150)}>
-                <Card
-                  sx={{
-                    position: 'relative',
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                    '&:hover': {
-                      transform: 'translateY(-12px) scale(1.02)',
-                      '& .overlay': {
-                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                      },
-                      '& .content': {
-                        transform: 'translateY(0)',
-                      }
-                    }
-                  }}
-                >
-                  <CardMedia
-                    component="img"
-                    height={280}
-                    image={moment.img}
-                    alt={moment.title}
-                    loading="lazy"
-                    sx={{ objectFit: 'cover', width: '100%', display: 'block' }}
-                  />
-                  <Box
-                    className="overlay"
-                    sx={{
-                      position: 'absolute',
-                      inset: 0,
-                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                      transition: 'all 0.3s ease',
-                      display: 'flex',
-                      alignItems: 'flex-end',
-                    }}
-                  >
-                    <Box
-                      className="content"
-                      sx={{
-                        p: 3,
-                        color: 'white',
-                        width: '100%',
-                        transform: 'translateY(20px)',
-                        transition: 'all 0.3s ease',
-                      }}
-                    >
-                      <Chip
-                        label={moment.category}
-                        size="small"
-                        sx={{
-                          backgroundColor: designTokens.colors.golden[500],
-                          color: designTokens.colors.charcoal[900],
-                          fontWeight: 600,
-                          mb: 2,
-                        }}
-                      />
-                      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                        {moment.title}
-                      </Typography>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                        {moment.desc}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Card>
-              </Fade>
-            </Grid>
-          ))}
-        </Grid>
-
-        <Box sx={{ textAlign: 'center', mt: 6 }}>
-          <Button
-            variant="outlined"
-            onClick={() => navigate('/galeria')}
-            endIcon={<ArrowForward />}
-            size="large"
-            sx={{ px: 4 }}
-          >
-            Ver Galería Completa
-          </Button>
-        </Box>
-      </Container>
+      {/* Galería Visual Moderna - Nueva Sección Interactiva */}
+      <EventGallerySection navigate={navigate} />
 
       {/* CTA Final Premium */}
       <Box
