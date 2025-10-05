@@ -91,19 +91,16 @@ const AdminDashboard = () => {
       })
 
       // Calculate monthly income from confirmed bookings for selected month
+
       const confirmedBookings = bookings.filter(booking => {
         if (booking.status !== 'confirmed' && booking.status !== 'completed') return false
         const eventDate = booking.event_date ? new Date(booking.event_date) : null
-
-        // For revenue calculation, include selected month events
         let includeInRevenue = false
-        if (eventDate) {
+        if (eventDate && !isNaN(eventDate.getTime())) {
           includeInRevenue = eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear
         }
-
-        // Debug each booking
-        console.log(`📊 Booking ${booking.id}: status=${booking.status}, date=${booking.event_date}, parsed=${eventDate}, includeInRevenue=${includeInRevenue}, price=${booking.estimated_price}`)
-
+        // Debug: mostrar todos los bookings con su fecha, status y profit
+        console.log(`� Filtro utilidad: id=${booking.id}, status=${booking.status}, event_date=${booking.event_date}, parsed=${eventDate}, month=${eventDate && !isNaN(eventDate.getTime()) ? eventDate.getMonth() : 'NaN'}, year=${eventDate && !isNaN(eventDate.getTime()) ? eventDate.getFullYear() : 'NaN'}, includeInRevenue=${includeInRevenue}, profit=${booking.profit}`)
         return includeInRevenue
       })
 
@@ -115,9 +112,11 @@ const AdminDashboard = () => {
         return total + price
       }, 0)
 
-      const monthlyProfit = monthlyEvents.reduce((total, booking) => {
-        const profit = booking.profit || 0
-        console.log(`💸 Booking profit: ${profit} (total so far: ${total + profit})`)
+
+      // Calcular utilidad mensual sumando la columna 'profit' de todos los bookings confirmados/completados del mes filtrado
+      const monthlyProfit = confirmedBookings.reduce((total, booking) => {
+        const profit = Number(booking.event_profit) || 0
+        console.log(`💸 Booking event_profit: ${profit} (total so far: ${total + profit})`)
         return total + profit
       }, 0)
 
