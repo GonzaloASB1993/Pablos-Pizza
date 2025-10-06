@@ -16,6 +16,7 @@ import uuid
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import logging
 
 # WhatsApp service imports
 import asyncio
@@ -25,6 +26,48 @@ from twilio.rest import Client
 import pandas as pd
 from io import BytesIO
 import calendar
+
+# Config imports
+import sys
+from pathlib import Path
+
+# Ensure this module can import sibling files when served by Firebase Functions analyzer
+CURRENT_DIR = Path(__file__).parent
+if str(CURRENT_DIR) not in sys.path:
+    sys.path.insert(0, str(CURRENT_DIR))
+
+try:
+    from config import PricingConfig  # local module next to this file
+except ModuleNotFoundError:
+    try:
+        from .config import PricingConfig  # package-style import if backend is a package
+    except Exception:
+        # Safe fallback with sensible defaults so analysis doesn't fail
+        class PricingConfig:  # type: ignore
+            PIZZEROS_MINIMUM = 135000
+            PIZZA_PARTY_BASE_PRICE = 11990
+
+            @staticmethod
+            def get_pizzeros_price(participants: int) -> int:
+                if participants <= 10:
+                    return 13500
+                if participants <= 14:
+                    return 10500
+                if participants <= 19:
+                    return 9500
+                return 9000
+
+            @staticmethod
+            def get_pizza_party_price(pizzas: int) -> int:
+                base = PricingConfig.PIZZA_PARTY_BASE_PRICE
+                return round(base * 0.9) if pizzas >= 20 else base
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -743,8 +786,23 @@ def send_confirmation_email(booking_data: dict) -> bool:
                         <div class="detail-row">
                             <span class="detail-icon">👥</span>
                             <span class="detail-label">Participantes:</span>
-                            <span class="detail-value">{booking_data.get('participants', 'N/A')} personas</span>
+                            <span class="detail-value">""" + (
+                                f"{booking_data.get('pizzeros_participants', 0)} niños"
+                                if booking_data.get('service_type') == 'workshop'
+                                else (
+                                    f"{booking_data.get('party_guests', 0)} personas"
+                                    if booking_data.get('service_type') == 'pizza_party'
+                                    else f"{booking_data.get('pizzeros_participants', 0)} niños + {booking_data.get('party_guests', 0)} personas"
+                                )
+                            ) + """</span>
                         </div>
+
+                        """ + (
+                            '<div class="detail-row"><span class="detail-icon">🍕</span><span class="detail-label">Pizzas incluidas:</span><span class="detail-value">' +
+                            str(booking_data.get('pizza_quantity', 10)) +
+                            ' pizzas artesanales</span></div>'
+                            if 'pizza_party' in booking_data.get('service_type', '') else ''
+                        ) + f"""
 
                         <div class="detail-row">
                             <span class="detail-icon">📍</span>
@@ -898,74 +956,62 @@ def send_confirmation_email(booking_data: dict) -> bool:
 
         return False
 
-def calculate_estimated_price(service_types: str, pizzeros_participants: int = 0, party_participants: int = 0, participants: int = 0) -> float:
+def calculate_estimated_price(service_types: str, pizzeros_participants: int = 0, party_participants: int = 0, participants: int = 0, pizza_quantity: int = 0) -> float:
     """
     Calculate estimated price based on service types and participants count per service
 
     Args:
         service_types: Comma-separated service types (e.g., "workshop", "pizza_party", or "workshop,pizza_party")
         pizzeros_participants: Number of participants for Pizzeros en Acción
-        party_participants: Number of participants for Pizza Party
+        party_participants: Number of PIZZAS for Pizza Party (for pricing)
+        pizza_quantity: Number of pizzas for Pizza Party (new field)
         participants: Legacy field for backward compatibility
     """
-    print(f"[CALCULATE] Starting calculation:")
-    print(f"  service_types='{service_types}'")
-    print(f"  pizzeros_participants={pizzeros_participants}")
-    print(f"  party_participants={party_participants}")
-    print(f"  participants={participants} (legacy)")
+    logger.info(f"[CALCULATE] Starting calculation: service_types='{service_types}', "
+                f"pizzeros_participants={pizzeros_participants}, party_participants={party_participants}, "
+                f"pizza_quantity={pizza_quantity}, participants={participants}")
 
     total_price = 0
     services = [s.strip() for s in service_types.split(',') if s.strip()]
 
     for service in services:
         if service == "workshop" or service == "pizzeros":
-            # Pizzeros en Acción pricing with new tiered structure
+            # Pizzeros en Acción pricing with tiered structure
             service_participants = pizzeros_participants if pizzeros_participants > 0 else participants
             if service_participants <= 0:
-                print(f"  Skipping Pizzeros en Acción: no participants")
+                logger.debug(f"Skipping Pizzeros en Acción: no participants")
                 continue
 
+            price_per_child = PricingConfig.get_pizzeros_price(service_participants)
+            service_total = service_participants * price_per_child
+
+            # Apply minimum for 0-10 range
             if service_participants <= 10:
-                # 0-10 children: $13,500 minimum charge
-                service_total = 13500
-                print(f"  Pizzeros en Acción (0-10): {service_participants} niños -> $13,500 (mínimo)")
-            elif service_participants <= 14:
-                # 11-14 children: $10,500 per child
-                service_total = service_participants * 10500
-                print(f"  Pizzeros en Acción (11-14): {service_participants} niños x $10,500 -> ${service_total}")
-            elif service_participants <= 19:
-                # 15-19 children: $9,500 per child
-                service_total = service_participants * 9500
-                print(f"  Pizzeros en Acción (15-19): {service_participants} niños x $9,500 -> ${service_total}")
+                service_total = max(PricingConfig.PIZZEROS_MINIMUM, service_total)
+                logger.info(f"Pizzeros en Acción (0-10): {service_participants} niños x ${price_per_child} = ${service_total} (mínimo ${PricingConfig.PIZZEROS_MINIMUM})")
             else:
-                # 20+ children: $9,000 per child
-                service_total = service_participants * 9000
-                print(f"  Pizzeros en Acción (20+): {service_participants} niños x $9,000 -> ${service_total}")
+                logger.info(f"Pizzeros en Acción: {service_participants} niños x ${price_per_child} = ${service_total}")
 
             total_price += service_total
 
         elif service == "pizza_party" or service == "party":
-            # Pizza Party pricing logic
-            service_participants = party_participants if party_participants > 0 else participants
-            if service_participants <= 0:
-                print(f"  Skipping Pizza Party: no participants")
+            # Pizza Party pricing logic - usa PIZZAS, no personas
+            pizzas = pizza_quantity if pizza_quantity > 0 else (party_participants if party_participants > 0 else participants)
+            if pizzas <= 0:
+                logger.debug(f"Skipping Pizza Party: no pizzas specified")
                 continue
 
-            unit_base = int(os.getenv('DEFAULT_PIZZA_PARTY_PRICE', 11990))
-            if service_participants >= 20:
-                unit_final = round(unit_base * 0.9)  # 10% discount for 20+
-            else:
-                unit_final = unit_base
+            price_per_pizza = PricingConfig.get_pizza_party_price(pizzas)
+            service_total = pizzas * price_per_pizza
 
-            service_total = unit_final * service_participants
-            print(f"  Pizza Party: {service_participants} personas x ${unit_final} -> ${service_total}")
+            logger.info(f"Pizza Party: {pizzas} pizzas x ${price_per_pizza} = ${service_total}")
             total_price += service_total
 
         else:
-            print(f"  Unknown service type: {service}")
+            logger.warning(f"Unknown service type: {service}")
 
     result = round(total_price, 2)
-    print(f"[CALCULATE] Final total: ${result}")
+    logger.info(f"[CALCULATE] Final total: ${result}")
     return result
 
 def create_event_from_booking(booking_data: dict) -> bool:
@@ -1126,7 +1172,8 @@ def create_booking():
             service_types=data.get('service_type', ''),
             pizzeros_participants=data.get('pizzeros_participants', 0),
             party_participants=data.get('party_participants', 0),
-            participants=data.get('participants', 0)  # Legacy fallback
+            participants=data.get('participants', 0),  # Legacy fallback
+            pizza_quantity=data.get('pizza_quantity', 0)  # Cantidad de pizzas
         )
 
         print(f"PRECIO CALCULADO: {data.get('service_type')} - {data.get('participants')} part = ${estimated_price} CLP")
@@ -1207,6 +1254,7 @@ def create_booking():
 ID: {booking_data.get('id', 'N/A')}"""
 
             print(f"Enviando WhatsApp de nueva reserva al admin: {admin_phone}")
+            # Usar template aprobado para admin
             admin_whatsapp_sent = asyncio.run(send_whatsapp_with_template_fallback(
                 admin_phone,
                 admin_whatsapp_message,
@@ -2537,6 +2585,12 @@ def update_booking(booking_id):
         current_booking = doc.to_dict()
         print(f"Estado actual: {current_booking.get('status')} -> Nuevo estado: {data.get('status')}")
 
+        # Block any modification when booking is already completed
+        if current_booking.get('status') == 'completed':
+            return jsonify({
+                "error": "Cannot modify a completed booking"
+            }), 409
+
         # Update fields
         update_data = {}
         if 'status' in data:
@@ -2544,11 +2598,26 @@ def update_booking(booking_id):
             print(f"Actualizando status a: {data['status']}")
 
         # Add other updatable fields as needed
-        updatable_fields = ['status', 'notes', 'confirmed_price', 'confirmed_date', 'confirmed_time', 'event_cost', 'event_profit', 'estimated_price', 'client_name', 'client_email', 'client_phone', 'participants', 'event_date', 'event_time', 'service_type', 'location', 'special_requests', 'expenses', 'pizzeros_participants', 'party_participants']
+        updatable_fields = [
+            'status', 'notes', 'confirmed_price', 'confirmed_date', 'confirmed_time',
+            'event_cost', 'event_profit', 'estimated_price',
+            'client_name', 'client_email', 'client_phone',
+            'participants', 'event_date', 'event_time', 'service_type', 'location', 'special_requests', 'expenses',
+            'pizzeros_participants', 'party_participants', 'party_guests', 'pizza_quantity'
+        ]
         for field in updatable_fields:
             if field in data:
                 update_data[field] = data[field]
                 print(f"Actualizando campo {field}: {data[field]}")
+
+        # Backwards-compat: if pizza_quantity is provided, mirror to party_participants
+        # so cualquier código antiguo que lea party_participants se mantenga consistente
+        if 'pizza_quantity' in data and 'party_participants' not in update_data:
+            try:
+                update_data['party_participants'] = int(data['pizza_quantity'])
+                print(f"Back-compat: party_participants <- pizza_quantity ({update_data['party_participants']})")
+            except Exception:
+                pass
 
         # Add update timestamp
         update_data['updated_at'] = datetime.now()
@@ -2579,6 +2648,31 @@ def update_booking(booking_id):
                     print(f"Error al enviar email de confirmación a {client_email}")
             else:
                 print("No se pudo enviar email: no hay email del cliente")
+
+            # Send WhatsApp notification to CLIENT about confirmation
+            try:
+                client_phone = updated_booking.get('client_phone')
+                if client_phone:
+                    print(f"Enviando WhatsApp de confirmación al cliente: {client_phone}")
+
+                    # Usar template aprobado para notificar al cliente
+                    client_whatsapp_sent = asyncio.run(send_whatsapp_with_template_fallback(
+                        client_phone,
+                        "",  # El mensaje no se usa, se usa el template
+                        "booking_confirmed_client",
+                        updated_booking
+                    ))
+
+                    if client_whatsapp_sent:
+                        print(f"✅ WhatsApp de confirmación enviado al cliente {client_phone}")
+                    else:
+                        print(f"❌ Error al enviar WhatsApp al cliente {client_phone}")
+                else:
+                    print("No se pudo enviar WhatsApp al cliente: no hay teléfono")
+
+            except Exception as e:
+                print(f"Error enviando WhatsApp al cliente: {e}")
+                # No fallar si falla el WhatsApp al cliente
 
             # Send WhatsApp notification to admin about confirmation
             try:
@@ -2618,6 +2712,7 @@ def update_booking(booking_id):
 ID: {updated_booking.get('id', 'N/A')}"""
 
                 print(f"Enviando WhatsApp de confirmación al admin: {admin_phone}")
+                # Usar template aprobado para admin
                 admin_whatsapp_sent = asyncio.run(send_whatsapp_with_template_fallback(
                     admin_phone,
                     admin_whatsapp_message,
@@ -4655,6 +4750,19 @@ def get_monthly_report_data(year: int, month: int):
             "client_retention_rate": 0.0
         }
 
+    # Helper: costo total consistente con el frontend (financials + expenses)
+    def _calc_total_cost(b: dict) -> float:
+        try:
+            expenses_sum = sum((e.get('amount', 0) for e in (b.get('expenses') or [])))
+            fin_total = (b.get('financials') or {}).get('total_expenses', 0) or 0
+            # Si no hay financials/expenses, usar event_cost como fallback
+            total = fin_total + expenses_sum
+            if total == 0:
+                total = b.get('event_cost', 0) or 0
+            return float(total)
+        except Exception:
+            return float(b.get('event_cost', 0) or 0)
+
     # Calcular métricas financieras desde los agendamientos
     total_income = 0.0
     total_expenses = 0.0
@@ -4664,13 +4772,13 @@ def get_monthly_report_data(year: int, month: int):
     for booking_doc in bookings:
         booking_data = booking_doc.to_dict()
 
-        # Obtener ingresos del precio estimado o final
+        # Ingresos: precio estimado o final
         estimated_price = booking_data.get("estimated_price", 0.0)
         final_price = booking_data.get("final_price", estimated_price)
         total_income += final_price
 
-        # Obtener gastos del costo del evento o calcular profit
-        event_cost = booking_data.get("event_cost", 0.0)
+        # Gastos: usar financials.total_expenses + expenses, con fallback a event_cost
+        event_cost = _calc_total_cost(booking_data)
         total_expenses += event_cost
 
         # Obtener participantes
@@ -4774,7 +4882,7 @@ def get_dashboard_stats():
             "created_at", "<=", today_end
         ).stream()))
 
-        # Estadísticas del mes actual - llamar a la función auxiliar get_monthly_report_data
+        # Estadísticas del mes actual - usar misma lógica de costos que en reportes
         try:
             monthly_report = get_monthly_report_data(current_year, current_month)
         except:

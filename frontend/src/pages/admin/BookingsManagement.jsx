@@ -30,7 +30,10 @@ import {
     Tabs,
     Tab,
     CircularProgress,
-    Tooltip
+    Tooltip,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails
 } from '@mui/material'
 import {
     Add,
@@ -50,7 +53,8 @@ import {
     Search,
     ArrowUpward,
     ArrowDownward,
-    UnfoldMore
+    UnfoldMore,
+    ExpandMore
 } from '@mui/icons-material'
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
@@ -75,6 +79,8 @@ const BookingsManagement = () => {
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
     const [selectedMonth, setSelectedMonth] = useState("")
+    // '' => mostrar Pendientes y Confirmados por defecto
+    const [statusFilter, setStatusFilter] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
     const [tabValue, setTabValue] = useState(0)
     const [sortField, setSortField] = useState('event_date')
@@ -82,6 +88,7 @@ const BookingsManagement = () => {
     const [editDialog, setEditDialog] = useState(false)
     const [createDialog, setCreateDialog] = useState(false)
     const [deleteDialog, setDeleteDialog] = useState(false)
+    const [viewDialog, setViewDialog] = useState(false)
     const [costDialog, setCostDialog] = useState(false)
     const [expenseDialog, setExpenseDialog] = useState(false)
     const [editExpenseDialog, setEditExpenseDialog] = useState(false)
@@ -89,7 +96,7 @@ const BookingsManagement = () => {
     const [selectedBooking, setSelectedBooking] = useState(null)
     const [costData, setCostData] = useState({
         event_cost: '',
-        event_profit: '',
+        event_revenue: '',
         notes: ''
     })
     const [expenseData, setExpenseData] = useState({
@@ -160,7 +167,7 @@ const BookingsManagement = () => {
 
                 let serviceTotal = 0
                 if (participants <= 10) {
-                    serviceTotal = 13500  // Minimum charge
+                    serviceTotal = Math.max(135000, participants * 13500)  // $13,500/niño con mínimo $135,000
                 } else if (participants <= 14) {
                     serviceTotal = participants * 10500
                 } else if (participants <= 19) {
@@ -248,6 +255,13 @@ const BookingsManagement = () => {
                 booking.location?.toLowerCase().includes(query) ||
                 getServiceLabel(booking.service_type).toLowerCase().includes(query)
             )
+        }
+
+        // Apply status filter (default: pending + confirmed)
+        if (statusFilter === '') {
+            filtered = filtered.filter(b => ['pending', 'confirmed'].includes(b.status))
+        } else {
+            filtered = filtered.filter(b => b.status === statusFilter)
         }
 
         // Apply sorting
@@ -594,6 +608,10 @@ const BookingsManagement = () => {
     }
 
     const handleEditClick = (booking) => {
+        if (booking.status === 'completed') {
+            toast.error('No se puede editar un evento completado')
+            return
+        }
         setSelectedBooking(booking)
 
 
@@ -626,7 +644,7 @@ const BookingsManagement = () => {
             event_date: formattedDate,
             event_time: booking.event_time || '',
             service_type: booking.service_type || '',
-            participants: booking.participants || '',
+            participants: booking.participants || booking.party_participants || booking.pizzeros_participants || 0,
             estimated_price: booking.estimated_price || '',
             event_cost: booking.event_cost || '',
             event_profit: booking.event_profit || '',
@@ -636,8 +654,8 @@ const BookingsManagement = () => {
             location: booking.location || '',
             pizzeros_participants: booking.pizzeros_participants || 0,
             party_participants: booking.party_participants || 0,
-            party_guests: booking.party_guests || 0,
-            pizza_quantity: booking.pizza_quantity || 10
+            party_guests: booking.party_guests || booking.party_participants || 0,
+            pizza_quantity: booking.pizza_quantity || booking.party_participants || 10
         })
         setEditDialog(true)
     }
@@ -719,7 +737,7 @@ const BookingsManagement = () => {
 
         setCostData({
             event_cost: totalCostWithSupplies,
-            event_profit: booking.estimated_price || '',
+            event_revenue: (booking.estimated_price || 0),
             notes: ''
         })
 
@@ -734,10 +752,13 @@ const BookingsManagement = () => {
 
     const handleCompleteWithCost = async () => {
         try {
+            const revenue = parseFloat(costData.event_revenue) || 0
+            const cost = parseFloat(costData.event_cost) || 0
             const updateData = {
                 status: 'completed',
-                event_cost: parseFloat(costData.event_cost) || 0,
-                event_profit: parseFloat(costData.event_profit) || 0,
+                event_cost: cost,
+                event_profit: revenue - cost,
+                estimated_price: revenue,
                 notes: costData.notes || selectedBooking.notes
             }
 
@@ -745,7 +766,7 @@ const BookingsManagement = () => {
 
             toast.success('¡Evento completado con costos registrados!')
             setCostDialog(false)
-            setCostData({ event_cost: '', event_profit: '', notes: '' })
+            setCostData({ event_cost: '', event_revenue: '', notes: '' })
             loadBookings()
         } catch (error) {
             console.error('Error completing booking:', error)
@@ -898,6 +919,10 @@ const BookingsManagement = () => {
             event_time: '',
             duration_hours: 4,
             participants: '',
+            pizzeros_participants: 0,
+            party_participants: 0,
+            party_guests: 0,
+            pizza_quantity: 10,
             location: '',
             special_requests: ''
         })
@@ -912,6 +937,16 @@ const BookingsManagement = () => {
         }))
     }
 
+    // Precio estimado dinámico para el modal de creación
+    const newEstimatedPrice = useMemo(() => {
+        return calculateEstimatedPrice(
+            newBookingData.service_type,
+            parseInt(newBookingData.pizzeros_participants || 0, 10),
+            parseInt(newBookingData.pizza_quantity || 0, 10),
+            parseInt(newBookingData.participants || 0, 10)
+        )
+    }, [newBookingData.service_type, newBookingData.pizzeros_participants, newBookingData.pizza_quantity, newBookingData.participants])
+
     const handleCreateBooking = async () => {
         try {
             const bookingData = {
@@ -924,6 +959,10 @@ const BookingsManagement = () => {
                 event_time: newBookingData.event_time,
                 duration_hours: parseInt(newBookingData.duration_hours || 4),
                 participants: parseInt(newBookingData.participants || 0),
+                pizzeros_participants: parseInt(newBookingData.pizzeros_participants || 0, 10),
+                party_guests: parseInt(newBookingData.party_guests || 0, 10),
+                pizza_quantity: parseInt(newBookingData.pizza_quantity || 10, 10),
+                estimated_price: newEstimatedPrice,
                 location: newBookingData.location,
                 special_requests: newBookingData.special_requests || ''
             }
@@ -1066,12 +1105,12 @@ const BookingsManagement = () => {
                             <strong>Pizzeros en Acción:</strong> {booking.pizzeros_participants} niños
                         </Typography>
                     )}
-                    {booking.party_participants > 0 && (
+                    {(booking.party_guests > 0 || booking.pizza_quantity > 0) && (
                         <Typography variant="body2">
-                            <strong>Pizza Party:</strong> {booking.party_guests || booking.party_participants} personas, {booking.pizza_quantity || booking.party_participants} pizzas
+                            <strong>Pizza Party:</strong> {booking.party_guests || '-'} personas, {booking.pizza_quantity || 10} pizzas
                         </Typography>
                     )}
-                    {(!booking.pizzeros_participants && !booking.party_participants) && (
+                    {(!booking.pizzeros_participants && !(booking.party_guests > 0 || booking.pizza_quantity > 0)) && (
                         <Typography variant="body2">
                             <strong>Participantes:</strong> {booking.participants}
                         </Typography>
@@ -1092,9 +1131,11 @@ const BookingsManagement = () => {
                 </Typography>
 
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    <Button size="small" variant="outlined" startIcon={<Edit />} onClick={() => handleEditClick(booking)}>
-                        Editar
-                    </Button>
+                    {booking.status !== 'completed' && (
+                        <Button size="small" variant="outlined" startIcon={<Edit />} onClick={() => handleEditClick(booking)}>
+                            Editar
+                        </Button>
+                    )}
                     {booking.status === 'confirmed' && (
                         <>
                             <Button
@@ -1117,18 +1158,29 @@ const BookingsManagement = () => {
                             </Button>
                         </>
                     )}
-                    <Button
-                        size="small"
-                        variant="outlined"
-                        color="error"
-                        startIcon={<Delete />}
-                        onClick={() => {
-                            setSelectedBooking(booking)
-                            setDeleteDialog(true)
-                        }}
-                    >
-                        Eliminar
-                    </Button>
+                    {booking.status === 'completed' ? (
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<ViewList />}
+                            onClick={async () => { setSelectedBooking(booking); await loadSupplyStatus(booking.id); setViewDialog(true) }}
+                        >
+                            Ver detalle
+                        </Button>
+                    ) : (
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<Delete />}
+                            onClick={() => {
+                                setSelectedBooking(booking)
+                                setDeleteDialog(true)
+                            }}
+                        >
+                            Eliminar
+                        </Button>
+                    )}
                 </Box>
             </CardContent>
         </Card>
@@ -1265,6 +1317,33 @@ const BookingsManagement = () => {
                                             {month.label}
                                         </MenuItem>
                                     ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                            <FormControl fullWidth size="small">
+                                <Select
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    displayEmpty
+                                    renderValue={(value) => (
+                                        value === ''
+                                            ? <Chip size="small" label="Pendientes y Confirmados" color="warning" />
+                                            : value === 'pending'
+                                                ? <Chip size="small" label="Pendientes" color="warning" />
+                                                : value === 'confirmed'
+                                                    ? <Chip size="small" label="Confirmados" color="success" />
+                                                    : value === 'completed'
+                                                        ? <Chip size="small" label="Completados" color="info" />
+                                                        : <Chip size="small" label="Cancelados" color="error" />
+                                    )}
+                                    sx={{ '& .MuiSelect-select': { py: 0.5 } }}
+                                >
+                                    <MenuItem value=""><Chip size="small" label="Pendientes y Confirmados" color="warning" /></MenuItem>
+                                    <MenuItem value={'pending'}><Chip size="small" label="Pendientes" color="warning" /></MenuItem>
+                                    <MenuItem value={'confirmed'}><Chip size="small" label="Confirmados" color="success" /></MenuItem>
+                                    <MenuItem value={'completed'}><Chip size="small" label="Completados" color="info" /></MenuItem>
+                                    <MenuItem value={'cancelled'}><Chip size="small" label="Cancelados" color="error" /></MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>
@@ -1429,12 +1508,12 @@ const BookingsManagement = () => {
                                                         Pizzeros: {booking.pizzeros_participants}
                                                     </Typography>
                                                 )}
-                                                {booking.party_participants > 0 && (
+                                                {booking.party_guests > 0 || booking.pizza_quantity > 0 ? (
                                                     <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                                                        Party: {booking.party_guests || booking.party_participants}p / {booking.pizza_quantity || booking.party_participants}π
+                                                        Party: {booking.party_guests || '-'} personas / {booking.pizza_quantity || 10} pizzas
                                                     </Typography>
-                                                )}
-                                                {(!booking.pizzeros_participants && !booking.party_participants) && (
+                                                ) : null}
+                                                {(!booking.pizzeros_participants && !(booking.party_guests > 0 || booking.pizza_quantity > 0)) && (
                                                     <Typography variant="body2">
                                                         {booking.participants}
                                                     </Typography>
@@ -1451,23 +1530,32 @@ const BookingsManagement = () => {
                                                 </Typography>
                                             </TableCell>
                                             <TableCell>
-                                                <Typography
-                                                    variant="body2"
-                                                    fontWeight="bold"
-                                                    color={booking.event_profit > 0 ? 'success.main' : 'text.secondary'}
-                                                >
-                                                    ${booking.event_profit ? booking.event_profit.toLocaleString() : '-'}
-                                                </Typography>
+                                                {(() => {
+                                                    const est = booking.estimated_price || 0
+                                                    const cost = calculateTotalCost(booking) || 0
+                                                    const profit = est - cost
+                                                    return (
+                                                        <Typography
+                                                            variant="body2"
+                                                            fontWeight="bold"
+                                                            color={profit > 0 ? 'success.main' : 'text.secondary'}
+                                                        >
+                                                            ${profit ? profit.toLocaleString() : '-'}
+                                                        </Typography>
+                                                    )
+                                                })()}
                                             </TableCell>
                                             <TableCell>
                                                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                                    <Button
-                                                        size="small"
-                                                        startIcon={<Edit />}
-                                                        onClick={() => handleEditClick(booking)}
-                                                    >
-                                                        Editar
-                                                    </Button>
+                                                    {booking.status !== 'completed' && (
+                                                        <Button
+                                                            size="small"
+                                                            startIcon={<Edit />}
+                                                            onClick={() => handleEditClick(booking)}
+                                                        >
+                                                            Editar
+                                                        </Button>
+                                                    )}
                                                     {booking.status === 'confirmed' && (
                                                         <>
                                                             <Button
@@ -1488,17 +1576,27 @@ const BookingsManagement = () => {
                                                             </Button>
                                                         </>
                                                     )}
-                                                    <Button
-                                                        size="small"
-                                                        color="error"
-                                                        startIcon={<Delete />}
-                                                        onClick={() => {
-                                                            setSelectedBooking(booking)
-                                                            setDeleteDialog(true)
-                                                        }}
-                                                    >
-                                                        Eliminar
-                                                    </Button>
+                                                    {booking.status === 'completed' ? (
+                                                        <Button
+                                                            size="small"
+                                                            startIcon={<ViewList />}
+                                                            onClick={() => { setSelectedBooking(booking); setViewDialog(true) }}
+                                                        >
+                                                            Ver detalle
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            size="small"
+                                                            color="error"
+                                                            startIcon={<Delete />}
+                                                            onClick={() => {
+                                                                setSelectedBooking(booking)
+                                                                setDeleteDialog(true)
+                                                            }}
+                                                        >
+                                                            Eliminar
+                                                        </Button>
+                                                    )}
                                                 </Box>
                                             </TableCell>
                                         </TableRow>
@@ -1674,7 +1772,6 @@ const BookingsManagement = () => {
                                                     ...prev,
                                                     party_guests: guests,
                                                     pizza_quantity: pizzaQuantity,
-                                                    party_participants: pizzaQuantity, // Para pricing
                                                     estimated_price: newPrice
                                                 }
                                             })
@@ -1701,7 +1798,6 @@ const BookingsManagement = () => {
                                                 return {
                                                     ...prev,
                                                     pizza_quantity: finalQuantity,
-                                                    party_participants: finalQuantity, // Para pricing
                                                     estimated_price: newPrice
                                                 }
                                             })
@@ -1718,10 +1814,10 @@ const BookingsManagement = () => {
                                 <TextField
                                     fullWidth
                                     label="Participantes Total (ambos servicios)"
-                                    value={formData.participants}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, participants: e.target.value }))}
+                                    value={(formData.pizzeros_participants || 0) + (formData.party_guests || 0)}
+                                    InputProps={{ readOnly: true }}
                                     type="number"
-                                    helperText="Total cuando hay ambos servicios"
+                                    helperText="Calculado automáticamente: Pizzeros + Pizza Party"
                                 />
                             </Grid>
                         )}
@@ -1786,7 +1882,7 @@ const BookingsManagement = () => {
                         <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
-                                label="Precio Estimado"
+                                label="Total a Cobrar"
                                 type="number"
                                 value={formData.estimated_price}
                                 onChange={(e) => {
@@ -2026,8 +2122,7 @@ const BookingsManagement = () => {
                                             setNewBookingData(prev => ({
                                                 ...prev,
                                                 party_guests: guests,
-                                                pizza_quantity: Math.max(10, suggested),
-                                                party_participants: Math.max(10, suggested)
+                                                pizza_quantity: Math.max(10, suggested)
                                             }))
                                         }}
                                         inputProps={{ min: 1, max: 200 }}
@@ -2046,8 +2141,7 @@ const BookingsManagement = () => {
                                             const quantity = Math.max(10, parseInt(e.target.value || '10', 10))
                                             setNewBookingData(prev => ({
                                                 ...prev,
-                                                pizza_quantity: quantity,
-                                                party_participants: quantity
+                                                pizza_quantity: quantity
                                             }))
                                         }}
                                         inputProps={{ min: 10, max: 200 }}
@@ -2081,6 +2175,15 @@ const BookingsManagement = () => {
                                 onChange={handleNewBookingChange}
                                 inputProps={{ min: 1, max: 8 }}
                                 helperText="Duración del evento en horas"
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                label="Total a Cobrar"
+                                value={newEstimatedPrice}
+                                InputProps={{ readOnly: true, startAdornment: <Typography variant="body2" sx={{ mr: 1 }}>$</Typography> }}
+                                helperText="Calculado automáticamente según reglas de precios"
                             />
                         </Grid>
                         <Grid item xs={12} sm={6}>
@@ -2215,8 +2318,8 @@ const BookingsManagement = () => {
                                             label="Precio Final Cobrado"
                                             type="number"
                                             fullWidth
-                                            value={costData.event_profit}
-                                            onChange={(e) => setCostData({...costData, event_profit: e.target.value})}
+                                            value={costData.event_revenue}
+                                            onChange={(e) => setCostData({...costData, event_revenue: e.target.value})}
                                             helperText="Monto total cobrado al cliente"
                                             InputProps={{
                                                 startAdornment: '$'
@@ -2227,8 +2330,8 @@ const BookingsManagement = () => {
                                         <Alert severity="info" sx={{ mb: 2 }}>
                                             <Typography variant="body2">
                                                 <strong>Ganancia estimada:</strong> $
-                                                {costData.event_profit && costData.event_cost
-                                                    ? formatCurrency(parseFloat(costData.event_profit) - parseFloat(costData.event_cost))
+                                                {costData.event_revenue && costData.event_cost
+                                                    ? formatCurrency((parseFloat(costData.event_revenue) || 0) - (parseFloat(costData.event_cost) || 0))
                                                     : '0.00'
                                                 }
                                             </Typography>
@@ -3030,6 +3133,122 @@ const BookingsManagement = () => {
                     <Button onClick={handleDeleteBooking} color="error" variant="contained">
                         Eliminar
                     </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Ver Detalle (solo lectura) */}
+            <Dialog open={viewDialog} onClose={() => setViewDialog(false)} maxWidth="md" fullWidth>
+                <DialogTitle>
+                    Resumen del Evento
+                    <IconButton onClick={() => setViewDialog(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>
+                        <Close />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent dividers>
+                    {selectedBooking && (
+                        <Box>
+                            <Grid container spacing={2} sx={{ mb: 2 }}>
+                                <Grid item xs={12} md={6}>
+                                    <Chip size="small" color={getStatusColor(selectedBooking.status)} label={getStatusLabel(selectedBooking.status)} />
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <Typography variant="body2" align="right">Creado: {format(new Date(selectedBooking.created_at), 'dd/MM/yyyy HH:mm')}</Typography>
+                                </Grid>
+                            </Grid>
+
+                            {/* Secciones en acordeones */}
+                            <Box>
+                                <Accordion defaultExpanded>
+                                    <AccordionSummary expandIcon={<ExpandMore />}>
+                                        <Typography sx={{ fontWeight: 600 }}>Información</Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails>
+                                        <Grid container spacing={1}>
+                                            <Grid item xs={12} sm={6}><Typography variant="body2"><strong>Cliente:</strong> {selectedBooking.client_name}</Typography></Grid>
+                                            <Grid item xs={12} sm={6}><Typography variant="body2"><strong>Teléfono:</strong> {selectedBooking.client_phone}</Typography></Grid>
+                                            <Grid item xs={12} sm={6}><Typography variant="body2"><strong>Email:</strong> {selectedBooking.client_email}</Typography></Grid>
+                                            <Grid item xs={12} sm={6}><Typography variant="body2"><strong>Ubicación:</strong> {selectedBooking.location || '-'}</Typography></Grid>
+                                        </Grid>
+                                    </AccordionDetails>
+                                </Accordion>
+
+                                <Accordion defaultExpanded>
+                                    <AccordionSummary expandIcon={<ExpandMore />}>
+                                        <Typography sx={{ fontWeight: 600 }}>Detalle del Evento</Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails>
+                                        <Grid container spacing={1}>
+                                            <Grid item xs={12} sm={6}><Typography variant="body2"><strong>Servicio:</strong> {getServiceLabel(selectedBooking.service_type)}</Typography></Grid>
+                                            <Grid item xs={12} sm={6}><Typography variant="body2"><strong>Fecha:</strong> {selectedBooking.event_date} {selectedBooking.event_time}</Typography></Grid>
+                                            {selectedBooking.pizzeros_participants > 0 && (
+                                                <Grid item xs={12}><Typography variant="body2"><strong>Pizzeros en Acción:</strong> {selectedBooking.pizzeros_participants} niños</Typography></Grid>
+                                            )}
+                                            {(selectedBooking.party_guests || selectedBooking.pizza_quantity) && (
+                                                <Grid item xs={12}><Typography variant="body2"><strong>Pizza Party:</strong> {selectedBooking.party_guests || '-'} personas / {selectedBooking.pizza_quantity || 10} pizzas</Typography></Grid>
+                                            )}
+                                            {selectedBooking.special_requests && (
+                                                <Grid item xs={12}><Typography variant="body2"><strong>Notas:</strong> {selectedBooking.special_requests}</Typography></Grid>
+                                            )}
+                                        </Grid>
+                                    </AccordionDetails>
+                                </Accordion>
+
+                                <Accordion defaultExpanded>
+                                    <AccordionSummary expandIcon={<ExpandMore />}>
+                                        <Typography sx={{ fontWeight: 600 }}>Ingresos y Costos</Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails>
+                                        <Grid container spacing={1}>
+                                            <Grid item xs={12} sm={4}><Typography variant="body2"><strong>Total cobrado:</strong> ${selectedBooking.estimated_price?.toLocaleString() || '-'}</Typography></Grid>
+                                            <Grid item xs={12} sm={4}><Typography variant="body2"><strong>Costo:</strong> ${calculateTotalCost(selectedBooking)?.toLocaleString() || '-'}</Typography></Grid>
+                                            <Grid item xs={12} sm={4}><Typography variant="body2"><strong>Utilidad:</strong> ${selectedBooking.event_profit?.toLocaleString() || '-'}</Typography></Grid>
+                                        </Grid>
+                                        {Array.isArray(selectedBooking.expenses) && selectedBooking.expenses.length > 0 && (
+                                            <Box sx={{ mt: 2 }}>
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Detalle de Gastos</Typography>
+                                                {selectedBooking.expenses.map((e, i) => (
+                                                    <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
+                                                        <Typography variant="body2">{e.description}</Typography>
+                                                        <Typography variant="body2">${(e.amount||0).toLocaleString()}</Typography>
+                                                    </Box>
+                                                ))}
+                                            </Box>
+                                        )}
+                                    </AccordionDetails>
+                                </Accordion>
+
+                                <Accordion>
+                                    <AccordionSummary expandIcon={<ExpandMore />}>
+                                        <Typography sx={{ fontWeight: 600 }}>Insumos y Consumo</Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails>
+                                        {loadingSupplies ? (
+                                            <Typography variant="body2">Cargando...</Typography>
+                                        ) : (
+                                            <>
+                                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                                    Estado: {supplyStatus.can_complete_event
+                                                        ? 'Insumos y consumo registrados'
+                                                        : supplyStatus.has_supplies
+                                                            ? 'Insumos estimados listos; falta consumo'
+                                                            : 'Sin registros de insumos'}
+                                                </Typography>
+                                                {integratedSupplies.items.length > 0 && (
+                                                    <>
+                                                        <Typography variant="body2">Costo Estimado: ${getTotalEstimatedCost().toFixed(0)}</Typography>
+                                                        <Typography variant="body2">Costo Real: ${getTotalActualCost().toFixed(0)}</Typography>
+                                                    </>
+                                                )}
+                                            </>
+                                        )}
+                                    </AccordionDetails>
+                                </Accordion>
+                            </Box>
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setViewDialog(false)}>Cerrar</Button>
                 </DialogActions>
             </Dialog>
         </Box>
