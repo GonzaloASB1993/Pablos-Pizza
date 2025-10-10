@@ -21,7 +21,9 @@ import {
   useMediaQuery,
   alpha,
   Dialog,
-  DialogContent
+  DialogContent,
+  Skeleton,
+  Alert
 } from '@mui/material'
 import {
   Restaurant,
@@ -452,7 +454,10 @@ function EventDetailModal({ event, open, onClose }) {
                 <Box
                   component="img"
                   src={image}
-                  alt={`${event.title} ${index + 1}`}
+                  loading="lazy"
+                  srcSet={`${image}?w=400 400w, ${image}?w=800 800w, ${image}?w=1200 1200w`}
+                  sizes="(max-width: 600px) 400px, (max-width: 900px) 800px, 1200px"
+                  alt={`${event.title} imagen ${index + 1} de ${event.gallery.length}`}
                   sx={{
                     width: '100%',
                     height: '400px',
@@ -660,7 +665,10 @@ function EventGallerySection({ navigate }) {
                 <CardMedia
                   component="img"
                   image={event.mainImage}
-                  alt={event.title}
+                  loading="lazy"
+                  srcSet={`${event.mainImage}?w=400 400w, ${event.mainImage}?w=800 800w, ${event.mainImage}?w=1200 1200w`}
+                  sizes="(max-width: 600px) 400px, (max-width: 900px) 800px, 1200px"
+                  alt={`${event.title}: ${event.description.slice(0, 100)}`}
                   sx={{
                     position: 'absolute',
                     width: '100%',
@@ -789,6 +797,8 @@ export default function HomePage() {
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const [heroLoaded, setHeroLoaded] = useState(false)
   const [reviews, setReviews] = useState([])
+  const [reviewsLoading, setReviewsLoading] = useState(true)
+  const [reviewsError, setReviewsError] = useState(null)
   const [animationsEnabled, setAnimationsEnabled] = useState(false)
   // Base para assets en carpeta public (compatible con subcarpetas de despliegue)
   const publicBase = (import.meta.env.BASE_URL || '/')
@@ -810,10 +820,22 @@ export default function HomePage() {
 
   // Suscribirse a reseñas aprobadas para la sección de Home
   useEffect(() => {
-    const unsub = listenTestimonials((list) => {
-      const filtered = (Array.isArray(list) ? list : []).filter((t) => t.approved === true && t.isTest !== true)
-      setReviews(filtered)
-    }, { approvedOnly: true })
+    setReviewsLoading(true)
+    const unsub = listenTestimonials(
+      (list) => {
+        const filtered = (Array.isArray(list) ? list : []).filter((t) => t.approved === true && t.isTest !== true)
+        setReviews(filtered)
+        setReviewsLoading(false)
+        setReviewsError(null)
+      },
+      {
+        approvedOnly: true,
+        onError: (err) => {
+          setReviewsError(err.message || 'Error al cargar testimonios')
+          setReviewsLoading(false)
+        }
+      }
+    )
     return () => unsub && unsub()
   }, [])
 
@@ -1314,7 +1336,8 @@ export default function HomePage() {
                 <Box
                   component="img"
                   src={`${publicBase}images/talleres/taller-corporativo.jpg`}
-                  alt="Niños en taller de pizza"
+                  loading="lazy"
+                  alt="Niños participando en taller de pizza Pizzeros en Acción, aprendiendo técnicas culinarias"
                   sx={{
                     width: '100%',
                     height: '280px',
@@ -1385,7 +1408,8 @@ export default function HomePage() {
                 <Box
                   component="img"
                   src={`${publicBase}images/pizza-party.png`}
-                  alt="Fiesta de pizza"
+                  loading="lazy"
+                  alt="Pizza Party - Catering gourmet con pizzas artesanales en eventos"
                   sx={{
                     width: '100%',
                     height: '280px',
@@ -1541,24 +1565,77 @@ export default function HomePage() {
               </Stack>
             </Box>
 
-            <Swiper
-              modules={[Autoplay, Pagination, Navigation]}
-              spaceBetween={30}
-              slidesPerView={1}
-              breakpoints={{
-                640: { slidesPerView: 2 },
-                1024: { slidesPerView: 3 }
-              }}
-              autoplay={{
-                delay: 5000,
-                disableOnInteraction: false
-              }}
-              pagination={{ clickable: true }}
-              navigation
-              loop={reviews.length >= 3}
-              style={{ paddingBottom: '50px' }}
-            >
-              {reviews.map((t, index) => (
+            {/* Loading State */}
+            {reviewsLoading && (
+              <Grid container spacing={3}>
+                {[1, 2, 3].map((i) => (
+                  <Grid item xs={12} sm={6} md={4} key={i}>
+                    <Skeleton
+                      variant="rectangular"
+                      height={280}
+                      sx={{
+                        borderRadius: 2,
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                      }}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+
+            {/* Error State */}
+            {reviewsError && !reviewsLoading && (
+              <Alert
+                severity="error"
+                sx={{
+                  backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                  color: '#FFF',
+                  border: '1px solid rgba(244, 67, 54, 0.3)'
+                }}
+              >
+                No pudimos cargar los testimonios. Por favor intenta más tarde.
+              </Alert>
+            )}
+
+            {/* Empty State */}
+            {!reviewsLoading && !reviewsError && reviews.length === 0 && (
+              <Box sx={{ textAlign: 'center', py: 8 }}>
+                <Typography variant="h6" sx={{ color: '#FFF', mb: 2 }}>
+                  ¡Sé el primero en dejarnos tu opinión!
+                </Typography>
+                <Button
+                  variant="outlined"
+                  onClick={() => navigate('/testimonios')}
+                  sx={{
+                    borderColor: '#FFD700',
+                    color: '#FFD700'
+                  }}
+                >
+                  Dejar Testimonio
+                </Button>
+              </Box>
+            )}
+
+            {/* Reviews Carousel */}
+            {!reviewsLoading && !reviewsError && reviews.length > 0 && (
+              <Swiper
+                modules={[Autoplay, Pagination, Navigation]}
+                spaceBetween={30}
+                slidesPerView={1}
+                breakpoints={{
+                  640: { slidesPerView: 2 },
+                  1024: { slidesPerView: 3 }
+                }}
+                autoplay={{
+                  delay: 5000,
+                  disableOnInteraction: false
+                }}
+                pagination={{ clickable: true }}
+                navigation
+                loop={reviews.length >= 3}
+                style={{ paddingBottom: '50px' }}
+              >
+                {reviews.map((t, index) => (
                 <SwiperSlide key={t.id || `${t.name}-${index}`}>
                   <Card
                     sx={{
@@ -1622,10 +1699,12 @@ export default function HomePage() {
                     </CardContent>
                   </Card>
                 </SwiperSlide>
-              ))}
-            </Swiper>
+                ))}
+              </Swiper>
+            )}
 
-            <Box sx={{ textAlign: 'center', mt: 6 }}>
+            {!reviewsLoading && !reviewsError && reviews.length > 0 && (
+              <Box sx={{ textAlign: 'center', mt: 6 }}>
               <Button
                 variant="outlined"
                 onClick={() => navigate('/testimonios')}
@@ -1645,7 +1724,8 @@ export default function HomePage() {
               >
                 Ver Más Testimonios
               </Button>
-            </Box>
+              </Box>
+            )}
           </Container>
 
           {/* CSS para personalizar Swiper */}
