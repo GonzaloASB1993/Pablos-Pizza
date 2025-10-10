@@ -81,10 +81,20 @@ const EventsManagement = () => {
     try {
       setLoading(true)
       const response = await eventsAPI.getAll()
-      setEvents(response.data)
+      console.log('📊 Respuesta del backend - eventos:', response.data)
+
+      // Manejar respuesta paginada del backend
+      const eventsData = response.data?.items || response.data || []
+      console.log('✅ Eventos procesados:', eventsData)
+
+      const validEvents = Array.isArray(eventsData) ? eventsData : []
+      setEvents(validEvents)
+      setFilteredEvents(validEvents)
     } catch (error) {
       console.error('Error loading events:', error)
       toast.error('Error al cargar eventos')
+      setEvents([])
+      setFilteredEvents([])
     } finally {
       setLoading(false)
     }

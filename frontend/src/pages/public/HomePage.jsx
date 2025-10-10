@@ -366,11 +366,14 @@ const FloatingCTA = ({ navigate, prefersReducedMotion }) => {
   )
 }
 
-// Componente AnimatedSection con animaciones repetibles
+// Componente AnimatedSection con animaciones de scroll (ida y vuelta)
 const AnimatedSection = ({ children, delay = 0 }) => {
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
+
   const { ref, inView } = useInView({
-    threshold: 0.3,
-    triggerOnce: false  // Se repite cada vez que entra en viewport
+    threshold: 0.15,
+    triggerOnce: false,  // Anima cada vez que entra/sale del viewport
+    rootMargin: '50px'  // Comienza animación ligeramente antes del viewport
   })
 
   return (
@@ -378,12 +381,46 @@ const AnimatedSection = ({ children, delay = 0 }) => {
       ref={ref}
       sx={{
         opacity: inView ? 1 : 0,
-        transform: inView ? 'translateY(0)' : 'translateY(50px)',
-        transition: `all 0.8s ease-out ${delay}ms`
+        transform: inView ? 'translateY(0)' : 'translateY(30px)',
+        transition: prefersReducedMotion
+          ? 'none'
+          : `opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms, transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`,
+        willChange: inView ? 'auto' : 'opacity, transform'
       }}
     >
       {children}
     </Box>
+  )
+}
+
+// Componente de carga progresiva de imágenes con blur-up
+const ProgressiveImage = ({ src, alt, loading = 'lazy', sx, ...props }) => {
+  const [loaded, setLoaded] = useState(false)
+  const [currentSrc, setCurrentSrc] = useState(`${src}?w=40&blur=20`)
+
+  useEffect(() => {
+    const img = new Image()
+    const optimizedSrc = `${src}?w=800&q=75&auto=format&fit=crop`
+    img.src = optimizedSrc
+    img.onload = () => {
+      setCurrentSrc(optimizedSrc)
+      setLoaded(true)
+    }
+  }, [src])
+
+  return (
+    <Box
+      component="img"
+      src={currentSrc}
+      alt={alt}
+      loading={loading}
+      sx={{
+        filter: loaded ? 'none' : 'blur(8px)',
+        transition: 'filter 0.3s ease-out',
+        ...sx
+      }}
+      {...props}
+    />
   )
 }
 
@@ -563,11 +600,6 @@ function EventGallerySection({ navigate }) {
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
 
-  const { ref, inView } = useInView({
-    threshold: 0.2,
-    triggerOnce: false
-  })
-
   const handleCardClick = (event) => {
     setSelectedEvent(event)
     setModalOpen(true)
@@ -582,7 +614,6 @@ function EventGallerySection({ navigate }) {
 
   return (
     <Box
-      ref={ref}
       component="section"
       sx={{
         minHeight: '100vh',
@@ -593,14 +624,11 @@ function EventGallerySection({ navigate }) {
       }}
     >
       <Container maxWidth="lg">
-        {/* Header con animación */}
+        {/* Header */}
         <Box
           sx={{
             textAlign: 'center',
-            mb: 6,
-            opacity: inView ? 1 : 0,
-            transform: inView ? 'translateY(0)' : 'translateY(30px)',
-            transition: 'all 0.8s ease-out'
+            mb: 6
           }}
         >
           <Typography
@@ -627,11 +655,6 @@ function EventGallerySection({ navigate }) {
               sm={6}
               md={3}
               key={event.id}
-              sx={{
-                opacity: inView ? 1 : 0,
-                transform: inView ? 'translateY(0)' : 'translateY(30px)',
-                transition: `all 0.8s ease-out ${index * 0.2}s`
-              }}
             >
               <Card
                 onClick={() => handleCardClick(event)}
@@ -645,14 +668,15 @@ function EventGallerySection({ navigate }) {
                   overflow: 'hidden',
                   cursor: 'pointer',
                   borderRadius: 3,
-                  transition: 'transform 0.3s ease',
+                  transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  willChange: 'transform',
                   '&:hover': {
-                    transform: 'scale(1.02)',
+                    transform: 'translateY(-4px)',
                     '& .overlay': {
-                      backgroundColor: 'rgba(0,0,0,0.5)'
+                      opacity: 0.5
                     },
                     '& .content': {
-                      transform: 'translateY(-10px)'
+                      transform: 'translateY(-8px)'
                     }
                   },
                   '&:focus-visible': {
@@ -661,13 +685,9 @@ function EventGallerySection({ navigate }) {
                   }
                 }}
               >
-                {/* Imagen de fondo */}
-                <CardMedia
-                  component="img"
-                  image={event.mainImage}
-                  loading="lazy"
-                  srcSet={`${event.mainImage}?w=400 400w, ${event.mainImage}?w=800 800w, ${event.mainImage}?w=1200 1200w`}
-                  sizes="(max-width: 600px) 400px, (max-width: 900px) 800px, 1200px"
+                {/* Imagen de fondo con carga progresiva */}
+                <ProgressiveImage
+                  src={event.mainImage}
                   alt={`${event.title}: ${event.description.slice(0, 100)}`}
                   sx={{
                     position: 'absolute',
@@ -687,7 +707,8 @@ function EventGallerySection({ navigate }) {
                     right: 0,
                     bottom: 0,
                     backgroundColor: 'rgba(0,0,0,0.6)',
-                    transition: 'background-color 0.3s ease',
+                    opacity: 1,
+                    transition: 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                     zIndex: 1
                   }}
                 />
@@ -703,7 +724,8 @@ function EventGallerySection({ navigate }) {
                     zIndex: 2,
                     color: '#FFF',
                     p: 3,
-                    transition: 'transform 0.3s ease'
+                    transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    willChange: 'transform'
                   }}
                 >
                   <Chip
@@ -1358,7 +1380,7 @@ export default function HomePage() {
       </AnimatedSection>
 
       {/* SECCIÓN 2: PIZZA PARTY - Imagen Full con Gradiente */}
-      <AnimatedSection delay={200}>
+      <AnimatedSection delay={100}>
         <Box
           component="section"
           sx={{
@@ -1528,7 +1550,7 @@ export default function HomePage() {
       </AnimatedSection>
 
       {/* Testimonios Premium con Carousel */}
-      <AnimatedSection delay={400}>
+      <AnimatedSection delay={0}>
         <Box
           component="section"
           sx={{
@@ -1745,7 +1767,9 @@ export default function HomePage() {
       </AnimatedSection>
 
       {/* Galería Visual Moderna - Nueva Sección Interactiva */}
-      <EventGallerySection navigate={navigate} />
+      <AnimatedSection delay={100}>
+        <EventGallerySection navigate={navigate} />
+      </AnimatedSection>
 
       {/* CTA Final Premium */}
       <Box

@@ -37,10 +37,13 @@ import {
   Business,
   Analytics,
   MenuOpen,
-  Factory
+  Factory,
+  Brightness4,
+  Brightness7
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { useThemeMode } from '../../contexts/ThemeContext'
 import logo from '../../assets/logo.png'
 
 const DRAWER_WIDTH = 280
@@ -53,6 +56,7 @@ const AdminLayout = () => {
   const [analyticsOpen, setAnalyticsOpen] = useState(false)
   const [drawerCollapsed, setDrawerCollapsed] = useState(true) // Compact by default
   const { logout } = useAuth()
+  const { mode, toggleTheme } = useThemeMode()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -502,7 +506,21 @@ const AdminLayout = () => {
               Panel Administrativo - Pablo's Pizza
             </Typography>
 
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <IconButton
+                color="inherit"
+                onClick={toggleTheme}
+                sx={{
+                  color: '#FFD700',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 215, 0, 0.1)'
+                  }
+                }}
+                aria-label="toggle theme"
+              >
+                {mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
+              </IconButton>
+
               <IconButton
                 color="inherit"
                 onClick={handleProfileMenu}

@@ -35,7 +35,9 @@ import {
   Inventory,
   CalendarToday,
   ShowChart,
-  Warning
+  Warning,
+  Brightness4,
+  Brightness7
 } from '@mui/icons-material'
 import {
   Chart as ChartJS,
@@ -52,6 +54,8 @@ import {
 import { Line, Bar, Pie } from 'react-chartjs-2'
 import { reportsAPI, inventoryAPI } from '../../services/api'
 import toast from 'react-hot-toast'
+import { useThemeMode } from '../../contexts/ThemeContext'
+import { useTheme } from '@mui/material/styles'
 
 // Register Chart.js components
 ChartJS.register(
@@ -148,6 +152,8 @@ const AlertCard = ({ title, count, severity = 'warning', icon: Icon, onClick }) 
 )
 
 export default function ReportsPage() {
+  const theme = useTheme()
+  const { mode, toggleTheme } = useThemeMode()
   const [loading, setLoading] = useState(true)
   const [tabValue, setTabValue] = useState(0)
   const [selectedPeriod, setSelectedPeriod] = useState('current_month')
@@ -197,10 +203,10 @@ export default function ReportsPage() {
 
   const handleExportReport = async () => {
     try {
-      const currentDate = new Date()
+      // Use filtered year and month instead of current date
       const response = await reportsAPI.exportMonthly(
-        currentDate.getFullYear(),
-        currentDate.getMonth() + 1,
+        selectedYear,
+        selectedMonth,
         'excel'
       )
 
@@ -211,13 +217,14 @@ export default function ReportsPage() {
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `reporte_mensual_${currentDate.getFullYear()}_${(currentDate.getMonth() + 1).toString().padStart(2, '0')}.xlsx`
+      link.download = `reporte_${selectedYear}_${selectedMonth.toString().padStart(2, '0')}.xlsx`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
 
-      toast.success('Reporte exportado exitosamente')
+      const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+      toast.success(`Reporte exportado: ${monthName}`)
     } catch (error) {
       console.error('Error exporting report:', error)
       toast.error('Error al exportar reporte')
@@ -236,16 +243,16 @@ export default function ReportsPage() {
         {
           label: 'Ingresos',
           data: annualData.monthly_reports.map(report => report.total_income),
-          borderColor: '#1976d2',
-          backgroundColor: 'rgba(25, 118, 210, 0.1)',
+          borderColor: mode === 'dark' ? '#FFD700' : '#1976d2',
+          backgroundColor: mode === 'dark' ? 'rgba(255, 215, 0, 0.2)' : 'rgba(25, 118, 210, 0.1)',
           tension: 0.4,
           fill: true
         },
         {
           label: 'Gastos',
           data: annualData.monthly_reports.map(report => report.total_expenses),
-          borderColor: '#d32f2f',
-          backgroundColor: 'rgba(211, 47, 47, 0.1)',
+          borderColor: mode === 'dark' ? '#EF5350' : '#d32f2f',
+          backgroundColor: mode === 'dark' ? 'rgba(239, 83, 80, 0.2)' : 'rgba(211, 47, 47, 0.1)',
           tension: 0.4,
           fill: true
         }
@@ -306,6 +313,9 @@ export default function ReportsPage() {
     plugins: {
       legend: {
         position: 'top',
+        labels: {
+          color: theme.palette.text.primary,
+        },
       },
       title: {
         display: false,
@@ -315,6 +325,7 @@ export default function ReportsPage() {
       y: {
         beginAtZero: true,
         ticks: {
+          color: theme.palette.text.secondary,
           callback: function(value) {
             return new Intl.NumberFormat('es-CL', {
               style: 'currency',
@@ -322,8 +333,19 @@ export default function ReportsPage() {
               minimumFractionDigits: 0
             }).format(value)
           }
-        }
-      }
+        },
+        grid: {
+          color: mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+        },
+      },
+      x: {
+        ticks: {
+          color: theme.palette.text.secondary,
+        },
+        grid: {
+          color: mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+        },
+      },
     }
   }
 
@@ -344,7 +366,7 @@ export default function ReportsPage() {
         </Typography>
         <Stack direction="row" spacing={2}>
           <Tooltip title="Actualizar datos">
-            <IconButton onClick={loadReportsData}>
+            <IconButton onClick={loadReportsData} aria-label="refresh data">
               <Refresh />
             </IconButton>
           </Tooltip>
@@ -409,8 +431,8 @@ export default function ReportsPage() {
               style: 'currency',
               currency: 'CLP',
               minimumFractionDigits: 0
-            }).format(dashboardData?.current_month?.income || 0)}
-            subtitle={dashboardData?.current_month?.month_name || ''}
+            }).format(monthlyData?.total_income || 0)}
+            subtitle={new Date(selectedYear, selectedMonth - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
             icon={AttachMoney}
             color="success"
           />
@@ -418,8 +440,8 @@ export default function ReportsPage() {
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Eventos Realizados"
-            value={dashboardData?.current_month?.events || 0}
-            subtitle="Este mes"
+            value={monthlyData?.total_events || 0}
+            subtitle="Mes seleccionado"
             icon={Event}
             color="primary"
           />
@@ -431,7 +453,7 @@ export default function ReportsPage() {
               style: 'currency',
               currency: 'CLP',
               minimumFractionDigits: 0
-            }).format(dashboardData?.current_month?.profit || 0)}
+            }).format(monthlyData?.total_profit || 0)}
             subtitle="Ganancia neta"
             icon={TrendingUp}
             color="warning"

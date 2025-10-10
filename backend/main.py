@@ -594,7 +594,11 @@ cors_origins = os.getenv('CORS_ORIGINS', '')
 if cors_origins:
     allowed_origins.extend(cors_origins.split(','))
 
-CORS(app, origins=allowed_origins)
+CORS(app,
+     origins=allowed_origins,
+     supports_credentials=True,
+     allow_headers=['Content-Type', 'Authorization'],
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
 
 # Flask-Limiter configuration for rate limiting
 from flask_limiter import Limiter

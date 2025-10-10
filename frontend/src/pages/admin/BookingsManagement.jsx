@@ -1230,10 +1230,10 @@ const BookingsManagement = () => {
             {/* Statistics Cards */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid item xs={12} md={3}>
-                    <Card sx={{ bgcolor: '#fff3e0' }}>
+                    <Card sx={{ bgcolor: 'warning.light', backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05))' }}>
                         <CardContent sx={{ textAlign: 'center' }}>
-                            <PendingActions sx={{ fontSize: 40, color: '#ff9800', mb: 1 }} />
-                            <Typography variant="h4" sx={{ fontWeight: 700, color: '#ff9800' }}>
+                            <PendingActions sx={{ fontSize: 40, color: 'warning.dark', mb: 1 }} />
+                            <Typography variant="h4" sx={{ fontWeight: 700, color: 'warning.dark' }}>
                                 {pendingBookings.length}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
@@ -1243,10 +1243,10 @@ const BookingsManagement = () => {
                     </Card>
                 </Grid>
                 <Grid item xs={12} md={3}>
-                    <Card sx={{ bgcolor: '#e8f5e8' }}>
+                    <Card sx={{ bgcolor: 'success.light', backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05))' }}>
                         <CardContent sx={{ textAlign: 'center' }}>
-                            <CheckCircle sx={{ fontSize: 40, color: '#4caf50', mb: 1 }} />
-                            <Typography variant="h4" sx={{ fontWeight: 700, color: '#4caf50' }}>
+                            <CheckCircle sx={{ fontSize: 40, color: 'success.dark', mb: 1 }} />
+                            <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.dark' }}>
                                 {confirmedBookings.length}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
@@ -1256,10 +1256,10 @@ const BookingsManagement = () => {
                     </Card>
                 </Grid>
                 <Grid item xs={12} md={3}>
-                    <Card sx={{ bgcolor: '#e3f2fd' }}>
+                    <Card sx={{ bgcolor: 'info.light', backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05))' }}>
                         <CardContent sx={{ textAlign: 'center' }}>
-                            <EventAvailable sx={{ fontSize: 40, color: '#2196f3', mb: 1 }} />
-                            <Typography variant="h4" sx={{ fontWeight: 700, color: '#2196f3' }}>
+                            <EventAvailable sx={{ fontSize: 40, color: 'info.dark', mb: 1 }} />
+                            <Typography variant="h4" sx={{ fontWeight: 700, color: 'info.dark' }}>
                                 {completedBookings.length}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
@@ -1269,10 +1269,10 @@ const BookingsManagement = () => {
                     </Card>
                 </Grid>
                 <Grid item xs={12} md={3}>
-                    <Card sx={{ bgcolor: '#fce4ec' }}>
+                    <Card sx={{ bgcolor: 'error.light', backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05))' }}>
                         <CardContent sx={{ textAlign: 'center' }}>
-                            <TrendingUp sx={{ fontSize: 40, color: '#e91e63', mb: 1 }} />
-                            <Typography variant="h4" sx={{ fontWeight: 700, color: '#e91e63' }}>
+                            <TrendingUp sx={{ fontSize: 40, color: 'error.dark', mb: 1 }} />
+                            <Typography variant="h4" sx={{ fontWeight: 700, color: 'error.dark' }}>
                                 {bookings.length}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
