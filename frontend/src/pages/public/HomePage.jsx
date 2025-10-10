@@ -156,7 +156,7 @@ const eventCategories = [
 ]
 
 // Hero Logo 3D con efectos glassmorphism
-const Hero3DLogo = () => (
+const Hero3DLogo = ({ prefersReducedMotion, animationsEnabled }) => (
   <Box
     sx={{
       position: 'relative',
@@ -172,7 +172,7 @@ const Hero3DLogo = () => (
         borderRadius: '50%',
         background: `radial-gradient(circle, ${designTokens.colors.golden[400]} 0%, ${designTokens.colors.golden[200]}40 40%, transparent 70%)`,
         filter: 'blur(20px)',
-        animation: 'glow 4s ease-in-out infinite alternate',
+        animation: (prefersReducedMotion || !animationsEnabled) ? 'none' : 'glow 4s ease-in-out infinite alternate',
       }}
     />
 
@@ -184,7 +184,7 @@ const Hero3DLogo = () => (
         borderRadius: '50%',
         border: `3px solid ${designTokens.colors.golden[400]}`,
         borderTop: `3px solid ${designTokens.colors.golden[600]}`,
-        animation: 'orbit 20s linear infinite',
+        animation: (prefersReducedMotion || !animationsEnabled) ? 'none' : 'orbit 20s linear infinite',
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -301,7 +301,7 @@ const StatsCard = ({ number, label, icon, color = 'golden' }) => (
 )
 
 // Componente de CTA flotante con urgencia
-const FloatingCTA = ({ navigate }) => {
+const FloatingCTA = ({ navigate, prefersReducedMotion }) => {
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
@@ -309,10 +309,21 @@ const FloatingCTA = ({ navigate }) => {
     return () => clearTimeout(timer)
   }, [])
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      navigate('/agendar')
+    }
+  }
+
   return (
     <Fade in={isVisible}>
       <Paper
         elevation={8}
+        role="button"
+        tabIndex={0}
+        aria-label="Agendar evento ahora - 20% descuento este mes"
+        onKeyDown={handleKeyDown}
         sx={{
           position: 'fixed',
           bottom: { xs: 16, sm: 24 },
@@ -323,8 +334,12 @@ const FloatingCTA = ({ navigate }) => {
           borderRadius: designTokens.radius.xl,
           boxShadow: designTokens.shadows.glowHover,
           zIndex: 1000,
-          animation: 'bounce 2s infinite',
+          animation: prefersReducedMotion ? 'none' : 'bounce 2s infinite',
           cursor: 'pointer',
+          '&:focus-visible': {
+            outline: '3px solid #000',
+            outlineOffset: '2px',
+          },
           '@keyframes bounce': {
             '0%, 20%, 50%, 80%, 100%': { transform: 'translateY(0)' },
             '40%': { transform: 'translateY(-8px)' },
@@ -372,6 +387,9 @@ const AnimatedSection = ({ children, delay = 0 }) => {
 
 // Event Detail Modal Component
 function EventDetailModal({ event, open, onClose }) {
+  const theme = useTheme()
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
+
   if (!event) return null
 
   return (
@@ -380,12 +398,15 @@ function EventDetailModal({ event, open, onClose }) {
       onClose={onClose}
       maxWidth="md"
       fullWidth
+      fullScreen={fullScreen}
       PaperProps={{
         sx: {
-          borderRadius: 3,
-          maxHeight: '90vh'
+          borderRadius: fullScreen ? 0 : 3,
+          maxHeight: fullScreen ? '100vh' : '90vh'
         }
       }}
+      aria-labelledby="event-detail-title"
+      aria-describedby="event-detail-description"
     >
       {/* Header con botón cerrar */}
       <Box
@@ -401,15 +422,19 @@ function EventDetailModal({ event, open, onClose }) {
           zIndex: 10
         }}
       >
-        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+        <Typography id="event-detail-title" variant="h5" sx={{ fontWeight: 'bold' }}>
           {event.icon} {event.title}
         </Typography>
-        <IconButton onClick={onClose} sx={{ color: '#FFD700' }}>
+        <IconButton
+          onClick={onClose}
+          sx={{ color: '#FFD700' }}
+          aria-label="Cerrar modal"
+        >
           <CloseIcon />
         </IconButton>
       </Box>
 
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent sx={{ p: 0 }} id="event-detail-description">
         {/* Carousel de imágenes */}
         <Box sx={{ mb: 3 }}>
           <Swiper
@@ -420,6 +445,7 @@ function EventDetailModal({ event, open, onClose }) {
             pagination={{ clickable: true }}
             navigation
             loop
+            aria-label="Galería de imágenes del evento"
           >
             {event.gallery.map((image, index) => (
               <SwiperSlide key={index}>
@@ -542,6 +568,13 @@ function EventGallerySection({ navigate }) {
     setModalOpen(true)
   }
 
+  const handleKeyDown = (e, event) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleCardClick(event)
+    }
+  }
+
   return (
     <Box
       ref={ref}
@@ -597,6 +630,10 @@ function EventGallerySection({ navigate }) {
             >
               <Card
                 onClick={() => handleCardClick(event)}
+                onKeyDown={(e) => handleKeyDown(e, event)}
+                tabIndex={0}
+                role="button"
+                aria-label={`Ver detalles de ${event.title}: ${event.description}`}
                 sx={{
                   height: '400px',
                   position: 'relative',
@@ -612,6 +649,10 @@ function EventGallerySection({ navigate }) {
                     '& .content': {
                       transform: 'translateY(-10px)'
                     }
+                  },
+                  '&:focus-visible': {
+                    outline: '3px solid #FFD700',
+                    outlineOffset: '4px',
                   }
                 }}
               >
@@ -745,14 +786,27 @@ export default function HomePage() {
   const navigate = useNavigate()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const [heroLoaded, setHeroLoaded] = useState(false)
   const [reviews, setReviews] = useState([])
+  const [animationsEnabled, setAnimationsEnabled] = useState(false)
   // Base para assets en carpeta public (compatible con subcarpetas de despliegue)
   const publicBase = (import.meta.env.BASE_URL || '/')
 
   useEffect(() => {
     setHeroLoaded(true)
-  }, [])
+
+    // Progressive animation loading - only enable after page load
+    if (!prefersReducedMotion) {
+      if (document.readyState === 'complete') {
+        setTimeout(() => setAnimationsEnabled(true), 500)
+      } else {
+        window.addEventListener('load', () => {
+          setTimeout(() => setAnimationsEnabled(true), 500)
+        })
+      }
+    }
+  }, [prefersReducedMotion])
 
   // Suscribirse a reseñas aprobadas para la sección de Home
   useEffect(() => {
@@ -842,7 +896,7 @@ export default function HomePage() {
             borderRadius: '50%',
             backgroundColor: 'rgba(255, 215, 0, 0.05)',
             filter: 'blur(40px)',
-            animation: 'float 6s ease-in-out infinite',
+            animation: (prefersReducedMotion || !animationsEnabled) ? 'none' : 'float 6s ease-in-out infinite',
           }}
         />
         <Box
@@ -855,7 +909,7 @@ export default function HomePage() {
             borderRadius: '50%',
             backgroundColor: 'rgba(255, 215, 0, 0.03)',
             filter: 'blur(60px)',
-            animation: 'float 8s ease-in-out infinite reverse',
+            animation: (prefersReducedMotion || !animationsEnabled) ? 'none' : 'float 8s ease-in-out infinite reverse',
           }}
         />
 
@@ -1054,9 +1108,9 @@ export default function HomePage() {
             {/* Logo 3D animado */}
             <Grid item xs={12} lg={6}>
               <Box sx={{ textAlign: 'center', position: 'relative' }}>
-                <Fade in={heroLoaded} timeout={1200}>
+                <Fade in={heroLoaded} timeout={prefersReducedMotion ? 0 : 1200}>
                   <Box>
-                    <Hero3DLogo />
+                    <Hero3DLogo prefersReducedMotion={prefersReducedMotion} animationsEnabled={animationsEnabled} />
                   </Box>
                 </Fade>
               </Box>
@@ -1071,8 +1125,9 @@ export default function HomePage() {
             bottom: 32,
             left: '50%',
             transform: 'translateX(-50%)',
-            animation: 'bounce 2s infinite',
+            animation: prefersReducedMotion ? 'none' : 'bounce 2s infinite',
           }}
+          aria-label="Desliza hacia abajo para ver más contenido"
         >
           <Box
             sx={{
@@ -1751,7 +1806,7 @@ export default function HomePage() {
       </Box>
 
       {/* Floating CTA */}
-      <FloatingCTA navigate={navigate} />
+      <FloatingCTA navigate={navigate} prefersReducedMotion={prefersReducedMotion} />
     </>
   )
 }

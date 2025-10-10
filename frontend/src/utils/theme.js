@@ -44,6 +44,11 @@ export const designTokens = {
   shadows: {
     medium: '0 8px 24px rgba(0,0,0,0.12)',
     glowHover: '0 10px 30px rgba(255, 215, 0, 0.35), 0 4px 12px rgba(0,0,0,0.1)',
+    large: '0 20px 50px rgba(0,0,0,0.2)',
+  },
+  accessibility: {
+    focusOutline: '3px solid #FFD700',
+    focusOffset: '4px',
   },
 }
 
@@ -130,6 +135,11 @@ const theme = createTheme({
           textTransform: 'none',
           fontWeight: 600,
           padding: '10px 24px',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          '&:focus-visible': {
+            outline: '3px solid #FFD700',
+            outlineOffset: '2px',
+          },
         },
         containedPrimary: {
           backgroundColor: '#FFD700',
@@ -143,6 +153,18 @@ const theme = createTheme({
           color: '#FFFFFF',
           '&:hover': {
             backgroundColor: '#333333',
+          },
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          minWidth: 48,
+          minHeight: 48,
+          '&:focus-visible': {
+            outline: '3px solid #FFD700',
+            outlineOffset: '2px',
           },
         },
       },
@@ -161,6 +183,11 @@ const theme = createTheme({
           borderRadius: 12,
           boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
           border: '1px solid #f0f0f0',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          '&:focus-visible': {
+            outline: '3px solid #FFD700',
+            outlineOffset: '4px',
+          },
         },
       },
     },
