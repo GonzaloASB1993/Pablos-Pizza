@@ -99,7 +99,8 @@ const InventoryManagement = () => {
     try {
       setLoading(true)
       const response = await inventoryAPI.getAll()
-      setInventory(response.data || [])
+      // Handle paginated response format: {items: [], pagination: {}}
+      setInventory(response.data.items || response.data || [])
     } catch (error) {
       console.error('Error loading inventory:', error)
       toast.error('Error al cargar inventario')
@@ -111,7 +112,8 @@ const InventoryManagement = () => {
   const loadRecipes = async () => {
     try {
       const response = await recipesAPI.getAll()
-      setRecipes(response.data || [])
+      // Handle paginated response format: {items: [], pagination: {}}
+      setRecipes(response.data.items || response.data || [])
     } catch (error) {
       console.error('Error loading recipes:', error)
       toast.error('Error al cargar recetas')
@@ -122,7 +124,8 @@ const InventoryManagement = () => {
     try {
       setLoadingItemMovements(true)
       const response = await inventoryAPI.getMovements({ item_id: itemId, limit: 50 })
-      setItemMovements(response.data || [])
+      // Handle paginated response format: {items: [], pagination: {}}
+      setItemMovements(response.data.items || response.data || [])
       setViewingItem({ id: itemId, name: itemName })
       setMovementsDialog(true)
     } catch (error) {
