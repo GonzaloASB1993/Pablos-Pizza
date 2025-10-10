@@ -350,7 +350,9 @@ const BookingsManagement = () => {
         try {
             setLoading(true)
             const response = await bookingsAPI.getAll()
-            setBookings(response.data)
+            // Handle paginated response format: {items: [], pagination: {}}
+            const bookingsData = response.data.items || response.data
+            setBookings(bookingsData)
         } catch (error) {
             console.error('Error loading bookings:', error)
             toast.error('Error al cargar agendamientos')

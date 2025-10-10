@@ -83,9 +83,10 @@ const AdminDashboard = () => {
         reviewsAPI.getAll()
       ])
 
-      const bookings = bookingsResponse.data || []
-      const events = eventsResponse.data || []
-      const reviews = reviewsResponse.data || []
+      // Handle paginated response format: {items: [], pagination: {}}
+      const bookings = bookingsResponse.data.items || bookingsResponse.data || []
+      const events = eventsResponse.data.items || eventsResponse.data || []
+      const reviews = reviewsResponse.data.items || reviewsResponse.data || []
 
       // Debug: log first booking and event to see data structure
       console.log('🔍 DEBUG - Sample booking:', bookings[0])

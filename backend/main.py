@@ -27,9 +27,17 @@ import pandas as pd
 from io import BytesIO
 import calendar
 
+# Image processing imports
+from PIL import Image
+import io
+
 # Config imports
 import sys
 from pathlib import Path
+
+# Utils imports
+from utils.pagination import paginate_query, create_pagination_response
+from utils.audit import log_audit, audit_log
 
 # Ensure this module can import sibling files when served by Firebase Functions analyzer
 CURRENT_DIR = Path(__file__).parent
@@ -587,6 +595,17 @@ if cors_origins:
     allowed_origins.extend(cors_origins.split(','))
 
 CORS(app, origins=allowed_origins)
+
+# Flask-Limiter configuration for rate limiting
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",  # In-memory storage (sufficient for single instance)
+)
 
 # Firebase initialization with lazy loading
 _db = None
@@ -1473,22 +1492,41 @@ def create_booking():
 
 # Get bookings endpoint
 @app.route('/api/bookings/', methods=['GET'])
+@limiter.limit("100 per minute")
 def get_bookings():
-    """Get all bookings"""
+    """Get all bookings with pagination support"""
     try:
         db = get_db()
-        bookings_ref = db.collection("bookings")
-        bookings = []
 
-        for doc in bookings_ref.stream():
-            booking = doc.to_dict()
-            booking['id'] = doc.id
-            bookings.append(booking)
+        # Get pagination parameters from query string
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
 
-        return jsonify(bookings), 200
+        # Base query ordered by creation date (newest first)
+        bookings_ref = db.collection("bookings").order_by('created_at', direction=firestore.Query.DESCENDING)
+
+        # Apply pagination
+        paginated_bookings, has_more, total_showing = paginate_query(bookings_ref, page, limit)
+
+        # Add document IDs
+        for booking in paginated_bookings:
+            if 'id' not in booking:
+                # ID should already be in dict from paginate_query, but ensure it's there
+                pass
+
+        # Create paginated response
+        response = create_pagination_response(
+            items=paginated_bookings,
+            page=page,
+            limit=limit,
+            has_more=has_more,
+            total_showing=total_showing
+        )
+
+        return jsonify(response), 200
 
     except Exception as e:
-        print(f"Error getting bookings: {e}")
+        print(f"❌ Error getting bookings: {e}")
         return jsonify({"error": str(e)}), 500
 
 # Get specific booking
@@ -1513,22 +1551,35 @@ def get_booking(booking_id):
 
 # Events endpoints
 @app.route('/api/events/', methods=['GET'])
+@limiter.limit("100 per minute")
 def get_events():
-    """Get all events"""
+    """Get all events with pagination support"""
     try:
         db = get_db()
+
+        # Get pagination parameters
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+
+        # Base query ordered by creation date (newest first)
         events_ref = db.collection("events").order_by("created_at", direction=firestore.Query.DESCENDING)
-        events = []
 
-        for doc in events_ref.stream():
-            event = doc.to_dict()
-            event['id'] = doc.id
-            events.append(event)
+        # Apply pagination
+        paginated_events, has_more, total_showing = paginate_query(events_ref, page, limit)
 
-        return jsonify(events), 200
+        # Create paginated response
+        response = create_pagination_response(
+            items=paginated_events,
+            page=page,
+            limit=limit,
+            has_more=has_more,
+            total_showing=total_showing
+        )
+
+        return jsonify(response), 200
 
     except Exception as e:
-        print(f"Error getting events: {e}")
+        print(f"❌ Error getting events: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/events/', methods=['POST'])
@@ -1771,12 +1822,17 @@ def publish_gallery_photo(photo_id):
 
 # Gallery endpoints (basic implementation)
 @app.route('/api/gallery/', methods=['GET'])
+@limiter.limit("100 per minute")
 def get_gallery_images():
-    """Get gallery images for admin management only"""
+    """Get gallery images for admin management with pagination"""
     try:
         print("=== GALLERY ENDPOINT DEBUG ===")
         event_id = request.args.get('event_id')
         print(f"Event ID param: {event_id}")
+
+        # Get pagination parameters
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 30))
 
         db = get_db()
 
@@ -1786,13 +1842,16 @@ def get_gallery_images():
         else:
             images_ref = db.collection("gallery").order_by("uploaded_at", direction=firestore.Query.DESCENDING)
 
+        # Apply pagination
+        paginated_images, has_more, total_showing = paginate_query(images_ref, page, limit)
+
+        # Format gallery items
         gallery_items = []
-        for doc in images_ref.stream():
-            image = doc.to_dict()
-            print(f"Processing image: {doc.id}, event_id: {image.get('event_id')}, published: {image.get('is_published')}")
+        for image in paginated_images:
+            print(f"Processing image: {image.get('id')}, event_id: {image.get('event_id')}, published: {image.get('is_published')}")
 
             gallery_item = {
-                'id': doc.id,
+                'id': image.get('id'),
                 'title': image.get('title', 'Imagen'),
                 'url': image.get('url', ''),
                 'is_published': image.get('is_published', False),
@@ -1802,11 +1861,21 @@ def get_gallery_images():
 
             gallery_items.append(gallery_item)
 
-        print(f"Returning {len(gallery_items)} gallery items")
-        return jsonify(gallery_items), 200
+        print(f"Returning {len(gallery_items)} gallery items (page {page})")
+
+        # Create paginated response
+        response = create_pagination_response(
+            items=gallery_items,
+            page=page,
+            limit=limit,
+            has_more=has_more,
+            total_showing=total_showing
+        )
+
+        return jsonify(response), 200
 
     except Exception as e:
-        print(f"Error getting gallery images: {e}")
+        print(f"❌ Error getting gallery images: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
@@ -2026,6 +2095,46 @@ def get_public_gallery_images():
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 200
 
+def compress_image(image_file, max_width=1920, quality=85):
+    """
+    Compress image to reduce file size while maintaining quality
+    Args:
+        image_file: File object from request.files
+        max_width: Maximum width in pixels (default 1920px)
+        quality: JPEG quality 1-100 (default 85)
+    Returns:
+        BytesIO object with compressed image
+    """
+    try:
+        # Open image
+        img = Image.open(image_file)
+
+        # Convert RGBA to RGB if necessary (for JPEG compatibility)
+        if img.mode in ('RGBA', 'LA', 'P'):
+            background = Image.new('RGB', img.size, (255, 255, 255))
+            if img.mode == 'P':
+                img = img.convert('RGBA')
+            background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+            img = background
+
+        # Resize if image is too wide
+        if img.width > max_width:
+            ratio = max_width / img.width
+            new_height = int(img.height * ratio)
+            img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+
+        # Save to BytesIO with compression
+        output = io.BytesIO()
+        img.save(output, format='JPEG', quality=quality, optimize=True)
+        output.seek(0)
+
+        return output
+    except Exception as e:
+        print(f"❌ Error compressing image: {e}")
+        # Return original file if compression fails
+        image_file.seek(0)
+        return image_file
+
 @app.route('/api/gallery/upload', methods=['POST', 'OPTIONS'])
 def upload_gallery_image():
     """Upload image to Firebase Storage and save metadata to Firestore"""
@@ -2080,24 +2189,26 @@ def upload_gallery_image():
 
         print(f"📸 Processing upload: {title}, event_id: {event_id}")
 
-        # Generate unique filename
+        # Generate unique filename (always use .jpg for compressed images)
         image_id = str(uuid.uuid4())
-        filename = f"{image_id}.{file_extension}"
+        filename = f"{image_id}.jpg"
+
+        # Compress image before upload
+        print(f"📸 Compressing image...")
+        compressed_file = compress_image(file, max_width=1920, quality=85)
+        print(f"📸 Image compressed successfully")
 
         # Upload to Firebase Storage - using default bucket for the project
         bucket = storage.bucket()
         blob_path = f"gallery/{event_id}/{filename}" if event_id else f"gallery/{filename}"
         blob = bucket.blob(blob_path)
 
-        # Reset file pointer to beginning
-        file.seek(0)
-
-        # Upload file with metadata
-        content_type = file.content_type or f'image/{file_extension}'
+        # Upload compressed file with metadata
+        content_type = 'image/jpeg'
         print(f"📸 Uploading to Firebase Storage: {blob_path}, content_type: {content_type}")
 
         blob.upload_from_file(
-            file,
+            compressed_file,
             content_type=content_type
         )
 
@@ -2872,6 +2983,18 @@ def update_booking(booking_id):
         elif 'status' in data and data['status'] == 'completed' and current_booking.get('status') == 'completed':
             print(f"Status sigue siendo 'completed' - NO creando evento duplicado")
 
+        # Audit log critical actions
+        if 'status' in data:
+            action_type = f"update_booking_status_to_{data['status']}"
+            log_audit(
+                user_email=request.headers.get('X-User-Email', 'admin'),
+                action=action_type,
+                resource_type='booking',
+                resource_id=booking_id,
+                changes={'old_status': current_booking.get('status'), 'new_status': data['status']},
+                metadata={'booking_name': updated_booking.get('name')}
+            )
+
         return jsonify(updated_booking), 200
 
     except Exception as e:
@@ -2901,6 +3024,17 @@ def delete_booking(booking_id):
 
         doc_ref.update(update_data)
         print(f"BOOKING CANCELADO EN FIRESTORE: {booking_id}")
+
+        # Audit log cancellation
+        booking_data = doc.to_dict()
+        log_audit(
+            user_email=request.headers.get('X-User-Email', 'admin'),
+            action='cancel_booking',
+            resource_type='booking',
+            resource_id=booking_id,
+            changes={'status': 'cancelled'},
+            metadata={'booking_name': booking_data.get('name')}
+        )
 
         return jsonify({"message": "Booking cancelled successfully", "id": booking_id}), 200
 
@@ -2978,16 +3112,23 @@ def main(req: https_fn.Request) -> https_fn.Response:
 # ===================== INVENTORY ENDPOINTS =====================
 
 @app.route('/api/inventory/', methods=['GET'])
+@limiter.limit("100 per minute")
 def get_inventory():
-    """Get all inventory items with optional filters"""
+    """Get all inventory items with optional filters and pagination"""
     try:
         db = get_db()
         if not db:
             return jsonify({'error': 'Database connection failed'}), 500
 
+        # Get filter parameters
         category = request.args.get('category')
         needs_restock = request.args.get('needs_restock')
 
+        # Get pagination parameters
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 50))  # Higher limit for inventory
+
+        # Build query with filters
         query = db.collection('inventory').order_by('name')
 
         if category:
@@ -2996,16 +3137,22 @@ def get_inventory():
         if needs_restock is not None:
             query = query.where('needs_restock', '==', needs_restock.lower() == 'true')
 
-        docs = query.stream()
-        items = []
-        for doc in docs:
-            data = doc.to_dict()
-            data['id'] = doc.id
-            items.append(data)
+        # Apply pagination
+        paginated_items, has_more, total_showing = paginate_query(query, page, limit)
 
-        return jsonify(items)
+        # Create paginated response
+        response = create_pagination_response(
+            items=paginated_items,
+            page=page,
+            limit=limit,
+            has_more=has_more,
+            total_showing=total_showing
+        )
+
+        return jsonify(response), 200
+
     except Exception as e:
-        print(f"Error getting inventory: {e}")
+        print(f"❌ Error getting inventory: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/', methods=['POST'])

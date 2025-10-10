@@ -1,7 +1,8 @@
 import { Routes, Route } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
 import { useAuth } from './contexts/AuthContext'
 
-// Public pages
+// Public pages - eager loading (critical for SEO and initial load)
 import HomePage from './pages/public/HomePage'
 import GalleryPage from './pages/public/GalleryPage'
 import TestimonialsPage from './pages/public/TestimonialsPage'
@@ -9,17 +10,17 @@ import BookingPage from './pages/public/BookingPage'
 import ServicesPage from './pages/public/ServicesPage'
 import ContactPage from './pages/public/ContactPage'
 
-// Admin pages
-import AdminDashboard from './pages/admin/AdminDashboard'
-import BookingsManagement from './pages/admin/BookingsManagement'
-import EventsManagement from './pages/admin/EventsManagement'
-import GalleryManagement from './pages/admin/GalleryManagement'
-import ReviewsManagement from './pages/admin/ReviewsManagement'
-import InventoryManagement from './pages/admin/InventoryManagement'
-import ProductionManagement from './pages/admin/ProductionManagement'
-import ReportsPage from './pages/admin/ReportsPage'
-import ContactManagement from './pages/admin/ContactManagement'
-import AdminLogin from './pages/admin/AdminLogin'
+// Admin pages - lazy loading (no afecta SEO, optimiza bundle inicial)
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
+const BookingsManagement = lazy(() => import('./pages/admin/BookingsManagement'))
+const EventsManagement = lazy(() => import('./pages/admin/EventsManagement'))
+const GalleryManagement = lazy(() => import('./pages/admin/GalleryManagement'))
+const ReviewsManagement = lazy(() => import('./pages/admin/ReviewsManagement'))
+const InventoryManagement = lazy(() => import('./pages/admin/InventoryManagement'))
+const ProductionManagement = lazy(() => import('./pages/admin/ProductionManagement'))
+const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'))
+const ContactManagement = lazy(() => import('./pages/admin/ContactManagement'))
+const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
 
 // Layouts
 import PublicLayout from './components/layouts/PublicLayout'
@@ -50,7 +51,11 @@ function App() {
         </Route>
 
         {/* Admin Login */}
-        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/login" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <AdminLogin />
+          </Suspense>
+        } />
 
         {/* Protected Admin Routes */}
         <Route
@@ -61,15 +66,51 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<AdminDashboard />} />
-          <Route path="agendamientos" element={<BookingsManagement />} />
-          <Route path="eventos" element={<EventsManagement />} />
-          <Route path="galeria" element={<GalleryManagement />} />
-          <Route path="testimonios" element={<ReviewsManagement />} />
-          <Route path="inventario" element={<InventoryManagement />} />
-          <Route path="produccion" element={<ProductionManagement />} />
-          <Route path="reportes" element={<ReportsPage />} />
-          <Route path="contactos" element={<ContactManagement />} />
+          <Route index element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AdminDashboard />
+            </Suspense>
+          } />
+          <Route path="agendamientos" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <BookingsManagement />
+            </Suspense>
+          } />
+          <Route path="eventos" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <EventsManagement />
+            </Suspense>
+          } />
+          <Route path="galeria" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <GalleryManagement />
+            </Suspense>
+          } />
+          <Route path="testimonios" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ReviewsManagement />
+            </Suspense>
+          } />
+          <Route path="inventario" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <InventoryManagement />
+            </Suspense>
+          } />
+          <Route path="produccion" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ProductionManagement />
+            </Suspense>
+          } />
+          <Route path="reportes" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ReportsPage />
+            </Suspense>
+          } />
+          <Route path="contactos" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ContactManagement />
+            </Suspense>
+          } />
         </Route>
       </Routes>
 
