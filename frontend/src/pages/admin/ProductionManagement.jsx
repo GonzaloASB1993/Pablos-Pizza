@@ -72,9 +72,10 @@ const ProductionManagement = () => {
         inventoryAPI.getAll()
       ])
 
-      setBatches(batchesRes.data || [])
-      setRecipes(recipesRes.data || [])
-      setInventory(inventoryRes.data || [])
+      // Handle paginated response format: {items: [], pagination: {}}
+      setBatches(batchesRes.data.items || batchesRes.data || [])
+      setRecipes(recipesRes.data.items || recipesRes.data || [])
+      setInventory(inventoryRes.data.items || inventoryRes.data || [])
     } catch (error) {
       console.error('Error loading data:', error)
       toast.error('Error al cargar datos')
