@@ -43,13 +43,14 @@ import {
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { ThemeProvider } from '../../contexts/ThemeContext'
 import { useThemeMode } from '../../contexts/ThemeContext'
 import logo from '../../assets/logo.png'
 
 const DRAWER_WIDTH = 280
 const DRAWER_WIDTH_COLLAPSED = 70
 
-const AdminLayout = () => {
+const AdminLayoutContent = () => {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [profileMenu, setProfileMenu] = useState(null)
   const [businessOpen, setBusinessOpen] = useState(true)
@@ -612,6 +613,15 @@ const AdminLayout = () => {
         <Outlet />
       </Box>
     </Box>
+  )
+}
+
+// Wrapper component that provides theme context only for admin pages
+const AdminLayout = () => {
+  return (
+    <ThemeProvider>
+      <AdminLayoutContent />
+    </ThemeProvider>
   )
 }
 

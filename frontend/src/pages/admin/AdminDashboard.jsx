@@ -23,7 +23,7 @@ import {
   CheckCircle,
   Info
 } from '@mui/icons-material'
-import { bookingsAPI, eventsAPI, reviewsAPI } from '../../services/api'
+import { bookingsAPI, reviewsAPI, reportsAPI } from '../../services/api'
 import { useNavigate } from 'react-router-dom'
 import logo from '../../assets/logo.png'
 
@@ -33,27 +33,8 @@ const AdminDashboard = () => {
 
   // Estado para el filtro de mes
   const currentDate = new Date()
-  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1) // 1-12 for API
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
-
-  // Helper function to safely parse date strings without timezone shifts
-  const parseEventDate = (dateString) => {
-    if (!dateString) return null
-
-    try {
-      if (dateString.includes('T')) {
-        const dateOnly = dateString.split('T')[0]
-        const [year, month, day] = dateOnly.split('-').map(Number)
-        return new Date(year, month - 1, day)
-      } else {
-        const [year, month, day] = dateString.split('-').map(Number)
-        return new Date(year, month - 1, day)
-      }
-    } catch (error) {
-      console.error('Error parsing date:', dateString, error)
-      return null
-    }
-  }
 
   const [stats, setStats] = useState({
     newBookings: 0,
@@ -76,23 +57,19 @@ const AdminDashboard = () => {
     try {
       setLoading(true)
 
-      // Load bookings and calculate stats
-      const [bookingsResponse, eventsResponse, reviewsResponse] = await Promise.all([
+      // Load bookings, reviews, and monthly report from backend API
+      const [bookingsResponse, reviewsResponse, monthlyReportResponse] = await Promise.all([
         bookingsAPI.getAll(),
-        eventsAPI.getAll(),
-        reviewsAPI.getAll()
+        reviewsAPI.getAll(),
+        reportsAPI.getMonthly(selectedYear, selectedMonth)
       ])
 
       // Handle paginated response format: {items: [], pagination: {}}
       const bookings = bookingsResponse.data.items || bookingsResponse.data || []
-      const events = eventsResponse.data.items || eventsResponse.data || []
       const reviews = reviewsResponse.data.items || reviewsResponse.data || []
+      const monthlyReport = monthlyReportResponse.data
 
-      // Debug: log first booking and event to see data structure
-      console.log('🔍 DEBUG - Sample booking:', bookings[0])
-      console.log('🔍 DEBUG - Sample event:', events[0])
-      console.log('🔍 DEBUG - Total bookings:', bookings.length)
-      console.log('🔍 DEBUG - Total events:', events.length)
+      console.log('📊 Monthly Report from API:', monthlyReport)
 
       // Calculate today's bookings
       const today = new Date()
@@ -102,47 +79,6 @@ const AdminDashboard = () => {
         return createdDate === todayStr
       })
 
-      // Calculate monthly stats using selected month/year
-      // Count events from bookings (confirmed/completed) for the selected month
-      const monthlyEvents = bookings.filter(booking => {
-        if (booking.status !== 'confirmed' && booking.status !== 'completed') return false
-        const eventDate = parseEventDate(booking.event_date)
-        return eventDate && eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear
-      })
-
-      // Calculate monthly income from confirmed bookings for selected month
-
-      const confirmedBookings = bookings.filter(booking => {
-        if (booking.status !== 'confirmed' && booking.status !== 'completed') return false
-        const eventDate = parseEventDate(booking.event_date)
-        let includeInRevenue = false
-        if (eventDate && !isNaN(eventDate.getTime())) {
-          includeInRevenue = eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear
-        }
-        // Debug: mostrar todos los bookings con su fecha, status y profit
-        console.log(`� Filtro utilidad: id=${booking.id}, status=${booking.status}, event_date=${booking.event_date}, parsed=${eventDate}, month=${eventDate && !isNaN(eventDate.getTime()) ? eventDate.getMonth() : 'NaN'}, year=${eventDate && !isNaN(eventDate.getTime()) ? eventDate.getFullYear() : 'NaN'}, includeInRevenue=${includeInRevenue}, profit=${booking.event_profit}`)
-        return includeInRevenue
-      })
-
-      console.log(`💰 Confirmed bookings this month:`, confirmedBookings.length)
-
-      const monthlyIncome = confirmedBookings.reduce((total, booking) => {
-        const price = booking.estimated_price || 0
-        console.log(`💰 Adding price: ${price} (total so far: ${total + price})`)
-        return total + price
-      }, 0)
-
-
-      // Calcular utilidad mensual sumando la columna 'profit' de todos los bookings confirmados/completados del mes filtrado
-      const monthlyProfit = confirmedBookings.reduce((total, booking) => {
-        const profit = Number(booking.event_profit) || 0
-        console.log(`💸 Booking event_profit: ${profit} (total so far: ${total + profit})`)
-        return total + profit
-      }, 0)
-
-      console.log(`💰 Final monthly income: ${monthlyIncome}`)
-      console.log(`💸 Final monthly profit: ${monthlyProfit}`)
-
       // Calculate alerts
       const pendingReviews = reviews.filter(review => !review.approved).length
       const confirmedEvents = bookings.filter(booking => booking.status === 'confirmed').length
@@ -150,11 +86,12 @@ const AdminDashboard = () => {
         booking.status === 'completed' && (booking.event_cost === undefined || booking.event_cost === null)
       ).length
 
+      // Use backend-calculated values for accuracy
       setStats({
         newBookings: todayBookingsData.length,
-        monthlyEvents: monthlyEvents.length,
-        monthlyIncome: Math.round(monthlyIncome),
-        monthlyProfit: Math.round(monthlyProfit)
+        monthlyEvents: monthlyReport.total_events || 0,
+        monthlyIncome: Math.round(monthlyReport.total_income || 0),
+        monthlyProfit: Math.round(monthlyReport.total_profit || 0)
       })
 
       setTodayBookings(todayBookingsData)
@@ -198,7 +135,7 @@ const AdminDashboard = () => {
   const StatCard = ({ title, value, icon, color = 'primary' }) => (
     <Card>
       <CardContent sx={{ display: 'flex', alignItems: 'center' }}>
-        <Box sx={{ 
+        <Box sx={{
           backgroundColor: `${color}.main`,
           color: 'white',
           p: 2,
@@ -275,7 +212,7 @@ const AdminDashboard = () => {
             onChange={handleMonthChange}
           >
             {monthNames.map((month, index) => (
-              <MenuItem key={index} value={index}>
+              <MenuItem key={index} value={index + 1}>
                 {month}
               </MenuItem>
             ))}
@@ -296,7 +233,7 @@ const AdminDashboard = () => {
           </Select>
         </FormControl>
         <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
-          Mostrando datos de {monthNames[selectedMonth]} {selectedYear}
+          Mostrando datos de {monthNames[selectedMonth - 1]} {selectedYear}
         </Typography>
       </Box>
 
@@ -317,7 +254,7 @@ const AdminDashboard = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <StatCard
-                title={`Eventos - ${monthNames[selectedMonth]}`}
+                title={`Eventos - ${monthNames[selectedMonth - 1]}`}
                 value={stats.monthlyEvents}
                 icon={<People />}
                 color="secondary"
@@ -325,7 +262,7 @@ const AdminDashboard = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <StatCard
-                title={`Ingresos - ${monthNames[selectedMonth]}`}
+                title={`Ingresos - ${monthNames[selectedMonth - 1]}`}
                 value={`$${stats.monthlyIncome.toLocaleString('es-CL')}`}
                 icon={<AttachMoney />}
                 color="success"
@@ -333,7 +270,7 @@ const AdminDashboard = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <StatCard
-                title={`Utilidad - ${monthNames[selectedMonth]}`}
+                title={`Utilidad - ${monthNames[selectedMonth - 1]}`}
                 value={`$${stats.monthlyProfit.toLocaleString('es-CL')}`}
                 icon={<TrendingUp />}
                 color="warning"
