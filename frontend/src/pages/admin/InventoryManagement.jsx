@@ -32,9 +32,10 @@ import {
   Divider,
   List,
   ListItem,
-  ListItemText
+  ListItemText,
+  InputAdornment
 } from '@mui/material'
-import { Add, Edit, Delete, Warning, Inventory, Kitchen, Build, Timeline, ArrowDownward, ArrowUpward, AddBox, Visibility, SwapHoriz } from '@mui/icons-material'
+import { Add, Edit, Delete, Warning, Inventory, Kitchen, Build, Timeline, ArrowDownward, ArrowUpward, AddBox, Visibility, SwapHoriz, Search } from '@mui/icons-material'
 import { inventoryAPI, recipesAPI } from '../../services/api'
 import { formatCurrency, formatStock, safeFormatCost, formatDateTime } from '../../utils/formatters'
 import UnitConverter from '../../components/UnitConverter'
@@ -49,6 +50,8 @@ const InventoryManagement = () => {
   const [editingItem, setEditingItem] = useState(null)
   const [editingRecipe, setEditingRecipe] = useState(null)
   const [currentTab, setCurrentTab] = useState(0)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [stockStatusFilter, setStockStatusFilter] = useState('all') // all, critical, low, medium, good
   const [formData, setFormData] = useState({
     name: '',
     product_type: 'raw_material',
@@ -506,12 +509,32 @@ const InventoryManagement = () => {
   }
 
   const getFilteredInventory = () => {
+    let filtered = []
+
+    // Filter by tab (product type)
     switch (currentTab) {
-      case 0: return inventory.filter(item => item.product_type === 'raw_material')
-      case 1: return inventory.filter(item => item.product_type === 'intermediate')
-      case 2: return inventory.filter(item => ['finished_good', 'utensil', 'equipment'].includes(item.product_type))
-      default: return inventory
+      case 0: filtered = inventory.filter(item => item.product_type === 'raw_material'); break
+      case 1: filtered = inventory.filter(item => item.product_type === 'intermediate'); break
+      case 2: filtered = inventory.filter(item => ['finished_good', 'utensil', 'equipment'].includes(item.product_type)); break
+      default: filtered = inventory
     }
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase()
+      filtered = filtered.filter(item =>
+        item.name?.toLowerCase().includes(search) ||
+        item.category?.toLowerCase().includes(search) ||
+        getCategoryLabel(item.category)?.toLowerCase().includes(search)
+      )
+    }
+
+    // Filter by stock status
+    if (stockStatusFilter !== 'all') {
+      filtered = filtered.filter(item => getStockStatus(item) === stockStatusFilter)
+    }
+
+    return filtered
   }
 
   const lowStockItems = inventory.filter(item =>
@@ -584,6 +607,72 @@ const InventoryManagement = () => {
             iconPosition="start"
           />
         </Tabs>
+      </Card>
+
+      {/* Search and Filters */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                placeholder="Buscar por nombre o categoría..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search />
+                    </InputAdornment>
+                  ),
+                }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+                  Filtrar por stock:
+                </Typography>
+                <Chip
+                  label="Todos"
+                  onClick={() => setStockStatusFilter('all')}
+                  color={stockStatusFilter === 'all' ? 'primary' : 'default'}
+                  variant={stockStatusFilter === 'all' ? 'filled' : 'outlined'}
+                  size="small"
+                />
+                <Chip
+                  label="Crítico"
+                  onClick={() => setStockStatusFilter('critical')}
+                  color={stockStatusFilter === 'critical' ? 'error' : 'default'}
+                  variant={stockStatusFilter === 'critical' ? 'filled' : 'outlined'}
+                  size="small"
+                />
+                <Chip
+                  label="Bajo"
+                  onClick={() => setStockStatusFilter('low')}
+                  color={stockStatusFilter === 'low' ? 'warning' : 'default'}
+                  variant={stockStatusFilter === 'low' ? 'filled' : 'outlined'}
+                  size="small"
+                />
+                <Chip
+                  label="Medio"
+                  onClick={() => setStockStatusFilter('medium')}
+                  color={stockStatusFilter === 'medium' ? 'info' : 'default'}
+                  variant={stockStatusFilter === 'medium' ? 'filled' : 'outlined'}
+                  size="small"
+                />
+                <Chip
+                  label="Bueno"
+                  onClick={() => setStockStatusFilter('good')}
+                  color={stockStatusFilter === 'good' ? 'success' : 'default'}
+                  variant={stockStatusFilter === 'good' ? 'filled' : 'outlined'}
+                  size="small"
+                />
+              </Box>
+            </Grid>
+          </Grid>
+        </CardContent>
       </Card>
 
       {loading ? (

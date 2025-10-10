@@ -1,7 +1,7 @@
 # Task.md - Pablo's Pizza Project Tasks
 
 ## 📋 Estado General del Proyecto
-- **Fecha de inicio**: 2024
+- **Fecha de inicio**: 2025
 - **Estado actual**: Producción activa con mejoras continuas
 - **Versión**: v2.0 (después de removal del chat)
 - **Próximo milestone**: M3 - Performance & Security Optimization
