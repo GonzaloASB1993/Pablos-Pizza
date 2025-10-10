@@ -1704,27 +1704,29 @@ export default function HomePage() {
             )}
 
             {!reviewsLoading && !reviewsError && reviews.length > 0 && (
-              <Box sx={{ textAlign: 'center', mt: 6 }}>
-              <Button
-                variant="outlined"
-                onClick={() => navigate('/testimonios')}
-                endIcon={<ArrowForward />}
-                size="large"
-                sx={{
-                  px: 4,
-                  borderColor: '#FFD700',
-                  color: '#FFD700',
-                  borderWidth: 2,
-                  '&:hover': {
-                    borderColor: '#FFC700',
-                    color: '#FFC700',
-                    borderWidth: 2
-                  }
-                }}
-              >
-                Ver Más Testimonios
-              </Button>
-              </Box>
+              <>
+                <Box sx={{ textAlign: 'center', mt: 6 }}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => navigate('/testimonios')}
+                    endIcon={<ArrowForward />}
+                    size="large"
+                    sx={{
+                      px: 4,
+                      borderColor: '#FFD700',
+                      color: '#FFD700',
+                      borderWidth: 2,
+                      '&:hover': {
+                        borderColor: '#FFC700',
+                        color: '#FFC700',
+                        borderWidth: 2
+                      }
+                    }}
+                  >
+                    Ver Más Testimonios
+                  </Button>
+                </Box>
+              </>
             )}
           </Container>
 
