@@ -31,18 +31,18 @@ import calendar
 from PIL import Image
 import io
 
-# Config imports
+# Config imports - MUST BE BEFORE UTILS IMPORTS
 import sys
 from pathlib import Path
-
-# Utils imports
-from utils.pagination import paginate_query, create_pagination_response
-from utils.audit import log_audit, audit_log
 
 # Ensure this module can import sibling files when served by Firebase Functions analyzer
 CURRENT_DIR = Path(__file__).parent
 if str(CURRENT_DIR) not in sys.path:
     sys.path.insert(0, str(CURRENT_DIR))
+
+# Utils imports - AFTER sys.path configuration
+from utils.pagination import paginate_query, create_pagination_response
+from utils.audit import log_audit, audit_log
 
 try:
     from config import PricingConfig  # local module next to this file
