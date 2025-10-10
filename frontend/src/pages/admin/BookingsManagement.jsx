@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
     Box,
     Typography,
@@ -193,7 +193,7 @@ const BookingsManagement = () => {
     }
 
     // Utility functions moved before their usage
-    const getServiceLabel = (type) => {
+    const getServiceLabel = useCallback((type) => {
         if (!type) return 'No especificado'
 
         // Manejar múltiples servicios separados por coma
@@ -204,7 +204,7 @@ const BookingsManagement = () => {
 
         // Servicio único
         return type === 'workshop' ? 'Pizzeros en Acción' : 'Pizza Party'
-    }
+    }, [])
 
     // Función para calcular pizzas sugeridas
     const calculateSuggestedPizzas = (guests) => {
@@ -301,7 +301,7 @@ const BookingsManagement = () => {
         })
 
         return filtered
-    }, [bookings, selectedMonth, searchQuery, statusFilter, sortField, sortDirection])
+    }, [bookings, selectedMonth, searchQuery, statusFilter, sortField, sortDirection, getServiceLabel, parseEventDate])
 
     const handleSort = (field) => {
         if (sortField === field) {
@@ -326,7 +326,7 @@ const BookingsManagement = () => {
     }, [])
 
     // Helper function to safely parse date strings without timezone shifts
-    const parseEventDate = (dateString) => {
+    const parseEventDate = useCallback((dateString) => {
         if (!dateString) return null
 
         try {
@@ -344,7 +344,7 @@ const BookingsManagement = () => {
             console.error('Error parsing date:', dateString, error)
             return null
         }
-    }
+    }, [])
 
     const loadBookings = async () => {
         try {
