@@ -892,7 +892,8 @@ export default function HomePage() {
       {/* Hero Section Premium con Aurora Gradient */}
       <Box
         sx={{
-          minHeight: '100vh',
+          minHeight: { xs: 'auto', md: '100vh' },
+          py: { xs: 6, md: 8 },
           background: `
             radial-gradient(circle at 20% 20%, ${designTokens.colors.golden[500]}15 0%, transparent 50%),
             radial-gradient(circle at 80% 80%, ${designTokens.colors.golden[400]}10 0%, transparent 50%),
@@ -904,7 +905,6 @@ export default function HomePage() {
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
-          py: { xs: 8, md: 4 },
         }}
       >
         {/* Elementos decorativos flotantes */}
