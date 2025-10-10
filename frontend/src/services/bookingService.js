@@ -71,6 +71,7 @@ export const createBooking = async (bookingData) => {
         // Agregar información detallada de participantes por servicio
         pizzeros_participants: bookingData.participantsByService?.pizzeros || 0,
         party_participants: bookingData.participantsByService?.party || 0,
+        pizza_quantity: bookingData.participantsByService?.pizzas || 0,
         special_requests: bookingData.specialRequests || '',
         // Agregar información de servicios múltiples para el admin
         services_selected: Array.isArray(bookingData.services) ? bookingData.services : [bookingData.service]

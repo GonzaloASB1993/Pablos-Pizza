@@ -75,9 +75,281 @@ app = Flask(__name__)
 # Twilio WhatsApp Configuration
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
 TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '')
-TWILIO_WHATSAPP_FROM = os.getenv('TWILIO_WHATSAPP_FROM', 'whatsapp:+14155238886')
+TWILIO_WHATSAPP_FROM = os.getenv('TWILIO_WHATSAPP_FROM', 'whatsapp:+15558617855')
+
+# Twilio WhatsApp Template SIDs
+# NOTE: Templates created with English (en) language but Spanish content for faster approval
+# Content language doesn't need to match template language setting
+TEMPLATE_NEW_BOOKING_SID = os.getenv('TEMPLATE_NEW_BOOKING_SID', 'HXa6b7326d7297f04c9ade01e8d8afaefe')
+TEMPLATE_BOOKING_CONFIRMED_SID = os.getenv('TEMPLATE_BOOKING_CONFIRMED_SID', 'HXab45cdc57ca599799b850dd3b889020c')
 
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN else None
+
+# ==================== WhatsApp Template Helper Functions ====================
+
+def format_date_for_template(event_date: str) -> str:
+    """Format date for WhatsApp templates (DD/MM/YYYY)"""
+    if not event_date:
+        return 'No especificada'
+
+    try:
+        from datetime import datetime
+        if 'T' in event_date:
+            date_obj = datetime.fromisoformat(event_date.replace('Z', '+00:00'))
+        else:
+            date_obj = datetime.strptime(event_date, '%Y-%m-%d')
+        return date_obj.strftime('%d/%m/%Y')
+    except:
+        return event_date
+
+
+def format_participants_info(booking_data: dict) -> str:
+    """
+    Format participants information for WhatsApp templates
+
+    Variables estandarizadas:
+    - pizzeros_participants: Número de niños en Pizzeros en Acción
+    - party_participants: Número de invitados para Pizza Party
+    - pizza_quantity: Número de pizzas para Pizza Party
+    """
+    pizzeros = booking_data.get('pizzeros_participants', 0)
+    party_guests = booking_data.get('party_participants', 0)
+    pizzas = booking_data.get('pizza_quantity', 0)
+
+    # Ambos servicios
+    if pizzeros > 0 and pizzas > 0:
+        return f"Pizzeros: {pizzeros} niños, Pizza Party: {pizzas} pizzas"
+
+    # Solo Pizzeros
+    elif pizzeros > 0:
+        return f"{pizzeros} niños (Pizzeros en Acción)"
+
+    # Solo Pizza Party
+    elif pizzas > 0:
+        return f"{pizzas} pizzas (Pizza Party)"
+
+    # Fallback: usar participants general
+    else:
+        participants = booking_data.get('participants', 0)
+        return f"{participants} participantes" if participants > 0 else "No especificado"
+
+
+def format_cantidad_info(booking_data: dict) -> str:
+    """
+    Format quantity for booking confirmation template
+
+    Variables estandarizadas:
+    - pizzeros_participants: Número de niños
+    - pizza_quantity: Número de pizzas
+    """
+    service_types = booking_data.get('service_type', '')
+    services = [s.strip() for s in service_types.split(',') if s.strip()]
+
+    pizzeros = booking_data.get('pizzeros_participants', 0)
+    pizzas = booking_data.get('pizza_quantity', 0)
+
+    # Combo: mostrar ambos
+    if len(services) > 1:
+        return f"{pizzeros} niños + {pizzas} pizzas"
+
+    # Solo Pizzeros
+    elif 'workshop' in services or 'pizzeros' in services:
+        return f"{pizzeros} niños"
+
+    # Solo Pizza Party
+    else:
+        return f"{pizzas} pizzas"
+
+
+def prepare_new_booking_variables(booking_data: dict) -> dict:
+    """
+    Prepare variables for new booking WhatsApp template
+    Template SID: HXa6b7326d7297f04c9ade01e8d8afaefe
+
+    Twilio Content API variables use string indices matching the order in template:
+    "1" - Fecha del evento ({{1}})
+    "2" - Hora del evento ({{2}})
+    "3" - Participantes ({{3}})
+    "4" - Servicio ({{4}})
+    "5" - Precio estimado ({{5}})
+    "6" - Cliente ({{6}})
+    "7" - Teléfono ({{7}})
+    "8" - Link al admin panel ({{8}})
+    """
+    # Format date
+    event_date = booking_data.get('event_date', '')
+    formatted_date = format_date_for_template(event_date)
+
+    # Format time
+    event_time = booking_data.get('event_time', 'No especificada')
+
+    # Determine service name
+    service_types = booking_data.get('service_type', '')
+    services = [s.strip() for s in service_types.split(',') if s.strip()]
+    if len(services) > 1:
+        service_name = 'Pizza Party + Pizzeros en Acción'
+    elif 'workshop' in services or 'pizzeros' in services:
+        service_name = 'Pizzeros en Acción'
+    else:
+        service_name = 'Pizza Party'
+
+    # Format participants
+    participants_info = format_participants_info(booking_data)
+
+    # Format price
+    estimated_price = booking_data.get('estimated_price', 0)
+    formatted_price = f"${estimated_price:,.0f} CLP" if estimated_price > 0 else "Por definir"
+
+    # Admin panel link
+    admin_link = "https://pablospizza.web.app/admin/agendamientos"
+
+    # Ensure no empty or null values (Twilio rejects empty variables)
+    variables = {
+        "1": formatted_date or "No especificada",
+        "2": event_time or "No especificada",
+        "3": participants_info or "No especificado",
+        "4": service_name or "Pizza Party",
+        "5": formatted_price or "Por definir",
+        "6": booking_data.get('client_name') or "No especificado",
+        "7": booking_data.get('client_phone') or "No especificado",
+        "8": admin_link
+    }
+
+    # Log variables for debugging
+    print(f"🔍 Template variables prepared: {variables}")
+
+    return variables
+
+
+def prepare_confirmed_booking_variables(booking_data: dict) -> dict:
+    """
+    Prepare variables for confirmed booking WhatsApp template
+    Template SID: HXab45cdc57ca599799b850dd3b889020c
+
+    Variables:
+    {{1}} - Nombre del cliente
+    {{2}} - Fecha del evento
+    {{3}} - Hora del evento
+    {{4}} - Nombre del servicio
+    {{5}} - Cantidad (participantes/pizzas)
+    {{6}} - Ubicación
+    {{7}} - Total estimado
+    {{8}} - Notas especiales
+    {{9}} - Link de calendario
+    """
+    # Client name
+    client_name = booking_data.get('client_name', 'Cliente')
+
+    # Format date
+    event_date = booking_data.get('event_date', '')
+    formatted_date = format_date_for_template(event_date)
+
+    # Format time
+    event_time = booking_data.get('event_time', 'No especificada')
+
+    # Determine service name
+    service_types = booking_data.get('service_type', '')
+    services = [s.strip() for s in service_types.split(',') if s.strip()]
+    if len(services) > 1:
+        service_name = 'Pizza Party + Pizzeros en Acción'
+    elif 'workshop' in services or 'pizzeros' in services:
+        service_name = 'Pizzeros en Acción'
+    else:
+        service_name = 'Pizza Party'
+
+    # Format quantity based on service
+    cantidad_info = format_cantidad_info(booking_data)
+
+    # Location
+    location = booking_data.get('location', 'Por confirmar')
+
+    # Format price
+    estimated_price = booking_data.get('estimated_price', 0)
+    formatted_price = f"${estimated_price:,.0f} CLP" if estimated_price > 0 else "Por definir"
+
+    # Special requests/notes
+    special_requests = booking_data.get('special_requests', 'Ninguna')
+    if not special_requests or special_requests.strip() == '':
+        special_requests = 'Ninguna'
+
+    # Generate calendar link
+    _, calendar_url = generate_calendar_invite_with_url(booking_data)
+
+    return {
+        "1": client_name,
+        "2": formatted_date,
+        "3": event_time,
+        "4": service_name,
+        "5": cantidad_info,
+        "6": location,
+        "7": formatted_price,
+        "8": special_requests,
+        "9": calendar_url
+    }
+
+# ==================== End of Helper Functions ====================
+
+async def send_whatsapp_template(phone: str, template_type: str, booking_data: dict) -> bool:
+    """
+    Send WhatsApp using approved Twilio templates
+
+    Args:
+        phone: Destination phone number
+        template_type: 'new_booking' or 'booking_confirmed'
+        booking_data: Booking information
+
+    Returns:
+        bool: True if sent successfully
+    """
+    if not twilio_client:
+        print("❌ Twilio client not configured")
+        return False
+
+    try:
+        # Format phone number
+        if not phone.startswith('whatsapp:'):
+            if not phone.startswith('+'):
+                phone = '+' + phone
+            phone = f'whatsapp:{phone}'
+
+        # Determine template and prepare variables
+        if template_type == 'new_booking':
+            content_sid = TEMPLATE_NEW_BOOKING_SID
+            template_vars = prepare_new_booking_variables(booking_data)
+        elif template_type == 'booking_confirmed':
+            content_sid = TEMPLATE_BOOKING_CONFIRMED_SID
+            template_vars = prepare_confirmed_booking_variables(booking_data)
+        else:
+            raise ValueError(f"Invalid template type: {template_type}")
+
+        print(f"📱 Sending WhatsApp template '{template_type}' to {phone}")
+        print(f"📋 Template SID: {content_sid}")
+        print(f"📋 Template variables: {template_vars}")
+
+        # Send using Twilio template
+        # Twilio Content API expects variables as a JSON string
+        # The format must match what's defined in the template
+        import json
+
+        # Convert variables to JSON string
+        variables_json = json.dumps(template_vars)
+        print(f"📋 Variables JSON: {variables_json}")
+
+        template_message = twilio_client.messages.create(
+            from_=TWILIO_WHATSAPP_FROM,
+            to=phone,
+            content_sid=content_sid,
+            content_variables=variables_json
+        )
+
+        print(f"✅ WhatsApp template sent successfully, SID: {template_message.sid}")
+        return True
+
+    except Exception as e:
+        print(f"❌ Template sending failed for {phone}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 async def send_whatsapp_notification(phone: str, message: str, notification_type: str) -> bool:
     """Send WhatsApp notification using Twilio"""
@@ -102,104 +374,6 @@ async def send_whatsapp_notification(phone: str, message: str, notification_type
 
     except Exception as e:
         print(f"Error sending WhatsApp to {phone}: {str(e)}")
-        return False
-
-async def send_whatsapp_with_template_fallback(phone: str, message: str, notification_type: str, booking_data: dict) -> bool:
-    """
-    Send WhatsApp notification using template (always uses template now)
-    """
-    if not twilio_client:
-        print("Twilio client not configured")
-        return False
-
-    # Format phone number
-    if not phone.startswith('whatsapp:'):
-        if not phone.startswith('+'):
-            phone = '+' + phone
-        phone = f'whatsapp:{phone}'
-
-    try:
-        # Prepare template variables - Handle multiple services properly
-        service_types = booking_data.get('service_type', '')
-        services = [s.strip() for s in service_types.split(',') if s.strip()]
-
-        if len(services) > 1:
-            service_name = 'Pizza Party + Pizzeros en Acción'
-        elif 'workshop' in services or 'pizzeros' in services:
-            service_name = 'Pizzeros en Acción'
-        else:
-            service_name = 'Pizza Party'
-
-        # Format date properly
-        event_date = booking_data.get('event_date', '')
-        formatted_date = 'No especificada'
-        if event_date:
-            try:
-                from datetime import datetime
-                if 'T' in event_date:
-                    date_obj = datetime.fromisoformat(event_date.replace('Z', '+00:00'))
-                    formatted_date = date_obj.strftime('%d/%m/%Y')
-                else:
-                    date_obj = datetime.strptime(event_date, '%Y-%m-%d')
-                    formatted_date = date_obj.strftime('%d/%m/%Y')
-            except:
-                formatted_date = event_date
-
-        # Format time properly
-        event_time = booking_data.get('event_time', '')
-        formatted_time = 'No especificada'
-        if event_time:
-            formatted_time = event_time
-
-        # Format participants info based on new pizza structure
-        participants_info = "No especificado"
-        if booking_data.get('pizzeros_participants') and booking_data.get('party_participants'):
-            participants_info = f"Pizzeros: {booking_data['pizzeros_participants']} niños, Pizza Party: {booking_data.get('pizza_quantity', booking_data['party_participants'])} pizzas"
-        elif booking_data.get('pizzeros_participants'):
-            participants_info = f"{booking_data['pizzeros_participants']} niños (Pizzeros en Acción)"
-        elif booking_data.get('party_participants'):
-            pizza_qty = booking_data.get('pizza_quantity', booking_data['party_participants'])
-            participants_info = f"{pizza_qty} pizzas (Pizza Party)"
-        elif booking_data.get('participants'):
-            participants_info = f"{booking_data['participants']} participantes"
-
-        # Format price properly
-        estimated_price = booking_data.get('estimated_price', 0)
-        formatted_price = 'Por definir'
-        if estimated_price and estimated_price > 0:
-            try:
-                formatted_price = f"${estimated_price:,.0f} CLP"
-            except:
-                formatted_price = f"${estimated_price} CLP"
-
-        # Prepare template variables as JSON string (Twilio requirement)
-        template_vars = {
-            "1": str(formatted_date),
-            "2": str(formatted_time),
-            "3": str(participants_info),
-            "4": str(service_name),
-            "5": str(formatted_price),
-            "6": str(booking_data.get('client_name', 'No especificado')),
-            "7": str(booking_data.get('client_phone', 'No especificado'))
-        }
-
-        print(f"📱 Sending WhatsApp template to {phone}")
-        print(f"📋 Template variables: {template_vars}")
-
-        # Use template with properly formatted variables as JSON string
-        import json
-        template_message = twilio_client.messages.create(
-            from_=TWILIO_WHATSAPP_FROM,
-            to=phone,
-            content_sid='HXa33f59e4520c860c5024643fcb7139f3',
-            content_variables=json.dumps(template_vars)
-        )
-
-        print(f"✅ WhatsApp template sent successfully to {phone}, SID: {template_message.sid}")
-        return True
-
-    except Exception as template_error:
-        print(f"Template sending failed for {phone}: {str(template_error)}")
         return False
 
 def send_admin_email_notification(booking_data: dict) -> bool:
@@ -350,6 +524,49 @@ END:VCALENDAR"""
     except Exception as e:
         print(f"Error generating calendar invite: {e}")
         return ""
+
+def generate_calendar_invite_with_url(booking_data: dict) -> tuple:
+    """
+    Generate ICS calendar invitation and upload to Firebase Storage
+    Returns: (ics_content: str, public_url: str)
+    """
+    try:
+        # Generate ICS content using existing function
+        ics_content = generate_calendar_invite(booking_data)
+
+        if not ics_content:
+            return "", "https://pablospizza.web.app/agendar"
+
+        # Upload to Firebase Storage
+        try:
+            bucket = storage.bucket()
+            booking_id = booking_data.get('id', str(uuid.uuid4()))
+            blob_path = f"calendar_invites/{booking_id}.ics"
+            blob = bucket.blob(blob_path)
+
+            # Upload ICS file
+            blob.upload_from_string(
+                ics_content,
+                content_type='text/calendar'
+            )
+
+            # Make publicly accessible
+            blob.make_public()
+            public_url = blob.public_url
+
+            print(f"📅 Calendar invite uploaded: {public_url}")
+            return ics_content, public_url
+
+        except Exception as storage_error:
+            print(f"Error uploading calendar to storage: {storage_error}")
+            # Fallback: return website URL
+            booking_id = booking_data.get('id', '')
+            fallback_url = f"https://pablospizza.web.app/calendario/{booking_id}" if booking_id else "https://pablospizza.web.app/agendar"
+            return ics_content, fallback_url
+
+    except Exception as e:
+        print(f"Error generating calendar invite with URL: {e}")
+        return "", "https://pablospizza.web.app/agendar"
 
 # CORS configuration - allow both Firebase hosting domains
 allowed_origins = [
@@ -1209,104 +1426,43 @@ def create_booking():
         # Send WhatsApp notification to admin about new booking
         try:
             admin_phone = os.getenv('ADMIN_WHATSAPP_NUMBER', '+56998960858')
+            print(f"📱 Enviando WhatsApp de nueva reserva al admin: {admin_phone}")
 
-            # Handle multiple services properly
-            service_types = booking_data.get('service_type', '')
-            services = [s.strip() for s in service_types.split(',') if s.strip()]
-
-            if len(services) > 1:
-                service_name = 'Pizza Party + Pizzeros en Acción'
-            elif 'workshop' in services or 'pizzeros' in services:
-                service_name = 'Pizzeros en Acción'
-            else:
-                service_name = 'Pizza Party'
-
-            # Format participants info based on new structure
-            participants_info = ""
-            if booking_data.get('pizzeros_participants') and booking_data.get('party_participants'):
-                pizza_qty = booking_data.get('pizza_quantity', booking_data['party_participants'])
-                participants_info = f"Pizzeros: {booking_data['pizzeros_participants']} niños, Pizza Party: {pizza_qty} pizzas"
-            elif booking_data.get('pizzeros_participants'):
-                participants_info = f"{booking_data['pizzeros_participants']} niños (Pizzeros en Acción)"
-            elif booking_data.get('party_participants'):
-                pizza_qty = booking_data.get('pizza_quantity', booking_data['party_participants'])
-                participants_info = f"{pizza_qty} pizzas (Pizza Party)"
-            else:
-                participants_info = f"{booking_data.get('participants', 'No especificado')}"
-
-            admin_whatsapp_message = f"""🍕 *Pablo's Pizza - NUEVO AGENDAMIENTO*
-
-¡Te acaban de agendar un evento!
-
-👤 *Cliente:* {booking_data.get('client_name', 'No especificado')}
-📱 *Teléfono:* {booking_data.get('client_phone', 'No especificado')}
-📧 *Email:* {booking_data.get('client_email', 'No especificado')}
-
-🍕 *Servicio:* {service_name}
-📅 *Fecha:* {booking_data.get('event_date', 'No especificada')}
-⏰ *Hora:* {booking_data.get('event_time', 'No especificada')}
-👥 *Participantes:* {participants_info}
-📍 *Ubicación:* {booking_data.get('location', 'No especificada')}
-💰 *Precio estimado:* ${booking_data.get('estimated_price', 0):,.0f} CLP
-
-🔔 *Favor verificar en la plataforma para confirmar el evento.*
-
-ID: {booking_data.get('id', 'N/A')}"""
-
-            print(f"Enviando WhatsApp de nueva reserva al admin: {admin_phone}")
-            # Usar template aprobado para admin
-            admin_whatsapp_sent = asyncio.run(send_whatsapp_with_template_fallback(
+            # Use new template function
+            admin_whatsapp_sent = asyncio.run(send_whatsapp_template(
                 admin_phone,
-                admin_whatsapp_message,
-                "new_booking_admin_alert",
+                'new_booking',
                 booking_data
             ))
 
             if admin_whatsapp_sent:
-                print(f"WhatsApp de nueva reserva enviado exitosamente al admin")
+                print(f"✅ WhatsApp de nueva reserva enviado exitosamente al admin")
             else:
-                print(f"Error al enviar WhatsApp de nueva reserva al admin")
+                print(f"❌ Error al enviar WhatsApp de nueva reserva al admin")
 
         except Exception as e:
-            print(f"Error enviando WhatsApp al admin: {e}")
+            print(f"❌ Error enviando WhatsApp al admin: {e}")
             # No fallar la creación de la reserva si falla la notificación
 
         # Send WhatsApp notification to business partner about new booking
         try:
             partner_phone = os.getenv('PARTNER_WHATSAPP_NUMBER', '+56998960858')
+            print(f"📱 Enviando WhatsApp de nueva reserva al socio: {partner_phone}")
 
-            # Use same service logic as admin
-            partner_message = f"""🍕 *Pablo's Pizza - NUEVO AGENDAMIENTO*
-
-¡Hola! Te informo que acabamos de recibir una nueva reserva:
-
-👤 *Cliente:* {booking_data.get('client_name', 'No especificado')}
-📱 *Teléfono:* {booking_data.get('client_phone', 'No especificado')}
-
-🍕 *Servicio:* {service_name}
-📅 *Fecha:* {booking_data.get('event_date', 'No especificada')}
-⏰ *Hora:* {booking_data.get('event_time', 'No especificada')}
-👥 *Participantes:* {participants_info}
-📍 *Ubicación:* {booking_data.get('location', 'No especificada')}
-💰 *Precio estimado:* ${booking_data.get('estimated_price', 0):,.0f} CLP
-
-¡Excelente! 🎉"""
-
-            print(f"Enviando WhatsApp de nueva reserva al socio: {partner_phone}")
-            whatsapp_sent = asyncio.run(send_whatsapp_with_template_fallback(
+            # Use new template function
+            partner_whatsapp_sent = asyncio.run(send_whatsapp_template(
                 partner_phone,
-                partner_message,
-                "new_booking_partner_alert",
+                'new_booking',
                 booking_data
             ))
 
-            if whatsapp_sent:
-                print(f"WhatsApp de nueva reserva enviado exitosamente al socio")
+            if partner_whatsapp_sent:
+                print(f"✅ WhatsApp de nueva reserva enviado exitosamente al socio")
             else:
-                print(f"Error al enviar WhatsApp de nueva reserva al socio")
+                print(f"❌ Error al enviar WhatsApp de nueva reserva al socio")
 
         except Exception as e:
-            print(f"Error enviando WhatsApp al socio: {e}")
+            print(f"❌ Error enviando WhatsApp al socio: {e}")
             # No fallar la creación de la reserva si falla la notificación
 
         return jsonify(booking_data), 201
@@ -2653,13 +2809,11 @@ def update_booking(booking_id):
             try:
                 client_phone = updated_booking.get('client_phone')
                 if client_phone:
-                    print(f"Enviando WhatsApp de confirmación al cliente: {client_phone}")
+                    print(f"📱 Enviando WhatsApp de confirmación al cliente: {client_phone}")
 
-                    # Usar template aprobado para notificar al cliente
-                    client_whatsapp_sent = asyncio.run(send_whatsapp_with_template_fallback(
+                    client_whatsapp_sent = asyncio.run(send_whatsapp_template(
                         client_phone,
-                        "",  # El mensaje no se usa, se usa el template
-                        "booking_confirmed_client",
+                        'booking_confirmed',
                         updated_booking
                     ))
 
@@ -2668,66 +2822,14 @@ def update_booking(booking_id):
                     else:
                         print(f"❌ Error al enviar WhatsApp al cliente {client_phone}")
                 else:
-                    print("No se pudo enviar WhatsApp al cliente: no hay teléfono")
+                    print("⚠️ No se pudo enviar WhatsApp al cliente: no hay teléfono")
 
             except Exception as e:
-                print(f"Error enviando WhatsApp al cliente: {e}")
-                # No fallar si falla el WhatsApp al cliente
+                print(f"❌ Error enviando WhatsApp al cliente: {e}")
+                import traceback
+                traceback.print_exc()
+                # No fallar la confirmación si falla el WhatsApp
 
-            # Send WhatsApp notification to admin about confirmation
-            try:
-                admin_phone = os.getenv('ADMIN_WHATSAPP_NUMBER', '+56998960858')
-                service_name = 'Pizzeros en Acción' if updated_booking.get('service_type') == 'workshop' else 'Pizza Party'
-
-                # Format participants info based on new structure
-                participants_info = ""
-                if updated_booking.get('pizzeros_participants') and updated_booking.get('party_participants'):
-                    pizza_qty = updated_booking.get('pizza_quantity', updated_booking['party_participants'])
-                    participants_info = f"Pizzeros: {updated_booking['pizzeros_participants']} niños, Pizza Party: {pizza_qty} pizzas"
-                elif updated_booking.get('pizzeros_participants'):
-                    participants_info = f"{updated_booking['pizzeros_participants']} niños (Pizzeros en Acción)"
-                elif updated_booking.get('party_participants'):
-                    pizza_qty = updated_booking.get('pizza_quantity', updated_booking['party_participants'])
-                    participants_info = f"{pizza_qty} pizzas (Pizza Party)"
-                else:
-                    participants_info = f"{updated_booking.get('participants', 'No especificado')}"
-
-                admin_whatsapp_message = f"""✅ *Pablo's Pizza - EVENTO CONFIRMADO*
-
-¡El evento ha sido confirmado!
-
-👤 *Cliente:* {updated_booking.get('client_name', 'No especificado')}
-📱 *Teléfono:* {updated_booking.get('client_phone', 'No especificado')}
-📧 *Email:* {updated_booking.get('client_email', 'No especificado')}
-
-🍕 *Servicio:* {service_name}
-📅 *Fecha:* {updated_booking.get('event_date', 'No especificada')}
-⏰ *Hora:* {updated_booking.get('event_time', 'No especificada')}
-👥 *Participantes:* {participants_info}
-📍 *Ubicación:* {updated_booking.get('location', 'No especificada')}
-💰 *Precio:* ${updated_booking.get('estimated_price', 0):,.0f} CLP
-
-🎉 *El cliente ya ha sido notificado por email.*
-
-ID: {updated_booking.get('id', 'N/A')}"""
-
-                print(f"Enviando WhatsApp de confirmación al admin: {admin_phone}")
-                # Usar template aprobado para admin
-                admin_whatsapp_sent = asyncio.run(send_whatsapp_with_template_fallback(
-                    admin_phone,
-                    admin_whatsapp_message,
-                    "booking_confirmed_admin_alert",
-                    updated_booking
-                ))
-
-                if admin_whatsapp_sent:
-                    print(f"WhatsApp de confirmación enviado exitosamente al admin")
-                else:
-                    print(f"Error al enviar WhatsApp de confirmación al admin")
-
-            except Exception as e:
-                print(f"Error enviando WhatsApp de confirmación al admin: {e}")
-                # No fallar la actualización del booking si falla la notificación
         elif 'status' in data and data['status'] == 'confirmed' and current_booking.get('status') == 'confirmed':
             print(f"Status sigue siendo 'confirmed' - NO enviando notificación duplicada")
 
