@@ -4849,7 +4849,8 @@ def get_monthly_report_data(year: int, month: int):
             "total_profit": 0.0,
             "avg_participants": 0.0,
             "most_popular_service": "N/A",
-            "client_retention_rate": 0.0
+            "client_retention_rate": 0.0,
+            "events_by_service": {}
         }
 
     # Helper: costo total consistente con el frontend (financials + expenses)
@@ -4870,6 +4871,7 @@ def get_monthly_report_data(year: int, month: int):
     total_expenses = 0.0
     total_participants = 0
     service_counts = {}
+    service_incomes = {}  # Agregar income por servicio
 
     for booking_doc in bookings:
         booking_data = booking_doc.to_dict()
@@ -4890,6 +4892,8 @@ def get_monthly_report_data(year: int, month: int):
         # Contar servicios directamente del booking
         service_type = booking_data.get("service_type", "unknown")
         service_counts[service_type] = service_counts.get(service_type, 0) + 1
+        # Acumular ingresos por servicio
+        service_incomes[service_type] = service_incomes.get(service_type, 0.0) + final_price
 
     total_profit = total_income - total_expenses
     avg_participants = total_participants / total_events if total_events > 0 else 0
@@ -4900,6 +4904,14 @@ def get_monthly_report_data(year: int, month: int):
     # Calcular tasa de retención (clientes que volvieron)
     client_retention_rate = calculate_client_retention_rate(year, month)
 
+    # Construir events_by_service para el frontend
+    events_by_service = {}
+    for service_type, count in service_counts.items():
+        events_by_service[service_type] = {
+            "count": count,
+            "total_income": round(service_incomes.get(service_type, 0.0), 2)
+        }
+
     return {
         "month": month,
         "year": year,
@@ -4909,7 +4921,8 @@ def get_monthly_report_data(year: int, month: int):
         "total_profit": round(total_profit, 2),
         "avg_participants": round(avg_participants, 1),
         "most_popular_service": most_popular_service,
-        "client_retention_rate": round(client_retention_rate, 2)
+        "client_retention_rate": round(client_retention_rate, 2),
+        "events_by_service": events_by_service
     }
 
 @app.route('/api/reports/monthly/<int:year>/<int:month>', methods=['GET'])

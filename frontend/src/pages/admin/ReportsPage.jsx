@@ -151,6 +151,8 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true)
   const [tabValue, setTabValue] = useState(0)
   const [selectedPeriod, setSelectedPeriod] = useState('current_month')
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1) // 1-12
   const [dashboardData, setDashboardData] = useState(null)
   const [monthlyData, setMonthlyData] = useState(null)
   const [annualData, setAnnualData] = useState(null)
@@ -159,7 +161,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     loadReportsData()
-  }, [selectedPeriod])
+  }, [selectedMonth, selectedYear])
 
   const loadReportsData = async () => {
     try {
@@ -169,16 +171,12 @@ export default function ReportsPage() {
       const dashboardResponse = await reportsAPI.getDashboard()
       setDashboardData(dashboardResponse.data)
 
-      // Load current month data
-      const currentDate = new Date()
-      const monthlyResponse = await reportsAPI.getMonthly(
-        currentDate.getFullYear(),
-        currentDate.getMonth() + 1
-      )
+      // Load SELECTED month data (not current month)
+      const monthlyResponse = await reportsAPI.getMonthly(selectedYear, selectedMonth)
       setMonthlyData(monthlyResponse.data)
 
       // Load annual data
-      const annualResponse = await reportsAPI.getAnnual(currentDate.getFullYear())
+      const annualResponse = await reportsAPI.getAnnual(selectedYear)
       setAnnualData(annualResponse.data)
 
       // Load inventory alerts
@@ -256,19 +254,42 @@ export default function ReportsPage() {
   }
 
   const getServiceDistributionData = () => {
-    if (!annualData?.monthly_reports) return null
+    if (!monthlyData) return null
 
-    const serviceCount = {}
-    annualData.monthly_reports.forEach(report => {
-      if (report.most_popular_service !== 'N/A') {
-        serviceCount[report.most_popular_service] = (serviceCount[report.most_popular_service] || 0) + 1
-      }
-    })
+    // Mapear nombres de servicios a español
+    const serviceLabels = {
+      'workshop': 'Pizzeros en Acción',
+      'pizza_party': 'Pizza Party',
+      'workshop,pizza_party': 'Ambos Servicios',
+      'party': 'Pizza Party' // alias
+    }
+
+    // Contar eventos por tipo de servicio desde el mes actual
+    const serviceCounts = {}
+    const serviceIncomes = {}
+
+    // Si el backend ya envía events_by_service, usarlo; si no, calcularlo desde el frontend
+    if (monthlyData.events_by_service) {
+      Object.entries(monthlyData.events_by_service).forEach(([serviceKey, data]) => {
+        const label = serviceLabels[serviceKey] || serviceKey
+        serviceCounts[label] = data.count || 0
+        serviceIncomes[label] = data.total_income || 0
+      })
+    } else {
+      // Fallback: si no hay events_by_service en la respuesta, calcularlo desde monthlyData
+      // Esto requeriría tener acceso a la lista de eventos individuales
+      // Por ahora asumimos que el backend envía events_by_service
+      return null
+    }
+
+    const labels = Object.keys(serviceCounts).map(key => `${key} (${serviceCounts[key]} eventos)`)
+    const incomes = Object.values(serviceIncomes)
 
     return {
-      labels: Object.keys(serviceCount),
+      labels,
       datasets: [{
-        data: Object.values(serviceCount),
+        label: 'Ingresos',
+        data: incomes,
         backgroundColor: [
           '#FF6384',
           '#36A2EB',
@@ -335,6 +356,48 @@ export default function ReportsPage() {
             Exportar Excel
           </Button>
         </Stack>
+      </Box>
+
+      {/* Month/Year Filter */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center' }}>
+        <FormControl size="small" sx={{ minWidth: 120 }}>
+          <InputLabel>Mes</InputLabel>
+          <Select
+            value={selectedMonth}
+            label="Mes"
+            onChange={(e) => setSelectedMonth(e.target.value)}
+          >
+            <MenuItem value={1}>Enero</MenuItem>
+            <MenuItem value={2}>Febrero</MenuItem>
+            <MenuItem value={3}>Marzo</MenuItem>
+            <MenuItem value={4}>Abril</MenuItem>
+            <MenuItem value={5}>Mayo</MenuItem>
+            <MenuItem value={6}>Junio</MenuItem>
+            <MenuItem value={7}>Julio</MenuItem>
+            <MenuItem value={8}>Agosto</MenuItem>
+            <MenuItem value={9}>Septiembre</MenuItem>
+            <MenuItem value={10}>Octubre</MenuItem>
+            <MenuItem value={11}>Noviembre</MenuItem>
+            <MenuItem value={12}>Diciembre</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ minWidth: 100 }}>
+          <InputLabel>Año</InputLabel>
+          <Select
+            value={selectedYear}
+            label="Año"
+            onChange={(e) => setSelectedYear(e.target.value)}
+          >
+            {[2024, 2025, 2026].map((year) => (
+              <MenuItem key={year} value={year}>
+                {year}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Typography variant="body2" color="text.secondary">
+          Mostrando datos de {new Date(selectedYear, selectedMonth - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+        </Typography>
       </Box>
 
       {/* KPI Cards */}
@@ -443,7 +506,7 @@ export default function ReportsPage() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Distribución de Servicios
+                  Distribución de Servicios - Ingresos por Categoría
                 </Typography>
                 {getServiceDistributionData() && (
                   <Pie
@@ -453,6 +516,19 @@ export default function ReportsPage() {
                       plugins: {
                         legend: {
                           position: 'bottom',
+                        },
+                        tooltip: {
+                          callbacks: {
+                            label: function(context) {
+                              const label = context.label || ''
+                              const value = context.parsed || 0
+                              return `${label}: ${new Intl.NumberFormat('es-CL', {
+                                style: 'currency',
+                                currency: 'CLP',
+                                minimumFractionDigits: 0
+                              }).format(value)}`
+                            }
+                          }
                         }
                       }
                     }}

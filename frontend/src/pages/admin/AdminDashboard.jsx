@@ -36,6 +36,25 @@ const AdminDashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
 
+  // Helper function to safely parse date strings without timezone shifts
+  const parseEventDate = (dateString) => {
+    if (!dateString) return null
+
+    try {
+      if (dateString.includes('T')) {
+        const dateOnly = dateString.split('T')[0]
+        const [year, month, day] = dateOnly.split('-').map(Number)
+        return new Date(year, month - 1, day)
+      } else {
+        const [year, month, day] = dateString.split('-').map(Number)
+        return new Date(year, month - 1, day)
+      }
+    } catch (error) {
+      console.error('Error parsing date:', dateString, error)
+      return null
+    }
+  }
+
   const [stats, setStats] = useState({
     newBookings: 0,
     monthlyEvents: 0,
@@ -86,7 +105,7 @@ const AdminDashboard = () => {
       // Count events from bookings (confirmed/completed) for the selected month
       const monthlyEvents = bookings.filter(booking => {
         if (booking.status !== 'confirmed' && booking.status !== 'completed') return false
-        const eventDate = booking.event_date ? new Date(booking.event_date) : null
+        const eventDate = parseEventDate(booking.event_date)
         return eventDate && eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear
       })
 
@@ -94,13 +113,13 @@ const AdminDashboard = () => {
 
       const confirmedBookings = bookings.filter(booking => {
         if (booking.status !== 'confirmed' && booking.status !== 'completed') return false
-        const eventDate = booking.event_date ? new Date(booking.event_date) : null
+        const eventDate = parseEventDate(booking.event_date)
         let includeInRevenue = false
         if (eventDate && !isNaN(eventDate.getTime())) {
           includeInRevenue = eventDate.getMonth() === selectedMonth && eventDate.getFullYear() === selectedYear
         }
         // Debug: mostrar todos los bookings con su fecha, status y profit
-        console.log(`� Filtro utilidad: id=${booking.id}, status=${booking.status}, event_date=${booking.event_date}, parsed=${eventDate}, month=${eventDate && !isNaN(eventDate.getTime()) ? eventDate.getMonth() : 'NaN'}, year=${eventDate && !isNaN(eventDate.getTime()) ? eventDate.getFullYear() : 'NaN'}, includeInRevenue=${includeInRevenue}, profit=${booking.profit}`)
+        console.log(`� Filtro utilidad: id=${booking.id}, status=${booking.status}, event_date=${booking.event_date}, parsed=${eventDate}, month=${eventDate && !isNaN(eventDate.getTime()) ? eventDate.getMonth() : 'NaN'}, year=${eventDate && !isNaN(eventDate.getTime()) ? eventDate.getFullYear() : 'NaN'}, includeInRevenue=${includeInRevenue}, profit=${booking.event_profit}`)
         return includeInRevenue
       })
 

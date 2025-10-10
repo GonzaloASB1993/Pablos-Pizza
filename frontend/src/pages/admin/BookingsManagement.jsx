@@ -239,7 +239,8 @@ const BookingsManagement = () => {
         if (selectedMonth) {
             filtered = filtered.filter(booking => {
                 if (!booking.event_date) return false
-                const eventDate = new Date(booking.event_date)
+                const eventDate = parseEventDate(booking.event_date)
+                if (!eventDate) return false
                 const eventMonth = `${String(eventDate.getMonth() + 1).padStart(2, '0')}-${eventDate.getFullYear()}`
                 return eventMonth === selectedMonth
             })
@@ -300,7 +301,7 @@ const BookingsManagement = () => {
         })
 
         return filtered
-    }, [bookings, selectedMonth, searchQuery, sortField, sortDirection])
+    }, [bookings, selectedMonth, searchQuery, statusFilter, sortField, sortDirection])
 
     const handleSort = (field) => {
         if (sortField === field) {
