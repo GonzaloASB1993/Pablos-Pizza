@@ -75,7 +75,7 @@ app = Flask(__name__)
 # Twilio WhatsApp Configuration
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
 TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '')
-TWILIO_WHATSAPP_FROM = os.getenv('TWILIO_WHATSAPP_FROM', 'whatsapp:+15558617855')
+TWILIO_WHATSAPP_FROM = os.getenv('TWILIO_WHATSAPP_FROM', 'whatsapp:+12017620171')
 
 # Twilio WhatsApp Template SIDs
 # NOTE: Templates created with English (en) language but Spanish content for faster approval
@@ -4766,12 +4766,12 @@ def calculate_client_retention_rate(year: int, month: int) -> float:
     try:
         db = get_db()
 
-        # Obtener clientes del mes actual
-        start_date = datetime(year, month, 1)
+        # Obtener clientes del mes actual - usar strings para comparar
+        start_date = f"{year}-{month:02d}-01"
         if month == 12:
-            end_date = datetime(year + 1, 1, 1)
+            end_date = f"{year + 1}-01-01"
         else:
-            end_date = datetime(year, month + 1, 1)
+            end_date = f"{year}-{month + 1:02d}-01"
 
         all_current_bookings = list(db.collection("bookings").where(
             "event_date", ">=", start_date
@@ -4820,12 +4820,12 @@ def get_monthly_report_data(year: int, month: int):
     """Generar datos de reporte mensual (función auxiliar)"""
     db = get_db()
 
-    # Rango de fechas del mes (convertir a datetime para comparar con event_date)
-    start_date = datetime(year, month, 1)
+    # Rango de fechas del mes - usar strings para comparar con event_date guardado como string
+    start_date = f"{year}-{month:02d}-01"
     if month == 12:
-        end_date = datetime(year + 1, 1, 1)
+        end_date = f"{year + 1}-01-01"
     else:
-        end_date = datetime(year, month + 1, 1)
+        end_date = f"{year}-{month + 1:02d}-01"
 
     # Obtener agendamientos del mes (confirmed y completed)
     bookings_query = db.collection("bookings").where(
@@ -4884,7 +4884,7 @@ def get_monthly_report_data(year: int, month: int):
         total_expenses += event_cost
 
         # Obtener participantes
-        participants = booking_data.get("participant_count", 0)
+        participants = booking_data.get("participants", 0)
         total_participants += participants
 
         # Contar servicios directamente del booking
@@ -4994,14 +4994,15 @@ def get_dashboard_stats():
                 "total_profit": 0.0
             }
 
-        # Próximos eventos (próximos 7 días)
+        # Próximos eventos (próximos 7 días) - usar strings para comparar
+        today_str = today.strftime('%Y-%m-%d')
         next_week = today + timedelta(days=7)
-        next_week_end = datetime.combine(next_week, datetime.max.time())
+        next_week_str = next_week.strftime('%Y-%m-%d')
 
         upcoming_events = list(db.collection("bookings").where(
-            "event_date", ">=", today_start
+            "event_date", ">=", today_str
         ).where(
-            "event_date", "<=", next_week_end
+            "event_date", "<=", next_week_str
         ).where(
             "status", "==", "confirmed"
         ).stream())
