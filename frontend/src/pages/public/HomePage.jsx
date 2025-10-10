@@ -1618,93 +1618,91 @@ export default function HomePage() {
 
             {/* Reviews Carousel */}
             {!reviewsLoading && !reviewsError && reviews.length > 0 && (
-              <Swiper
-                modules={[Autoplay, Pagination, Navigation]}
-                spaceBetween={30}
-                slidesPerView={1}
-                breakpoints={{
-                  640: { slidesPerView: 2 },
-                  1024: { slidesPerView: 3 }
-                }}
-                autoplay={{
-                  delay: 5000,
-                  disableOnInteraction: false
-                }}
-                pagination={{ clickable: true }}
-                navigation
-                loop={reviews.length >= 3}
-                style={{ paddingBottom: '50px' }}
-              >
-                {reviews.map((t, index) => (
-                <SwiperSlide key={t.id || `${t.name}-${index}`}>
-                  <Card
-                    sx={{
-                      backgroundColor: '#FFFFFF',
-                      color: '#000',
-                      height: '280px',
-                      p: 3,
-                      border: '2px solid rgba(255, 215, 0, 0.3)',
-                      borderRadius: 2,
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        borderColor: '#FFD700',
-                        transform: 'translateY(-8px)',
-                        boxShadow: '0 8px 32px rgba(255, 215, 0, 0.4)'
-                      }
-                    }}
-                  >
-                    <CardContent sx={{ p: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                        <Avatar
+              <>
+                <Swiper
+                  modules={[Autoplay, Pagination, Navigation]}
+                  spaceBetween={30}
+                  slidesPerView={1}
+                  breakpoints={{
+                    640: { slidesPerView: 2 },
+                    1024: { slidesPerView: 3 }
+                  }}
+                  autoplay={{
+                    delay: 5000,
+                    disableOnInteraction: false
+                  }}
+                  pagination={{ clickable: true }}
+                  navigation
+                  loop={reviews.length >= 3}
+                  style={{ paddingBottom: '50px' }}
+                >
+                  {reviews.map((t, index) => (
+                  <SwiperSlide key={t.id || `${t.name}-${index}`}>
+                    <Card
+                      sx={{
+                        backgroundColor: '#FFFFFF',
+                        color: '#000',
+                        height: '280px',
+                        p: 3,
+                        border: '2px solid rgba(255, 215, 0, 0.3)',
+                        borderRadius: 2,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          borderColor: '#FFD700',
+                          transform: 'translateY(-8px)',
+                          boxShadow: '0 8px 32px rgba(255, 215, 0, 0.4)'
+                        }
+                      }}
+                    >
+                      <CardContent sx={{ p: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                          <Avatar
+                            sx={{
+                              width: 48,
+                              height: 48,
+                              backgroundColor: '#FFD700',
+                              fontSize: '1.1rem',
+                              fontWeight: 700,
+                              color: '#000'
+                            }}
+                          >
+                            {t.name?.charAt(0) || 'U'}
+                          </Avatar>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                              {t.name || 'Cliente'}
+                            </Typography>
+                          </Box>
+                          <Rating
+                            value={Number(t.rating) || 0}
+                            readOnly
+                            size="small"
+                            sx={{ color: '#FFD700' }}
+                          />
+                        </Box>
+
+                        <Typography
+                          variant="body2"
                           sx={{
-                            width: 48,
-                            height: 48,
-                            backgroundColor: '#FFD700',
-                            fontSize: '1.1rem',
-                            fontWeight: 700,
-                            color: '#000'
+                            fontStyle: 'italic',
+                            lineHeight: 1.6,
+                            color: '#333',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 6,
+                            WebkitBoxOrient: 'vertical',
+                            flex: 1
                           }}
                         >
-                          {t.name?.charAt(0) || 'U'}
-                        </Avatar>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                            {t.name || 'Cliente'}
-                          </Typography>
-                        </Box>
-                        <Rating
-                          value={Number(t.rating) || 0}
-                          readOnly
-                          size="small"
-                          sx={{ color: '#FFD700' }}
-                        />
-                      </Box>
+                          "{sanitizeReviewText(t.comment || t.text || '')}"
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </SwiperSlide>
+                  ))}
+                </Swiper>
 
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontStyle: 'italic',
-                          lineHeight: 1.6,
-                          color: '#333',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 6,
-                          WebkitBoxOrient: 'vertical',
-                          flex: 1
-                        }}
-                      >
-                        "{sanitizeReviewText(t.comment || t.text || '')}"
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </SwiperSlide>
-                ))}
-              </Swiper>
-            )}
-
-            {!reviewsLoading && !reviewsError && reviews.length > 0 && (
-              <>
                 <Box sx={{ textAlign: 'center', mt: 6 }}>
                   <Button
                     variant="outlined"
