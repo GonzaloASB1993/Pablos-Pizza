@@ -206,6 +206,27 @@ const BookingsManagement = () => {
         return type === 'workshop' ? 'Pizzeros en Acción' : 'Pizza Party'
     }, [])
 
+    // Helper function to safely parse date strings without timezone shifts
+    const parseEventDate = useCallback((dateString) => {
+        if (!dateString) return null
+
+        try {
+            if (dateString.includes('T')) {
+                // ISO format - extract date part only to avoid timezone issues
+                const dateOnly = dateString.split('T')[0]
+                const [year, month, day] = dateOnly.split('-').map(Number)
+                return new Date(year, month - 1, day)
+            } else {
+                // Date-only string
+                const [year, month, day] = dateString.split('-').map(Number)
+                return new Date(year, month - 1, day)
+            }
+        } catch (error) {
+            console.error('Error parsing date:', dateString, error)
+            return null
+        }
+    }, [])
+
     // Función para calcular pizzas sugeridas
     const calculateSuggestedPizzas = (guests) => {
         // Cada persona come 5 rebanadas, cada pizza tiene 8 rebanadas
@@ -323,27 +344,6 @@ const BookingsManagement = () => {
 
     useEffect(() => {
         loadBookings()
-    }, [])
-
-    // Helper function to safely parse date strings without timezone shifts
-    const parseEventDate = useCallback((dateString) => {
-        if (!dateString) return null
-
-        try {
-            if (dateString.includes('T')) {
-                // ISO format - extract date part only to avoid timezone issues
-                const dateOnly = dateString.split('T')[0]
-                const [year, month, day] = dateOnly.split('-').map(Number)
-                return new Date(year, month - 1, day)
-            } else {
-                // Date-only string
-                const [year, month, day] = dateString.split('-').map(Number)
-                return new Date(year, month - 1, day)
-            }
-        } catch (error) {
-            console.error('Error parsing date:', dateString, error)
-            return null
-        }
     }, [])
 
     const loadBookings = async () => {
