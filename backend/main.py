@@ -2,9 +2,10 @@ from firebase_functions import https_fn
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv('.env')
-# Force deployment update - event-inventory integration - fix event_doc error
+# Load environment variables (only if .env exists)
+if os.path.exists('.env'):
+    load_dotenv('.env')
+# Force deployment update - event-inventory integration - fix event_doc error - add null checks
 
 # Import after loading env variables
 import firebase_admin
@@ -607,9 +608,17 @@ from flask_limiter.util import get_remote_address
 limiter = Limiter(
     get_remote_address,
     app=app,
-    default_limits=["200 per day", "50 per hour"],
+    default_limits=["10000 per day", "1000 per hour"],  # More reasonable limits for admin operations
     storage_uri="memory://",  # In-memory storage (sufficient for single instance)
 )
+
+# Rate limit error handler
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify({
+        "error": "Rate limit exceeded",
+        "message": str(e.description)
+    }), 429
 
 # Firebase initialization with lazy loading
 _db = None
@@ -634,7 +643,9 @@ def get_db():
                     print("☁️ PRODUCTION: Using default Firebase credentials")
                     firebase_admin.initialize_app()
             except Exception as e:
-                print(f"ERROR Error initializing Firebase: {e}")
+                logger.error(f"CRITICAL: Firebase initialization failed: {e}", exc_info=True)
+                import traceback
+                traceback.print_exc()
                 return None
         _db = firestore.client()
     return _db
@@ -1501,6 +1512,8 @@ def get_bookings():
     """Get all bookings with pagination support"""
     try:
         db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
 
         # Get pagination parameters from query string
         page = int(request.args.get('page', 1))
@@ -3082,14 +3095,8 @@ def main(req: https_fn.Request) -> https_fn.Response:
             response_data = response.get_data()
             status_code = response.status_code
 
-            # Add CORS headers
+            # Use Flask response headers directly (flask-cors already handles CORS)
             headers = dict(response.headers)
-            headers.update({
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-                'Access-Control-Max-Age': '86400'
-            })
 
             return https_fn.Response(
                 response_data,
@@ -4916,6 +4923,9 @@ def calculate_client_retention_rate(year: int, month: int) -> float:
     """Calcular tasa de retención de clientes para el mes"""
     try:
         db = get_db()
+        if not db:
+            logger.warning("Database unavailable for retention rate calculation")
+            return 0.0
 
         # Obtener clientes del mes actual - usar strings para comparar
         start_date = f"{year}-{month:02d}-01"
@@ -4970,6 +4980,9 @@ def calculate_client_retention_rate(year: int, month: int) -> float:
 def get_monthly_report_data(year: int, month: int):
     """Generar datos de reporte mensual (función auxiliar)"""
     db = get_db()
+    if not db:
+        logger.error("Database connection failed in get_monthly_report_data")
+        raise Exception("Database connection unavailable")
 
     # Rango de fechas del mes - usar strings para comparar con event_date guardado como string
     start_date = f"{year}-{month:02d}-01"
@@ -5133,6 +5146,9 @@ def get_dashboard_stats():
     """Estadísticas para el dashboard principal"""
     try:
         db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
         now = datetime.now()
         today = now.date()
         current_month = now.month

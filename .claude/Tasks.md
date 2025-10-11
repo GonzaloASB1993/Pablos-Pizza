@@ -76,6 +76,8 @@
 - [ ] Integración con reportes financieros avanzados
 - [ ] Workflow de pedidos a proveedores
 
+
+
 ### ✅ Avances Recientes Completados (Septiembre 2025)
 - [✅] **Sistema de Inventario Multinivel**: Implementado sistema completo de gestión de inventario con costo promedio ponderado
 - [✅] **Separación de Funciones**: Separadas las funciones de "editar item" vs "agregar stock" según requerimientos del usuario
