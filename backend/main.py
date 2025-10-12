@@ -2960,6 +2960,32 @@ def update_booking(booking_id):
             except Exception:
                 pass
 
+        # Sincronizar financials.other_expenses cuando se actualizan expenses[]
+        if 'expenses' in data:
+            try:
+                expenses_array = data['expenses']
+                if isinstance(expenses_array, list):
+                    # Calcular suma total de gastos adicionales
+                    other_expenses_sum = sum(
+                        float(expense.get('amount', 0))
+                        for expense in expenses_array
+                        if isinstance(expense, dict)
+                    )
+
+                    # Obtener financials actuales o crear nuevo dict
+                    current_financials = current_booking.get('financials', {})
+                    if not isinstance(current_financials, dict):
+                        current_financials = {}
+
+                    # Actualizar other_expenses en financials
+                    current_financials['other_expenses'] = other_expenses_sum
+                    update_data['financials'] = current_financials
+
+                    print(f"Sincronizando financials.other_expenses = {other_expenses_sum} (desde {len(expenses_array)} gastos)")
+            except Exception as e:
+                print(f"Error sincronizando financials.other_expenses: {e}")
+                # No fallar la actualización por este error
+
         # Add update timestamp
         update_data['updated_at'] = datetime.now()
 
@@ -5220,27 +5246,28 @@ def get_monthly_report_data(year: int, month: int):
     # Helper: costo total consistente con la UI (insumos + gastos), evitando doble conteo
     def _calc_total_cost(b: dict) -> float:
         try:
-            fin = (b.get('financials') or {})
-            supply_real = float(fin.get('supply_cost') or 0)
-            other_expenses = float(fin.get('other_expenses') or 0)
-            est_supply = float(fin.get('estimated_supply_cost') or 0)
-
-            # Si hay financials, preferir costo real de insumos; si no, estimado. Sumar otros gastos.
-            if (supply_real > 0) or (est_supply > 0) or (other_expenses > 0):
-                supply = supply_real if supply_real > 0 else est_supply
-                return float(supply + other_expenses)
-
-            # Fallback: si no hay financials, usar suma de gastos del booking
+            # Calcular suma de gastos adicionales del array expenses[]
             expenses_sum = 0.0
             try:
                 expenses_sum = sum((float((e or {}).get('amount') or 0) for e in (b.get('expenses') or [])))
             except Exception:
                 expenses_sum = 0.0
 
-            if expenses_sum > 0:
-                return float(expenses_sum)
+            # Obtener costos de insumos desde financials
+            fin = (b.get('financials') or {})
+            supply_real = float(fin.get('supply_cost') or 0)
+            est_supply = float(fin.get('estimated_supply_cost') or 0)
 
-            # Último recurso: event_cost si existe
+            # Usar costo real de insumos si existe, si no usar estimado
+            supply_cost = supply_real if supply_real > 0 else est_supply
+
+            # SIEMPRE sumar: costo de insumos + gastos adicionales del array expenses[]
+            total_cost = supply_cost + expenses_sum
+
+            if total_cost > 0:
+                return float(total_cost)
+
+            # Último recurso: event_cost si existe (compatibilidad con datos antiguos)
             return float(b.get('event_cost') or 0)
         except Exception:
             try:
