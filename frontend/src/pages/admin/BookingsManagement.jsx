@@ -22,7 +22,6 @@ import {
     DialogActions,
     TextField,
     FormControl,
-    InputLabel,
     Select,
     MenuItem,
     Alert,
@@ -30,10 +29,11 @@ import {
     Tabs,
     Tab,
     CircularProgress,
-    Tooltip,
     Accordion,
     AccordionSummary,
-    AccordionDetails
+    AccordionDetails,
+    InputAdornment,
+    Autocomplete
 } from '@mui/material'
 import {
     Add,
@@ -42,7 +42,6 @@ import {
     ViewList,
     CalendarMonth,
     CheckCircle,
-    Cancel,
     Close,
     PendingActions,
     EventAvailable,
@@ -59,8 +58,8 @@ import {
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { bookingsAPI, eventsAPI, inventoryAPI, eventSuppliesAPI, eventConsumptionAPI } from '../../services/api'
-import { formatCurrency, formatStock, safeFormatCost, formatDateTime } from '../../utils/formatters'
+import { bookingsAPI, inventoryAPI, eventSuppliesAPI, eventConsumptionAPI } from '../../services/api'
+import { formatCurrency } from '../../utils/formatters'
 import toast from 'react-hot-toast'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
@@ -233,6 +232,19 @@ const BookingsManagement = () => {
         return Math.ceil((guests * 5) / 8)
     }
 
+    // Abreviador de unidades para no ocupar espacio en inputs
+    const getShortUnit = useCallback((unit) => {
+        if (!unit) return ''
+        const u = String(unit).toLowerCase().trim()
+        if (u === 'unidades' || u === 'unidad') return 'un'
+        if (u === 'piezas') return 'pz'
+        if (u === 'gramos') return 'g'
+        if (u === 'kilogramos' || u === 'kilogramo' || u === 'kg') return 'kg'
+        if (u === 'litros' || u === 'litro') return 'L'
+        if (u === 'mililitros' || u === 'mililitro' || u === 'ml') return 'ml'
+        return unit
+    }, [])
+
     const getStatusLabel = (status) => {
         const labels = {
             pending: 'Pendiente',
@@ -361,11 +373,26 @@ const BookingsManagement = () => {
         }
     }
 
-    // Helper function to calculate total cost (supplies + expenses)
+    // Helper: total cost for table = gastos (booking.expenses) + costo de insumos (real si existe, si no estimado)
     const calculateTotalCost = (booking) => {
-        const accumulatedExpenses = (booking.expenses || []).reduce((sum, expense) => sum + expense.amount, 0)
-        const supplyCost = booking.financials?.total_expenses || 0
-        return supplyCost + accumulatedExpenses || booking.event_cost || 0
+        const expensesSum = Array.isArray(booking?.expenses)
+            ? booking.expenses.reduce((sum, e) => sum + (parseFloat(e?.amount) || 0), 0)
+            : 0
+
+        const computed = booking?.computed_costs || {}
+        const financials = booking?.financials || {}
+
+        const realSupply = Number(
+            computed.real_supply_cost ?? financials.supply_cost ?? 0
+        ) || 0
+
+        const estimatedSupply = Number(
+            computed.estimated_supply_cost ?? financials.estimated_supply_cost ?? 0
+        ) || 0
+
+        const supplyCost = realSupply > 0 ? realSupply : estimatedSupply
+
+        return supplyCost + expensesSum
     }
 
     // Load inventory items for supplies management
@@ -395,14 +422,15 @@ const BookingsManagement = () => {
                 integratedItems = response.data.supplies.items.map(supplyItem => ({
                     item_id: supplyItem.item_id,
                     item_name: supplyItem.item_name,
-                    estimated_quantity: supplyItem.estimated_quantity,
-                    actual_quantity_consumed: 0, // Will be filled from consumption if exists
+                    estimated_quantity: Number(supplyItem.estimated_quantity || 0),
+                    quantity_returned: 0, // lo que volvió (se llenará desde consumption si existe)
+                    actual_quantity_consumed: 0, // se llenará desde consumption si existe
                     unit: supplyItem.unit,
-                    cost_per_unit: supplyItem.cost_per_unit,
-                    estimated_total_cost: supplyItem.estimated_total_cost,
+                    cost_per_unit: Number(supplyItem.cost_per_unit || 0),
+                    estimated_total_cost: Number(supplyItem.estimated_total_cost || (Number(supplyItem.estimated_quantity || 0) * Number(supplyItem.cost_per_unit || 0))),
                     actual_total_cost: 0,
                     variance: 0,
-                    batch_id: supplyItem.batch_id
+                    batch_id: supplyItem.batch_id || null
                 }))
             }
 
@@ -415,20 +443,22 @@ const BookingsManagement = () => {
 
                     if (existingItemIndex >= 0) {
                         // Update existing item with consumption data
+                        integratedItems[existingItemIndex].quantity_returned = consItem.quantity_returned || 0
                         integratedItems[existingItemIndex].actual_quantity_consumed = consItem.actual_quantity_consumed
-                        integratedItems[existingItemIndex].actual_total_cost = consItem.total_cost
+                        integratedItems[existingItemIndex].actual_total_cost = Number(consItem.total_cost || 0)
                         integratedItems[existingItemIndex].variance = consItem.variance || 0
                     } else {
                         // Add consumption-only item (if somehow not in supplies)
                         integratedItems.push({
                             item_id: consItem.item_id,
                             item_name: consItem.item_name,
-                            estimated_quantity: consItem.estimated_quantity || 0,
-                            actual_quantity_consumed: consItem.actual_quantity_consumed,
+                            estimated_quantity: Number(consItem.estimated_quantity || 0),
+                            quantity_returned: Number(consItem.quantity_returned || 0),
+                            actual_quantity_consumed: Number(consItem.actual_quantity_consumed || 0),
                             unit: consItem.unit,
-                            cost_per_unit: consItem.cost_per_unit,
-                            estimated_total_cost: 0,
-                            actual_total_cost: consItem.total_cost,
+                            cost_per_unit: Number(consItem.cost_per_unit || 0),
+                            estimated_total_cost: Number(consItem.estimated_total_cost || 0),
+                            actual_total_cost: Number(consItem.total_cost || 0),
                             variance: consItem.variance || 0,
                             batch_id: consItem.batch_id
                         })
@@ -461,6 +491,7 @@ const BookingsManagement = () => {
                 item_id: '',
                 item_name: '',
                 estimated_quantity: 0,
+                quantity_returned: 0,
                 actual_quantity_consumed: 0,
                 unit: '',
                 cost_per_unit: 0,
@@ -495,22 +526,88 @@ const BookingsManagement = () => {
                     item.cost_per_unit = inventoryItem.weighted_avg_cost || inventoryItem.cost_per_unit || 0
                     // Recalculate costs
                     item.estimated_total_cost = item.estimated_quantity * item.cost_per_unit
+                    // Calcular consumo real = llevado - lo que volvió
+                    item.actual_quantity_consumed = item.estimated_quantity - (item.quantity_returned || 0)
                     item.actual_total_cost = item.actual_quantity_consumed * item.cost_per_unit
                 }
             } else if (field === 'estimated_quantity') {
-                item[field] = parseFloat(value) || 0
+                const estimated = Math.max(0, parseFloat(value) || 0)
+                // Validar que no exceda el stock disponible
+                const inventoryItem = inventoryItems.find(inv => inv.id === item.item_id)
+                const maxStock = inventoryItem ? inventoryItem.current_stock : Infinity
+
+                if (estimated > maxStock) {
+                    toast.error(`No puedes llevar más de ${maxStock} ${getShortUnit(item.unit)} (stock disponible)`)
+                    return prev // No actualizar si excede stock
+                }
+
+                item[field] = estimated
                 item.estimated_total_cost = item.estimated_quantity * item.cost_per_unit
-                // Update variance
+                // Calcular consumo real = llevado - lo que volvió
+                item.actual_quantity_consumed = Math.max(0, item.estimated_quantity - (item.quantity_returned || 0))
+                item.actual_total_cost = item.actual_quantity_consumed * item.cost_per_unit
+                item.variance = item.actual_quantity_consumed - item.estimated_quantity
+            } else if (field === 'quantity_returned') {
+                // Nuevo flujo: guardar lo que volvió
+                const returned = Math.max(0, parseFloat(value) || 0)
+
+                // Validar que no exceda lo estimado
+                if (returned > item.estimated_quantity) {
+                    toast.error(`No puede volver más de lo llevado (${item.estimated_quantity} ${item.unit})`)
+                    return prev // No actualizar si excede estimado
+                }
+
+                item[field] = returned
+                // Calcular consumo real = llevado - lo que volvió
+                item.actual_quantity_consumed = Math.max(0, item.estimated_quantity - returned)
+                // CORRECCIÓN: Costo basado en lo CONSUMIDO, no en lo que volvió
+                item.actual_total_cost = item.actual_quantity_consumed * item.cost_per_unit
+                // Calcular variación: negativo = consumió menos, positivo = consumió más
                 item.variance = item.actual_quantity_consumed - item.estimated_quantity
             } else if (field === 'actual_quantity_consumed') {
-                item[field] = parseFloat(value) || 0
+                // Legacy: permitir edición directa de consumo (no debería usarse con nuevo flujo)
+                const consumed = Math.max(0, parseFloat(value) || 0)
+                item[field] = Math.min(consumed, item.estimated_quantity)
                 item.actual_total_cost = item.actual_quantity_consumed * item.cost_per_unit
-                // Update variance
-                item.variance = item.actual_quantity_consumed - item.estimated_quantity
             } else {
                 item[field] = value
             }
 
+            newItems[index] = item
+            return { ...prev, items: newItems }
+        })
+    }
+
+    // UX: clear zero when focusing inputs, and restore zero on blur if empty
+    const handleSupplyItemFocus = (index, field) => {
+        setIntegratedSupplies(prev => {
+            const newItems = [...prev.items]
+            const item = { ...newItems[index] }
+            const current = item[field]
+            if (current === 0 || current === '0') {
+                item[field] = ''
+            }
+            newItems[index] = item
+            return { ...prev, items: newItems }
+        })
+    }
+
+    const handleSupplyItemBlur = (index, field) => {
+        setIntegratedSupplies(prev => {
+            const newItems = [...prev.items]
+            const item = { ...newItems[index] }
+            if (item[field] === '' || item[field] === null || typeof item[field] === 'undefined') {
+                item[field] = 0
+            }
+            if (field === 'estimated_quantity' || field === 'quantity_returned') {
+                const estimated = parseFloat(item.estimated_quantity) || 0
+                const returned = parseFloat(item.quantity_returned) || 0
+                const cpu = parseFloat(item.cost_per_unit) || 0
+                item.actual_quantity_consumed = Math.max(0, estimated - returned)
+                item.actual_total_cost = item.actual_quantity_consumed * cpu
+                item.variance = item.actual_quantity_consumed - estimated
+                item.estimated_total_cost = estimated * cpu
+            }
             newItems[index] = item
             return { ...prev, items: newItems }
         })
@@ -565,29 +662,32 @@ const BookingsManagement = () => {
         try {
             if (!selectedBooking) return
 
-            // Validate that we have consumption data
+            // Validate that we have consumption data (items with quantity_returned or actual_quantity_consumed)
             const itemsWithConsumption = integratedSupplies.items.filter(item =>
-                item.item_id && item.actual_quantity_consumed > 0
+                item.item_id && (item.quantity_returned >= 0 || item.actual_quantity_consumed > 0)
             )
 
             if (itemsWithConsumption.length === 0) {
-                toast.error('Agrega las cantidades consumidas')
+                toast.error('Agrega las cantidades que volvieron o consumidas')
                 return
             }
+
+            const otherExpenses = (selectedBooking?.expenses || []).reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0)
 
             const consumptionPayload = {
                 booking_id: selectedBooking.id,
                 items_consumed: itemsWithConsumption.map(item => ({
                     item_id: item.item_id,
-                    actual_quantity_consumed: item.actual_quantity_consumed,
+                    quantity_returned: item.quantity_returned || 0, // Nuevo: lo que volvió
+                    actual_quantity_consumed: item.actual_quantity_consumed, // Calculado automáticamente
                     batch_id: item.batch_id || null
                 })),
-                total_other_expenses: parseFloat(costData.event_cost) || 0,
+                total_other_expenses: otherExpenses,
                 notes: integratedSupplies.consumption_notes
             }
 
             await eventConsumptionAPI.create(consumptionPayload)
-            toast.success('Consumo registrado exitosamente')
+            toast.success('Consumo registrado/actualizado exitosamente')
 
             // Reload supply status and bookings to get updated financials
             await loadSupplyStatus(selectedBooking.id)
@@ -1120,7 +1220,7 @@ const BookingsManagement = () => {
                         </Typography>
                     )}
                     <Typography variant="body2">
-                        <strong>Precio:</strong> ${booking.estimated_price ? booking.estimated_price.toLocaleString() : 'Por definir'}
+                        <strong>Precio:</strong> {booking.estimated_price ? formatCurrency(booking.estimated_price) : 'Por definir'}
                     </Typography>
                 </Box>
 
@@ -1525,18 +1625,18 @@ const BookingsManagement = () => {
                                             </TableCell>
                                             <TableCell>
                                                 <Typography variant="body2" fontWeight="bold">
-                                                    ${booking.estimated_price ? booking.estimated_price.toLocaleString() : '-'}
+                                                    {booking.estimated_price ? formatCurrency(booking.estimated_price) : '-'}
                                                 </Typography>
                                             </TableCell>
                                             <TableCell>
                                                 <Typography variant="body2" color={calculateTotalCost(booking) ? 'text.primary' : 'text.secondary'}>
-                                                    ${calculateTotalCost(booking) ? calculateTotalCost(booking).toLocaleString() : '-'}
+                                                    {calculateTotalCost(booking) ? formatCurrency(calculateTotalCost(booking)) : '-'}
                                                 </Typography>
                                             </TableCell>
                                             <TableCell>
                                                 {(() => {
-                                                    const est = booking.estimated_price || 0
-                                                    const cost = calculateTotalCost(booking) || 0
+                                                    const est = Number(booking.estimated_price || 0)
+                                                    const cost = Number(calculateTotalCost(booking) || 0)
                                                     const profit = est - cost
                                                     return (
                                                         <Typography
@@ -1544,7 +1644,7 @@ const BookingsManagement = () => {
                                                             fontWeight="bold"
                                                             color={profit > 0 ? 'success.main' : 'text.secondary'}
                                                         >
-                                                            ${profit ? profit.toLocaleString() : '-'}
+                                                            {profit ? formatCurrency(profit) : '-'}
                                                         </Typography>
                                                     )
                                                 })()}
@@ -2241,7 +2341,7 @@ const BookingsManagement = () => {
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
                                         <Typography variant="body2" color="text.secondary">
-                                            <strong>Precio estimado:</strong> ${selectedBooking?.estimated_price?.toLocaleString()}
+                                            <strong>Precio estimado:</strong> {selectedBooking?.estimated_price ? formatCurrency(selectedBooking.estimated_price) : '-'}
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary">
                                             <strong>Estado:</strong> {selectedBooking?.status}
@@ -2289,13 +2389,13 @@ const BookingsManagement = () => {
                                                         </Typography>
                                                     </Box>
                                                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                        ${expense.amount.toLocaleString()}
+                                                        {formatCurrency(expense.amount)}
                                                     </Typography>
                                                 </Box>
                                             ))}
                                             <Box sx={{ mt: 2, pt: 2, borderTop: '2px solid #e0e0e0' }}>
                                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                                    Total gastos: ${(selectedBooking.expenses.reduce((sum, expense) => sum + expense.amount, 0)).toLocaleString()}
+                                                    Total gastos: {formatCurrency((selectedBooking.expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)))}
                                                 </Typography>
                                             </Box>
                                         </CardContent>
@@ -2333,11 +2433,7 @@ const BookingsManagement = () => {
                                     <Grid item xs={12}>
                                         <Alert severity="info" sx={{ mb: 2 }}>
                                             <Typography variant="body2">
-                                                <strong>Ganancia estimada:</strong> $
-                                                {costData.event_revenue && costData.event_cost
-                                                    ? formatCurrency((parseFloat(costData.event_revenue) || 0) - (parseFloat(costData.event_cost) || 0))
-                                                    : '0.00'
-                                                }
+                                                <strong>Ganancia estimada:</strong> {formatCurrency((parseFloat(costData.event_revenue) || 0) - (parseFloat(costData.event_cost) || 0))}
                                             </Typography>
                                         </Alert>
                                     </Grid>
@@ -2405,8 +2501,9 @@ const BookingsManagement = () => {
                                                             <TableHead>
                                                                 <TableRow sx={{ bgcolor: 'grey.50' }}>
                                                                     <TableCell><strong>Insumo</strong></TableCell>
-                                                                    <TableCell align="center"><strong>Estimado</strong></TableCell>
-                                                                    <TableCell align="center"><strong>Confirmado</strong></TableCell>
+                                                                    <TableCell align="center"><strong>Llevado</strong></TableCell>
+                                                                    <TableCell align="center"><strong>Lo que Volvió</strong></TableCell>
+                                                                    <TableCell align="center"><strong>Consumo Real</strong></TableCell>
                                                                     <TableCell align="center"><strong>Costo/Unidad</strong></TableCell>
                                                                     <TableCell align="center"><strong>Costo Total</strong></TableCell>
                                                                     <TableCell align="center"><strong>Variación</strong></TableCell>
@@ -2417,75 +2514,107 @@ const BookingsManagement = () => {
                                                                 {integratedSupplies.items.map((item, index) => (
                                                                     <TableRow key={index}>
                                                                         <TableCell>
-                                                                            <FormControl fullWidth size="small">
-                                                                                <Select
-                                                                                    value={item.item_id}
-                                                                                    onChange={(e) => handleSupplyItemChange(index, 'item_id', e.target.value)}
-                                                                                    displayEmpty
-                                                                                >
-                                                                                    <MenuItem value="">
-                                                                                        <em>Seleccionar...</em>
-                                                                                    </MenuItem>
-                                                                                    {inventoryItems.map((inv) => (
-                                                                                        <MenuItem key={inv.id} value={inv.id}>
-                                                                                            {inv.name}
-                                                                                            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                                                                                                ({inv.current_stock} {inv.unit})
+                                                                            <Autocomplete
+                                                                                size="small"
+                                                                                options={inventoryItems}
+                                                                                getOptionLabel={(option) => option?.name || ''}
+                                                                                renderOption={(props, option) => (
+                                                                                    <li {...props} key={option.id}>
+                                                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                                            <span>{option.name}</span>
+                                                                                            <Typography variant="caption" color="text.secondary">
+                                                                                                ({option.current_stock} {option.unit})
                                                                                             </Typography>
-                                                                                        </MenuItem>
-                                                                                    ))}
-                                                                                </Select>
-                                                                            </FormControl>
-                                                                        </TableCell>
-                                                                        <TableCell align="center">
-                                                                            <TextField
-                                                                                type="number"
-                                                                                size="small"
-                                                                                value={item.estimated_quantity}
-                                                                                onChange={(e) => handleSupplyItemChange(index, 'estimated_quantity', e.target.value)}
-                                                                                InputProps={{
-                                                                                    endAdornment: <Typography variant="caption">{item.unit}</Typography>
-                                                                                }}
-                                                                                sx={{ width: 100 }}
+                                                                                        </Box>
+                                                                                    </li>
+                                                                                )}
+                                                                                value={inventoryItems.find(inv => inv.id === item.item_id) || null}
+                                                                                onChange={(e, newValue) => handleSupplyItemChange(index, 'item_id', newValue ? newValue.id : '')}
+                                                                                renderInput={(params) => (
+                                                                                    <TextField {...params} placeholder="Buscar insumo..." />
+                                                                                )}
                                                                             />
                                                                         </TableCell>
                                                                         <TableCell align="center">
-                                                                            <TextField
-                                                                                type="number"
-                                                                                size="small"
-                                                                                value={item.actual_quantity_consumed}
-                                                                                onChange={(e) => handleSupplyItemChange(index, 'actual_quantity_consumed', e.target.value)}
-                                                                                InputProps={{
-                                                                                    endAdornment: <Typography variant="caption">{item.unit}</Typography>
-                                                                                }}
-                                                                                sx={{ width: 100 }}
-                                                                                // TEMP: Disabled validation - allow editing consumption after registration
-                                                                                // disabled={!supplyStatus.has_supplies}
-                                                                            />
+                                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, justifyContent: 'center' }}>
+                                                                                <TextField
+                                                                                    type="number"
+                                                                                    size="small"
+                                                                                    value={item.estimated_quantity}
+                                                                                    onChange={(e) => handleSupplyItemChange(index, 'estimated_quantity', e.target.value)}
+                                                                                    onFocus={() => handleSupplyItemFocus(index, 'estimated_quantity')}
+                                                                                    onBlur={() => handleSupplyItemBlur(index, 'estimated_quantity')}
+                                                                                    sx={{ width: 90 }}
+                                                                                    inputProps={{
+                                                                                        style: { textAlign: 'center', fontSize: '0.9rem' },
+                                                                                        step: '0.01'
+                                                                                    }}
+                                                                                />
+                                                                                <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', minWidth: 20, maxWidth: 35, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                                    {getShortUnit(item.unit)}
+                                                                                </Typography>
+                                                                            </Box>
+                                                                        </TableCell>
+                                                                        <TableCell align="center">
+                                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, justifyContent: 'center' }}>
+                                                                                <TextField
+                                                                                    type="number"
+                                                                                    size="small"
+                                                                                    value={item.quantity_returned || 0}
+                                                                                    onChange={(e) => handleSupplyItemChange(index, 'quantity_returned', e.target.value)}
+                                                                                    onFocus={() => handleSupplyItemFocus(index, 'quantity_returned')}
+                                                                                    onBlur={() => handleSupplyItemBlur(index, 'quantity_returned')}
+                                                                                    sx={{ width: 90 }}
+                                                                                    placeholder="0"
+                                                                                    inputProps={{
+                                                                                        style: { textAlign: 'center', fontSize: '0.9rem' },
+                                                                                        step: '0.01'
+                                                                                    }}
+                                                                                />
+                                                                                <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', minWidth: 20, maxWidth: 35, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                                    {getShortUnit(item.unit)}
+                                                                                </Typography>
+                                                                            </Box>
+                                                                        </TableCell>
+                                                                        <TableCell align="center">
+                                                                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                                                                                <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                                                                    {item.actual_quantity_consumed || 0}
+                                                                                </Typography>
+                                                                                <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                                                                                    {getShortUnit(item.unit)}
+                                                                                </Typography>
+                                                                            </Box>
                                                                         </TableCell>
                                                                         <TableCell align="center">
                                                                             <Typography variant="body2">
-                                                                                ${item.cost_per_unit?.toFixed(2) || '0.00'}
+                                                                                {formatCurrency(item.cost_per_unit || 0)}
                                                                             </Typography>
                                                                         </TableCell>
                                                                         <TableCell align="center">
                                                                             <Box>
                                                                                 <Typography variant="body2" color="text.secondary">
-                                                                                    Est: ${item.estimated_total_cost?.toFixed(2) || '0.00'}
+                                                                                    Est: {formatCurrency(item.estimated_total_cost || 0)}
                                                                                 </Typography>
                                                                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                                                    Real: ${item.actual_total_cost?.toFixed(2) || '0.00'}
+                                                                                    Real: {formatCurrency(item.actual_total_cost || 0)}
                                                                                 </Typography>
                                                                             </Box>
                                                                         </TableCell>
                                                                         <TableCell align="center">
-                                                                            {item.variance !== 0 && (
-                                                                                <Chip
-                                                                                    label={`${item.variance > 0 ? '+' : ''}${item.variance?.toFixed(1)} ${item.unit}`}
+                                                                                {item.variance !== 0 && item.variance !== undefined && (
+                                                                                    <Chip
+                                                                                    label={`${item.variance > 0 ? '+' : ''}${item.variance?.toFixed(2)} ${getShortUnit(item.unit)}`}
                                                                                     size="small"
-                                                                                    color={item.variance > 0 ? "error" : "success"}
+                                                                                    color={item.variance < 0 ? "success" : "error"}
                                                                                     variant="outlined"
+                                                                                    sx={{ fontSize: '0.7rem' }}
                                                                                 />
+                                                                            )}
+                                                                            {(item.variance === 0 || item.variance === undefined) && (
+                                                                                <Typography variant="caption" color="text.secondary">
+                                                                                    -
+                                                                                </Typography>
                                                                             )}
                                                                         </TableCell>
                                                                         <TableCell align="center">
@@ -2513,9 +2642,9 @@ const BookingsManagement = () => {
                                                                     <Typography variant="body2" color="text.secondary">
                                                                         Costo Estimado
                                                                     </Typography>
-                                                                    <Typography variant="h6">
-                                                                        ${getTotalEstimatedCost().toFixed(2)}
-                                                                    </Typography>
+                                                        <Typography variant="h6">
+                                                            {formatCurrency(getTotalEstimatedCost())}
+                                                        </Typography>
                                                                 </CardContent>
                                                             </Card>
                                                         </Grid>
@@ -2525,9 +2654,9 @@ const BookingsManagement = () => {
                                                                     <Typography variant="body2" color="text.secondary">
                                                                         Costo Real
                                                                     </Typography>
-                                                                    <Typography variant="h6">
-                                                                        ${getTotalActualCost().toFixed(2)}
-                                                                    </Typography>
+                                                        <Typography variant="h6">
+                                                            {formatCurrency(getTotalActualCost())}
+                                                        </Typography>
                                                                 </CardContent>
                                                             </Card>
                                                         </Grid>
@@ -2647,7 +2776,7 @@ const BookingsManagement = () => {
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
                                             <Typography variant="body2" color="text.secondary">
-                                                <strong>Precio estimado:</strong> ${selectedBooking.estimated_price?.toLocaleString()}
+                                                <strong>Precio estimado:</strong> {selectedBooking?.estimated_price ? formatCurrency(selectedBooking.estimated_price) : '-'}
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary">
                                                 <strong>Estado:</strong> {selectedBooking.status}
@@ -2765,8 +2894,8 @@ const BookingsManagement = () => {
                                                             </Typography>
                                                         </Box>
                                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                            <Typography variant="h6" sx={{ fontWeight: 600, mr: 2 }}>
-                                                                ${expense.amount.toLocaleString()}
+                                            <Typography variant="h6" sx={{ fontWeight: 600, mr: 2 }}>
+                                                                {formatCurrency(expense.amount)}
                                                             </Typography>
                                                             <IconButton
                                                                 size="small"
@@ -2797,7 +2926,7 @@ const BookingsManagement = () => {
                                                         Total Gastos:
                                                     </Typography>
                                                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                                        ${(selectedBooking.expenses.reduce((sum, expense) => sum + expense.amount, 0)).toLocaleString()}
+                                                        {formatCurrency((selectedBooking.expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)))}
                                                     </Typography>
                                                 </Box>
                                             </CardContent>
@@ -2855,8 +2984,9 @@ const BookingsManagement = () => {
                                                                 <TableHead>
                                                                     <TableRow sx={{ bgcolor: 'grey.50' }}>
                                                                         <TableCell><strong>Insumo</strong></TableCell>
-                                                                        <TableCell align="center"><strong>Estimado</strong></TableCell>
-                                                                        <TableCell align="center"><strong>Confirmado</strong></TableCell>
+                                                                        <TableCell align="center"><strong>Llevado</strong></TableCell>
+                                                                        <TableCell align="center"><strong>Lo que Volvió</strong></TableCell>
+                                                                        <TableCell align="center"><strong>Consumo Real</strong></TableCell>
                                                                         <TableCell align="center"><strong>Costo/Unidad</strong></TableCell>
                                                                         <TableCell align="center"><strong>Costo Total</strong></TableCell>
                                                                         <TableCell align="center"><strong>Variación</strong></TableCell>
@@ -2867,76 +2997,103 @@ const BookingsManagement = () => {
                                                                     {integratedSupplies.items.map((item, index) => (
                                                                         <TableRow key={index}>
                                                                             <TableCell>
-                                                                                <FormControl fullWidth size="small">
-                                                                                    <Select
-                                                                                        value={item.item_id}
-                                                                                        onChange={(e) => handleSupplyItemChange(index, 'item_id', e.target.value)}
-                                                                                        displayEmpty
-                                                                                    >
-                                                                                        <MenuItem value="">
-                                                                                            <em>Seleccionar...</em>
-                                                                                        </MenuItem>
-                                                                                        {inventoryItems.map((inv) => (
-                                                                                            <MenuItem key={inv.id} value={inv.id}>
-                                                                                                {inv.name}
-                                                                                                <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                                                                                                    ({inv.current_stock} {inv.unit})
+                                                                                <Autocomplete
+                                                                                    size="small"
+                                                                                    options={inventoryItems}
+                                                                                    getOptionLabel={(option) => option?.name || ''}
+                                                                                    renderOption={(props, option) => (
+                                                                                        <li {...props} key={option.id}>
+                                                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                                                <span>{option.name}</span>
+                                                                                                <Typography variant="caption" color="text.secondary">
+                                                                                                    ({option.current_stock} {option.unit})
                                                                                                 </Typography>
-                                                                                            </MenuItem>
-                                                                                        ))}
-                                                                                    </Select>
-                                                                                </FormControl>
-                                                                            </TableCell>
-                                                                            <TableCell align="center">
-                                                                                <TextField
-                                                                                    type="number"
-                                                                                    size="small"
-                                                                                    value={item.estimated_quantity}
-                                                                                    onChange={(e) => handleSupplyItemChange(index, 'estimated_quantity', e.target.value)}
-                                                                                    InputProps={{
-                                                                                        endAdornment: <Typography variant="caption">{item.unit}</Typography>
-                                                                                    }}
-                                                                                    sx={{ width: 100 }}
+                                                                                            </Box>
+                                                                                        </li>
+                                                                                    )}
+                                                                                    value={inventoryItems.find(inv => inv.id === item.item_id) || null}
+                                                                                    onChange={(e, newValue) => handleSupplyItemChange(index, 'item_id', newValue ? newValue.id : '')}
+                                                                                    renderInput={(params) => (
+                                                                                        <TextField {...params} placeholder="Buscar insumo..." />
+                                                                                    )}
                                                                                 />
                                                                             </TableCell>
                                                                             <TableCell align="center">
-                                                                                <TextField
-                                                                                    type="number"
-                                                                                    size="small"
-                                                                                    value={item.actual_quantity_consumed}
-                                                                                    onChange={(e) => handleSupplyItemChange(index, 'actual_quantity_consumed', e.target.value)}
-                                                                                    InputProps={{
-                                                                                        endAdornment: <Typography variant="caption">{item.unit}</Typography>
-                                                                                    }}
-                                                                                    sx={{ width: 100 }}
-                                                                                    // TEMP: Disabled validation - allow editing consumption after registration
-                                                                                    // disabled={!supplyStatus.has_supplies}
-                                                                                    placeholder="Después del evento"
-                                                                                />
+                                                                            <TextField
+                                                                                type="number"
+                                                                                size="small"
+                                                                                value={item.estimated_quantity}
+                                                                                onChange={(e) => handleSupplyItemChange(index, 'estimated_quantity', e.target.value)}
+                                                                                onFocus={() => handleSupplyItemFocus(index, 'estimated_quantity')}
+                                                                                onBlur={() => handleSupplyItemBlur(index, 'estimated_quantity')}
+                                                                                InputProps={{
+                                                                                    endAdornment: (
+                                                                                        <InputAdornment position="end">
+                                                                                            <Typography variant="caption">{getShortUnit(item.unit)}</Typography>
+                                                                                        </InputAdornment>
+                                                                                    )
+                                                                                }}
+                                                                                sx={{ width: 100 }}
+                                                                            />
+                                                                        </TableCell>
+                                                                        <TableCell align="center">
+                                                                            <TextField
+                                                                                type="number"
+                                                                                size="small"
+                                                                                value={item.quantity_returned || 0}
+                                                                                onChange={(e) => handleSupplyItemChange(index, 'quantity_returned', e.target.value)}
+                                                                                onFocus={() => handleSupplyItemFocus(index, 'quantity_returned')}
+                                                                                onBlur={() => handleSupplyItemBlur(index, 'quantity_returned')}
+                                                                                InputProps={{
+                                                                                    endAdornment: (
+                                                                                        <InputAdornment position="end">
+                                                                                            <Typography variant="caption">{getShortUnit(item.unit)}</Typography>
+                                                                                        </InputAdornment>
+                                                                                    )
+                                                                                }}
+                                                                                sx={{ width: 100 }}
+                                                                                placeholder="0"
+                                                                            />
                                                                             </TableCell>
                                                                             <TableCell align="center">
-                                                                                <Typography variant="body2">
-                                                                                    ${item.cost_per_unit?.toFixed(2) || '0.00'}
-                                                                                </Typography>
+                                                                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                                                                                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                                                                        {item.actual_quantity_consumed || 0}
+                                                                                    </Typography>
+                                                                                    <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                                                                                        {getShortUnit(item.unit)}
+                                                                                    </Typography>
+                                                                            </Box>
+                                                                        </TableCell>
+                                                                            <TableCell align="center">
+                                                                            <Typography variant="body2">
+                                                                                {formatCurrency(item.cost_per_unit || 0)}
+                                                                            </Typography>
                                                                             </TableCell>
                                                                             <TableCell align="center">
                                                                                 <Box>
                                                                                     <Typography variant="body2" color="text.secondary">
-                                                                                        Est: ${item.estimated_total_cost?.toFixed(2) || '0.00'}
+                                                                                        Est: {formatCurrency(item.estimated_total_cost || 0)}
                                                                                     </Typography>
                                                                                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                                                        Real: ${item.actual_total_cost?.toFixed(2) || '0.00'}
+                                                                                        Real: {formatCurrency(item.actual_total_cost || 0)}
                                                                                     </Typography>
                                                                                 </Box>
                                                                             </TableCell>
                                                                             <TableCell align="center">
-                                                                                {item.variance !== 0 && (
+                                                                                {item.variance !== 0 && item.variance !== undefined && (
                                                                                     <Chip
-                                                                                        label={`${item.variance > 0 ? '+' : ''}${item.variance?.toFixed(1)} ${item.unit}`}
+                                                                                        label={`${item.variance > 0 ? '+' : ''}${item.variance?.toFixed(2)} ${getShortUnit(item.unit)}`}
                                                                                         size="small"
-                                                                                        color={item.variance > 0 ? "error" : "success"}
+                                                                                        color={item.variance < 0 ? "success" : "error"}
                                                                                         variant="outlined"
+                                                                                        sx={{ fontSize: '0.7rem' }}
                                                                                     />
+                                                                                )}
+                                                                                {(item.variance === 0 || item.variance === undefined) && (
+                                                                                    <Typography variant="caption" color="text.secondary">
+                                                                                        -
+                                                                                    </Typography>
                                                                                 )}
                                                                             </TableCell>
                                                                             <TableCell align="center">
@@ -2964,8 +3121,8 @@ const BookingsManagement = () => {
                                                                         <Typography variant="body2" color="text.secondary">
                                                                             Costo Estimado
                                                                         </Typography>
-                                                                        <Typography variant="h6">
-                                                                            ${getTotalEstimatedCost().toFixed(2)}
+                                                        <Typography variant="h6">
+                                                                            {formatCurrency(getTotalEstimatedCost())}
                                                                         </Typography>
                                                                     </CardContent>
                                                                 </Card>
@@ -2976,8 +3133,8 @@ const BookingsManagement = () => {
                                                                         <Typography variant="body2" color="text.secondary">
                                                                             Costo Real
                                                                         </Typography>
-                                                                        <Typography variant="h6">
-                                                                            ${getTotalActualCost().toFixed(2)}
+                                                        <Typography variant="h6">
+                                                                            {formatCurrency(getTotalActualCost())}
                                                                         </Typography>
                                                                     </CardContent>
                                                                 </Card>
@@ -3209,9 +3366,14 @@ const BookingsManagement = () => {
                                     </AccordionSummary>
                                     <AccordionDetails>
                                         <Grid container spacing={1}>
-                                            <Grid item xs={12} sm={4}><Typography variant="body2"><strong>Total cobrado:</strong> ${selectedBooking.estimated_price?.toLocaleString() || '-'}</Typography></Grid>
-                                            <Grid item xs={12} sm={4}><Typography variant="body2"><strong>Costo:</strong> ${calculateTotalCost(selectedBooking)?.toLocaleString() || '-'}</Typography></Grid>
-                                            <Grid item xs={12} sm={4}><Typography variant="body2"><strong>Utilidad:</strong> ${selectedBooking.event_profit?.toLocaleString() || '-'}</Typography></Grid>
+                                            <Grid item xs={12} sm={4}><Typography variant="body2"><strong>Total cobrado:</strong> {selectedBooking.estimated_price ? formatCurrency(selectedBooking.estimated_price) : '-'}</Typography></Grid>
+                                            <Grid item xs={12} sm={4}><Typography variant="body2"><strong>Costo:</strong> {calculateTotalCost(selectedBooking) ? formatCurrency(calculateTotalCost(selectedBooking)) : '-'}</Typography></Grid>
+                                            <Grid item xs={12} sm={4}><Typography variant="body2"><strong>Utilidad:</strong> {(() => {
+                                                const est = Number(selectedBooking.estimated_price || 0)
+                                                const cost = Number(calculateTotalCost(selectedBooking) || 0)
+                                                const profit = est - cost
+                                                return profit ? formatCurrency(profit) : '-'
+                                            })()}</Typography></Grid>
                                         </Grid>
                                         {Array.isArray(selectedBooking.expenses) && selectedBooking.expenses.length > 0 && (
                                             <Box sx={{ mt: 2 }}>
@@ -3219,7 +3381,7 @@ const BookingsManagement = () => {
                                                 {selectedBooking.expenses.map((e, i) => (
                                                     <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
                                                         <Typography variant="body2">{e.description}</Typography>
-                                                        <Typography variant="body2">${(e.amount||0).toLocaleString()}</Typography>
+                                                        <Typography variant="body2">{formatCurrency(e.amount || 0)}</Typography>
                                                     </Box>
                                                 ))}
                                             </Box>
@@ -3245,8 +3407,8 @@ const BookingsManagement = () => {
                                                 </Typography>
                                                 {integratedSupplies.items.length > 0 && (
                                                     <>
-                                                        <Typography variant="body2">Costo Estimado: ${getTotalEstimatedCost().toFixed(0)}</Typography>
-                                                        <Typography variant="body2">Costo Real: ${getTotalActualCost().toFixed(0)}</Typography>
+                                                        <Typography variant="body2">Costo Estimado: {formatCurrency(getTotalEstimatedCost())}</Typography>
+                                                        <Typography variant="body2">Costo Real: {formatCurrency(getTotalActualCost())}</Typography>
                                                     </>
                                                 )}
                                             </>

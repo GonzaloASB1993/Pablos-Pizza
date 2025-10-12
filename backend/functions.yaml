@@ -1,0 +1,14 @@
+specVersion: v1alpha1
+endpoints:
+  main:
+    region:
+      - us-central1
+    platform: gcfv2
+    entryPoint: main
+    httpsTrigger: {}
+    cpu: 1
+    timeoutSeconds: 540
+    availableMemoryMb: 512
+    minInstances: 0
+    maxInstances: 100
+    concurrency: 80

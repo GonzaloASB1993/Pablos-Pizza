@@ -1531,6 +1531,26 @@ def get_bookings():
                 # ID should already be in dict from paginate_query, but ensure it's there
                 pass
 
+        # Attach computed costs based on financials to avoid frontend miscalculation
+        try:
+            for booking in paginated_bookings:
+                fin = (booking or {}).get('financials') or {}
+                est_supply = float(fin.get('estimated_supply_cost', 0) or 0)
+                real_supply = float(fin.get('supply_cost', 0) or 0)
+                other_exp = float(fin.get('other_expenses', 0) or 0)
+                current_supply = real_supply if real_supply > 0 else est_supply
+                total_cost = current_supply + other_exp
+                booking['computed_costs'] = {
+                    'estimated_supply_cost': est_supply,
+                    'real_supply_cost': real_supply,
+                    'other_expenses_total': other_exp,
+                    'current_supply_cost': current_supply,
+                    'total_cost': total_cost,
+                    'source': 'real' if real_supply > 0 else 'estimated'
+                }
+        except Exception as e_attach:
+            print(f"⚠️ Failed attaching computed costs to bookings page: {e_attach}")
+
         # Create paginated response
         response = create_pagination_response(
             items=paginated_bookings,
@@ -1558,6 +1578,43 @@ def get_booking(booking_id):
         if doc.exists:
             booking = doc.to_dict()
             booking['id'] = doc.id
+
+            # Attach computed costs for this booking
+            try:
+                financials = booking.get('financials') or {}
+                est_supply = float(financials.get('estimated_supply_cost', 0) or 0)
+                real_supply = float(financials.get('supply_cost', 0) or 0)
+                other_exp = float(financials.get('other_expenses', 0) or 0)
+
+                # If not available in financials, fallback to collections
+                if real_supply == 0 or (other_exp == 0 and 'other_expenses' not in financials):
+                    db = get_db()
+                    # consumption
+                    cons_docs = list(db.collection('event_consumption').where('booking_id', '==', booking_id).limit(1).stream())
+                    if cons_docs:
+                        cons_data = cons_docs[0].to_dict()
+                        real_supply = float(cons_data.get('total_supply_cost', real_supply) or 0)
+                        other_exp = float(cons_data.get('total_other_expenses', other_exp) or 0)
+                    # supplies
+                    if est_supply == 0:
+                        sup_docs = list(db.collection('event_supplies').where('booking_id', '==', booking_id).limit(1).stream())
+                        if sup_docs:
+                            sup_data = sup_docs[0].to_dict()
+                            est_supply = float(sup_data.get('estimated_total_cost', est_supply) or 0)
+
+                current_supply = real_supply if real_supply > 0 else est_supply
+                total_cost = current_supply + other_exp
+                booking['computed_costs'] = {
+                    'estimated_supply_cost': est_supply,
+                    'real_supply_cost': real_supply,
+                    'other_expenses_total': other_exp,
+                    'current_supply_cost': current_supply,
+                    'total_cost': total_cost,
+                    'source': 'real' if real_supply > 0 else 'estimated'
+                }
+            except Exception as compute_err:
+                print(f"⚠️ Failed to compute booking costs: {compute_err}")
+
             return jsonify(booking), 200
         else:
             return jsonify({"error": "Booking not found"}), 404
@@ -2103,7 +2160,7 @@ def get_public_gallery_images():
             'images': ['https://pablospizza.web.app/assets/logo-nqn6pSjR.png'],
             'participants': 15,
             'date': '2024-01-01',
-            'featured': false,
+            'featured': False,
             'highlight': 'Próximamente',
             'age_group': 'Todas las edades'
         }]
@@ -4512,6 +4569,19 @@ def create_event_supplies():
 
         db.collection('event_supplies').document(supplies_id).set(supplies_data)
 
+        # Sync booking financials with estimated supply cost for easier frontend consumption
+        try:
+            existing_financials = booking_data.get('financials') or {}
+            existing_financials.update({
+                'estimated_supply_cost': float(total_estimated_cost)
+            })
+            booking_ref.update({
+                'financials': existing_financials,
+                'updated_at': datetime.now()
+            })
+        except Exception as fin_err:
+            print(f"⚠️ Failed to update booking financials with estimated supply cost: {fin_err}")
+
         return jsonify({
             'message': 'Event supplies created successfully',
             'supplies_id': supplies_id,
@@ -4579,10 +4649,8 @@ def update_event_supplies(supplies_id):
         if not doc.exists:
             return jsonify({'error': 'Supplies not found'}), 404
 
-        # Verificar que no exista consumption registrado
-        consumption_docs = list(db.collection('event_consumption').where('supplies_id', '==', supplies_id).limit(1).stream())
-        if consumption_docs:
-            return jsonify({'error': 'Cannot modify supplies that already have consumption registered'}), 400
+        # Nota: Permitimos actualizar insumos aunque exista consumo registrado.
+        # La variación se recalculará cuando se re-registre el consumo.
 
         # Procesar items si se proporcionan
         update_data = {}
@@ -4629,6 +4697,27 @@ def update_event_supplies(supplies_id):
         update_data['updated_at'] = datetime.now()
 
         supplies_ref.update(update_data)
+
+        # Also sync booking financials with the refreshed estimated supply cost
+        try:
+            updated_supplies = supplies_ref.get().to_dict()
+            booking_id = updated_supplies.get('booking_id')
+            if booking_id:
+                booking_ref = db.collection('bookings').document(booking_id)
+                booking_doc = booking_ref.get()
+                if booking_doc.exists:
+                    booking_data = booking_doc.to_dict()
+                    financials = booking_data.get('financials') or {}
+                    if 'estimated_total_cost' in update_data:
+                        financials['estimated_supply_cost'] = float(update_data['estimated_total_cost'])
+                    else:
+                        financials['estimated_supply_cost'] = float(updated_supplies.get('estimated_total_cost', 0))
+                    booking_ref.update({
+                        'financials': financials,
+                        'updated_at': datetime.now()
+                    })
+        except Exception as sync_err:
+            print(f"⚠️ Failed syncing booking financials after supplies update: {sync_err}")
 
         # Obtener datos actualizados
         updated_doc = supplies_ref.get()
@@ -4682,12 +4771,39 @@ def create_event_consumption():
         if not booking_doc.exists:
             return jsonify({'error': 'Booking not found'}), 404
 
-        # Verificar que no exista ya un consumption para este booking
+        # Verificar si existe un consumption para este booking
+        # Si existe, lo actualizaremos en lugar de crear uno nuevo
         existing_docs = list(db.collection('event_consumption').where('booking_id', '==', data['booking_id']).limit(1).stream())
+        existing_consumption = None
         if existing_docs:
-            return jsonify({'error': 'Consumption already registered for this event'}), 400
+            existing_consumption = existing_docs[0]
+            existing_consumption_data = existing_consumption.to_dict()
 
-        # Obtener supplies estimadas si existen
+            # Revertir movimientos de inventario anteriores antes de aplicar nuevos
+            for old_item in existing_consumption_data.get('items_consumed', []):
+                # Buscar y revertir el movimiento de inventario
+                old_movements = list(db.collection('inventory_movements')
+                    .where('reference_id', '==', data['booking_id'])
+                    .where('reference_type', '==', 'event_consumption')
+                    .where('item_id', '==', old_item['item_id'])
+                    .stream())
+
+                for mov_doc in old_movements:
+                    # Restaurar el stock (revertir la salida)
+                    inventory_ref = db.collection('inventory').document(old_item['item_id'])
+                    inventory_doc = inventory_ref.get()
+                    if inventory_doc.exists:
+                        inventory_data = inventory_doc.to_dict()
+                        restored_stock = inventory_data['current_stock'] + abs(old_item['actual_quantity_consumed'])
+                        inventory_ref.update({
+                            'current_stock': restored_stock,
+                            'needs_restock': restored_stock <= inventory_data.get('min_stock', 0),
+                            'last_updated': datetime.now()
+                        })
+                    # Eliminar movimiento anterior
+                    mov_doc.reference.delete()
+
+        # Obtener supplies estimadas si existen (se usa para variación y para calcular consumo desde 'lo que volvió')
         supplies_data = None
         supplies_docs = list(db.collection('event_supplies').where('booking_id', '==', data['booking_id']).limit(1).stream())
         if supplies_docs:
@@ -4697,9 +4813,61 @@ def create_event_consumption():
         processed_items = []
         total_supply_cost = 0
 
+        # Asegurar que total_other_expenses sea numérico
+        total_other_expenses_input = data.get('total_other_expenses')
+        try:
+            total_other_expenses_input = float(total_other_expenses_input) if total_other_expenses_input is not None else 0.0
+        except Exception:
+            total_other_expenses_input = 0.0
+
         for item in data['items_consumed']:
-            if not all(k in item for k in ['item_id', 'actual_quantity_consumed']):
-                return jsonify({'error': 'Each item must have item_id and actual_quantity_consumed'}), 400
+            # Soportar nuevo flujo: quantity_returned (lo que volvió) o actual_quantity_consumed (legacy)
+            if 'item_id' not in item:
+                logger.error(f"Item missing item_id: {item}")
+                return jsonify({'error': 'Each item must have item_id'}), 400
+
+            # Calcular actual_quantity_consumed según el flujo
+            calculated_from_return = False
+            estimated_quantity = 0.0
+            estimated_item = None
+            if supplies_data:
+                estimated_item = next((s for s in supplies_data.get('items', []) if s['item_id'] == item['item_id']), None)
+                if estimated_item:
+                    estimated_quantity = float(estimated_item.get('estimated_quantity', 0) or 0)
+
+            if 'quantity_returned' in item:
+                # Calcular consumo = estimado - lo que volvió (si hay estimación); si no, usar actual si viene provisto
+                try:
+                    returned_qty = float(item.get('quantity_returned') or 0)
+                except Exception:
+                    returned_qty = 0.0
+
+                if estimated_item is not None:
+                    # Validar que no vuelva más de lo llevado
+                    if returned_qty > estimated_quantity:
+                        logger.error(f"Quantity returned ({returned_qty}) exceeds estimated ({estimated_quantity})")
+                        return jsonify({
+                            'error': f'La cantidad que volvió ({returned_qty}) no puede ser mayor que lo llevado ({estimated_quantity})'
+                        }), 400
+                    actual_qty = max(0.0, estimated_quantity - returned_qty)
+                    calculated_from_return = True
+                else:
+                    # Sin item estimado: permitir si nos dan actual directamente; si no, consumo=0
+                    try:
+                        actual_qty = float(item.get('actual_quantity_consumed') or 0)
+                    except Exception:
+                        actual_qty = 0.0
+            else:
+                # Legacy: usar actual_quantity_consumed
+                try:
+                    actual_qty = float(item.get('actual_quantity_consumed') or 0)
+                except Exception:
+                    logger.error(f"Item missing both quantity_returned and actual_quantity_consumed: {item}")
+                    return jsonify({'error': 'Each item must have quantity_returned or actual_quantity_consumed'}), 400
+
+            # Normalizar a no-negativo
+            actual_qty = max(0.0, actual_qty)
+            item['actual_quantity_consumed'] = actual_qty
 
             # Verificar item de inventario
             inventory_ref = db.collection('inventory').document(item['item_id'])
@@ -4720,15 +4888,9 @@ def create_event_consumption():
 
             # Calcular variance si hay datos estimados
             variance = None
-            estimated_quantity = 0
-            if supplies_data:
-                estimated_item = next(
-                    (s for s in supplies_data.get('items', []) if s['item_id'] == item['item_id']),
-                    None
-                )
-                if estimated_item:
-                    estimated_quantity = estimated_item['estimated_quantity']
-                    variance = item['actual_quantity_consumed'] - estimated_quantity
+            # Variación solo si hay estimación para ese item
+            if estimated_item is not None:
+                variance = item['actual_quantity_consumed'] - estimated_quantity
 
             # Usar costo promedio ponderado actual
             cost_per_unit = inventory_data.get('weighted_avg_cost', inventory_data.get('cost_per_unit', 0))
@@ -4740,7 +4902,8 @@ def create_event_consumption():
                 'item_id': item['item_id'],
                 'item_name': inventory_data['name'],
                 'estimated_quantity': estimated_quantity,
-                'actual_quantity_consumed': item['actual_quantity_consumed'],
+                'quantity_returned': item.get('quantity_returned', 0),  # Lo que volvió
+                'actual_quantity_consumed': item['actual_quantity_consumed'],  # Consumo real calculado
                 'unit': inventory_data['unit'],
                 'cost_per_unit': cost_per_unit,
                 'total_cost': total_cost,
@@ -4760,7 +4923,7 @@ def create_event_consumption():
                 'unit': inventory_data['unit'],
                 'cost_per_unit': cost_per_unit,
                 'total_cost': total_cost,
-                'reference_id': data.get('event_id', data['booking_id']),
+                'reference_id': data['booking_id'],
                 'reference_type': 'event_consumption',
                 'notes': f"Consumo en evento - {data.get('notes', '')}",
                 'stock_before': inventory_data['current_stock'],
@@ -4783,23 +4946,40 @@ def create_event_consumption():
             })
 
         # Calcular costo total
-        total_cost = total_supply_cost + data['total_other_expenses']
+        total_cost = total_supply_cost + total_other_expenses_input
 
-        # Crear registro de consumption
-        consumption_data = {
-            'id': consumption_id,
-            'event_id': data.get('event_id'),  # Puede ser None si es solo booking
-            'booking_id': data['booking_id'],
-            'items_consumed': processed_items,
-            'total_supply_cost': total_supply_cost,
-            'total_other_expenses': data['total_other_expenses'],
-            'total_cost': total_cost,
-            'notes': data.get('notes'),
-            'supplies_id': supplies_data['id'] if supplies_data else None,
-            'created_at': datetime.now()
-        }
-
-        db.collection('event_consumption').document(consumption_id).set(consumption_data)
+        # Crear o actualizar registro de consumption
+        if existing_consumption:
+            # Actualizar consumo existente
+            consumption_id = existing_consumption.id
+            consumption_data = {
+                'items_consumed': processed_items,
+                'total_supply_cost': total_supply_cost,
+                'total_other_expenses': total_other_expenses_input,
+                'total_cost': total_cost,
+                'notes': data.get('notes'),
+                'updated_at': datetime.now()
+            }
+            db.collection('event_consumption').document(consumption_id).update(consumption_data)
+            # Leer documento actualizado para responder con datos consistentes
+            saved_doc = db.collection('event_consumption').document(consumption_id).get()
+            saved_consumption = saved_doc.to_dict()
+        else:
+            # Crear nuevo registro de consumption
+            consumption_data = {
+                'id': consumption_id,
+                'event_id': data.get('event_id'),  # Puede ser None si es solo booking
+                'booking_id': data['booking_id'],
+                'items_consumed': processed_items,
+                'total_supply_cost': total_supply_cost,
+                'total_other_expenses': total_other_expenses_input,
+                'total_cost': total_cost,
+                'notes': data.get('notes'),
+                'supplies_id': supplies_data['id'] if supplies_data else None,
+                'created_at': datetime.now()
+            }
+            db.collection('event_consumption').document(consumption_id).set(consumption_data)
+            saved_consumption = consumption_data
 
         # Actualizar el booking con el costo total calculado
         print(f"DEBUG: About to update booking {data['booking_id']} with financials")
@@ -4810,7 +4990,7 @@ def create_event_consumption():
         financials.update({
             'total_expenses': total_cost,
             'supply_cost': total_supply_cost,
-            'other_expenses': data['total_other_expenses']
+            'other_expenses': total_other_expenses_input
         })
 
         print(f"DEBUG: Calculated financials: {financials}")
@@ -4829,12 +5009,13 @@ def create_event_consumption():
         print(f"DEBUG: Booking update completed successfully")
 
         # Serializar fecha para respuesta
-        consumption_data['created_at'] = safe_datetime_to_iso(consumption_data['created_at'])
+        if 'created_at' in saved_consumption:
+            saved_consumption['created_at'] = safe_datetime_to_iso(saved_consumption.get('created_at'))
 
         return jsonify({
             'message': 'Event consumption registered successfully',
             'consumption_id': consumption_id,
-            'consumption': consumption_data
+            'consumption': saved_consumption
         }), 201
 
     except Exception as e:
@@ -4904,13 +5085,32 @@ def get_consumption_status(booking_id):
         if consumption_data and 'created_at' in consumption_data:
             consumption_data['created_at'] = safe_datetime_to_iso(consumption_data['created_at'])
 
+        # Compute canonical cost metrics for the UI to avoid double counting and parsing issues
+        estimated_supply_cost = float((supplies_data or {}).get('estimated_total_cost', 0) or 0)
+        real_supply_cost = float((consumption_data or {}).get('total_supply_cost', 0) or 0)
+        other_expenses = float((consumption_data or {}).get('total_other_expenses', 0) or 0)
+
+        # Prefer real supply cost when available; otherwise fall back to estimated
+        current_supply_cost = real_supply_cost if real_supply_cost > 0 else estimated_supply_cost
+        total_cost_correct = real_supply_cost + other_expenses if real_supply_cost > 0 else estimated_supply_cost + other_expenses
+
+        computed = {
+            'estimated_supply_cost': estimated_supply_cost,
+            'real_supply_cost': real_supply_cost,
+            'other_expenses_total': other_expenses,
+            'current_supply_cost': current_supply_cost,
+            'total_cost': total_cost_correct,
+            'source': 'real' if real_supply_cost > 0 else 'estimated'
+        }
+
         return jsonify({
             'booking_id': booking_id,
             'has_supplies': has_supplies,
             'has_consumption': has_consumption,
             'can_complete_event': has_supplies and has_consumption,
             'supplies': supplies_data,
-            'consumption': consumption_data
+            'consumption': consumption_data,
+            'computed': computed
         }), 200
 
     except Exception as e:
@@ -5017,18 +5217,36 @@ def get_monthly_report_data(year: int, month: int):
             "events_by_service": {}
         }
 
-    # Helper: costo total consistente con el frontend (financials + expenses)
+    # Helper: costo total consistente con la UI (insumos + gastos), evitando doble conteo
     def _calc_total_cost(b: dict) -> float:
         try:
-            expenses_sum = sum((e.get('amount', 0) for e in (b.get('expenses') or [])))
-            fin_total = (b.get('financials') or {}).get('total_expenses', 0) or 0
-            # Si no hay financials/expenses, usar event_cost como fallback
-            total = fin_total + expenses_sum
-            if total == 0:
-                total = b.get('event_cost', 0) or 0
-            return float(total)
+            fin = (b.get('financials') or {})
+            supply_real = float(fin.get('supply_cost') or 0)
+            other_expenses = float(fin.get('other_expenses') or 0)
+            est_supply = float(fin.get('estimated_supply_cost') or 0)
+
+            # Si hay financials, preferir costo real de insumos; si no, estimado. Sumar otros gastos.
+            if (supply_real > 0) or (est_supply > 0) or (other_expenses > 0):
+                supply = supply_real if supply_real > 0 else est_supply
+                return float(supply + other_expenses)
+
+            # Fallback: si no hay financials, usar suma de gastos del booking
+            expenses_sum = 0.0
+            try:
+                expenses_sum = sum((float((e or {}).get('amount') or 0) for e in (b.get('expenses') or [])))
+            except Exception:
+                expenses_sum = 0.0
+
+            if expenses_sum > 0:
+                return float(expenses_sum)
+
+            # Último recurso: event_cost si existe
+            return float(b.get('event_cost') or 0)
         except Exception:
-            return float(b.get('event_cost', 0) or 0)
+            try:
+                return float(b.get('event_cost') or 0)
+            except Exception:
+                return 0.0
 
     # Calcular métricas financieras desde los agendamientos
     total_income = 0.0
