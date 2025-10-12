@@ -2459,7 +2459,8 @@ const BookingsManagement = () => {
                                                                                     endAdornment: <Typography variant="caption">{item.unit}</Typography>
                                                                                 }}
                                                                                 sx={{ width: 100 }}
-                                                                                disabled={!supplyStatus.has_supplies}
+                                                                                // TEMP: Disabled validation - allow editing consumption after registration
+                                                                                // disabled={!supplyStatus.has_supplies}
                                                                             />
                                                                         </TableCell>
                                                                         <TableCell align="center">
@@ -2556,7 +2557,8 @@ const BookingsManagement = () => {
                                                                 value={integratedSupplies.consumption_notes}
                                                                 onChange={(e) => setIntegratedSupplies({...integratedSupplies, consumption_notes: e.target.value})}
                                                                 placeholder="Observaciones sobre el consumo real..."
-                                                                disabled={!supplyStatus.has_supplies}
+                                                                // TEMP: Disabled validation - allow editing notes after registration
+                                                                // disabled={!supplyStatus.has_supplies}
                                                             />
                                                         </Grid>
                                                     </Grid>
@@ -2577,10 +2579,11 @@ const BookingsManagement = () => {
                                                         <Button
                                                             onClick={handleSaveConsumption}
                                                             variant="contained"
-                                                            disabled={!supplyStatus.has_supplies || supplyStatus.has_consumption}
+                                                            // TEMP: Disabled validation - allow re-registering consumption
+                                                            // disabled={!supplyStatus.has_supplies || supplyStatus.has_consumption}
                                                             color="success"
                                                         >
-                                                            {supplyStatus.has_consumption ? 'Consumo Registrado' : 'Registrar Consumo'}
+                                                            {supplyStatus.has_consumption ? 'Actualizar Consumo' : 'Registrar Consumo'}
                                                         </Button>
                                                     )}
                                                 </Box>
@@ -2906,7 +2909,8 @@ const BookingsManagement = () => {
                                                                                         endAdornment: <Typography variant="caption">{item.unit}</Typography>
                                                                                     }}
                                                                                     sx={{ width: 100 }}
-                                                                                    disabled={!supplyStatus.has_supplies}
+                                                                                    // TEMP: Disabled validation - allow editing consumption after registration
+                                                                                    // disabled={!supplyStatus.has_supplies}
                                                                                     placeholder="Después del evento"
                                                                                 />
                                                                             </TableCell>
@@ -3004,7 +3008,8 @@ const BookingsManagement = () => {
                                                                     value={integratedSupplies.consumption_notes}
                                                                     onChange={(e) => setIntegratedSupplies({...integratedSupplies, consumption_notes: e.target.value})}
                                                                     placeholder="Observaciones sobre el consumo real..."
-                                                                    disabled={!supplyStatus.has_supplies}
+                                                                    // TEMP: Disabled validation - allow editing notes after registration
+                                                                    // disabled={!supplyStatus.has_supplies}
                                                                 />
                                                             </Grid>
                                                         </Grid>
@@ -3025,10 +3030,11 @@ const BookingsManagement = () => {
                                                             <Button
                                                                 onClick={handleSaveConsumption}
                                                                 variant="contained"
-                                                                disabled={!supplyStatus.has_supplies || supplyStatus.has_consumption}
+                                                                // TEMP: Disabled validation - allow re-registering consumption
+                                                                // disabled={!supplyStatus.has_supplies || supplyStatus.has_consumption}
                                                                 color="success"
                                                             >
-                                                                {supplyStatus.has_consumption ? 'Consumo Registrado' : 'Registrar Consumo'}
+                                                                {supplyStatus.has_consumption ? 'Actualizar Consumo' : 'Registrar Consumo'}
                                                             </Button>
                                                         )}
                                                     </Box>
