@@ -80,16 +80,38 @@ const EventsManagement = () => {
   const loadEvents = async () => {
     try {
       setLoading(true)
-      const response = await eventsAPI.getAll()
-      console.log('📊 Respuesta del backend - eventos:', response.data)
+      let allEvents = []
+      let currentPage = 1
+      let hasMore = true
 
-      // Manejar respuesta paginada del backend
-      const eventsData = response.data?.items || response.data || []
-      console.log('✅ Eventos procesados:', eventsData)
+      // Cargar todos los eventos página por página
+      while (hasMore) {
+        const response = await eventsAPI.getAll({ page: currentPage, limit: 100 })
+        console.log(`📊 Página ${currentPage} - eventos:`, response.data)
 
-      const validEvents = Array.isArray(eventsData) ? eventsData : []
-      setEvents(validEvents)
-      setFilteredEvents(validEvents)
+        // Manejar respuesta paginada del backend
+        const eventsData = response.data?.items || response.data || []
+        const totalPages = response.data?.total_pages || 1
+        const currentPageNum = response.data?.page || currentPage
+
+        if (Array.isArray(eventsData) && eventsData.length > 0) {
+          allEvents = [...allEvents, ...eventsData]
+        }
+
+        // Verificar si hay más páginas
+        hasMore = currentPageNum < totalPages && eventsData.length > 0
+        currentPage++
+
+        // Prevenir bucles infinitos
+        if (currentPage > 100) {
+          console.warn('⚠️ Límite de páginas alcanzado')
+          break
+        }
+      }
+
+      console.log('✅ Total eventos cargados:', allEvents.length)
+      setEvents(allEvents)
+      setFilteredEvents(allEvents)
     } catch (error) {
       console.error('Error loading events:', error)
       toast.error('Error al cargar eventos')

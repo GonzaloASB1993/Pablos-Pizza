@@ -367,21 +367,46 @@ const BookingsManagement = () => {
         loadBookings()
     }, [])
 
-    const loadBookings = async (page = currentPage) => {
+    const loadBookings = async (page = 1) => {
         try {
             setLoading(true)
-            const response = await bookingsAPI.getAll({ page, limit: 20 })
-            // Handle paginated response format: {items: [], pagination: {}}
-            const bookingsData = response.data.items || response.data
-            const paginationData = response.data.pagination || {
-                page: 1,
-                limit: 20,
-                showing: bookingsData.length,
-                has_more: false
+            let allBookings = []
+            let currentPageNum = 1
+            let hasMore = true
+
+            // Cargar todos los agendamientos página por página
+            while (hasMore) {
+                const response = await bookingsAPI.getAll({ page: currentPageNum, limit: 100 })
+                console.log(`📊 Página ${currentPageNum} - bookings:`, response.data)
+
+                // Handle paginated response format: {items: [], pagination: {}}
+                const bookingsData = response.data.items || response.data || []
+                const paginationData = response.data.pagination || {}
+
+                if (Array.isArray(bookingsData) && bookingsData.length > 0) {
+                    allBookings = [...allBookings, ...bookingsData]
+                }
+
+                // Verificar si hay más páginas
+                hasMore = paginationData.has_more && bookingsData.length > 0
+                currentPageNum++
+
+                // Prevenir bucles infinitos
+                if (currentPageNum > 100) {
+                    console.warn('⚠️ Límite de páginas alcanzado')
+                    break
+                }
             }
-            setBookings(bookingsData)
-            setPagination(paginationData)
-            setCurrentPage(page)
+
+            console.log('✅ Total agendamientos cargados:', allBookings.length)
+            setBookings(allBookings)
+            setPagination({
+                page: 1,
+                limit: allBookings.length,
+                showing: allBookings.length,
+                has_more: false
+            })
+            setCurrentPage(1)
         } catch (error) {
             console.error('Error loading bookings:', error)
             toast.error('Error al cargar agendamientos')
