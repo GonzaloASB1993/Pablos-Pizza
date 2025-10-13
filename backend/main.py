@@ -333,7 +333,6 @@ def health():
             "environment": os.getenv('ENVIRONMENT', 'production'),
             "version": "2.1.1",
             "database": db_status,
-            "cors_origins": len(allowed_origins),
             "endpoints": [
                 "/api/health",
                 "/api/bookings/",
