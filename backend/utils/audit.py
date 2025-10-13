@@ -43,11 +43,11 @@ def log_audit(user_email, action, resource_type, resource_id, changes=None, meta
 
         # Save to Firestore
         db.collection('audit_logs').add(audit_entry)
-        print(f"✅ Audit log: {user_email} {action} {resource_type}/{resource_id}")
+        print(f"[OK] Audit log: {user_email} {action} {resource_type}/{resource_id}")
 
     except Exception as e:
         # Don't fail the main operation if audit logging fails
-        print(f"❌ Audit logging error: {e}")
+        print(f"[ERROR] Audit logging error: {e}")
 
 
 def audit_log(resource_type, action=None):

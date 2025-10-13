@@ -42,7 +42,7 @@ def paginate_query(query, page=1, limit=20):
         return items, has_more, len(items)
 
     except Exception as e:
-        print(f"❌ Pagination error: {e}")
+        print(f"[ERROR] Pagination error: {e}")
         # Return empty result on error
         return [], False, 0
 

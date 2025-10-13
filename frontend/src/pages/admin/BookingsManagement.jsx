@@ -53,7 +53,9 @@ import {
     ArrowUpward,
     ArrowDownward,
     UnfoldMore,
-    ExpandMore
+    ExpandMore,
+    ChevronLeft,
+    ChevronRight
 } from '@mui/icons-material'
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
@@ -84,6 +86,13 @@ const BookingsManagement = () => {
     const [tabValue, setTabValue] = useState(0)
     const [sortField, setSortField] = useState('event_date')
     const [sortDirection, setSortDirection] = useState('asc')
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: 20,
+        showing: 0,
+        has_more: false
+    })
     const [editDialog, setEditDialog] = useState(false)
     const [createDialog, setCreateDialog] = useState(false)
     const [deleteDialog, setDeleteDialog] = useState(false)
@@ -358,18 +367,38 @@ const BookingsManagement = () => {
         loadBookings()
     }, [])
 
-    const loadBookings = async () => {
+    const loadBookings = async (page = currentPage) => {
         try {
             setLoading(true)
-            const response = await bookingsAPI.getAll()
+            const response = await bookingsAPI.getAll({ page, limit: 20 })
             // Handle paginated response format: {items: [], pagination: {}}
             const bookingsData = response.data.items || response.data
+            const paginationData = response.data.pagination || {
+                page: 1,
+                limit: 20,
+                showing: bookingsData.length,
+                has_more: false
+            }
             setBookings(bookingsData)
+            setPagination(paginationData)
+            setCurrentPage(page)
         } catch (error) {
             console.error('Error loading bookings:', error)
             toast.error('Error al cargar agendamientos')
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handleNextPage = () => {
+        if (pagination.has_more) {
+            loadBookings(currentPage + 1)
+        }
+    }
+
+    const handlePrevPage = () => {
+        if (currentPage > 1) {
+            loadBookings(currentPage - 1)
         }
     }
 
@@ -1717,6 +1746,32 @@ const BookingsManagement = () => {
                                 </TableBody>
                             </Table>
                         </TableContainer>
+                        {/* Pagination Controls */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, px: 2 }}>
+                            <Typography variant="body2" color="text.secondary">
+                                Mostrando {pagination.showing} agendamientos - Página {currentPage}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                    size="small"
+                                    startIcon={<ChevronLeft />}
+                                    onClick={handlePrevPage}
+                                    disabled={currentPage === 1}
+                                    variant="outlined"
+                                >
+                                    Anterior
+                                </Button>
+                                <Button
+                                    size="small"
+                                    endIcon={<ChevronRight />}
+                                    onClick={handleNextPage}
+                                    disabled={!pagination.has_more}
+                                    variant="outlined"
+                                >
+                                    Siguiente
+                                </Button>
+                            </Box>
+                        </Box>
                     </CardContent>
                 </Card>
             ) : (
