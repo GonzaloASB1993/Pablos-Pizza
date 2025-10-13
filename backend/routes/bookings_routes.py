@@ -87,12 +87,58 @@ def update_booking(booking_id):
         if not data: return jsonify({"error":"No data"}), 400
         db = get_db()
         dr = db.collection("bookings").document(booking_id)
-        if not dr.get().exists: return jsonify({"error":"Not found"}), 404
+        doc = dr.get()
+        if not doc.exists: return jsonify({"error":"Not found"}), 404
+
+        # Get current booking data to check for status changes
+        current_booking = doc.to_dict()
+        old_status = current_booking.get('status')
+        new_status = data.get('status')
+
+        # Update the booking
         dr.update(data)
-        ub = dr.get().to_dict()
-        ub['id'] = booking_id
-        return jsonify(ub), 200
-    except Exception as e: return jsonify({"error":str(e)}), 500
+        updated_booking = dr.get().to_dict()
+        updated_booking['id'] = booking_id
+
+        # Send notifications if status changed from non-confirmed to confirmed
+        if new_status == 'confirmed' and old_status != 'confirmed':
+            print(f"📧 Estado cambió de '{old_status}' a 'confirmed' - enviando notificaciones")
+
+            # Send email to client
+            client_email = updated_booking.get('client_email')
+            if client_email:
+                try:
+                    from services.email_service import send_confirmation_email
+                    email_sent = send_confirmation_email(updated_booking)
+                    if email_sent:
+                        print(f"✅ Email de confirmación enviado a {client_email}")
+                    else:
+                        print(f"❌ Error enviando email a {client_email}")
+                except Exception as e:
+                    print(f"❌ Error en envío de email: {e}")
+
+            # Send WhatsApp to client
+            client_phone = updated_booking.get('client_phone')
+            if client_phone:
+                try:
+                    asyncio.run(send_whatsapp_template(client_phone, 'booking_confirmed', updated_booking))
+                    print(f"✅ WhatsApp de confirmación enviado al cliente {client_phone}")
+                except Exception as e:
+                    print(f"❌ Error enviando WhatsApp al cliente: {e}")
+
+            # Send WhatsApp to admins
+            for admin_phone in [os.getenv('ADMIN_WHATSAPP_NUMBER'), os.getenv('PARTNER_WHATSAPP_NUMBER')]:
+                if admin_phone:
+                    try:
+                        asyncio.run(send_whatsapp_template(admin_phone, 'booking_confirmed_admin', updated_booking))
+                        print(f"✅ WhatsApp enviado al admin {admin_phone}")
+                    except Exception as e:
+                        print(f"❌ Error enviando WhatsApp al admin: {e}")
+
+        return jsonify(updated_booking), 200
+    except Exception as e:
+        print(f"❌ Error en update_booking: {e}")
+        return jsonify({"error":str(e)}), 500
 
 @bookings_bp.route('/<booking_id>', methods=['DELETE'])
 def delete_booking(booking_id):
