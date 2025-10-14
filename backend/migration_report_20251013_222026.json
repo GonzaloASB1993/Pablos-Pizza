@@ -1,0 +1,12 @@
+{
+  "bookings_processed": 22,
+  "unique_customers_found": 20,
+  "customers_created": 20,
+  "bookings_updated": 22,
+  "errors": [],
+  "warnings": [],
+  "conflicts": [
+    "Customer vero_fiszer@yahoo.com.ar has multiple names: {'verito  tateti', 'Veronica tateti', 'Veronica Tateti'}",
+    "Customer vero_fiszer@yahoo.com.ar has multiple phones: {'+56987244983', '987244983'}"
+  ]
+}

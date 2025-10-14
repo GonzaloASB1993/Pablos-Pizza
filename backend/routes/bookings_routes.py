@@ -34,19 +34,71 @@ def calculate_estimated_price(service_types, pizzeros_participants=0, party_part
 
 @bookings_bp.route('/', methods=['POST'])
 def create_booking():
+    """Create new booking with automatic customer linking/creation"""
     try:
         data = request.get_json()
         if not data: return jsonify({"error": "No data"}), 400
         for f in ['service_type','participants']:
             if f not in data: return jsonify({"error": f"Missing {f}"}), 400
+
+        db = get_db()
         bid = str(uuid.uuid4())
         ep = calculate_estimated_price(data.get('service_type',''),data.get('pizzeros_participants',0),data.get('party_participants',0),data.get('participants',0),data.get('pizza_quantity',0))
-        bd = {"id":bid,**data,"status":"pending","created_at":datetime.now(),"estimated_price":ep}
-        get_db().collection("bookings").document(bid).set(bd)
+
+        # Handle customer linking/creation
+        customer_id = data.get('customer_id')
+        client_email = data.get('client_email', '').strip().lower()
+
+        if not customer_id and client_email:
+            # Check if customer exists by email
+            existing = db.collection("customers").where("email", "==", client_email).limit(1).get()
+            existing_docs = list(existing)
+
+            if existing_docs:
+                # Link to existing customer
+                customer_id = existing_docs[0].id
+                print(f"🔗 Linking booking to existing customer: {customer_id}")
+            else:
+                # Create new customer
+                customer_id = str(uuid.uuid4())
+                now = datetime.now()
+                customer_doc = {
+                    "id": customer_id,
+                    "name": data.get('client_name', '').strip(),
+                    "email": client_email,
+                    "phone": data.get('client_phone', '').strip(),
+                    "address": data.get('location'),
+                    "notes": None,
+                    "total_bookings": 1,
+                    "last_booking_date": data.get('event_date'),
+                    "created_at": now,
+                    "updated_at": now,
+                    "is_active": True
+                }
+                db.collection("customers").document(customer_id).set(customer_doc)
+                print(f"✅ New customer created: {customer_id}")
+
+        # Create booking with customer reference
+        bd = {"id":bid,**data,"customer_id":customer_id,"status":"pending","created_at":datetime.now(),"estimated_price":ep}
+        db.collection("bookings").document(bid).set(bd)
+
+        # Update customer stats if customer exists
+        if customer_id:
+            try:
+                customer_ref = db.collection("customers").document(customer_id)
+                customer_ref.update({
+                    "total_bookings": firestore.Increment(1),
+                    "last_booking_date": data.get('event_date'),
+                    "updated_at": datetime.now()
+                })
+            except: pass
+
+        # Send notifications
         try:
             for ph in [os.getenv('ADMIN_WHATSAPP_NUMBER','+56998960858'),os.getenv('PARTNER_WHATSAPP_NUMBER','+56998960858')]:
                 asyncio.run(send_whatsapp_template(ph,'new_booking',bd))
         except: pass
+
         return jsonify(bd), 201
     except Exception as e: return jsonify({"error":str(e)}), 500
 

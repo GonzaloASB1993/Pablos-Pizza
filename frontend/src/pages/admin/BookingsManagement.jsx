@@ -35,6 +35,7 @@ import {
     InputAdornment,
     Autocomplete
 } from '@mui/material'
+import CustomerAutocomplete from '../../components/forms/CustomerAutocomplete'
 import {
     Add,
     Edit,
@@ -161,6 +162,8 @@ const BookingsManagement = () => {
         location: '',
         special_requests: ''
     })
+    const [selectedCustomer, setSelectedCustomer] = useState(null)
+    const [manualCustomerEntry, setManualCustomerEntry] = useState(false)
 
     // Calculate estimated price based on service types and participants
     const calculateEstimatedPrice = (serviceTypes, pizParams = 0, partyParams = 0, legacyParams = 0) => {
@@ -1084,7 +1087,44 @@ const BookingsManagement = () => {
             location: '',
             special_requests: ''
         })
+        setSelectedCustomer(null)
+        setManualCustomerEntry(false)
         setCreateDialog(true)
+    }
+
+    const handleCustomerSelect = (customer) => {
+        if (customer) {
+            // Auto-fill customer data
+            setSelectedCustomer(customer)
+            setNewBookingData(prev => ({
+                ...prev,
+                client_name: customer.name,
+                client_email: customer.email,
+                client_phone: customer.phone
+            }))
+            setManualCustomerEntry(false)
+        } else {
+            // Customer cleared
+            setSelectedCustomer(null)
+            if (!manualCustomerEntry) {
+                setNewBookingData(prev => ({
+                    ...prev,
+                    client_name: '',
+                    client_email: '',
+                    client_phone: ''
+                }))
+            }
+        }
+    }
+
+    const handleCreateNewCustomer = (query) => {
+        // Switch to manual entry mode
+        setManualCustomerEntry(true)
+        setSelectedCustomer(null)
+        setNewBookingData(prev => ({
+            ...prev,
+            client_name: query || ''
+        }))
     }
 
     const handleNewBookingChange = (event) => {
@@ -1125,9 +1165,16 @@ const BookingsManagement = () => {
                 special_requests: newBookingData.special_requests || ''
             }
 
+            // Include customer_id if an existing customer was selected
+            if (selectedCustomer && selectedCustomer.id) {
+                bookingData.customer_id = selectedCustomer.id
+            }
+
             await bookingsAPI.create(bookingData)
             toast.success('Agendamiento creado exitosamente')
             setCreateDialog(false)
+            setSelectedCustomer(null)
+            setManualCustomerEntry(false)
             loadBookings()
         } catch (error) {
             console.error('Error creating booking:', error)
@@ -2151,37 +2198,68 @@ const BookingsManagement = () => {
                 <DialogTitle>Crear Nuevo Agendamiento</DialogTitle>
                 <DialogContent>
                     <Grid container spacing={2} sx={{ mt: 1 }}>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                fullWidth
-                                label="Nombre del Cliente"
-                                name="client_name"
-                                value={newBookingData.client_name}
-                                onChange={handleNewBookingChange}
-                                required
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                fullWidth
-                                label="Email"
-                                name="client_email"
-                                type="email"
-                                value={newBookingData.client_email}
-                                onChange={handleNewBookingChange}
-                                required
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                fullWidth
-                                label="Teléfono"
-                                name="client_phone"
-                                value={newBookingData.client_phone}
-                                onChange={handleNewBookingChange}
-                                required
-                            />
-                        </Grid>
+                        {/* Customer Autocomplete or Manual Entry */}
+                        {!manualCustomerEntry ? (
+                            <Grid item xs={12}>
+                                <CustomerAutocomplete
+                                    value={selectedCustomer}
+                                    onChange={handleCustomerSelect}
+                                    onCreateNew={handleCreateNewCustomer}
+                                    required
+                                />
+                            </Grid>
+                        ) : (
+                            <>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Nombre del Cliente"
+                                        name="client_name"
+                                        value={newBookingData.client_name}
+                                        onChange={handleNewBookingChange}
+                                        required
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Email"
+                                        name="client_email"
+                                        type="email"
+                                        value={newBookingData.client_email}
+                                        onChange={handleNewBookingChange}
+                                        required
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Teléfono"
+                                        name="client_phone"
+                                        value={newBookingData.client_phone}
+                                        onChange={handleNewBookingChange}
+                                        required
+                                    />
+                                </Grid>
+                            </>
+                        )}
+
+                        {/* Show customer info if selected */}
+                        {selectedCustomer && (
+                            <Grid item xs={12}>
+                                <Alert severity="info" sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <Box>
+                                        <Typography variant="body2">
+                                            <strong>Cliente seleccionado:</strong> {selectedCustomer.name}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            {selectedCustomer.email} • {selectedCustomer.phone}
+                                            {selectedCustomer.total_bookings > 0 && ` • ${selectedCustomer.total_bookings} reservas previas`}
+                                        </Typography>
+                                    </Box>
+                                </Alert>
+                            </Grid>
+                        )}
                         <Grid item xs={12} sm={6}>
                             <FormControl fullWidth>
                                 <Select

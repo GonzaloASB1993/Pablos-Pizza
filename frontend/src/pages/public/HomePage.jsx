@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { gsap } from 'gsap'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -56,6 +57,7 @@ import 'swiper/css/navigation'
 import { designTokens } from '../../utils/theme'
 import logo from '../../assets/logo.png'
 import { listenTestimonials } from '../../services/testimonialsService'
+import BorderBeam from '../../components/common/BorderBeam'
 
 // Event Categories Data
 const eventCategories = [
@@ -157,96 +159,176 @@ const eventCategories = [
   }
 ]
 
-// Hero Logo 3D con efectos glassmorphism
-const Hero3DLogo = ({ prefersReducedMotion, animationsEnabled }) => (
-  <Box
-    sx={{
-      position: 'relative',
-      display: 'inline-block',
-      perspective: '1000px',
-    }}
-  >
-    {/* Resplandor de fondo */}
-    <Box
-      sx={{
-        position: 'absolute',
-        inset: -40,
-        borderRadius: '50%',
-        background: `radial-gradient(circle, ${designTokens.colors.golden[400]} 0%, ${designTokens.colors.golden[200]}40 40%, transparent 70%)`,
-        filter: 'blur(20px)',
-        animation: (prefersReducedMotion || !animationsEnabled) ? 'none' : 'glow 4s ease-in-out infinite alternate',
-      }}
-    />
+// Hero Logo 3D con efectos GSAP mejorados
+const Hero3DLogo = ({ prefersReducedMotion, animationsEnabled }) => {
+  const logoRef = useRef(null)
+  const glowRef = useRef(null)
+  const ringRef = useRef(null)
+  const containerRef = useRef(null)
 
-    {/* Anillo orbital animado */}
+  useEffect(() => {
+    if (prefersReducedMotion || !animationsEnabled) return
+
+    const logo = logoRef.current
+    const glow = glowRef.current
+    const ring = ringRef.current
+    const container = containerRef.current
+
+    if (!logo || !glow || !ring) return
+
+    // ENTRADA ELASTIC - El logo entra con efecto de rebote suave
+    gsap.fromTo(
+      logo,
+      {
+        scale: 0,
+        opacity: 0,
+        rotation: -180,
+      },
+      {
+        scale: 1,
+        opacity: 1,
+        rotation: 0,
+        duration: 1.4,
+        ease: 'elastic.out(1, 0.6)',
+        delay: 0.3,
+      }
+    )
+
+    // GLOW PULSE - El resplandor pulsa sutilmente
+    gsap.to(glow, {
+      scale: 1.1,
+      opacity: 0.8,
+      duration: 2,
+      ease: 'sine.inOut',
+      repeat: -1,
+      yoyo: true,
+    })
+
+    // ORBITAL RING - Rotación continua suave
+    gsap.to(ring, {
+      rotation: 360,
+      duration: 20,
+      ease: 'none',
+      repeat: -1,
+    })
+
+    // HOVER EFFECT MEJORADO - Efecto magnético al pasar el mouse
+    const handleMouseMove = (e) => {
+      if (!container) return
+
+      const rect = container.getBoundingClientRect()
+      const centerX = rect.left + rect.width / 2
+      const centerY = rect.top + rect.height / 2
+
+      const deltaX = (e.clientX - centerX) / 20
+      const deltaY = (e.clientY - centerY) / 20
+
+      gsap.to(logo, {
+        x: deltaX,
+        y: deltaY,
+        rotationY: deltaX / 2,
+        rotationX: -deltaY / 2,
+        duration: 0.3,
+        ease: 'power2.out',
+      })
+    }
+
+    const handleMouseLeave = () => {
+      gsap.to(logo, {
+        x: 0,
+        y: 0,
+        rotationY: 0,
+        rotationX: 0,
+        duration: 0.5,
+        ease: 'elastic.out(1, 0.5)',
+      })
+    }
+
+    container.addEventListener('mousemove', handleMouseMove)
+    container.addEventListener('mouseleave', handleMouseLeave)
+
+    return () => {
+      container.removeEventListener('mousemove', handleMouseMove)
+      container.removeEventListener('mouseleave', handleMouseLeave)
+    }
+  }, [prefersReducedMotion, animationsEnabled])
+
+  return (
     <Box
+      ref={containerRef}
       sx={{
-        position: 'absolute',
-        inset: -15,
-        borderRadius: '50%',
-        border: `3px solid ${designTokens.colors.golden[400]}`,
-        borderTop: `3px solid ${designTokens.colors.golden[600]}`,
-        animation: (prefersReducedMotion || !animationsEnabled) ? 'none' : 'orbit 20s linear infinite',
-        '&::before': {
-          content: '""',
+        position: 'relative',
+        display: 'inline-block',
+        perspective: '1000px',
+      }}
+    >
+      {/* Resplandor de fondo */}
+      <Box
+        ref={glowRef}
+        sx={{
           position: 'absolute',
-          top: -6,
-          right: 10,
-          width: 12,
-          height: 12,
+          inset: -40,
           borderRadius: '50%',
-          backgroundColor: designTokens.colors.golden[500],
-          boxShadow: `0 0 20px ${designTokens.colors.golden[300]}`,
-        }
-      }}
-    />
+          background: `radial-gradient(circle, ${designTokens.colors.golden[400]} 0%, ${designTokens.colors.golden[200]}40 40%, transparent 70%)`,
+          filter: 'blur(20px)',
+          opacity: 0.8,
+          willChange: 'transform, opacity',
+        }}
+      />
 
-    {/* Logo principal con glassmorphism */}
-    <Box
-      component="img"
-      src={logo}
-      alt="Pablo's Pizza Logo"
-      sx={{
-        width: '100%',
-        maxWidth: { xs: 200, sm: 280, md: 380, lg: 420 },
-        aspectRatio: '1',
-        borderRadius: '50%',
-        objectFit: 'cover',
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(10px)',
-        border: `4px solid rgba(255, 215, 0, 0.3)`,
-        boxShadow: `
-          0 25px 50px -12px rgba(0, 0, 0, 0.25),
-          0 0 0 1px rgba(255, 215, 0, 0.1),
-          inset 0 1px 0 rgba(255, 255, 255, 0.1)
-        `,
-        filter: 'drop-shadow(0 10px 30px rgba(255, 215, 0, 0.3))',
-        transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-        cursor: 'pointer',
-        '&:hover': {
-          transform: 'rotateY(15deg) rotateX(5deg) scale(1.05)',
+      {/* Anillo orbital animado */}
+      <Box
+        ref={ringRef}
+        sx={{
+          position: 'absolute',
+          inset: -15,
+          borderRadius: '50%',
+          border: `3px solid ${designTokens.colors.golden[400]}`,
+          borderTop: `3px solid ${designTokens.colors.golden[600]}`,
+          willChange: 'transform',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: -6,
+            right: 10,
+            width: 12,
+            height: 12,
+            borderRadius: '50%',
+            backgroundColor: designTokens.colors.golden[500],
+            boxShadow: `0 0 20px ${designTokens.colors.golden[300]}`,
+          }
+        }}
+      />
+
+      {/* Logo principal con glassmorphism */}
+      <Box
+        ref={logoRef}
+        component="img"
+        src={logo}
+        alt="Pablo's Pizza Logo"
+        sx={{
+          width: '100%',
+          maxWidth: { xs: 200, sm: 280, md: 380, lg: 420 },
+          aspectRatio: '1',
+          borderRadius: '50%',
+          objectFit: 'cover',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(10px)',
+          border: `4px solid rgba(255, 215, 0, 0.3)`,
           boxShadow: `
-            0 35px 70px -12px rgba(0, 0, 0, 0.4),
-            0 0 0 1px rgba(255, 215, 0, 0.2),
-            inset 0 1px 0 rgba(255, 255, 255, 0.2),
-            0 0 40px rgba(255, 215, 0, 0.4)
+            0 25px 50px -12px rgba(0, 0, 0, 0.25),
+            0 0 0 1px rgba(255, 215, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1)
           `,
-        }
-      }}
-    />
-
-    <style>{`
-      @keyframes glow {
-        0%, 100% { opacity: 0.8; transform: scale(1); }
-        50% { opacity: 1; transform: scale(1.05); }
-      }
-      @keyframes orbit {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-    `}</style>
-  </Box>
-)
+          filter: 'drop-shadow(0 10px 30px rgba(255, 215, 0, 0.3))',
+          cursor: 'pointer',
+          willChange: 'transform',
+          transformStyle: 'preserve-3d',
+        }}
+      />
+    </Box>
+  )
+}
 
 // Componente de estadísticas impactantes
 const StatsCard = ({ number, label, icon, color = 'golden' }) => (
@@ -595,6 +677,307 @@ function EventDetailModal({ event, open, onClose }) {
   )
 }
 
+// Testimonial Card Component with Image Lightbox
+function TestimonialCard({ testimonial, sanitizeReviewText }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState(false)
+
+  const handleImageClick = () => {
+    if (testimonial.imageUrl) {
+      setLightboxOpen(true)
+    }
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleImageClick()
+    }
+  }
+
+  return (
+    <>
+      <Card
+        sx={{
+          position: 'relative',
+          overflow: 'hidden',
+          backgroundColor: '#FFFFFF',
+          color: '#000',
+          minHeight: 'auto',
+          maxWidth: 650,
+          mx: 'auto',
+          p: { xs: 2.5, sm: 3 },
+          border: '2px solid rgba(255, 215, 0, 0.3)',
+          borderRadius: 2,
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          '&:hover': {
+            borderColor: '#FFD700',
+            transform: 'translateY(-2px)',
+            boxShadow: '0 8px 32px rgba(255, 215, 0, 0.2)'
+          }
+        }}
+      >
+        <CardContent sx={{ p: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Header: Avatar, Name, and Rating */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar
+              sx={{
+                width: 48,
+                height: 48,
+                backgroundColor: '#FFD700',
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                color: '#000',
+                boxShadow: '0 2px 8px rgba(255, 215, 0, 0.3)'
+              }}
+            >
+              {testimonial.name?.charAt(0)?.toUpperCase() || 'U'}
+            </Avatar>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2, mb: 0.5, fontSize: '1rem' }}>
+                {testimonial.name || 'Cliente'}
+              </Typography>
+              <Rating
+                value={Number(testimonial.rating) || 0}
+                readOnly
+                size="small"
+                sx={{ color: '#FFD700' }}
+                aria-label={`Calificación: ${testimonial.rating} de 5 estrellas`}
+              />
+            </Box>
+          </Box>
+
+          {/* Testimonial Text */}
+          <Box sx={{ position: 'relative', pl: 2 }}>
+            <Typography
+              component="span"
+              sx={{
+                position: 'absolute',
+                left: -8,
+                top: -8,
+                fontSize: '2rem',
+                color: '#FFD700',
+                opacity: 0.3,
+                fontFamily: 'Georgia, serif',
+                lineHeight: 1,
+                userSelect: 'none'
+              }}
+            >
+              "
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontStyle: 'italic',
+                lineHeight: 1.7,
+                color: '#333',
+                fontSize: { xs: '0.95rem', sm: '1rem' }
+              }}
+            >
+              {sanitizeReviewText(testimonial.comment || testimonial.text || '')}
+            </Typography>
+          </Box>
+
+          {/* Testimonial Image Thumbnail (if available) */}
+          {testimonial.imageUrl && (
+            <Box
+              onClick={handleImageClick}
+              onKeyDown={handleKeyDown}
+              tabIndex={0}
+              role="button"
+              aria-label="Click para ampliar imagen del testimonio"
+              sx={{
+                position: 'relative',
+                width: { xs: 120, sm: 150 },
+                height: { xs: 120, sm: 150 },
+                borderRadius: 2,
+                overflow: 'hidden',
+                cursor: 'pointer',
+                border: '2px solid rgba(255, 215, 0, 0.3)',
+                transition: 'all 0.3s ease',
+                alignSelf: 'flex-start',
+                mt: 1,
+                '&:hover': {
+                  borderColor: '#FFD700',
+                  transform: 'scale(1.05)',
+                  '& .zoom-overlay': {
+                    opacity: 1
+                  }
+                },
+                '&:focus-visible': {
+                  outline: '3px solid #FFD700',
+                  outlineOffset: '2px'
+                }
+              }}
+            >
+              {!imageLoaded && (
+                <Skeleton
+                  variant="rectangular"
+                  width="100%"
+                  height="100%"
+                  sx={{ position: 'absolute', top: 0, left: 0 }}
+                />
+              )}
+              <Box
+                component="img"
+                src={testimonial.imageUrl}
+                alt={`Imagen de testimonio de ${testimonial.name}`}
+                loading="lazy"
+                onLoad={() => setImageLoaded(true)}
+                sx={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: imageLoaded ? 'block' : 'none'
+                }}
+              />
+              {/* Zoom Overlay */}
+              <Box
+                className="zoom-overlay"
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: 0,
+                  transition: 'opacity 0.3s ease'
+                }}
+              >
+                <Typography variant="caption" sx={{ color: '#FFD700', fontWeight: 700, fontSize: '0.75rem' }}>
+                  🔍 Ampliar
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          {/* Date (if available) */}
+          {testimonial.createdAt && (() => {
+            try {
+              // Handle both Firestore Timestamp and regular date strings
+              let date;
+              if (testimonial.createdAt.toDate) {
+                // Firestore Timestamp
+                date = testimonial.createdAt.toDate();
+              } else if (testimonial.createdAt.seconds) {
+                // Firestore Timestamp object format
+                date = new Date(testimonial.createdAt.seconds * 1000);
+              } else {
+                // Regular date string or number
+                date = new Date(testimonial.createdAt);
+              }
+
+              // Check if date is valid
+              if (isNaN(date.getTime())) {
+                return null;
+              }
+
+              return (
+                <Typography variant="caption" sx={{ color: 'rgba(0,0,0,0.5)', textAlign: 'right', fontSize: '0.75rem' }}>
+                  {date.toLocaleDateString('es-CL', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </Typography>
+              );
+            } catch (e) {
+              return null;
+            }
+          })()}
+        </CardContent>
+
+        {/* Border Beam Effect */}
+        <BorderBeam
+          size={200}
+          duration={8}
+          borderWidth={1.5}
+          colorFrom="#FFD700"
+          colorTo="#FFA500"
+        />
+      </Card>
+
+      {/* Image Lightbox Modal */}
+      <Dialog
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
+            borderRadius: 2
+          }
+        }}
+        aria-labelledby="lightbox-title"
+      >
+        <DialogContent sx={{ p: 2, position: 'relative' }}>
+          {/* Close Button */}
+          <IconButton
+            onClick={() => setLightboxOpen(false)}
+            aria-label="Cerrar imagen ampliada"
+            sx={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              backgroundColor: 'rgba(255, 215, 0, 0.9)',
+              color: '#000',
+              zIndex: 10,
+              '&:hover': {
+                backgroundColor: '#FFD700',
+                transform: 'scale(1.1)'
+              }
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+
+          {/* Full Size Image */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: { xs: 300, sm: 500 }
+            }}
+          >
+            <Box
+              component="img"
+              src={testimonial.imageUrl}
+              alt={`Imagen ampliada de testimonio de ${testimonial.name}`}
+              sx={{
+                maxWidth: '100%',
+                maxHeight: '80vh',
+                objectFit: 'contain',
+                borderRadius: 1
+              }}
+            />
+          </Box>
+
+          {/* Image Caption */}
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Typography variant="subtitle1" sx={{ color: '#FFD700', fontWeight: 600 }}>
+              Testimonio de {testimonial.name}
+            </Typography>
+            <Rating
+              value={Number(testimonial.rating) || 0}
+              readOnly
+              size="small"
+              sx={{ color: '#FFD700', mt: 1 }}
+            />
+          </Box>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
 // Event Gallery Section Component
 function EventGallerySection({ navigate }) {
   const [selectedEvent, setSelectedEvent] = useState(null)
@@ -904,7 +1287,13 @@ export default function HomePage() {
       .filter((line) => !/^\s{4,}|^\t/.test(line))
       .join(' ')
 
-    // 7) Normaliza espacios
+    // 7) Elimina CSS inline y propiedades de estilo
+    out = out.replace(/;position:absolute[^}]*}/gi, '')
+    out = out.replace(/\{[^}]*position\s*:\s*absolute[^}]*\}/gi, '')
+    out = out.replace(/;[a-z-]+:[^;]*/gi, '')
+    out = out.replace(/[a-z-]+\s*:\s*[^;]+;/gi, '')
+
+    // 8) Normaliza espacios
     out = out.replace(/\s+/g, ' ').trim()
     return out
   }
@@ -1553,9 +1942,10 @@ export default function HomePage() {
       <AnimatedSection delay={0}>
         <Box
           component="section"
+          aria-label="Testimonios de clientes"
           sx={{
             minHeight: '100vh',
-            backgroundColor: '#000',
+            backgroundColor: '#FFFFFF',
             py: 8,
             display: 'flex',
             alignItems: 'center'
@@ -1568,11 +1958,11 @@ export default function HomePage() {
               </Typography>
               <Stack direction="row" spacing={3} justifyContent="center" alignItems="center">
                 <Box sx={{ textAlign: 'center' }}>
-                  <Rating value={reviewStats.roundedAvg} readOnly sx={{ color: '#FFD700', mb: 1 }} />
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#FFF' }}>
+                  <Rating value={reviewStats.roundedAvg} readOnly sx={{ color: '#FFD700', mb: 1 }} aria-label={`Calificación promedio: ${reviewStats.avg.toFixed(1)} de 5 estrellas`} />
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#000' }}>
                     {reviewStats.avg.toFixed(1)} / 5.0
                   </Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                  <Typography variant="caption" sx={{ color: 'rgba(0,0,0,0.6)' }}>
                     Promedio de reseñas
                   </Typography>
                 </Box>
@@ -1580,7 +1970,7 @@ export default function HomePage() {
                   <Typography variant="h6" sx={{ fontWeight: 700, color: '#FFD700' }}>
                     {reviewStats.total}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                  <Typography variant="caption" sx={{ color: 'rgba(0,0,0,0.6)' }}>
                     Reseña{reviewStats.total === 1 ? '' : 's'} verificadas
                   </Typography>
                 </Box>
@@ -1589,20 +1979,16 @@ export default function HomePage() {
 
             {/* Loading State */}
             {reviewsLoading && (
-              <Grid container spacing={3}>
-                {[1, 2, 3].map((i) => (
-                  <Grid item xs={12} sm={6} md={4} key={i}>
-                    <Skeleton
-                      variant="rectangular"
-                      height={280}
-                      sx={{
-                        borderRadius: 2,
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                      }}
-                    />
-                  </Grid>
-                ))}
-              </Grid>
+              <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+                <Skeleton
+                  variant="rectangular"
+                  height={450}
+                  sx={{
+                    borderRadius: 3,
+                    backgroundColor: 'rgba(0, 0, 0, 0.06)'
+                  }}
+                />
+              </Box>
             )}
 
             {/* Error State */}
@@ -1611,7 +1997,7 @@ export default function HomePage() {
                 severity="error"
                 sx={{
                   backgroundColor: 'rgba(244, 67, 54, 0.1)',
-                  color: '#FFF',
+                  color: '#d32f2f',
                   border: '1px solid rgba(244, 67, 54, 0.3)'
                 }}
               >
@@ -1622,7 +2008,7 @@ export default function HomePage() {
             {/* Empty State */}
             {!reviewsLoading && !reviewsError && reviews.length === 0 && (
               <Box sx={{ textAlign: 'center', py: 8 }}>
-                <Typography variant="h6" sx={{ color: '#FFF', mb: 2 }}>
+                <Typography variant="h6" sx={{ color: '#000', mb: 2 }}>
                   ¡Sé el primero en dejarnos tu opinión!
                 </Typography>
                 <Button
@@ -1630,7 +2016,11 @@ export default function HomePage() {
                   onClick={() => navigate('/testimonios')}
                   sx={{
                     borderColor: '#FFD700',
-                    color: '#FFD700'
+                    color: '#FFD700',
+                    '&:hover': {
+                      borderColor: '#FFC700',
+                      backgroundColor: 'rgba(255, 215, 0, 0.1)'
+                    }
                   }}
                 >
                   Dejar Testimonio
@@ -1638,92 +2028,101 @@ export default function HomePage() {
               </Box>
             )}
 
-            {/* Reviews Carousel */}
+            {/* Reviews Carousel - ONE AT A TIME */}
             {!reviewsLoading && !reviewsError && reviews.length > 0 && (
               <>
-                <Swiper
-                  modules={[Autoplay, Pagination, Navigation]}
-                  spaceBetween={30}
-                  slidesPerView={1}
-                  breakpoints={{
-                    640: { slidesPerView: 2 },
-                    1024: { slidesPerView: 3 }
-                  }}
-                  autoplay={{
-                    delay: 5000,
-                    disableOnInteraction: false
-                  }}
-                  pagination={{ clickable: true }}
-                  navigation
-                  loop={reviews.length >= 3}
-                  style={{ paddingBottom: '50px' }}
-                >
-                  {reviews.map((t, index) => (
-                  <SwiperSlide key={t.id || `${t.name}-${index}`}>
-                    <Card
-                      sx={{
-                        backgroundColor: '#FFFFFF',
-                        color: '#000',
-                        height: '280px',
-                        p: 3,
-                        border: '2px solid rgba(255, 215, 0, 0.3)',
-                        borderRadius: 2,
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          borderColor: '#FFD700',
-                          transform: 'translateY(-8px)',
-                          boxShadow: '0 8px 32px rgba(255, 215, 0, 0.4)'
-                        }
-                      }}
-                    >
-                      <CardContent sx={{ p: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                          <Avatar
-                            sx={{
-                              width: 48,
-                              height: 48,
-                              backgroundColor: '#FFD700',
-                              fontSize: '1.1rem',
-                              fontWeight: 700,
-                              color: '#000'
-                            }}
-                          >
-                            {t.name?.charAt(0) || 'U'}
-                          </Avatar>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                              {t.name || 'Cliente'}
-                            </Typography>
-                          </Box>
-                          <Rating
-                            value={Number(t.rating) || 0}
-                            readOnly
-                            size="small"
-                            sx={{ color: '#FFD700' }}
-                          />
-                        </Box>
+                <Box sx={{ maxWidth: 900, mx: 'auto', position: 'relative' }}>
+                  <Swiper
+                    modules={[Autoplay, Pagination, Navigation]}
+                    spaceBetween={0}
+                    slidesPerView={1}
+                    autoplay={{
+                      delay: 6000,
+                      disableOnInteraction: false,
+                      pauseOnMouseEnter: true
+                    }}
+                    pagination={{
+                      clickable: true,
+                      dynamicBullets: true
+                    }}
+                    navigation={{
+                      nextEl: '.testimonial-next',
+                      prevEl: '.testimonial-prev'
+                    }}
+                    loop={reviews.length > 1}
+                    style={{ paddingBottom: '60px' }}
+                    keyboard={{
+                      enabled: true,
+                      onlyInViewport: true
+                    }}
+                    a11y={{
+                      enabled: true,
+                      prevSlideMessage: 'Testimonio anterior',
+                      nextSlideMessage: 'Siguiente testimonio',
+                      firstSlideMessage: 'Este es el primer testimonio',
+                      lastSlideMessage: 'Este es el último testimonio'
+                    }}
+                  >
+                    {reviews.map((t, index) => (
+                    <SwiperSlide key={t.id || `${t.name}-${index}`}>
+                      <TestimonialCard testimonial={t} sanitizeReviewText={sanitizeReviewText} />
+                    </SwiperSlide>
+                    ))}
+                  </Swiper>
 
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontStyle: 'italic',
-                            lineHeight: 1.6,
-                            color: '#333',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 6,
-                            WebkitBoxOrient: 'vertical',
-                            flex: 1
-                          }}
-                        >
-                          "{sanitizeReviewText(t.comment || t.text || '')}"
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </SwiperSlide>
-                  ))}
-                </Swiper>
+                  {/* Custom Navigation Buttons */}
+                  <IconButton
+                    className="testimonial-prev"
+                    aria-label="Ver testimonio anterior"
+                    sx={{
+                      position: 'absolute',
+                      left: { xs: -10, sm: -20 },
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      zIndex: 10,
+                      backgroundColor: '#FFFFFF',
+                      border: '2px solid #FFD700',
+                      color: '#FFD700',
+                      width: { xs: 40, sm: 50 },
+                      height: { xs: 40, sm: 50 },
+                      boxShadow: '0 4px 12px rgba(255, 215, 0, 0.2)',
+                      '&:hover': {
+                        backgroundColor: '#FFD700',
+                        color: '#000',
+                        transform: 'translateY(-50%) scale(1.1)',
+                      },
+                      transition: 'all 0.3s ease',
+                    }}
+                  >
+                    <ArrowForward sx={{ transform: 'rotate(180deg)', fontSize: { xs: 20, sm: 24 } }} />
+                  </IconButton>
+
+                  <IconButton
+                    className="testimonial-next"
+                    aria-label="Ver siguiente testimonio"
+                    sx={{
+                      position: 'absolute',
+                      right: { xs: -10, sm: -20 },
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      zIndex: 10,
+                      backgroundColor: '#FFFFFF',
+                      border: '2px solid #FFD700',
+                      color: '#FFD700',
+                      width: { xs: 40, sm: 50 },
+                      height: { xs: 40, sm: 50 },
+                      boxShadow: '0 4px 12px rgba(255, 215, 0, 0.2)',
+                      '&:hover': {
+                        backgroundColor: '#FFD700',
+                        color: '#000',
+                        transform: 'translateY(-50%) scale(1.1)',
+                      },
+                      transition: 'all 0.3s ease',
+                    }}
+                  >
+                    <ArrowForward sx={{ fontSize: { xs: 20, sm: 24 } }} />
+                  </IconButton>
+                </Box>
 
                 <Box sx={{ textAlign: 'center', mt: 6 }}>
                   <Button
@@ -1733,12 +2132,15 @@ export default function HomePage() {
                     size="large"
                     sx={{
                       px: 4,
+                      py: 1.5,
                       borderColor: '#FFD700',
-                      color: '#FFD700',
+                      color: '#000',
+                      fontWeight: 600,
                       borderWidth: 2,
                       '&:hover': {
-                        borderColor: '#FFC700',
-                        color: '#FFC700',
+                        borderColor: '#FFD700',
+                        backgroundColor: '#FFD700',
+                        color: '#000',
                         borderWidth: 2
                       }
                     }}
@@ -1754,13 +2156,26 @@ export default function HomePage() {
           <style>{`
             .swiper-button-next,
             .swiper-button-prev {
-              color: #FFD700 !important;
+              display: none !important;
             }
             .swiper-pagination-bullet {
-              background: #FFD700 !important;
+              background: rgba(0, 0, 0, 0.3) !important;
+              opacity: 1 !important;
+              width: 10px !important;
+              height: 10px !important;
+              transition: all 0.3s ease !important;
             }
             .swiper-pagination-bullet-active {
               background: #FFD700 !important;
+              width: 24px !important;
+              border-radius: 5px !important;
+            }
+            .swiper-slide {
+              opacity: 0;
+              transition: opacity 0.5s ease-in-out;
+            }
+            .swiper-slide-active {
+              opacity: 1;
             }
           `}</style>
         </Box>

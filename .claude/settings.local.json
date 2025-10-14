@@ -65,7 +65,9 @@
       "Bash(findstr:*)",
       "Bash(grep:*)",
       "Bash(xargs:*)",
-      "WebFetch(domain:us-central1-pablospizza-d84bf.cloudfunctions.net)"
+      "WebFetch(domain:us-central1-pablospizza-d84bf.cloudfunctions.net)",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_evaluate"
     ],
     "deny": [],
     "ask": []

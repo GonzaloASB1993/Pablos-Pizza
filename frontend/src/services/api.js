@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
 const BASE_URL = isDevelopment
-  ? 'http://localhost:8000/api'  // Development
+  ? 'http://localhost:5000/api'  // Development - Flask runs on port 5000
   : 'https://main-4kqeqojbsq-uc.a.run.app/api'  // Production Cloud Run
 
 
@@ -442,6 +442,17 @@ export const contactAPI = {
   getAll: (params = {}) => api.get('/contacts', { params }),
   update: (id, data) => api.put(`/contacts/${id}`, data),
   respond: (id, data) => api.post(`/contacts/${id}/respond`, data),
+}
+
+// Customers API
+export const customersAPI = {
+  create: (data) => api.post('/customers/', data),
+  getAll: (params = {}) => api.get('/customers/', { params }),
+  getById: (id) => api.get(`/customers/${id}`),
+  update: (id, data) => api.put(`/customers/${id}`, data),
+  delete: (id) => api.delete(`/customers/${id}`),
+  search: (query) => api.get('/customers/search', { params: { q: query } }),
+  getBookings: (id, params = {}) => api.get(`/customers/${id}/bookings`, { params })
 }
 
 export default api
