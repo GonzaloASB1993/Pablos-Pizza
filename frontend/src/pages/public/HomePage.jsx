@@ -57,107 +57,11 @@ import 'swiper/css/navigation'
 import { designTokens } from '../../utils/theme'
 import logo from '../../assets/logo.png'
 import { listenTestimonials } from '../../services/testimonialsService'
+import { listenGalleryPhotos, getGalleryImageUrls } from '../../services/galleryService'
 import BorderBeam from '../../components/common/BorderBeam'
+import RollingGallery from '../../components/common/RollingGallery'
+import LightRays from '../../components/common/LightRays'
 
-// Event Categories Data
-const eventCategories = [
-  {
-    id: 'corporate',
-    title: 'Eventos Corporativos',
-    subtitle: 'Team building delicioso y efectivo',
-    tag: 'Empresas',
-    icon: '💼',
-    mainImage: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800',
-    gallery: [
-      'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800',
-      'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800',
-      'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800'
-    ],
-    description: 'Actividades de team building únicas donde tu equipo aprende a hacer pizzas artesanales mientras fortalece vínculos. Ideal para empresas que buscan eventos memorables.',
-    services: ['Pizza Party', 'Pizzeros en Acción'],
-    duration: '2-3 horas',
-    capacity: '15-100 personas',
-    features: [
-      'Chef profesional guiando',
-      'Ingredientes premium',
-      'Competencias por equipos',
-      'Premios y reconocimientos',
-      'Show completo'
-    ]
-  },
-  {
-    id: 'birthday',
-    title: 'Cumpleaños Especiales',
-    subtitle: 'Celebraciones únicas e inolvidables',
-    tag: 'Cumpleaños',
-    icon: '🎂',
-    mainImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
-    gallery: [
-      'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
-      'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800',
-      'https://images.unsplash.com/photo-1558636508-e0db3814bd1d?w=800'
-    ],
-    description: 'Fiestas de cumpleaños donde los niños son los protagonistas. Aprenden, juegan y crean sus propias pizzas en una experiencia educativa y deliciosa.',
-    services: ['Pizza Party', 'Pizzeros en Acción'],
-    duration: '2-3 horas',
-    capacity: '10-50 niños',
-    features: [
-      'Animación incluida',
-      'Gorros de chef para todos',
-      'Decoración temática',
-      'Ingredientes ilimitados',
-      'Certificado de chef'
-    ]
-  },
-  {
-    id: 'wedding',
-    title: 'Matrimonios',
-    subtitle: 'Pizza gourmet para tu día especial',
-    tag: 'Eventos',
-    icon: '💒',
-    mainImage: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800',
-    gallery: [
-      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800',
-      'https://images.unsplash.com/photo-1520854221256-17451cc331bf?w=800',
-      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800'
-    ],
-    description: 'Estación de pizza artesanal para matrimonios. Una opción gourmet y divertida que encanta a todos los invitados.',
-    services: ['Pizza Party'],
-    duration: 'Flexible',
-    capacity: 'Sin límite',
-    features: [
-      'Menú personalizado',
-      'Horno profesional',
-      'Pizzeros uniformados',
-      'Ingredientes premium',
-      'Setup elegante'
-    ]
-  },
-  {
-    id: 'school',
-    title: 'Talleres Educativos',
-    subtitle: 'Niños aprendiendo técnicas culinarias',
-    tag: 'Educación',
-    icon: '🎓',
-    mainImage: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800',
-    gallery: [
-      'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800',
-      'https://images.unsplash.com/photo-1544025162-d76694265947?w=800',
-      'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800'
-    ],
-    description: 'Talleres gastronómicos para colegios donde los niños desarrollan habilidades culinarias, trabajan en equipo y aprenden sobre nutrición.',
-    services: ['Pizzeros en Acción'],
-    duration: '2-3 horas',
-    capacity: '15-30 niños',
-    features: [
-      'Contenido educativo',
-      'Certificado para cada niño',
-      'Material didáctico',
-      'Chef instructor',
-      'Seguridad alimentaria'
-    ]
-  }
-]
 
 // Hero Logo 3D con efectos GSAP mejorados
 const Hero3DLogo = ({ prefersReducedMotion, animationsEnabled }) => {
@@ -506,176 +410,6 @@ const ProgressiveImage = ({ src, alt, loading = 'lazy', sx, ...props }) => {
   )
 }
 
-// Event Detail Modal Component
-function EventDetailModal({ event, open, onClose }) {
-  const theme = useTheme()
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
-
-  if (!event) return null
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      fullScreen={fullScreen}
-      PaperProps={{
-        sx: {
-          borderRadius: fullScreen ? 0 : 3,
-          maxHeight: fullScreen ? '100vh' : '90vh'
-        }
-      }}
-      aria-labelledby="event-detail-title"
-      aria-describedby="event-detail-description"
-    >
-      {/* Header con botón cerrar */}
-      <Box
-        sx={{
-          position: 'sticky',
-          top: 0,
-          backgroundColor: '#000',
-          color: '#FFD700',
-          p: 2,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          zIndex: 10
-        }}
-      >
-        <Typography id="event-detail-title" variant="h5" sx={{ fontWeight: 'bold' }}>
-          {event.icon} {event.title}
-        </Typography>
-        <IconButton
-          onClick={onClose}
-          sx={{ color: '#FFD700' }}
-          aria-label="Cerrar modal"
-        >
-          <CloseIcon />
-        </IconButton>
-      </Box>
-
-      <DialogContent sx={{ p: 0 }} id="event-detail-description">
-        {/* Carousel de imágenes */}
-        <Box sx={{ mb: 3 }}>
-          <Swiper
-            modules={[Autoplay, Pagination, Navigation]}
-            spaceBetween={0}
-            slidesPerView={1}
-            autoplay={{ delay: 4000 }}
-            pagination={{ clickable: true }}
-            navigation
-            loop
-            aria-label="Galería de imágenes del evento"
-          >
-            {event.gallery.map((image, index) => (
-              <SwiperSlide key={index}>
-                <Box
-                  component="img"
-                  src={image}
-                  loading="lazy"
-                  srcSet={`${image}?w=400 400w, ${image}?w=800 800w, ${image}?w=1200 1200w`}
-                  sizes="(max-width: 600px) 400px, (max-width: 900px) 800px, 1200px"
-                  alt={`${event.title} imagen ${index + 1} de ${event.gallery.length}`}
-                  sx={{
-                    width: '100%',
-                    height: '400px',
-                    objectFit: 'cover'
-                  }}
-                />
-              </SwiperSlide>
-            ))}
-          </Swiper>
-        </Box>
-
-        {/* Contenido del modal */}
-        <Box sx={{ p: 3 }}>
-          {/* Descripción */}
-          <Typography variant="body1" sx={{ mb: 3, lineHeight: 1.8 }}>
-            {event.description}
-          </Typography>
-
-          {/* Info rápida */}
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={6}>
-              <Box sx={{ p: 2, backgroundColor: '#FFF9E6', borderRadius: 2 }}>
-                <Typography variant="caption" sx={{ color: '#666' }}>
-                  Duración
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {event.duration}
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6}>
-              <Box sx={{ p: 2, backgroundColor: '#FFF9E6', borderRadius: 2 }}>
-                <Typography variant="caption" sx={{ color: '#666' }}>
-                  Capacidad
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  {event.capacity}
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-
-          {/* Servicios disponibles */}
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-            Servicios Disponibles
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
-            {event.services.map((service) => (
-              <Chip
-                key={service}
-                label={service}
-                sx={{
-                  backgroundColor: '#FFD700',
-                  fontWeight: 'bold'
-                }}
-              />
-            ))}
-          </Box>
-
-          {/* Features */}
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-            ¿Qué Incluye?
-          </Typography>
-          <Grid container spacing={1}>
-            {event.features.map((feature, index) => (
-              <Grid item xs={12} key={index}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CheckCircleIcon sx={{ color: '#4CAF50' }} />
-                  <Typography variant="body2">{feature}</Typography>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
-
-          {/* CTA */}
-          <Box sx={{ mt: 4, textAlign: 'center' }}>
-            <Button
-              variant="contained"
-              size="large"
-              href="/agendar"
-              sx={{
-                backgroundColor: '#FFD700',
-                color: '#000',
-                fontWeight: 'bold',
-                px: 6,
-                py: 2,
-                '&:hover': {
-                  backgroundColor: '#FFC700'
-                }
-              }}
-            >
-              Cotizar Este Evento
-            </Button>
-          </Box>
-        </Box>
-      </DialogContent>
-    </Dialog>
-  )
-}
 
 // Testimonial Card Component with Image Lightbox
 function TestimonialCard({ testimonial, sanitizeReviewText }) {
@@ -978,222 +712,6 @@ function TestimonialCard({ testimonial, sanitizeReviewText }) {
   )
 }
 
-// Event Gallery Section Component
-function EventGallerySection({ navigate }) {
-  const [selectedEvent, setSelectedEvent] = useState(null)
-  const [modalOpen, setModalOpen] = useState(false)
-
-  const handleCardClick = (event) => {
-    setSelectedEvent(event)
-    setModalOpen(true)
-  }
-
-  const handleKeyDown = (e, event) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      handleCardClick(event)
-    }
-  }
-
-  return (
-    <Box
-      component="section"
-      sx={{
-        minHeight: '100vh',
-        py: 8,
-        backgroundColor: '#F5F5F5',
-        display: 'flex',
-        alignItems: 'center'
-      }}
-    >
-      <Container maxWidth="lg">
-        {/* Header */}
-        <Box
-          sx={{
-            textAlign: 'center',
-            mb: 6
-          }}
-        >
-          <Typography
-            variant="h2"
-            sx={{
-              fontWeight: 'bold',
-              color: '#FFD700',
-              mb: 2
-            }}
-          >
-            Momentos Mágicos
-          </Typography>
-          <Typography variant="h6" sx={{ color: '#666' }}>
-            Capturamos cada sonrisa, cada momento de aprendizaje y diversión
-          </Typography>
-        </Box>
-
-        {/* Grid de cards en fila */}
-        <Grid container spacing={3}>
-          {eventCategories.map((event, index) => (
-            <Grid
-              item
-              xs={12}
-              sm={6}
-              md={3}
-              key={event.id}
-            >
-              <Card
-                onClick={() => handleCardClick(event)}
-                onKeyDown={(e) => handleKeyDown(e, event)}
-                tabIndex={0}
-                role="button"
-                aria-label={`Ver detalles de ${event.title}: ${event.description}`}
-                sx={{
-                  height: '400px',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  borderRadius: 3,
-                  transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  willChange: 'transform',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    '& .overlay': {
-                      opacity: 0.5
-                    },
-                    '& .content': {
-                      transform: 'translateY(-8px)'
-                    }
-                  },
-                  '&:focus-visible': {
-                    outline: '3px solid #FFD700',
-                    outlineOffset: '4px',
-                  }
-                }}
-              >
-                {/* Imagen de fondo con carga progresiva */}
-                <ProgressiveImage
-                  src={event.mainImage}
-                  alt={`${event.title}: ${event.description.slice(0, 100)}`}
-                  sx={{
-                    position: 'absolute',
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
-                />
-
-                {/* Overlay oscuro para mejor contraste */}
-                <Box
-                  className="overlay"
-                  sx={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.6)',
-                    opacity: 1,
-                    transition: 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    zIndex: 1
-                  }}
-                />
-
-                {/* Contenido con mejor contraste */}
-                <CardContent
-                  className="content"
-                  sx={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    zIndex: 2,
-                    color: '#FFF',
-                    p: 3,
-                    transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    willChange: 'transform'
-                  }}
-                >
-                  <Chip
-                    label={event.tag}
-                    icon={<span>{event.icon}</span>}
-                    sx={{
-                      backgroundColor: '#FFD700',
-                      color: '#000',
-                      fontWeight: 'bold',
-                      mb: 2
-                    }}
-                  />
-
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      fontWeight: 'bold',
-                      color: '#FFF',
-                      mb: 1,
-                      textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
-                    }}
-                  >
-                    {event.title}
-                  </Typography>
-
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      color: '#FFF',
-                      textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
-                    }}
-                  >
-                    {event.subtitle}
-                  </Typography>
-
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: 'block',
-                      mt: 2,
-                      color: '#FFD700',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    👆 Click para ver más detalles
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-
-        {/* Botón Ver Galería Completa */}
-        <Box sx={{ textAlign: 'center', mt: 6 }}>
-          <Button
-            variant="outlined"
-            size="large"
-            endIcon={<ArrowForward />}
-            onClick={() => navigate('/galeria')}
-            sx={{
-              borderColor: '#FFD700',
-              color: '#FFD700',
-              fontWeight: 'bold',
-              px: 4,
-              py: 1.5,
-              '&:hover': {
-                borderColor: '#FFD700',
-                backgroundColor: 'rgba(255,215,0,0.1)'
-              }
-            }}
-          >
-            Ver Galería Completa
-          </Button>
-        </Box>
-      </Container>
-
-      {/* Modal con detalles del evento */}
-      <EventDetailModal
-        event={selectedEvent}
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-      />
-    </Box>
-  )
-}
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -1205,6 +723,8 @@ export default function HomePage() {
   const [reviewsLoading, setReviewsLoading] = useState(true)
   const [reviewsError, setReviewsError] = useState(null)
   const [animationsEnabled, setAnimationsEnabled] = useState(false)
+  const [galleryPhotos, setGalleryPhotos] = useState([])
+  const [galleryLoading, setGalleryLoading] = useState(true)
   // Base para assets en carpeta public (compatible con subcarpetas de despliegue)
   const publicBase = (import.meta.env.BASE_URL || '/')
 
@@ -1238,6 +758,24 @@ export default function HomePage() {
         onError: (err) => {
           setReviewsError(err.message || 'Error al cargar testimonios')
           setReviewsLoading(false)
+        }
+      }
+    )
+    return () => unsub && unsub()
+  }, [])
+
+  // Suscribirse a fotos de la galería para el rolling gallery
+  useEffect(() => {
+    setGalleryLoading(true)
+    const unsub = listenGalleryPhotos(
+      (photos) => {
+        setGalleryPhotos(photos)
+        setGalleryLoading(false)
+      },
+      {
+        onError: (err) => {
+          console.error('Error loading gallery photos:', err)
+          setGalleryLoading(false)
         }
       }
     )
@@ -2181,9 +1719,114 @@ export default function HomePage() {
         </Box>
       </AnimatedSection>
 
-      {/* Galería Visual Moderna - Nueva Sección Interactiva */}
+      {/* Rolling Gallery Section */}
       <AnimatedSection delay={100}>
-        <EventGallerySection navigate={navigate} />
+        <Box
+          component="section"
+          sx={{
+            minHeight: '100vh',
+            py: 8,
+            backgroundColor: '#000000',
+            display: 'flex',
+            alignItems: 'center',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
+          {/* LightRays Background */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 0,
+              opacity: 0.6
+            }}
+          >
+            <LightRays
+              raysOrigin="top-center"
+              raysColor="#FFD700"
+              raysSpeed={0.3}
+              lightSpread={1.5}
+              rayLength={2}
+              pulsating={true}
+              fadeDistance={1.0}
+              saturation={1.0}
+              followMouse={true}
+              mouseInfluence={0.2}
+              noiseAmount={0.1}
+              distortion={0.15}
+            />
+          </Box>
+
+          <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+            {/* Header */}
+            <Box
+              sx={{
+                textAlign: 'center',
+                mb: 6
+              }}
+            >
+              <Typography
+                variant="h2"
+                sx={{
+                  fontWeight: 'bold',
+                  color: '#FFD700',
+                  mb: 2,
+                  fontSize: { xs: '2rem', md: '3rem' }
+                }}
+              >
+                Momentos Mágicos
+              </Typography>
+              <Typography variant="h6" sx={{ color: '#FFFFFF', mb: 4 }}>
+                Capturamos cada sonrisa, cada momento de aprendizaje y diversión
+              </Typography>
+            </Box>
+
+            {/* Rolling Gallery */}
+            {!galleryLoading && (
+              <RollingGallery
+                autoplay={true}
+                pauseOnHover={true}
+                images={getGalleryImageUrls(galleryPhotos)}
+              />
+            )}
+
+            {/* Loading State */}
+            {galleryLoading && (
+              <Box sx={{ textAlign: 'center', py: 8 }}>
+                <Typography variant="body1" sx={{ color: '#FFFFFF' }}>
+                  Cargando galería...
+                </Typography>
+              </Box>
+            )}
+
+            {/* Botón Ver Galería Completa */}
+            <Box sx={{ textAlign: 'center', mt: 6 }}>
+              <Button
+                variant="outlined"
+                size="large"
+                endIcon={<ArrowForward />}
+                onClick={() => navigate('/galeria')}
+                sx={{
+                  borderColor: '#FFD700',
+                  color: '#FFD700',
+                  fontWeight: 'bold',
+                  px: 4,
+                  py: 1.5,
+                  '&:hover': {
+                    borderColor: '#FFD700',
+                    backgroundColor: 'rgba(255,215,0,0.1)'
+                  }
+                }}
+              >
+                Ver Galería Completa
+              </Button>
+            </Box>
+          </Container>
+        </Box>
       </AnimatedSection>
 
       {/* CTA Final Premium */}
