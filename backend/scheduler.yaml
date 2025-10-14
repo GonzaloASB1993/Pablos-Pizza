@@ -1,0 +1,169 @@
+# ================================================
+# Google Cloud Scheduler Configuration
+# Pablo's Pizza - Automated Overdue Events Reminder
+# ================================================
+
+# This file contains the configuration for Google Cloud Scheduler
+# to automatically check for overdue events and send WhatsApp reminders
+
+# Job Name: check-overdue-events
+# Schedule: Every day at 11:00 AM Chile/Santiago time
+# Target: POST request to /api/scheduler/check-overdue-events endpoint
+
+# ====================
+# HOW TO DEPLOY:
+# ====================
+# 1. Make sure you have Google Cloud SDK installed
+# 2. Authenticate: gcloud auth login
+# 3. Set project: gcloud config set project pablospizza-d84bf
+# 4. Create the scheduler job using the command below:
+
+# COMMAND TO CREATE SCHEDULER:
+# gcloud scheduler jobs create http check-overdue-events \
+#   --schedule="0 11 * * *" \
+#   --time-zone="America/Santiago" \
+#   --uri="https://main-4kqeqojbsq-uc.a.run.app/api/scheduler/check-overdue-events" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json" \
+#   --headers="X-CloudScheduler-JobName=check-overdue-events" \
+#   --attempt-deadline=300s \
+#   --max-retry-attempts=3 \
+#   --max-backoff=3600s \
+#   --min-backoff=5s \
+#   --description="Check for overdue events (>2 days) and send WhatsApp reminders to admin"
+
+# ====================
+# COMMAND TO UPDATE SCHEDULER:
+# ====================
+# gcloud scheduler jobs update http check-overdue-events \
+#   --schedule="0 11 * * *" \
+#   --time-zone="America/Santiago" \
+#   --uri="https://main-4kqeqojbsq-uc.a.run.app/api/scheduler/check-overdue-events" \
+#   --http-method=POST
+
+# ====================
+# USEFUL COMMANDS:
+# ====================
+
+# List all scheduler jobs:
+# gcloud scheduler jobs list
+
+# View job details:
+# gcloud scheduler jobs describe check-overdue-events
+
+# Manually trigger the job (for testing):
+# gcloud scheduler jobs run check-overdue-events
+
+# Pause the job:
+# gcloud scheduler jobs pause check-overdue-events
+
+# Resume the job:
+# gcloud scheduler jobs resume check-overdue-events
+
+# Delete the job:
+# gcloud scheduler jobs delete check-overdue-events
+
+# View job logs:
+# gcloud logging read "resource.type=cloud_scheduler_job AND resource.labels.job_id=check-overdue-events" --limit 50 --format json
+
+# ====================
+# SCHEDULE FORMAT:
+# ====================
+# Format: Unix Cron
+# Example: "0 11 * * *" = Every day at 11:00 AM
+#
+# Cron syntax:
+# ┌───────────── minute (0-59)
+# │ ┌───────────── hour (0-23)
+# │ │ ┌───────────── day of month (1-31)
+# │ │ │ ┌───────────── month (1-12)
+# │ │ │ │ ┌───────────── day of week (0-6, Sunday=0)
+# │ │ │ │ │
+# * * * * *
+#
+# Common examples:
+# "0 11 * * *"     - Every day at 11:00 AM
+# "0 9,17 * * *"   - Every day at 9:00 AM and 5:00 PM
+# "0 9 * * 1"      - Every Monday at 9:00 AM
+# "*/30 * * * *"   - Every 30 minutes
+# "0 */2 * * *"    - Every 2 hours
+
+# ====================
+# CONFIGURATION DETAILS:
+# ====================
+
+# Job Name: check-overdue-events
+name: check-overdue-events
+
+# Schedule: Daily at 11:00 AM Chile time
+schedule: "0 11 * * *"
+
+# Timezone: Chile/Santiago (considers DST automatically)
+timezone: America/Santiago
+
+# Target URL: Cloud Run backend endpoint
+uri: https://main-4kqeqojbsq-uc.a.run.app/api/scheduler/check-overdue-events
+
+# HTTP Method
+http_method: POST
+
+# Headers
+headers:
+  Content-Type: application/json
+  X-CloudScheduler-JobName: check-overdue-events
+
+# Retry configuration
+retry_config:
+  max_retry_attempts: 3
+  max_backoff_duration: 3600s  # 1 hour
+  min_backoff_duration: 5s
+  max_doublings: 5
+
+# Timeout
+attempt_deadline: 300s  # 5 minutes
+
+# Description
+description: "Check for overdue events (>2 days past event_date) with status != 'completed' and send WhatsApp reminders to admin (Juan Pablo)"
+
+# ====================
+# MONITORING & ALERTS:
+# ====================
+
+# View execution history in Google Cloud Console:
+# https://console.cloud.google.com/cloudscheduler?project=pablospizza-d84bf
+
+# Set up alerts for failed jobs:
+# 1. Go to Cloud Monitoring
+# 2. Create alert policy
+# 3. Condition: Cloud Scheduler Job execution status = FAILED
+# 4. Notification: Email to admin
+
+# ====================
+# COST ESTIMATION:
+# ====================
+# Cloud Scheduler pricing (as of 2025):
+# - First 3 jobs per month: FREE
+# - Additional jobs: $0.10 per job per month
+# - This job: FREE (within free tier)
+#
+# Total estimated cost: $0.00/month
+
+# ====================
+# SECURITY NOTES:
+# ====================
+# 1. Cloud Run endpoint is public but can verify X-CloudScheduler-JobName header
+# 2. For added security, implement SCHEDULER_AUTH_TOKEN verification in code
+# 3. Cloud Scheduler uses Google's internal authentication by default
+# 4. Consider using OIDC authentication for production
+
+# ====================
+# TESTING:
+# ====================
+# 1. Manual test via endpoint (development):
+#    GET https://main-4kqeqojbsq-uc.a.run.app/api/scheduler/check-overdue-events?force=true
+#
+# 2. Manual trigger via Cloud Scheduler:
+#    gcloud scheduler jobs run check-overdue-events
+#
+# 3. Check logs:
+#    gcloud logging read "resource.type=cloud_run_revision" --limit 50

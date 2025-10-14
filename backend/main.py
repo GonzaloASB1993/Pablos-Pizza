@@ -10,7 +10,7 @@ if os.path.exists('.env'):
 # Import after loading env variables
 import firebase_admin
 from firebase_admin import firestore, storage
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect
 from flask_cors import CORS
 from datetime import datetime, timedelta
 import uuid
@@ -50,6 +50,7 @@ from routes.bookings_routes import bookings_bp
 from routes.events_routes import events_bp
 from routes.gallery_routes import gallery_bp
 from routes.contacts_routes import contacts_bp
+from routes.customers_routes import customers_bp
 
 
 try:
@@ -98,7 +99,7 @@ CORS(app, resources={
         "supports_credentials": True
     }
 })
-print(f"🌐 CORS configured for origins: {cors_origins}")
+print(f"CORS configured for origins: {cors_origins}")
 
 # Twilio WhatsApp Configuration
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
@@ -127,6 +128,8 @@ app.register_blueprint(gallery_bp)
 print("  [OK] Gallery routes registered")
 app.register_blueprint(contacts_bp)
 print("  [OK] Contacts routes registered")
+app.register_blueprint(customers_bp)
+print("  [OK] Customers routes registered")
 print("[SUCCESS] All blueprints registered successfully!")
 
 
@@ -359,6 +362,50 @@ def health():
             "error": str(e)
         }), 500
 
+# Scheduler endpoint for automated tasks
+@app.route('/api/scheduler/check-overdue-events', methods=['POST', 'GET'])
+def scheduler_check_overdue_events():
+    """
+    Check for overdue events and send WhatsApp reminders
+    Called by Google Cloud Scheduler daily at 11:00 AM
+
+    Security: Should be called with proper authentication token in production
+    """
+    try:
+        # Verify scheduler token for production (optional but recommended)
+        scheduler_token = request.headers.get('X-CloudScheduler-JobName')
+        expected_token = os.getenv('SCHEDULER_AUTH_TOKEN', '')
+
+        # Allow GET for manual testing, POST for Cloud Scheduler
+        if request.method == 'GET':
+            # Manual test endpoint
+            force = request.args.get('force', 'false').lower() == 'true'
+            logger.info(f"🔧 Manual scheduler check triggered (force={force})")
+        else:
+            force = False
+
+        # Import scheduler service
+        from services.scheduler_service import check_overdue_events, manual_check_overdue_events
+
+        # Run the check
+        if force:
+            result = asyncio.run(manual_check_overdue_events(force=True))
+        else:
+            result = asyncio.run(check_overdue_events())
+
+        return jsonify(result), 200 if result.get('success') else 500
+
+    except Exception as e:
+        logger.error(f"❌ Scheduler endpoint error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Scheduler error: {str(e)}',
+            'overdue_count': 0,
+            'reminders_sent': 0
+        }), 500
+
 # Root endpoint
 @app.route('/', methods=['GET'])
 def root():
@@ -368,6 +415,36 @@ def root():
         "version": "2.0.0",
         "environment": os.getenv('ENVIRONMENT', 'production')
     })
+
+@app.route('/cal/<booking_id>', methods=['GET'])
+def download_calendar(booking_id):
+    """
+    Redirect to calendar .ics file in Firebase Storage
+    Short URL for WhatsApp messages: pablospizza.cl/cal/{booking_id}
+    """
+    try:
+        # Get the direct URL from Firebase Storage
+        bucket = get_storage_bucket()
+        if not bucket:
+            return jsonify({'error': 'Storage not available'}), 500
+
+        blob_path = f"calendar_invites/{booking_id}.ics"
+        blob = bucket.blob(blob_path)
+
+        # Check if file exists
+        if not blob.exists():
+            return jsonify({'error': 'Calendario no encontrado'}), 404
+
+        # Make sure it's public and get the URL
+        blob.make_public()
+        download_url = blob.public_url
+
+        # Redirect to the file
+        return redirect(download_url, code=302)
+
+    except Exception as e:
+        print(f"Error redirecting to calendar: {e}")
+        return jsonify({'error': 'Error al obtener calendario'}), 500
 
 @app.route('/api/bookings/', methods=['GET'])
 @limiter.limit("100 per minute")

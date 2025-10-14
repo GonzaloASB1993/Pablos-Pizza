@@ -24,6 +24,8 @@ TWILIO_WHATSAPP_FROM = os.getenv('TWILIO_WHATSAPP_FROM', 'whatsapp:+12017620171'
 # Content language doesn't need to match template language setting
 TEMPLATE_NEW_BOOKING_SID = os.getenv('TEMPLATE_NEW_BOOKING_SID', 'HXa6b7326d7297f04c9ade01e8d8afaefe')
 TEMPLATE_BOOKING_CONFIRMED_SID = os.getenv('TEMPLATE_BOOKING_CONFIRMED_SID', 'HXab45cdc57ca599799b850dd3b889020c')
+TEMPLATE_EVENT_OVERDUE_SINGLE_SID = os.getenv('TEMPLATE_EVENT_OVERDUE_SINGLE_SID', 'HXd00b109affda30cc4b0b2888b469014d')
+TEMPLATE_EVENT_OVERDUE_MULTIPLE_SID = os.getenv('TEMPLATE_EVENT_OVERDUE_MULTIPLE_SID', 'HXd65d75d0e47eb7b489b112b2f18f3382')
 
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN else None
 
@@ -248,4 +250,196 @@ async def send_whatsapp_notification(phone: str, message: str, notification_type
 
     except Exception as e:
         print(f"Error sending WhatsApp to {phone}: {str(e)}")
+        return False
+
+
+def prepare_single_overdue_reminder_variables(admin_name: str, booking_data: dict, days_overdue: int) -> dict:
+    """
+    Prepare variables for single event overdue reminder WhatsApp template
+    Template SID: HXd00b109affda30cc4b0b2888b469014d
+
+    Template structure:
+    Hola {{1}}! 👋
+    Recordatorio: El siguiente evento necesita ser completado:
+    🎉 Evento: {{2}}
+    📆 Fecha: {{3}} (hace {{4}} días)
+    ⚠️ Estado: Pendiente de completar
+    Por favor completa el evento:
+    🔗 {{5}}
+    Esto ayuda a mantener registros precisos y control de costos. 💰📊
+    ¡Gracias!
+
+    Variables:
+    {{1}} - Admin name (Juan Pablo)
+    {{2}} - Event title (client name + service)
+    {{3}} - Event date (formatted)
+    {{4}} - Days overdue
+    {{5}} - Direct booking link
+
+    Args:
+        admin_name: Name of the admin (Juan Pablo)
+        booking_data: Booking information dict
+        days_overdue: Number of days since event date
+
+    Returns:
+        dict: Template variables
+    """
+    from datetime import datetime
+
+    # Format date
+    event_date = booking_data.get('event_date', '')
+    formatted_date = format_date_for_template(event_date)
+
+    # Create event title
+    client_name = booking_data.get('client_name', 'Cliente')
+    service_types = booking_data.get('service_type', '')
+    service_name = format_service_name(service_types)
+    event_title = f"{client_name} - {service_name}"
+
+    # Direct link to booking
+    booking_id = booking_data.get('id', '')
+    booking_link = f"https://pablospizza.web.app/admin/agendamientos"
+
+    variables = {
+        "1": admin_name,
+        "2": event_title,
+        "3": formatted_date,
+        "4": str(days_overdue),
+        "5": booking_link
+    }
+
+    print(f"🔍 Single overdue reminder variables: {variables}")
+    return variables
+
+
+def prepare_multiple_overdue_reminder_variables(admin_name: str, bookings_list: list, booking_link: str) -> dict:
+    """
+    Prepare variables for multiple events overdue reminder WhatsApp template
+    Template SID: HXd65d75d0e47eb7b489b112b2f18f3382
+
+    Template structure:
+    Hola {{1}}! 👋
+    Tienes {{2}} eventos pendientes de completar:
+    {{3}}
+    Por favor revisa y completa los eventos:
+    🔗 {{4}}
+    Esto ayuda a mantener registros precisos y control de costos. 💰📊
+    ¡Gracias!
+
+    Variables:
+    {{1}} - Admin name (Juan Pablo)
+    {{2}} - Number of pending events
+    {{3}} - List of events (formatted as bullet points)
+    {{4}} - Booking management link
+
+    Args:
+        admin_name: Name of the admin (Juan Pablo)
+        bookings_list: List of overdue bookings
+        booking_link: Link to bookings management page
+
+    Returns:
+        dict: Template variables
+    """
+    # Count events
+    event_count = len(bookings_list)
+
+    # Format event list
+    event_records = []
+    for idx, booking in enumerate(bookings_list[:5], 1):  # Limit to first 5 events
+        client_name = booking.get('client_name', 'Cliente')
+        event_date = booking.get('event_date', '')
+        formatted_date = format_date_for_template(event_date)
+        service_name = format_service_name(booking.get('service_type', ''))
+
+        event_records.append(f"{idx}. {client_name} - {service_name} ({formatted_date})")
+
+    # Add "..." if there are more events
+    if event_count > 5:
+        event_records.append(f"... y {event_count - 5} más")
+
+    record_list = "\n".join(event_records)
+
+    variables = {
+        "1": admin_name,
+        "2": str(event_count),
+        "3": record_list,
+        "4": booking_link
+    }
+
+    print(f"🔍 Multiple overdue reminder variables: {variables}")
+    return variables
+
+
+async def send_overdue_reminder(phone: str, admin_name: str, bookings: list, is_single: bool = True) -> bool:
+    """
+    Send overdue event reminder using appropriate template
+
+    Args:
+        phone: Admin phone number
+        admin_name: Name of the admin (Juan Pablo)
+        bookings: List of overdue booking dictionaries (or single booking as list)
+        is_single: True for single event, False for multiple events
+
+    Returns:
+        bool: True if sent successfully
+    """
+    if not twilio_client:
+        print("❌ Twilio client not configured")
+        return False
+
+    try:
+        # Format phone number
+        if not phone.startswith('whatsapp:'):
+            if not phone.startswith('+'):
+                phone = '+' + phone
+            phone = f'whatsapp:{phone}'
+
+        if is_single and len(bookings) == 1:
+            # Single event reminder
+            from datetime import datetime, timedelta
+
+            booking = bookings[0]
+            event_date_str = booking.get('event_date', '')
+
+            # Calculate days overdue
+            try:
+                if 'T' in event_date_str:
+                    event_date = datetime.fromisoformat(event_date_str.replace('Z', '+00:00'))
+                else:
+                    event_date = datetime.strptime(event_date_str, '%Y-%m-%d')
+
+                days_overdue = (datetime.now() - event_date).days
+            except:
+                days_overdue = 3  # Default fallback
+
+            content_sid = TEMPLATE_EVENT_OVERDUE_SINGLE_SID
+            template_vars = prepare_single_overdue_reminder_variables(admin_name, booking, days_overdue)
+
+        else:
+            # Multiple events reminder
+            content_sid = TEMPLATE_EVENT_OVERDUE_MULTIPLE_SID
+            booking_link = "https://pablospizza.web.app/admin/agendamientos"
+            template_vars = prepare_multiple_overdue_reminder_variables(admin_name, bookings, booking_link)
+
+        print(f"📱 Sending overdue reminder WhatsApp to {phone}")
+        print(f"📋 Template SID: {content_sid}")
+        print(f"📋 Template variables: {template_vars}")
+
+        # Send using Twilio template
+        variables_json = json.dumps(template_vars)
+
+        template_message = twilio_client.messages.create(
+            from_=TWILIO_WHATSAPP_FROM,
+            to=phone,
+            content_sid=content_sid,
+            content_variables=variables_json
+        )
+
+        print(f"✅ Overdue reminder sent successfully, SID: {template_message.sid}")
+        return True
+
+    except Exception as e:
+        print(f"❌ Overdue reminder sending failed for {phone}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
