@@ -463,10 +463,12 @@ const EventsManagement = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        {event.event_date ?
-                          new Date(event.event_date).toLocaleDateString('es-CL') :
-                          'No especificada'
-                        }
+                        {event.event_date ? (() => {
+                          // Parse date without timezone conversion
+                          const dateParts = event.event_date.split('T')[0].split('-')
+                          const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2])
+                          return date.toLocaleDateString('es-CL')
+                        })() : 'No especificada'}
                       </TableCell>
                       <TableCell>{event.participants || 'N/A'}</TableCell>
                       <TableCell>
@@ -700,10 +702,12 @@ const EventsManagement = () => {
                   <strong>Evento:</strong> {selectedEventForPhotos.title}
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Fecha:</strong> {selectedEventForPhotos.event_date ?
-                    new Date(selectedEventForPhotos.event_date).toLocaleDateString('es-CL') :
-                    'No especificada'
-                  }
+                  <strong>Fecha:</strong> {selectedEventForPhotos.event_date ? (() => {
+                    // Parse date without timezone conversion
+                    const dateParts = selectedEventForPhotos.event_date.split('T')[0].split('-')
+                    const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2])
+                    return date.toLocaleDateString('es-CL')
+                  })() : 'No especificada'}
                 </Typography>
               </Alert>
             )}

@@ -1669,6 +1669,7 @@ const BookingsManagement = () => {
                                         <TableCell>Total</TableCell>
                                         <TableCell>Costo</TableCell>
                                         <TableCell>Utilidad</TableCell>
+                                        <TableCell>% Utilidad</TableCell>
                                         <TableCell>Acciones</TableCell>
                                     </TableRow>
                                 </TableHead>
@@ -1751,6 +1752,23 @@ const BookingsManagement = () => {
                                                 })()}
                                             </TableCell>
                                             <TableCell>
+                                                {(() => {
+                                                    const est = Number(booking.estimated_price || 0)
+                                                    const cost = Number(calculateTotalCost(booking) || 0)
+                                                    const profit = est - cost
+                                                    const profitPercentage = est > 0 ? ((profit / est) * 100) : 0
+                                                    return (
+                                                        <Typography
+                                                            variant="body2"
+                                                            fontWeight="bold"
+                                                            color={profitPercentage > 0 ? 'success.main' : 'text.secondary'}
+                                                        >
+                                                            {est > 0 ? `${profitPercentage.toFixed(1)}%` : '-'}
+                                                        </Typography>
+                                                    )
+                                                })()}
+                                            </TableCell>
+                                            <TableCell>
                                                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                                                     {booking.status !== 'completed' && (
                                                         <Button
@@ -1808,7 +1826,7 @@ const BookingsManagement = () => {
                                     ))}
                                     {filteredBookings.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={6} align="center">
+                                            <TableCell colSpan={10} align="center">
                                                 <Typography color="text.secondary">
                                                     No hay agendamientos disponibles
                                                 </Typography>
