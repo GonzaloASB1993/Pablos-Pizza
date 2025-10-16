@@ -81,8 +81,8 @@ const BookingsManagement = () => {
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
     const [selectedMonth, setSelectedMonth] = useState("")
-    // '' => mostrar Pendientes y Confirmados por defecto
-    const [statusFilter, setStatusFilter] = useState('')
+    // 'all' => mostrar todos los agendamientos por defecto
+    const [statusFilter, setStatusFilter] = useState('all')
     const [searchQuery, setSearchQuery] = useState('')
     const [tabValue, setTabValue] = useState(0)
     const [sortField, setSortField] = useState('event_date')
@@ -304,8 +304,9 @@ const BookingsManagement = () => {
         }
 
         // Apply status filter (default: pending + confirmed)
-        if (statusFilter === '') {
-            filtered = filtered.filter(b => ['pending', 'confirmed'].includes(b.status))
+        if (statusFilter === '' || statusFilter === 'all') {
+            // Show all bookings when 'all' is selected or default empty state
+            // No filtering needed
         } else {
             filtered = filtered.filter(b => b.status === statusFilter)
         }
@@ -1525,34 +1526,49 @@ const BookingsManagement = () => {
                                 </Select>
                             </FormControl>
                         </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                            <FormControl fullWidth size="small">
-                                <Select
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    displayEmpty
-                                    renderValue={(value) => (
-                                        value === ''
-                                            ? <Chip size="small" label="Pendientes y Confirmados" color="warning" />
-                                            : value === 'pending'
-                                                ? <Chip size="small" label="Pendientes" color="warning" />
-                                                : value === 'confirmed'
-                                                    ? <Chip size="small" label="Confirmados" color="success" />
-                                                    : value === 'completed'
-                                                        ? <Chip size="small" label="Completados" color="info" />
-                                                        : <Chip size="small" label="Cancelados" color="error" />
-                                    )}
-                                    sx={{ '& .MuiSelect-select': { py: 0.5 } }}
-                                >
-                                    <MenuItem value=""><Chip size="small" label="Pendientes y Confirmados" color="warning" /></MenuItem>
-                                    <MenuItem value={'pending'}><Chip size="small" label="Pendientes" color="warning" /></MenuItem>
-                                    <MenuItem value={'confirmed'}><Chip size="small" label="Confirmados" color="success" /></MenuItem>
-                                    <MenuItem value={'completed'}><Chip size="small" label="Completados" color="info" /></MenuItem>
-                                    <MenuItem value={'cancelled'}><Chip size="small" label="Cancelados" color="error" /></MenuItem>
-                                </Select>
-                            </FormControl>
+                        <Grid item xs={12} sm={6} md={5}>
+                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                                <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+                                    Filtrar por estado:
+                                </Typography>
+                                <Chip
+                                    label="Todos"
+                                    onClick={() => setStatusFilter('all')}
+                                    color={statusFilter === 'all' ? 'primary' : 'default'}
+                                    variant={statusFilter === 'all' ? 'filled' : 'outlined'}
+                                    size="small"
+                                />
+                                <Chip
+                                    label="Pendientes"
+                                    onClick={() => setStatusFilter('pending')}
+                                    color={statusFilter === 'pending' ? 'warning' : 'default'}
+                                    variant={statusFilter === 'pending' ? 'filled' : 'outlined'}
+                                    size="small"
+                                />
+                                <Chip
+                                    label="Confirmados"
+                                    onClick={() => setStatusFilter('confirmed')}
+                                    color={statusFilter === 'confirmed' ? 'success' : 'default'}
+                                    variant={statusFilter === 'confirmed' ? 'filled' : 'outlined'}
+                                    size="small"
+                                />
+                                <Chip
+                                    label="Completados"
+                                    onClick={() => setStatusFilter('completed')}
+                                    color={statusFilter === 'completed' ? 'info' : 'default'}
+                                    variant={statusFilter === 'completed' ? 'filled' : 'outlined'}
+                                    size="small"
+                                />
+                                <Chip
+                                    label="Cancelados"
+                                    onClick={() => setStatusFilter('cancelled')}
+                                    color={statusFilter === 'cancelled' ? 'error' : 'default'}
+                                    variant={statusFilter === 'cancelled' ? 'filled' : 'outlined'}
+                                    size="small"
+                                />
+                            </Box>
                         </Grid>
-                        <Grid item xs={12} sm={12} md={5}>
+                        <Grid item xs={12} sm={12} md={2}>
                             <Typography variant="body2" color="text.secondary">
                                 Mostrando {filteredBookings.length} de {bookings.length} agendamientos
                             </Typography>
