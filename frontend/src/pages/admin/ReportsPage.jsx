@@ -19,7 +19,13 @@ import {
   Divider,
   IconButton,
   Tooltip,
-  Stack
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@mui/material'
 import {
   TrendingUp,
@@ -37,7 +43,8 @@ import {
   ShowChart,
   Warning,
   Brightness4,
-  Brightness7
+  Brightness7,
+  RemoveCircleOutline
 } from '@mui/icons-material'
 import {
   Chart as ChartJS,
@@ -164,6 +171,7 @@ export default function ReportsPage() {
   const [annualData, setAnnualData] = useState(null)
   const [inventoryAlerts, setInventoryAlerts] = useState([])
   const [topClients, setTopClients] = useState([])
+  const [inventoryTotalValue, setInventoryTotalValue] = useState(0)
 
   useEffect(() => {
     loadReportsData()
@@ -192,6 +200,18 @@ export default function ReportsPage() {
       // Load top clients
       const clientsResponse = await reportsAPI.getTopClients({ limit: 5 })
       setTopClients(clientsResponse.data.clients || [])
+
+      // Load inventory total value for waste rate calculation
+      try {
+        const inventoryResponse = await inventoryAPI.getAll()
+        const totalValue = inventoryResponse.data.items?.reduce((sum, item) => {
+          return sum + (item.total_value || 0)
+        }, 0) || 0
+        setInventoryTotalValue(totalValue)
+      } catch (error) {
+        console.error('Error loading inventory value:', error)
+        setInventoryTotalValue(0)
+      }
 
     } catch (error) {
       console.error('Error loading reports data:', error)
@@ -503,6 +523,7 @@ export default function ReportsPage() {
           <Tab label="Análisis Financiero" icon={<ShowChart />} />
           <Tab label="Clientes Top" icon={<People />} />
           <Tab label="Operaciones" icon={<Inventory />} />
+          <Tab label="Resumen de Mermas" icon={<RemoveCircleOutline />} />
         </Tabs>
       </Paper>
 
@@ -772,6 +793,162 @@ export default function ReportsPage() {
                     No hay alertas de inventario pendientes
                   </Alert>
                 )}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {tabValue === 4 && (
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center" mb={3}>
+                  <RemoveCircleOutline sx={{ fontSize: 40, color: 'warning.main', mr: 2 }} />
+                  <Box>
+                    <Typography variant="h5" gutterBottom>
+                      Resumen de Mermas
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Analiza y controla las pérdidas de inventario
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Alert severity="info" sx={{ mb: 3 }}>
+                  <Typography variant="body2">
+                    <strong>Cómo registrar mermas:</strong><br />
+                    1. Ve a Gestión de Inventario<br />
+                    2. Selecciona un producto y haz clic en el botón "Merma"<br />
+                    3. Registra la cantidad y razón de la merma<br />
+                    4. Los datos aparecerán automáticamente en este reporte
+                  </Typography>
+                </Alert>
+
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={4}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography color="textSecondary" gutterBottom variant="body2">
+                          Costo Total de Mermas
+                        </Typography>
+                        <Typography variant="h4" color="error.main">
+                          {new Intl.NumberFormat('es-CL', {
+                            style: 'currency',
+                            currency: 'CLP',
+                            minimumFractionDigits: 0
+                          }).format(monthlyData?.waste_cost || 0)}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {new Date(selectedYear, selectedMonth - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  <Grid item xs={12} md={4}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography color="textSecondary" gutterBottom variant="body2">
+                          Items Mermados
+                        </Typography>
+                        <Typography variant="h4" color="warning.main">
+                          {monthlyData?.waste_items_count || 0}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          Registros en el período
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  <Grid item xs={12} md={4}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography color="textSecondary" gutterBottom variant="body2">
+                          Tasa de Merma
+                        </Typography>
+                        <Typography variant="h4" color="info.main">
+                          {inventoryTotalValue > 0
+                            ? `${((monthlyData?.waste_cost || 0) / inventoryTotalValue * 100).toFixed(2)}%`
+                            : '0%'
+                          }
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          Del valor total de inventario
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                          Detalle de Mermas del Período
+                        </Typography>
+                        {monthlyData?.waste_details && monthlyData.waste_details.length > 0 ? (
+                          <TableContainer sx={{ mt: 2 }}>
+                            <Table>
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>Fecha</TableCell>
+                                  <TableCell>Item</TableCell>
+                                  <TableCell align="right">Cantidad</TableCell>
+                                  <TableCell align="right">Costo Unit.</TableCell>
+                                  <TableCell align="right">Costo Total</TableCell>
+                                  <TableCell>Notas</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {monthlyData.waste_details.map((waste, index) => (
+                                  <TableRow
+                                    key={index}
+                                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                  >
+                                    <TableCell>
+                                      {(() => {
+                                        const [year, month, day] = waste.created_at.split('T')[0].split('-');
+                                        const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+                                        return `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
+                                      })()}
+                                    </TableCell>
+                                    <TableCell>{waste.item_name}</TableCell>
+                                    <TableCell align="right">
+                                      {waste.quantity} {waste.unit}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                      {new Intl.NumberFormat('es-CL', {
+                                        style: 'currency',
+                                        currency: 'CLP',
+                                        minimumFractionDigits: 0
+                                      }).format(waste.cost_per_unit)}
+                                    </TableCell>
+                                    <TableCell align="right" sx={{ fontWeight: 600 }}>
+                                      {new Intl.NumberFormat('es-CL', {
+                                        style: 'currency',
+                                        currency: 'CLP',
+                                        minimumFractionDigits: 0
+                                      }).format(waste.total_cost)}
+                                    </TableCell>
+                                    <TableCell sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+                                      {waste.notes || '-'}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        ) : (
+                          <Alert severity="info" sx={{ mt: 2 }}>
+                            No hay mermas registradas en este período
+                          </Alert>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
               </CardContent>
             </Card>
           </Grid>

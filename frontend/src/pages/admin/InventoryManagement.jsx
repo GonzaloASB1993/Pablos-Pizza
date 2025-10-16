@@ -35,7 +35,7 @@ import {
   ListItemText,
   InputAdornment
 } from '@mui/material'
-import { Add, Edit, Delete, Warning, Inventory, Kitchen, Build, Timeline, ArrowDownward, ArrowUpward, AddBox, Visibility, SwapHoriz, Search } from '@mui/icons-material'
+import { Add, Edit, Delete, Warning, Inventory, Kitchen, Build, Timeline, ArrowDownward, ArrowUpward, AddBox, Visibility, SwapHoriz, Search, RemoveCircleOutline, Undo } from '@mui/icons-material'
 import { inventoryAPI, recipesAPI } from '../../services/api'
 import { formatCurrency, formatStock, safeFormatCost, formatDateTime } from '../../utils/formatters'
 import UnitConverter from '../../components/UnitConverter'
@@ -92,6 +92,13 @@ const InventoryManagement = () => {
   const [itemMovements, setItemMovements] = useState([])
   const [loadingItemMovements, setLoadingItemMovements] = useState(false)
   const [unitConverterOpen, setUnitConverterOpen] = useState(false)
+  const [wasteDialog, setWasteDialog] = useState(false)
+  const [wasteItem, setWasteItem] = useState(null)
+  const [wasteFormData, setWasteFormData] = useState({
+    quantity: '',
+    reason: '',
+    notes: ''
+  })
 
   useEffect(() => {
     loadInventory()
@@ -267,6 +274,99 @@ const InventoryManagement = () => {
     setMovementsDialog(false)
     setViewingItem(null)
     setItemMovements([])
+  }
+
+  const handleWasteOpen = (item) => {
+    setWasteItem(item)
+    setWasteFormData({
+      quantity: '',
+      reason: 'damaged',
+      notes: ''
+    })
+    setWasteDialog(true)
+  }
+
+  const handleWasteSubmit = async () => {
+    try {
+      if (!wasteFormData.quantity || parseFloat(wasteFormData.quantity) <= 0) {
+        toast.error('Debe ingresar una cantidad válida')
+        return
+      }
+
+      const wasteQuantity = parseFloat(wasteFormData.quantity)
+
+      if (wasteQuantity > wasteItem.current_stock) {
+        toast.error('La cantidad mermada no puede ser mayor al stock actual')
+        return
+      }
+
+      const reasonLabels = {
+        'damaged': 'Desperfecto en producción',
+        'expired': 'Producto vencido',
+        'contaminated': 'Contaminación',
+        'transport_damage': 'Daño durante transporte',
+        'other': 'Otro'
+      }
+
+      const movementData = {
+        item_id: wasteItem.id,
+        movement_type: 'waste',
+        quantity: wasteQuantity,
+        cost_per_unit: wasteItem.cost_per_unit || 0,
+        reference_type: 'waste',
+        notes: `Merma por ${reasonLabels[wasteFormData.reason]}: ${wasteFormData.notes || 'Sin detalles adicionales'}`,
+        waste_reason: wasteFormData.reason
+      }
+
+      await inventoryAPI.createMovement(movementData)
+      toast.success('Merma registrada exitosamente')
+
+      // Recargar inventario
+      loadInventory()
+
+      // Cerrar modal
+      setWasteDialog(false)
+      setWasteItem(null)
+      setWasteFormData({
+        quantity: '',
+        reason: 'damaged',
+        notes: ''
+      })
+    } catch (error) {
+      console.error('Error registering waste:', error)
+      toast.error('Error al registrar merma')
+    }
+  }
+
+  const handleWasteClose = () => {
+    setWasteDialog(false)
+    setWasteItem(null)
+    setWasteFormData({
+      quantity: '',
+      reason: 'damaged',
+      notes: ''
+    })
+  }
+
+  const handleRevertWaste = async (movementId) => {
+    if (!window.confirm('¿Estás seguro de que deseas revertir esta merma? Esto devolverá el producto al inventario.')) {
+      return
+    }
+
+    try {
+      await inventoryAPI.revertWaste(movementId)
+      toast.success('Merma revertida exitosamente')
+
+      // Recargar inventario y movimientos
+      loadInventory()
+      if (stockItem) {
+        loadItemMovements(stockItem.id, stockItem.name)
+      }
+    } catch (error) {
+      console.error('Error reverting waste:', error)
+      const errorMsg = error.response?.data?.error || 'Error al revertir merma'
+      toast.error(errorMsg)
+    }
   }
 
   const handleDelete = async (itemId) => {
@@ -773,6 +873,14 @@ const InventoryManagement = () => {
                               onClick={() => handleAddStock(item)}
                             >
                               + Stock
+                            </Button>
+                            <Button
+                              size="small"
+                              color="warning"
+                              startIcon={<RemoveCircleOutline />}
+                              onClick={() => handleWasteOpen(item)}
+                            >
+                              Merma
                             </Button>
                             <Button
                               size="small"
@@ -1449,6 +1557,7 @@ const InventoryManagement = () => {
                         <TableCell align="right">Costo Promedio</TableCell>
                         <TableCell>Proveedor</TableCell>
                         <TableCell>Notas</TableCell>
+                        <TableCell>Acciones</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -1456,7 +1565,10 @@ const InventoryManagement = () => {
                         <TableRow key={movement.id || index}>
                           <TableCell>
                             <Typography variant="body2">
-                              {new Date(movement.created_at).toLocaleDateString('es-ES')}
+                              {(() => {
+                                const [year, month, day] = movement.created_at.split('T')[0].split('-');
+                                return `${day}-${month}-${year}`;
+                              })()}
                             </Typography>
                           </TableCell>
                           <TableCell>
@@ -1501,6 +1613,27 @@ const InventoryManagement = () => {
                               {movement.notes || '-'}
                             </Typography>
                           </TableCell>
+                          <TableCell>
+                            {movement.movement_type === 'waste' && !movement.reverted && (
+                              <Tooltip title="Revertir merma (devolver al inventario)">
+                                <IconButton
+                                  size="small"
+                                  color="info"
+                                  onClick={() => handleRevertWaste(movement.id)}
+                                >
+                                  <Undo fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            {movement.reverted && (
+                              <Chip
+                                label="Revertida"
+                                size="small"
+                                color="default"
+                                variant="outlined"
+                              />
+                            )}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1521,6 +1654,109 @@ const InventoryManagement = () => {
             disabled={!stockFormData.quantity || !stockFormData.cost_per_unit}
           >
             Agregar Stock
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de Registro de Mermas */}
+      <Dialog open={wasteDialog} onClose={handleWasteClose} maxWidth="md" fullWidth>
+        <DialogTitle>
+          Registrar Merma - {wasteItem?.name}
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <strong>Registro de Merma:</strong><br />
+                Este movimiento reducirá el stock del producto y registrará el costo de la merma.
+              </Alert>
+            </Grid>
+
+            <Grid item xs={12}>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <strong>Stock Actual:</strong> {wasteItem?.current_stock} {wasteItem?.unit}<br />
+                <strong>Costo por Unidad:</strong> ${wasteItem?.cost_per_unit?.toLocaleString('es-CL') || '0'}
+              </Alert>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Cantidad Mermada"
+                type="number"
+                value={wasteFormData.quantity}
+                onChange={(e) => setWasteFormData(prev => ({ ...prev, quantity: e.target.value }))}
+                fullWidth
+                required
+                inputProps={{ min: 0, step: 0.01, max: wasteItem?.current_stock }}
+                helperText={`Unidad: ${wasteItem?.unit || ''} (Máximo: ${wasteItem?.current_stock || 0})`}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Razón de la Merma</InputLabel>
+                <Select
+                  value={wasteFormData.reason}
+                  onChange={(e) => setWasteFormData(prev => ({ ...prev, reason: e.target.value }))}
+                  label="Razón de la Merma"
+                >
+                  <MenuItem value="damaged">Desperfecto en producción</MenuItem>
+                  <MenuItem value="expired">Producto vencido</MenuItem>
+                  <MenuItem value="contaminated">Contaminación</MenuItem>
+                  <MenuItem value="transport_damage">Daño durante transporte</MenuItem>
+                  <MenuItem value="other">Otro</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                label="Notas / Detalles"
+                value={wasteFormData.notes}
+                onChange={(e) => setWasteFormData(prev => ({ ...prev, notes: e.target.value }))}
+                fullWidth
+                multiline
+                rows={3}
+                placeholder="Detalles adicionales sobre la merma..."
+              />
+            </Grid>
+
+            {wasteItem && wasteFormData.quantity && parseFloat(wasteFormData.quantity) > 0 && (
+              <Grid item xs={12}>
+                {(() => {
+                  const wasteQuantity = parseFloat(wasteFormData.quantity)
+                  const wasteCost = wasteQuantity * (wasteItem.cost_per_unit || 0)
+                  const newStock = wasteItem.current_stock - wasteQuantity
+
+                  return (
+                    <Alert severity="error">
+                      <Typography variant="body2">
+                        <strong>Resumen de la Merma:</strong><br />
+                        • Cantidad a mermar: {wasteFormData.quantity} {wasteItem.unit}<br />
+                        • Costo unitario: ${formatCurrency(wasteItem.cost_per_unit || 0)}<br />
+                        • <strong>Costo total de la merma: ${formatCurrency(wasteCost)}</strong><br />
+                        <br />
+                        • Stock actual: {wasteItem.current_stock} {wasteItem.unit}<br />
+                        • <strong>Stock después: {formatStock(newStock, false)} {wasteItem.unit}</strong>
+                      </Typography>
+                    </Alert>
+                  )
+                })()}
+              </Grid>
+            )}
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleWasteClose}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleWasteSubmit}
+            variant="contained"
+            color="warning"
+            disabled={!wasteFormData.quantity || parseFloat(wasteFormData.quantity) <= 0}
+          >
+            Registrar Merma
           </Button>
         </DialogActions>
       </Dialog>

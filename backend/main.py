@@ -2095,6 +2095,12 @@ def update_stock_with_movement():
         inbound_types = ['purchase', 'production', 'return', 'adjustment']
         is_inbound = movement_type in inbound_types
 
+        # Validation: For outbound movements (waste, consumption), check if there's enough stock
+        if not is_inbound and quantity > stock_before:
+            return jsonify({
+                'error': f'Stock insuficiente. Stock actual: {stock_before}, cantidad solicitada: {quantity}'
+            }), 400
+
         if is_inbound and quantity > 0:
             # Inbound movement - calculate new weighted average cost
             if stock_before <= 0:
@@ -2349,6 +2355,104 @@ def get_inventory_movement(movement_id):
 
     except Exception as e:
         print(f"Error getting inventory movement: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/movements/<movement_id>/revert', methods=['POST'])
+def revert_waste_movement(movement_id):
+    """Revert a waste movement - recover the wasted stock"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        # Get the original waste movement
+        movement_ref = db.collection('inventory_movements').document(movement_id)
+        movement_doc = movement_ref.get()
+
+        if not movement_doc.exists:
+            return jsonify({'error': 'Movement not found'}), 404
+
+        movement_data = movement_doc.to_dict()
+
+        # Verify it's a waste movement
+        if movement_data.get('movement_type') != 'waste':
+            return jsonify({'error': 'Can only revert waste movements'}), 400
+
+        # Check if already reverted
+        if movement_data.get('reverted', False):
+            return jsonify({'error': 'This waste movement has already been reverted'}), 400
+
+        item_id = movement_data.get('item_id')
+        quantity = abs(float(movement_data.get('quantity', 0)))  # Make positive
+        cost_per_unit = float(movement_data.get('cost_per_unit', 0))
+        original_notes = movement_data.get('notes', '')
+
+        # Get current item data
+        item_ref = db.collection('inventory').document(item_id)
+        item_doc = item_ref.get()
+
+        if not item_doc.exists:
+            return jsonify({'error': 'Item not found'}), 404
+
+        item_data = item_doc.to_dict()
+        stock_before = item_data.get('current_stock', 0)
+        avg_cost_before = item_data.get('cost_per_unit', 0)
+
+        # Calculate new stock (add back the wasted quantity)
+        stock_after = stock_before + quantity
+
+        # For waste reversals, we don't recalculate weighted average
+        # We keep the existing average cost
+        avg_cost_after = avg_cost_before
+
+        # Create reversal movement
+        reversal_movement = {
+            'item_id': item_id,
+            'item_name': item_data.get('name', 'Unknown'),
+            'movement_type': 'waste_reversal',
+            'quantity': quantity,  # Positive quantity
+            'unit': item_data.get('unit', ''),
+            'cost_per_unit': cost_per_unit,
+            'stock_before': stock_before,
+            'stock_after': stock_after,
+            'avg_cost_before': avg_cost_before,
+            'avg_cost_after': avg_cost_after,
+            'reference_type': 'waste_reversal',
+            'reference_id': movement_id,
+            'notes': f'Reversión de merma: {original_notes}',
+            'created_at': datetime.now(),
+            'reverts_movement_id': movement_id
+        }
+
+        # Add reversal movement to collection
+        reversal_ref = db.collection('inventory_movements').add(reversal_movement)
+
+        # Update item stock
+        needs_restock = stock_after <= item_data.get('min_stock', 0)
+        item_ref.update({
+            'current_stock': stock_after,
+            'needs_restock': needs_restock,
+            'last_updated': datetime.now()
+        })
+
+        # Mark original movement as reverted
+        movement_ref.update({
+            'reverted': True,
+            'reverted_at': datetime.now(),
+            'reversal_movement_id': reversal_ref[1].id
+        })
+
+        return jsonify({
+            'message': 'Waste movement reverted successfully',
+            'reversal_movement_id': reversal_ref[1].id,
+            'new_stock': stock_after,
+            'quantity_recovered': quantity
+        })
+
+    except Exception as e:
+        print(f"Error reverting waste movement: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 # ===================== RECIPES ENDPOINTS =====================
@@ -3874,6 +3978,87 @@ def get_monthly_report_data(year: int, month: int):
         # Acumular ingresos por servicio
         service_incomes[service_type] = service_incomes.get(service_type, 0.0) + final_price
 
+    # Consultar mermas del mes desde inventory_movements
+    waste_cost = 0.0
+    waste_items_count = 0
+    waste_details = []
+    try:
+        from datetime import timezone
+
+        # Obtener TODAS las mermas (sin filtro de fecha primero para debugging)
+        all_waste_movements = list(db.collection('inventory_movements')\
+            .where('movement_type', '==', 'waste')\
+            .stream())
+
+        logger.info(f"Found {len(all_waste_movements)} total waste movements in database")
+
+        # Filtrar por mes y año manualmente en Python
+        # Usar timezone-aware datetimes
+        start_dt = datetime(year, month, 1, tzinfo=timezone.utc)
+        if month == 12:
+            end_dt = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+        else:
+            end_dt = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+
+        for waste_doc in all_waste_movements:
+            waste_data = waste_doc.to_dict()
+            created_at = waste_data.get('created_at')
+
+            # Convertir created_at a datetime si es necesario
+            if created_at:
+                if hasattr(created_at, 'year'):  # Es datetime
+                    movement_date = created_at
+                    # Asegurarse de que sea timezone-aware
+                    if movement_date.tzinfo is None:
+                        movement_date = movement_date.replace(tzinfo=timezone.utc)
+                else:  # Es string o timestamp
+                    try:
+                        movement_date = datetime.fromisoformat(str(created_at).replace('Z', '+00:00'))
+                    except:
+                        logger.warning(f"Could not parse date: {created_at}")
+                        continue
+
+                # Verificar si está en el rango del mes
+                if start_dt <= movement_date < end_dt:
+                    # Si la merma no está revertida, sumar su costo
+                    if not waste_data.get('reverted', False):
+                        # Usar total_cost directamente si existe
+                        item_cost = abs(float(waste_data.get('total_cost', 0)))
+
+                        # Si no existe total_cost, calcular
+                        if item_cost == 0:
+                            quantity = abs(float(waste_data.get('quantity', 0)))
+                            cost_per_unit = float(waste_data.get('cost_per_unit', 0))
+                            item_cost = quantity * cost_per_unit
+
+                        waste_cost += item_cost
+                        waste_items_count += 1
+
+                        logger.info(f"Added waste: {waste_data.get('item_name')} - cost: {item_cost}")
+
+                        # Agregar detalle de la merma
+                        waste_details.append({
+                            'item_name': waste_data.get('item_name', 'N/A'),
+                            'quantity': abs(float(waste_data.get('quantity', 0))),
+                            'unit': waste_data.get('unit', ''),
+                            'cost_per_unit': float(waste_data.get('cost_per_unit', 0)),
+                            'total_cost': item_cost,
+                            'notes': waste_data.get('notes', ''),
+                            'created_at': movement_date.isoformat()
+                        })
+
+        logger.info(f"Total waste cost for {month}/{year}: {waste_cost}, items: {waste_items_count}")
+    except Exception as e:
+        logger.error(f"Error calculating waste cost: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        waste_cost = 0.0
+        waste_items_count = 0
+        waste_details = []
+
+    # Agregar mermas a gastos totales
+    total_expenses += waste_cost
+
     total_profit = total_income - total_expenses
     avg_participants = total_participants / total_events if total_events > 0 else 0
 
@@ -3901,7 +4086,10 @@ def get_monthly_report_data(year: int, month: int):
         "avg_participants": round(avg_participants, 1),
         "most_popular_service": most_popular_service,
         "client_retention_rate": round(client_retention_rate, 2),
-        "events_by_service": events_by_service
+        "events_by_service": events_by_service,
+        "waste_cost": round(waste_cost, 2),
+        "waste_items_count": waste_items_count,
+        "waste_details": waste_details
     }
 
 @app.route('/api/reports/monthly/<int:year>/<int:month>', methods=['GET'])
@@ -4128,6 +4316,173 @@ def export_monthly_report(year: int, month: int):
 
     except Exception as e:
         return jsonify({"error": f"Error al exportar reporte: {str(e)}"}), 500
+
+@app.route('/api/reports/waste-summary', methods=['GET'])
+def get_waste_summary():
+    """Get waste/mermas summary report"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        # Get query parameters
+        year = request.args.get('year', type=int, default=datetime.now().year)
+        month = request.args.get('month', type=int)
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+
+        # Build query for waste movements
+        movements_ref = db.collection('inventory_movements')
+        query = movements_ref.where('movement_type', '==', 'waste')
+
+        # Apply date filters
+        if start_date and end_date:
+            start_dt = datetime.fromisoformat(start_date)
+            end_dt = datetime.fromisoformat(end_date)
+            query = query.where('created_at', '>=', start_dt).where('created_at', '<=', end_dt)
+        elif month:
+            start_dt = datetime(year, month, 1)
+            if month == 12:
+                end_dt = datetime(year + 1, 1, 1)
+            else:
+                end_dt = datetime(year, month + 1, 1)
+            query = query.where('created_at', '>=', start_dt).where('created_at', '<', end_dt)
+        else:
+            # Default: current year
+            start_dt = datetime(year, 1, 1)
+            end_dt = datetime(year + 1, 1, 1)
+            query = query.where('created_at', '>=', start_dt).where('created_at', '<', end_dt)
+
+        # Get waste movements
+        waste_movements = []
+        for doc in query.stream():
+            movement = doc.to_dict()
+            movement['id'] = doc.id
+            waste_movements.append(movement)
+
+        # Calculate totals and aggregations
+        total_waste_cost = 0
+        total_items_wasted = len(waste_movements)
+        waste_by_category = {}
+        waste_by_reason = {}
+        waste_by_item = {}
+        waste_timeline = []
+
+        for movement in waste_movements:
+            # Total cost
+            cost = abs(movement.get('quantity', 0)) * movement.get('cost_per_unit', 0)
+            total_waste_cost += cost
+
+            # Get item details
+            item_id = movement.get('item_id')
+            item_name = movement.get('item_name', 'Desconocido')
+
+            # Try to get category from inventory item
+            try:
+                item_doc = db.collection('inventory').document(item_id).get()
+                if item_doc.exists:
+                    item_data = item_doc.to_dict()
+                    category = item_data.get('category', 'other')
+                else:
+                    category = 'other'
+            except:
+                category = 'other'
+
+            # Aggregate by category
+            if category not in waste_by_category:
+                waste_by_category[category] = {
+                    'count': 0,
+                    'total_cost': 0,
+                    'items': []
+                }
+            waste_by_category[category]['count'] += 1
+            waste_by_category[category]['total_cost'] += cost
+            if item_name not in waste_by_category[category]['items']:
+                waste_by_category[category]['items'].append(item_name)
+
+            # Extract reason from notes
+            notes = movement.get('notes', '')
+            reason = 'other'
+            if 'Desperfecto' in notes or 'damaged' in str(movement.get('waste_reason', '')):
+                reason = 'damaged'
+            elif 'vencido' in notes or 'expired' in str(movement.get('waste_reason', '')):
+                reason = 'expired'
+            elif 'Contaminación' in notes or 'contaminated' in str(movement.get('waste_reason', '')):
+                reason = 'contaminated'
+            elif 'transporte' in notes or 'transport' in str(movement.get('waste_reason', '')):
+                reason = 'transport_damage'
+
+            # Aggregate by reason
+            if reason not in waste_by_reason:
+                waste_by_reason[reason] = {
+                    'count': 0,
+                    'total_cost': 0
+                }
+            waste_by_reason[reason]['count'] += 1
+            waste_by_reason[reason]['total_cost'] += cost
+
+            # Aggregate by item
+            if item_name not in waste_by_item:
+                waste_by_item[item_name] = {
+                    'item_id': item_id,
+                    'quantity': 0,
+                    'unit': movement.get('unit', ''),
+                    'total_cost': 0,
+                    'frequency': 0
+                }
+            waste_by_item[item_name]['quantity'] += abs(movement.get('quantity', 0))
+            waste_by_item[item_name]['total_cost'] += cost
+            waste_by_item[item_name]['frequency'] += 1
+
+            # Timeline data
+            created_at = movement.get('created_at')
+            if created_at:
+                if isinstance(created_at, str):
+                    date_str = created_at[:10]
+                else:
+                    date_str = created_at.strftime('%Y-%m-%d')
+
+                waste_timeline.append({
+                    'date': date_str,
+                    'cost': cost,
+                    'item': item_name,
+                    'quantity': abs(movement.get('quantity', 0)),
+                    'unit': movement.get('unit', '')
+                })
+
+        # Sort top wasted items by cost
+        top_wasted_items = sorted(
+            [{'item_name': k, **v} for k, v in waste_by_item.items()],
+            key=lambda x: x['total_cost'],
+            reverse=True
+        )[:10]
+
+        # Sort timeline by date
+        waste_timeline.sort(key=lambda x: x['date'])
+
+        # Prepare response
+        summary = {
+            'total_waste_cost': round(total_waste_cost, 2),
+            'total_items_wasted': total_items_wasted,
+            'waste_by_category': waste_by_category,
+            'waste_by_reason': waste_by_reason,
+            'waste_timeline': waste_timeline,
+            'top_wasted_items': top_wasted_items,
+            'period': {
+                'year': year,
+                'month': month,
+                'start_date': start_date,
+                'end_date': end_date
+            }
+        }
+
+        return jsonify(summary)
+
+    except Exception as e:
+        print(f"Error getting waste summary: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 # ==================== END REPORTS API ROUTES ====================
 
