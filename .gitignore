@@ -11,6 +11,9 @@ node_modules/
 *.env
 backend/.env.production
 backend/.env*
+backend/.env.yaml
+.env.yaml
+*.env.yaml
 
 # Firebase credentials (CRITICAL - NEVER commit)
 firebase-service-account.json

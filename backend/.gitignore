@@ -10,7 +10,7 @@ ServiceAccount.json
 *.key
 *.pem
 *.p12
-
+*.env.yaml
 # OS
 .DS_Store
 Thumbs.db
