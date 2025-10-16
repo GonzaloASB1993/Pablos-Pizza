@@ -295,21 +295,39 @@ def create_event_from_booking(booking_data: dict) -> bool:
         # Use provided profit or calculated profit
         final_profit = booking_data.get('event_profit', calculated_profit)
         
+        # Generate simple description (admin can edit or use AI to generate better one)
+        location = booking_data.get('location', 'nuestra ubicación')
+        pizzeros_count = booking_data.get('pizzeros_participants', 0)
+        party_guests = booking_data.get('party_guests', booking_data.get('party_participants', 0))
+
+        if len(services) > 1:
+            description = f"Evento de {service_name} con {pizzeros_count} niños en el taller y {party_guests} invitados en la pizza party."
+        elif 'workshop' in services or 'pizzeros' in services:
+            description = f"Taller Pizzeros en Acción con {pizzeros_count} participantes."
+        else:
+            pizza_qty = booking_data.get('pizza_quantity', 10)
+            description = f"Pizza Party con {pizza_qty} pizzas para {party_guests} invitados."
+
         # Create event data with integrated financials
         event_data = {
             "id": event_id,
             "booking_id": booking_data.get('id'),
             "title": event_title,
-            "description": f"Evento realizado automáticamente desde agendamiento. Servicio: {service_name}",
+            "description": description,
             "event_date": event_date,
             "participants": booking_data.get('participants', 0),
             "final_price": estimated_price,
             "event_cost": event_cost,
             "profit": final_profit,
-            "notes": f"Evento creado automáticamente. Cliente: {booking_data.get('client_name')}. Ubicación: {booking_data.get('location', 'No especificada')}",
+            "notes": f"Evento en {location}. Cliente: {booking_data.get('client_name')}.",
             "status": "completed",
             "created_at": datetime.now(),
-            "photos": [],  # Array vacío para fotos que se pueden agregar después
+            "is_published": False,  # No publicar automáticamente
+            "is_featured": False,
+            "category": "workshop" if ('workshop' in services or 'pizzeros' in services) else "party",
+            "satisfaction": 5,  # Default high satisfaction
+            "highlight": service_name,
+            "age_group": "Niños y familias",
             "source": "auto_booking",  # Indicador de que fue creado automáticamente
             # Enhanced financials with breakdown
             "financials": {

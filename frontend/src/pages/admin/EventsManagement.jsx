@@ -26,7 +26,7 @@ import {
   IconButton,
   Alert
 } from '@mui/material'
-import { Add, Edit, Delete, Upload, Image, Visibility, VisibilityOff, Star } from '@mui/icons-material'
+import { Add, Edit, Delete, Upload, Image, Visibility, VisibilityOff, Star, AutoAwesome } from '@mui/icons-material'
 import { eventsAPI, galleryAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
@@ -52,6 +52,7 @@ const EventsManagement = () => {
   const [photoFiles, setPhotoFiles] = useState([])
   const [eventPhotos, setEventPhotos] = useState([])
   const [loadingPhotos, setLoadingPhotos] = useState(false)
+  const [generatingDescription, setGeneratingDescription] = useState(false)
 
   useEffect(() => {
     loadEvents()
@@ -332,6 +333,39 @@ const EventsManagement = () => {
     }
   }
 
+  const handleGenerateDescription = async () => {
+    try {
+      if (!formData.title) {
+        toast.error('Primero ingresa el título del evento')
+        return
+      }
+
+      setGeneratingDescription(true)
+      const response = await eventsAPI.generateDescription({
+        title: formData.title,
+        service_type: formData.service_type || '',
+        participants: formData.participants || 0,
+        pizzeros_participants: formData.pizzeros_participants || 0,
+        party_guests: formData.party_guests || 0,
+        location: formData.location || '',
+        notes: formData.notes || ''
+      })
+
+      setFormData({ ...formData, description: response.data.description })
+
+      if (response.data.warning) {
+        toast.warning(response.data.warning)
+      } else {
+        toast.success('Descripción generada con IA')
+      }
+    } catch (error) {
+      console.error('Error generating description:', error)
+      toast.error('Error al generar descripción con IA')
+    } finally {
+      setGeneratingDescription(false)
+    }
+  }
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -536,14 +570,29 @@ const EventsManagement = () => {
               />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Descripción"
-                multiline
-                rows={3}
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-              />
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                <TextField
+                  fullWidth
+                  label="Descripción"
+                  multiline
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  placeholder="Describe el evento de manera atractiva..."
+                />
+                <Button
+                  variant="outlined"
+                  startIcon={generatingDescription ? null : <AutoAwesome />}
+                  onClick={handleGenerateDescription}
+                  disabled={generatingDescription || !formData.title}
+                  sx={{ minWidth: '160px', height: '56px' }}
+                >
+                  {generatingDescription ? 'Generando...' : 'Generar con IA'}
+                </Button>
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                Usa IA para generar una descripción profesional basada en los datos del evento
+              </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField

@@ -1785,7 +1785,7 @@ const BookingsManagement = () => {
                                                         <Button
                                                             size="small"
                                                             startIcon={<ViewList />}
-                                                            onClick={() => { setSelectedBooking(booking); setViewDialog(true) }}
+                                                            onClick={async () => { setSelectedBooking(booking); await loadSupplyStatus(booking.id); setViewDialog(true) }}
                                                         >
                                                             Ver detalle
                                                         </Button>

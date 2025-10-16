@@ -4,8 +4,19 @@ from datetime import datetime
 from database import get_db
 from firebase_admin import firestore
 from utils.pagination import paginate_query, create_pagination_response
+import os
 
 events_bp = Blueprint('events', __name__, url_prefix='/api/events')
+
+def generate_basic_description(title, service_type, participants, pizzeros_participants, party_guests, location):
+    """Generate a basic description when AI is not available"""
+    if 'workshop' in service_type or 'pizzeros' in service_type:
+        if party_guests > 0:
+            return f"Celebración combinada de Pizzeros en Acción y Pizza Party en {location}. {pizzeros_participants} niños participaron del taller donde aprendieron a crear sus propias pizzas, seguido de una pizza party para {party_guests} invitados. Una experiencia completa de diversión y aprendizaje culinario."
+        else:
+            return f"Taller Pizzeros en Acción en {location} donde {pizzeros_participants} niños aprendieron a preparar pizzas artesanales. Una experiencia educativa y divertida."
+    else:
+        return f"Pizza Party en {location} con pizzas artesanales recién horneadas para {party_guests} invitados. Celebración llena de sabor y alegría."
 
 @events_bp.route('/', methods=['GET'])
 def get_events():
@@ -71,3 +82,84 @@ def publish_event(event_id):
         ue['id'] = event_id
         return jsonify(ue), 200
     except Exception as e: return jsonify({"error":str(e)}), 500
+
+@events_bp.route('/generate-description', methods=['POST','OPTIONS'])
+def generate_description():
+    """Generate AI description for event using Claude API"""
+    if request.method == 'OPTIONS': return jsonify({'status':'OK'}), 200
+    try:
+        data = request.get_json()
+        if not data: return jsonify({"error":"No data"}), 400
+
+        # Extract event details
+        title = data.get('title', '')
+        service_type = data.get('service_type', '')
+        participants = data.get('participants', 0)
+        pizzeros_participants = data.get('pizzeros_participants', 0)
+        party_guests = data.get('party_guests', 0)
+        location = data.get('location', '')
+        notes = data.get('notes', '')
+
+        # Build prompt for Claude
+        prompt = f"""Genera una descripción en PASADO sobre este evento de Pablo's Pizza que ya ocurrió:
+
+Título: {title}
+Tipo de servicio: {service_type}
+Participantes totales: {participants}
+Niños en taller: {pizzeros_participants}
+Invitados en pizza party: {party_guests}
+Ubicación: {location}
+Notas adicionales: {notes}
+
+La descripción debe:
+- Estar escrita completamente en PASADO (ej: "Estuvimos en...", "fue", "tuvimos", "disfrutaron")
+- Ser PRECISA y CONCISA (máximo 2-3 oraciones, 100 palabras)
+- Iniciar mencionando que estuvimos en el evento del cliente/nombre
+- Mencionar los números exactos de participantes
+- Sonar profesional pero cercana y entusiasta
+- NO usar emojis
+- Destacar brevemente la experiencia y las pizzas artesanales
+
+Responde SOLO con la descripción en pasado, sin introducción ni explicaciones."""
+
+        try:
+            import anthropic
+
+            api_key = os.getenv('ANTHROPIC_API_KEY')
+            if not api_key:
+                return jsonify({"error": "ANTHROPIC_API_KEY not configured"}), 503
+
+            client = anthropic.Anthropic(api_key=api_key)
+
+            message = client.messages.create(
+                model="claude-3-haiku-20240307",
+                max_tokens=300,
+                messages=[{
+                    "role": "user",
+                    "content": prompt
+                }]
+            )
+
+            description = message.content[0].text.strip()
+            return jsonify({"description": description}), 200
+
+        except ImportError:
+            # Fallback si no está instalado anthropic
+            return jsonify({"error": "AI service not available. Please install anthropic package."}), 503
+        except anthropic.APIError as e:
+            # Handle API errors (like insufficient credits)
+            if "credit balance" in str(e).lower():
+                # Generate a basic description as fallback
+                basic_desc = generate_basic_description(title, service_type, participants, pizzeros_participants, party_guests, location)
+                return jsonify({
+                    "description": basic_desc,
+                    "warning": "IA no disponible (sin créditos). Descripción básica generada."
+                }), 200
+            print(f"Anthropic API Error: {e}")
+            return jsonify({"error": f"AI service error: {str(e)}"}), 503
+        except Exception as e:
+            print(f"Error generating AI description: {e}")
+            return jsonify({"error": f"Failed to generate description: {str(e)}"}), 500
+
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500

@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
 const BASE_URL = isDevelopment
-  ? 'http://localhost:5000/api'  // Development - Flask runs on port 5000
+  ? 'http://localhost:8000/api'  // Development - Flask runs on port 8000
   : 'https://main-4kqeqojbsq-uc.a.run.app/api'  // Production Cloud Run
 
 
@@ -345,6 +345,7 @@ export const eventsAPI = {
   publish: (id, isPublished, isFeatured = false) => api.put(`/events/${id}/publish`, { is_published: isPublished, is_featured: isFeatured }),
   requestReview: (id) => api.post(`/events/${id}/request-review`),
   getByBooking: (bookingId) => api.get(`/events/booking/${bookingId}`),
+  generateDescription: (eventData) => api.post('/events/generate-description', eventData),
 }
 
 export const galleryAPI = {
