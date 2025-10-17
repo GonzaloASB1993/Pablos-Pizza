@@ -1473,15 +1473,17 @@ export default function ReportsPage() {
                                 elevation={0}
                                 sx={{
                                   '&:before': { display: 'none' },
-                                  bgcolor: 'transparent',
+                                  bgcolor: mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
                                   borderRadius: '8px',
-                                  mb: 1
+                                  mb: 1,
+                                  border: `1px solid ${mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                                  '&:hover': { bgcolor: mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)' }
                                 }}
                               >
                                 <AccordionSummary
                                   expandIcon={<ExpandMore />}
                                   sx={{
-                                    px: 1,
+                                    px: 2,
                                     minHeight: '48px',
                                     '& .MuiAccordionSummary-content': {
                                       justifyContent: 'space-between',
@@ -1490,10 +1492,12 @@ export default function ReportsPage() {
                                     }
                                   }}
                                 >
-                                  <Typography>
-                                    Gastos Fijos {incomeStatementView === 'annual' && '(x12 meses)'}
-                                  </Typography>
-                                  <Typography>
+                                  <Box display="flex" alignItems="center" gap={1}>
+                                    <Typography sx={{ fontWeight: 500 }}>
+                                      Gastos Fijos {incomeStatementView === 'annual' && '(x12 meses)'}
+                                    </Typography>
+                                  </Box>
+                                  <Typography sx={{ fontWeight: 500 }}>
                                     {new Intl.NumberFormat('es-CL', {
                                       style: 'currency',
                                       currency: 'CLP',
@@ -1501,10 +1505,10 @@ export default function ReportsPage() {
                                     }).format(incomeStatementView === 'monthly' ? getTotalFixedExpenses() : getAnnualFixedExpenses())}
                                   </Typography>
                                 </AccordionSummary>
-                                <AccordionDetails sx={{ pt: 0, px: 1 }}>
+                                <AccordionDetails sx={{ pt: 0, px: 2, pb: 2 }}>
                                   <Box>
                                     <Button
-                                      variant="text"
+                                      variant="outlined"
                                       startIcon={<Add />}
                                       size="small"
                                       sx={{ mb: 2 }}
@@ -1559,14 +1563,16 @@ export default function ReportsPage() {
                                 elevation={0}
                                 sx={{
                                   '&:before': { display: 'none' },
-                                  bgcolor: 'transparent',
-                                  borderRadius: '8px'
+                                  bgcolor: mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                                  borderRadius: '8px',
+                                  border: `1px solid ${mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                                  '&:hover': { bgcolor: mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)' }
                                 }}
                               >
                                 <AccordionSummary
                                   expandIcon={<ExpandMore />}
                                   sx={{
-                                    px: 1,
+                                    px: 2,
                                     minHeight: '48px',
                                     '& .MuiAccordionSummary-content': {
                                       justifyContent: 'space-between',
@@ -1575,8 +1581,10 @@ export default function ReportsPage() {
                                     }
                                   }}
                                 >
-                                  <Typography>Gastos Variables</Typography>
-                                  <Typography>
+                                  <Box display="flex" alignItems="center" gap={1}>
+                                    <Typography sx={{ fontWeight: 500 }}>Gastos Variables</Typography>
+                                  </Box>
+                                  <Typography sx={{ fontWeight: 500 }}>
                                     {new Intl.NumberFormat('es-CL', {
                                       style: 'currency',
                                       currency: 'CLP',
@@ -1584,11 +1592,11 @@ export default function ReportsPage() {
                                     }).format(incomeStatementView === 'monthly' ? getTotalVariableExpenses() : getAnnualVariableExpenses())}
                                   </Typography>
                                 </AccordionSummary>
-                                <AccordionDetails sx={{ pt: 0, px: 1 }}>
+                                <AccordionDetails sx={{ pt: 0, px: 2, pb: 2 }}>
                                   <Box>
                                     {incomeStatementView === 'monthly' && (
                                       <Button
-                                        variant="text"
+                                        variant="outlined"
                                         startIcon={<Add />}
                                         size="small"
                                         sx={{ mb: 2 }}
