@@ -1238,23 +1238,54 @@ export default function ReportsPage() {
                   <Table>
                     <TableBody>
                       {/* Ingresos */}
-                      <TableRow
-                        sx={{
-                          bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(102, 187, 106, 0.1)',
-                          borderLeft: '4px solid',
-                          borderLeftColor: 'success.main',
-                          '&:hover': { bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.2)' : 'rgba(102, 187, 106, 0.15)' }
-                        }}
-                      >
-                        <TableCell sx={{ fontWeight: 600, fontSize: '1rem', py: 2 }}>
-                          INGRESOS
-                        </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600, fontSize: '1rem', py: 2 }}>
-                          {new Intl.NumberFormat('es-CL', {
-                            style: 'currency',
-                            currency: 'CLP',
-                            minimumFractionDigits: 0
-                          }).format(incomeStatementView === 'monthly' ? (monthlyData?.total_income || 0) : getAnnualTotalIncome())}
+                      <TableRow>
+                        <TableCell colSpan={2} sx={{ p: 0 }}>
+                          <Accordion
+                            elevation={0}
+                            sx={{
+                              '&:before': { display: 'none' },
+                              bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(102, 187, 106, 0.1)',
+                              borderRadius: '12px !important',
+                              overflow: 'hidden',
+                              my: 1,
+                              borderLeft: '4px solid',
+                              borderLeftColor: 'success.main',
+                              '&:hover': { bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.2)' : 'rgba(102, 187, 106, 0.15)' }
+                            }}
+                          >
+                            <AccordionSummary
+                              sx={{
+                                px: 2,
+                                '& .MuiAccordionSummary-content': {
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  my: 2
+                                }
+                              }}
+                            >
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <ExpandMore />
+                                <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                                  INGRESOS
+                                </Typography>
+                              </Box>
+                              <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                                {new Intl.NumberFormat('es-CL', {
+                                  style: 'currency',
+                                  currency: 'CLP',
+                                  minimumFractionDigits: 0
+                                }).format(incomeStatementView === 'monthly' ? (monthlyData?.total_income || 0) : getAnnualTotalIncome())}
+                              </Typography>
+                            </AccordionSummary>
+                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2 }}>
+                              <Alert severity="info" sx={{ mb: 1 }}>
+                                {incomeStatementView === 'monthly'
+                                  ? `Ingresos totales de ${monthlyData?.total_events || 0} eventos realizados en ${new Date(selectedYear, selectedMonth - 1).toLocaleDateString('es-ES', { month: 'long' })}`
+                                  : `Ingresos totales de ${annualData?.annual_totals?.total_events || 0} eventos realizados en ${selectedYear}`
+                                }
+                              </Alert>
+                            </AccordionDetails>
+                          </Accordion>
                         </TableCell>
                       </TableRow>
 
@@ -1289,7 +1320,9 @@ export default function ReportsPage() {
                             elevation={0}
                             sx={{
                               '&:before': { display: 'none' },
-                              bgcolor: 'transparent'
+                              bgcolor: 'transparent',
+                              borderRadius: '8px',
+                              my: 0.5
                             }}
                           >
                             <AccordionSummary
@@ -1378,7 +1411,9 @@ export default function ReportsPage() {
                             elevation={0}
                             sx={{
                               '&:before': { display: 'none' },
-                              bgcolor: 'transparent'
+                              bgcolor: 'transparent',
+                              borderRadius: '8px',
+                              my: 0.5
                             }}
                           >
                             <AccordionSummary
@@ -1470,23 +1505,51 @@ export default function ReportsPage() {
                       </TableRow>
 
                       {/* EBITDA */}
-                      <TableRow
-                        sx={{
-                          bgcolor: mode === 'dark' ? 'rgba(33, 150, 243, 0.15)' : 'rgba(33, 150, 243, 0.1)',
-                          borderLeft: '4px solid',
-                          borderLeftColor: 'primary.main',
-                          '&:hover': { bgcolor: mode === 'dark' ? 'rgba(33, 150, 243, 0.2)' : 'rgba(33, 150, 243, 0.15)' }
-                        }}
-                      >
-                        <TableCell sx={{ fontWeight: 600, fontSize: '1rem', py: 2 }}>
-                          EBITDA
-                        </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600, fontSize: '1rem', py: 2 }}>
-                          {new Intl.NumberFormat('es-CL', {
-                            style: 'currency',
-                            currency: 'CLP',
-                            minimumFractionDigits: 0
-                          }).format(incomeStatementView === 'monthly' ? getEBITDA() : getAnnualEBITDA())}
+                      <TableRow>
+                        <TableCell colSpan={2} sx={{ p: 0 }}>
+                          <Accordion
+                            elevation={0}
+                            sx={{
+                              '&:before': { display: 'none' },
+                              bgcolor: mode === 'dark' ? 'rgba(33, 150, 243, 0.15)' : 'rgba(33, 150, 243, 0.1)',
+                              borderRadius: '12px !important',
+                              overflow: 'hidden',
+                              my: 1,
+                              borderLeft: '4px solid',
+                              borderLeftColor: 'primary.main',
+                              '&:hover': { bgcolor: mode === 'dark' ? 'rgba(33, 150, 243, 0.2)' : 'rgba(33, 150, 243, 0.15)' }
+                            }}
+                          >
+                            <AccordionSummary
+                              sx={{
+                                px: 2,
+                                '& .MuiAccordionSummary-content': {
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  my: 2
+                                }
+                              }}
+                            >
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <ExpandMore />
+                                <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                                  EBITDA
+                                </Typography>
+                              </Box>
+                              <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                                {new Intl.NumberFormat('es-CL', {
+                                  style: 'currency',
+                                  currency: 'CLP',
+                                  minimumFractionDigits: 0
+                                }).format(incomeStatementView === 'monthly' ? getEBITDA() : getAnnualEBITDA())}
+                              </Typography>
+                            </AccordionSummary>
+                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2 }}>
+                              <Alert severity="info">
+                                EBITDA = Ingresos - Costos de Eventos - Mermas - Gastos Fijos - Gastos Variables
+                              </Alert>
+                            </AccordionDetails>
+                          </Accordion>
                         </TableCell>
                       </TableRow>
 
@@ -1518,23 +1581,34 @@ export default function ReportsPage() {
                       </TableRow>
 
                       {/* Utilidad Neta */}
-                      <TableRow
-                        sx={{
-                          bgcolor: mode === 'dark' ? 'rgba(255, 167, 38, 0.15)' : 'rgba(255, 167, 38, 0.1)',
-                          borderLeft: '4px solid',
-                          borderLeftColor: 'warning.main',
-                          '&:hover': { bgcolor: mode === 'dark' ? 'rgba(255, 167, 38, 0.2)' : 'rgba(255, 167, 38, 0.15)' }
-                        }}
-                      >
-                        <TableCell sx={{ fontWeight: 700, fontSize: '1.1rem', py: 2.5 }}>
-                          UTILIDAD NETA
-                        </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1.1rem', py: 2.5 }}>
-                          {new Intl.NumberFormat('es-CL', {
-                            style: 'currency',
-                            currency: 'CLP',
-                            minimumFractionDigits: 0
-                          }).format(incomeStatementView === 'monthly' ? getNetProfit() : getAnnualNetProfit())}
+                      <TableRow>
+                        <TableCell colSpan={2} sx={{ p: 0 }}>
+                          <Box
+                            sx={{
+                              bgcolor: mode === 'dark' ? 'rgba(255, 167, 38, 0.15)' : 'rgba(255, 167, 38, 0.1)',
+                              borderLeft: '4px solid',
+                              borderLeftColor: 'warning.main',
+                              borderRadius: '12px',
+                              my: 1,
+                              px: 2,
+                              py: 2.5,
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              '&:hover': { bgcolor: mode === 'dark' ? 'rgba(255, 167, 38, 0.2)' : 'rgba(255, 167, 38, 0.15)' }
+                            }}
+                          >
+                            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
+                              UTILIDAD NETA
+                            </Typography>
+                            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
+                              {new Intl.NumberFormat('es-CL', {
+                                style: 'currency',
+                                currency: 'CLP',
+                                minimumFractionDigits: 0
+                              }).format(incomeStatementView === 'monthly' ? getNetProfit() : getAnnualNetProfit())}
+                            </Typography>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     </TableBody>
