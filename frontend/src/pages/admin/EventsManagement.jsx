@@ -44,7 +44,11 @@ const EventsManagement = () => {
     participants: '',
     final_price: '',
     notes: '',
-    status: 'completed'
+    status: 'completed',
+    service_type: '',
+    pizzeros_participants: 0,
+    party_guests: 0,
+    location: ''
   })
   const [imageFiles, setImageFiles] = useState([])
   const [photoDialog, setPhotoDialog] = useState(false)
@@ -166,7 +170,11 @@ const EventsManagement = () => {
       participants: '',
       final_price: '',
       notes: '',
-      status: 'completed'
+      status: 'completed',
+      service_type: '',
+      pizzeros_participants: 0,
+      party_guests: 0,
+      location: ''
     })
     setImageFiles([])
     setEditingEvent(null)
@@ -181,7 +189,11 @@ const EventsManagement = () => {
       participants: event.participants || '',
       final_price: event.final_price || '',
       notes: event.notes || '',
-      status: event.status || 'completed'
+      status: event.status || 'completed',
+      service_type: event.service_type || '',
+      pizzeros_participants: event.pizzeros_participants || 0,
+      party_guests: event.party_guests || 0,
+      location: event.location || ''
     })
     setDialogOpen(true)
   }

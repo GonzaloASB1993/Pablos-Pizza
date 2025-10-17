@@ -51,6 +51,7 @@ from routes.events_routes import events_bp
 from routes.gallery_routes import gallery_bp
 from routes.contacts_routes import contacts_bp
 from routes.customers_routes import customers_bp
+from routes.expenses_routes import expenses_bp
 
 
 try:
@@ -130,6 +131,8 @@ app.register_blueprint(contacts_bp)
 print("  [OK] Contacts routes registered")
 app.register_blueprint(customers_bp)
 print("  [OK] Customers routes registered")
+app.register_blueprint(expenses_bp)
+print("  [OK] Expenses routes registered")
 print("[SUCCESS] All blueprints registered successfully!")
 
 

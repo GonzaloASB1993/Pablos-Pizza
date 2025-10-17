@@ -25,7 +25,15 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material'
 import {
   TrendingUp,
@@ -44,7 +52,10 @@ import {
   Warning,
   Brightness4,
   Brightness7,
-  RemoveCircleOutline
+  RemoveCircleOutline,
+  AccountBalance,
+  Add,
+  ExpandMore
 } from '@mui/icons-material'
 import {
   Chart as ChartJS,
@@ -59,7 +70,7 @@ import {
   ArcElement
 } from 'chart.js'
 import { Line, Bar, Pie } from 'react-chartjs-2'
-import { reportsAPI, inventoryAPI } from '../../services/api'
+import { reportsAPI, inventoryAPI, expensesAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 import { useThemeMode } from '../../contexts/ThemeContext'
 import { useTheme } from '@mui/material/styles'
@@ -173,8 +184,25 @@ export default function ReportsPage() {
   const [topClients, setTopClients] = useState([])
   const [inventoryTotalValue, setInventoryTotalValue] = useState(0)
 
+  // Expense management state
+  const [fixedExpenses, setFixedExpenses] = useState([])
+  const [variableExpenses, setVariableExpenses] = useState([])
+  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false)
+  const [expenseDialogType, setExpenseDialogType] = useState('fixed') // 'fixed' or 'variable'
+  const [editingExpense, setEditingExpense] = useState(null)
+  const [expenseFormData, setExpenseFormData] = useState({
+    description: '',
+    amount: '',
+    category: 'general',
+    notes: ''
+  })
+  const [incomeStatementView, setIncomeStatementView] = useState('monthly') // 'monthly' or 'annual'
+  const [monthlyTax, setMonthlyTax] = useState(0)
+  const [annualTax, setAnnualTax] = useState(0)
+
   useEffect(() => {
     loadReportsData()
+    loadExpensesData()
   }, [selectedMonth, selectedYear])
 
   const loadReportsData = async () => {
@@ -219,6 +247,177 @@ export default function ReportsPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const loadExpensesData = async () => {
+    try {
+      // Load fixed expenses
+      const fixedResponse = await expensesAPI.getFixed()
+      setFixedExpenses(fixedResponse.data || [])
+
+      // Load variable expenses for selected month/year
+      const variableResponse = await expensesAPI.getVariable({
+        year: selectedYear,
+        month: selectedMonth
+      })
+      setVariableExpenses(variableResponse.data || [])
+    } catch (error) {
+      console.error('Error loading expenses data:', error)
+      // Don't show error toast - expenses might not be set up yet
+    }
+  }
+
+  const handleOpenExpenseDialog = (type, expense = null) => {
+    setExpenseDialogType(type)
+    setEditingExpense(expense)
+    if (expense) {
+      setExpenseFormData({
+        description: expense.description || '',
+        amount: expense.amount || '',
+        category: expense.category || 'general',
+        notes: expense.notes || ''
+      })
+    } else {
+      setExpenseFormData({
+        description: '',
+        amount: '',
+        category: 'general',
+        notes: ''
+      })
+    }
+    setExpenseDialogOpen(true)
+  }
+
+  const handleCloseExpenseDialog = () => {
+    setExpenseDialogOpen(false)
+    setEditingExpense(null)
+    setExpenseFormData({
+      description: '',
+      amount: '',
+      category: 'general',
+      notes: ''
+    })
+  }
+
+  const handleSaveExpense = async () => {
+    try {
+      const expenseData = {
+        ...expenseFormData,
+        amount: parseFloat(expenseFormData.amount)
+      }
+
+      // Add year/month for variable expenses
+      if (expenseDialogType === 'variable') {
+        expenseData.year = selectedYear
+        expenseData.month = selectedMonth
+      }
+
+      if (editingExpense) {
+        // Update existing expense
+        if (expenseDialogType === 'fixed') {
+          await expensesAPI.updateFixed(editingExpense.id, expenseData)
+        } else {
+          await expensesAPI.updateVariable(editingExpense.id, expenseData)
+        }
+        toast.success('Gasto actualizado exitosamente')
+      } else {
+        // Create new expense
+        if (expenseDialogType === 'fixed') {
+          await expensesAPI.createFixed(expenseData)
+        } else {
+          await expensesAPI.createVariable(expenseData)
+        }
+        toast.success('Gasto creado exitosamente')
+      }
+
+      handleCloseExpenseDialog()
+      loadExpensesData()
+    } catch (error) {
+      console.error('Error saving expense:', error)
+      toast.error('Error al guardar el gasto')
+    }
+  }
+
+  const handleDeleteExpense = async (type, expenseId) => {
+    if (!window.confirm('¿Estás seguro de eliminar este gasto?')) return
+
+    try {
+      if (type === 'fixed') {
+        await expensesAPI.deleteFixed(expenseId)
+      } else {
+        await expensesAPI.deleteVariable(expenseId)
+      }
+      toast.success('Gasto eliminado exitosamente')
+      loadExpensesData()
+    } catch (error) {
+      console.error('Error deleting expense:', error)
+      toast.error('Error al eliminar el gasto')
+    }
+  }
+
+  // Calculate totals
+  const getTotalFixedExpenses = () => {
+    return fixedExpenses
+      .filter(exp => exp.is_active)
+      .reduce((sum, exp) => sum + (exp.amount || 0), 0)
+  }
+
+  const getTotalVariableExpenses = () => {
+    return variableExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0)
+  }
+
+  const getEBITDA = () => {
+    return (
+      (monthlyData?.total_income || 0) -
+      (monthlyData?.total_expenses || 0) -
+      (monthlyData?.waste_cost || 0) -
+      getTotalFixedExpenses() -
+      getTotalVariableExpenses()
+    )
+  }
+
+  const getNetProfit = () => {
+    return getEBITDA() - monthlyTax
+  }
+
+  // Annual calculations
+  const getAnnualTotalIncome = () => {
+    return annualData?.annual_totals?.total_income || 0
+  }
+
+  const getAnnualTotalExpenses = () => {
+    return annualData?.annual_totals?.total_expenses || 0
+  }
+
+  const getAnnualWasteCost = () => {
+    // Sum waste from all months in annual data
+    if (!annualData?.monthly_reports) return 0
+    return annualData.monthly_reports.reduce((sum, month) => sum + (month.waste_cost || 0), 0)
+  }
+
+  const getAnnualFixedExpenses = () => {
+    // Fixed expenses * 12 months (assuming they repeat monthly)
+    return getTotalFixedExpenses() * 12
+  }
+
+  const getAnnualVariableExpenses = () => {
+    // Would need to load all variable expenses for the year
+    // For now, return 0 - can be enhanced later
+    return 0
+  }
+
+  const getAnnualEBITDA = () => {
+    return (
+      getAnnualTotalIncome() -
+      getAnnualTotalExpenses() -
+      getAnnualWasteCost() -
+      getAnnualFixedExpenses() -
+      getAnnualVariableExpenses()
+    )
+  }
+
+  const getAnnualNetProfit = () => {
+    return getAnnualEBITDA() - annualTax
   }
 
   const handleExportReport = async () => {
@@ -524,6 +723,7 @@ export default function ReportsPage() {
           <Tab label="Clientes Top" icon={<People />} />
           <Tab label="Operaciones" icon={<Inventory />} />
           <Tab label="Resumen de Mermas" icon={<RemoveCircleOutline />} />
+          <Tab label="Estado de Resultados" icon={<AccountBalance />} />
         </Tabs>
       </Paper>
 
@@ -954,6 +1154,433 @@ export default function ReportsPage() {
           </Grid>
         </Grid>
       )}
+
+      {tabValue === 5 && (
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+                  <Box display="flex" alignItems="center">
+                    <AccountBalance sx={{ fontSize: 40, color: 'primary.main', mr: 2 }} />
+                    <Box>
+                      <Typography variant="h5" gutterBottom>
+                        Estado de Resultados
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Análisis financiero detallado del período seleccionado
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      variant={incomeStatementView === 'monthly' ? 'contained' : 'outlined'}
+                      onClick={() => setIncomeStatementView('monthly')}
+                      size="small"
+                    >
+                      Mensual
+                    </Button>
+                    <Button
+                      variant={incomeStatementView === 'annual' ? 'contained' : 'outlined'}
+                      onClick={() => setIncomeStatementView('annual')}
+                      size="small"
+                    >
+                      Anual
+                    </Button>
+                  </Stack>
+                </Box>
+
+                {incomeStatementView === 'monthly' && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    Mostrando datos de {new Date(selectedYear, selectedMonth - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                  </Alert>
+                )}
+                {incomeStatementView === 'annual' && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    Mostrando datos anuales de {selectedYear}
+                  </Alert>
+                )}
+
+                <TableContainer>
+                  <Table>
+                    <TableBody>
+                      {/* Ingresos */}
+                      <TableRow
+                        sx={{
+                          bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(102, 187, 106, 0.1)',
+                          borderLeft: '4px solid',
+                          borderLeftColor: 'success.main',
+                          '&:hover': { bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.2)' : 'rgba(102, 187, 106, 0.15)' }
+                        }}
+                      >
+                        <TableCell sx={{ fontWeight: 600, fontSize: '1rem', py: 2 }}>
+                          INGRESOS
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600, fontSize: '1rem', py: 2 }}>
+                          {new Intl.NumberFormat('es-CL', {
+                            style: 'currency',
+                            currency: 'CLP',
+                            minimumFractionDigits: 0
+                          }).format(incomeStatementView === 'monthly' ? (monthlyData?.total_income || 0) : getAnnualTotalIncome())}
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Costo Eventos */}
+                      <TableRow>
+                        <TableCell sx={{ pl: 4 }}>Costo de Eventos</TableCell>
+                        <TableCell align="right">
+                          -{new Intl.NumberFormat('es-CL', {
+                            style: 'currency',
+                            currency: 'CLP',
+                            minimumFractionDigits: 0
+                          }).format(incomeStatementView === 'monthly' ? (monthlyData?.total_expenses || 0) : getAnnualTotalExpenses())}
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Costo Mermas */}
+                      <TableRow>
+                        <TableCell sx={{ pl: 4 }}>Costo de Mermas</TableCell>
+                        <TableCell align="right">
+                          -{new Intl.NumberFormat('es-CL', {
+                            style: 'currency',
+                            currency: 'CLP',
+                            minimumFractionDigits: 0
+                          }).format(incomeStatementView === 'monthly' ? (monthlyData?.waste_cost || 0) : getAnnualWasteCost())}
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Gastos Fijos */}
+                      <TableRow>
+                        <TableCell colSpan={2} sx={{ p: 0 }}>
+                          <Accordion
+                            elevation={0}
+                            sx={{
+                              '&:before': { display: 'none' },
+                              bgcolor: 'transparent'
+                            }}
+                          >
+                            <AccordionSummary
+                              sx={{
+                                px: 2,
+                                '& .MuiAccordionSummary-content': {
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  my: 1
+                                }
+                              }}
+                            >
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <ExpandMore />
+                                <Typography>
+                                  Gastos Fijos {incomeStatementView === 'annual' && '(x12 meses)'}
+                                </Typography>
+                              </Box>
+                              <Typography>
+                                -{new Intl.NumberFormat('es-CL', {
+                                  style: 'currency',
+                                  currency: 'CLP',
+                                  minimumFractionDigits: 0
+                                }).format(incomeStatementView === 'monthly' ? getTotalFixedExpenses() : getAnnualFixedExpenses())}
+                              </Typography>
+                            </AccordionSummary>
+                            <AccordionDetails sx={{ pt: 0 }}>
+                              <Box>
+                                <Button
+                                  variant="text"
+                                  startIcon={<Add />}
+                                  size="small"
+                                  sx={{ mb: 2 }}
+                                  onClick={() => handleOpenExpenseDialog('fixed')}
+                                >
+                                  Agregar Gasto Fijo
+                                </Button>
+                                {fixedExpenses.filter(exp => exp.is_active).length > 0 ? (
+                                  <Table size="small">
+                                    <TableBody>
+                                      {fixedExpenses.filter(exp => exp.is_active).map((expense) => (
+                                        <TableRow key={expense.id}>
+                                          <TableCell>{expense.description}</TableCell>
+                                          <TableCell>{expense.category}</TableCell>
+                                          <TableCell align="right">
+                                            {new Intl.NumberFormat('es-CL', {
+                                              style: 'currency',
+                                              currency: 'CLP',
+                                              minimumFractionDigits: 0
+                                            }).format(expense.amount)}
+                                          </TableCell>
+                                          <TableCell align="right">
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => handleOpenExpenseDialog('fixed', expense)}
+                                            >
+                                              <Assessment fontSize="small" />
+                                            </IconButton>
+                                            <IconButton
+                                              size="small"
+                                              color="error"
+                                              onClick={() => handleDeleteExpense('fixed', expense.id)}
+                                            >
+                                              <RemoveCircleOutline fontSize="small" />
+                                            </IconButton>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                ) : (
+                                  <Alert severity="info">
+                                    No hay gastos fijos registrados. Haz clic en "Agregar Gasto Fijo" para crear uno.
+                                  </Alert>
+                                )}
+                              </Box>
+                            </AccordionDetails>
+                          </Accordion>
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Gastos Variables */}
+                      <TableRow>
+                        <TableCell colSpan={2} sx={{ p: 0 }}>
+                          <Accordion
+                            elevation={0}
+                            sx={{
+                              '&:before': { display: 'none' },
+                              bgcolor: 'transparent'
+                            }}
+                          >
+                            <AccordionSummary
+                              sx={{
+                                px: 2,
+                                '& .MuiAccordionSummary-content': {
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  my: 1
+                                }
+                              }}
+                            >
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <ExpandMore />
+                                <Typography>Gastos Variables</Typography>
+                              </Box>
+                              <Typography>
+                                -{new Intl.NumberFormat('es-CL', {
+                                  style: 'currency',
+                                  currency: 'CLP',
+                                  minimumFractionDigits: 0
+                                }).format(incomeStatementView === 'monthly' ? getTotalVariableExpenses() : getAnnualVariableExpenses())}
+                              </Typography>
+                            </AccordionSummary>
+                            <AccordionDetails sx={{ pt: 0 }}>
+                              <Box>
+                                {incomeStatementView === 'monthly' && (
+                                  <Button
+                                    variant="text"
+                                    startIcon={<Add />}
+                                    size="small"
+                                    sx={{ mb: 2 }}
+                                    onClick={() => handleOpenExpenseDialog('variable')}
+                                  >
+                                    Agregar Gasto Variable
+                                  </Button>
+                                )}
+                                {incomeStatementView === 'monthly' && variableExpenses.length > 0 ? (
+                                  <Table size="small">
+                                    <TableBody>
+                                      {variableExpenses.map((expense) => (
+                                        <TableRow key={expense.id}>
+                                          <TableCell>
+                                            {expense.description}
+                                            {expense.notes && (
+                                              <Typography variant="caption" display="block" color="text.secondary">
+                                                {expense.notes}
+                                              </Typography>
+                                            )}
+                                          </TableCell>
+                                          <TableCell>{expense.category}</TableCell>
+                                          <TableCell align="right">
+                                            {new Intl.NumberFormat('es-CL', {
+                                              style: 'currency',
+                                              currency: 'CLP',
+                                              minimumFractionDigits: 0
+                                            }).format(expense.amount)}
+                                          </TableCell>
+                                          <TableCell align="right">
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => handleOpenExpenseDialog('variable', expense)}
+                                            >
+                                              <Assessment fontSize="small" />
+                                            </IconButton>
+                                            <IconButton
+                                              size="small"
+                                              color="error"
+                                              onClick={() => handleDeleteExpense('variable', expense.id)}
+                                            >
+                                              <RemoveCircleOutline fontSize="small" />
+                                            </IconButton>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                ) : (
+                                  <Alert severity="info">
+                                    {incomeStatementView === 'annual'
+                                      ? 'En vista anual se muestra el total de gastos variables del año'
+                                      : 'No hay gastos variables registrados. Haz clic en "Agregar Gasto Variable" para crear uno.'}
+                                  </Alert>
+                                )}
+                              </Box>
+                            </AccordionDetails>
+                          </Accordion>
+                        </TableCell>
+                      </TableRow>
+
+                      {/* EBITDA */}
+                      <TableRow
+                        sx={{
+                          bgcolor: mode === 'dark' ? 'rgba(33, 150, 243, 0.15)' : 'rgba(33, 150, 243, 0.1)',
+                          borderLeft: '4px solid',
+                          borderLeftColor: 'primary.main',
+                          '&:hover': { bgcolor: mode === 'dark' ? 'rgba(33, 150, 243, 0.2)' : 'rgba(33, 150, 243, 0.15)' }
+                        }}
+                      >
+                        <TableCell sx={{ fontWeight: 600, fontSize: '1rem', py: 2 }}>
+                          EBITDA
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600, fontSize: '1rem', py: 2 }}>
+                          {new Intl.NumberFormat('es-CL', {
+                            style: 'currency',
+                            currency: 'CLP',
+                            minimumFractionDigits: 0
+                          }).format(incomeStatementView === 'monthly' ? getEBITDA() : getAnnualEBITDA())}
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Impuestos */}
+                      <TableRow>
+                        <TableCell sx={{ pl: 4 }}>Impuestos</TableCell>
+                        <TableCell align="right">
+                          <TextField
+                            type="number"
+                            size="small"
+                            value={incomeStatementView === 'monthly' ? monthlyTax : annualTax}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value) || 0
+                              if (incomeStatementView === 'monthly') {
+                                setMonthlyTax(value)
+                              } else {
+                                setAnnualTax(value)
+                              }
+                            }}
+                            InputProps={{
+                              startAdornment: <Typography sx={{ mr: 0.5 }}>-$</Typography>,
+                            }}
+                            sx={{ width: '200px' }}
+                          />
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Utilidad Neta */}
+                      <TableRow
+                        sx={{
+                          bgcolor: mode === 'dark' ? 'rgba(255, 167, 38, 0.15)' : 'rgba(255, 167, 38, 0.1)',
+                          borderLeft: '4px solid',
+                          borderLeftColor: 'warning.main',
+                          '&:hover': { bgcolor: mode === 'dark' ? 'rgba(255, 167, 38, 0.2)' : 'rgba(255, 167, 38, 0.15)' }
+                        }}
+                      >
+                        <TableCell sx={{ fontWeight: 700, fontSize: '1.1rem', py: 2.5 }}>
+                          UTILIDAD NETA
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700, fontSize: '1.1rem', py: 2.5 }}>
+                          {new Intl.NumberFormat('es-CL', {
+                            style: 'currency',
+                            currency: 'CLP',
+                            minimumFractionDigits: 0
+                          }).format(incomeStatementView === 'monthly' ? getNetProfit() : getAnnualNetProfit())}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* Expense Dialog */}
+      <Dialog
+        open={expenseDialogOpen}
+        onClose={handleCloseExpenseDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingExpense ? 'Editar' : 'Agregar'} Gasto {expenseDialogType === 'fixed' ? 'Fijo' : 'Variable'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              label="Descripción"
+              fullWidth
+              value={expenseFormData.description}
+              onChange={(e) => setExpenseFormData({ ...expenseFormData, description: e.target.value })}
+              required
+            />
+            <TextField
+              label="Monto"
+              type="number"
+              fullWidth
+              value={expenseFormData.amount}
+              onChange={(e) => setExpenseFormData({ ...expenseFormData, amount: e.target.value })}
+              required
+              InputProps={{
+                startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>
+              }}
+            />
+            <FormControl fullWidth>
+              <InputLabel>Categoría</InputLabel>
+              <Select
+                value={expenseFormData.category}
+                label="Categoría"
+                onChange={(e) => setExpenseFormData({ ...expenseFormData, category: e.target.value })}
+              >
+                <MenuItem value="general">General</MenuItem>
+                <MenuItem value="servicios">Servicios</MenuItem>
+                <MenuItem value="arriendo">Arriendo</MenuItem>
+                <MenuItem value="sueldos">Sueldos</MenuItem>
+                <MenuItem value="marketing">Marketing</MenuItem>
+                <MenuItem value="otros">Otros</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Notas (opcional)"
+              fullWidth
+              multiline
+              rows={2}
+              value={expenseFormData.notes}
+              onChange={(e) => setExpenseFormData({ ...expenseFormData, notes: e.target.value })}
+            />
+            {expenseDialogType === 'variable' && (
+              <Alert severity="info">
+                Este gasto se registrará para {new Date(selectedYear, selectedMonth - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+              </Alert>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseExpenseDialog}>Cancelar</Button>
+          <Button
+            onClick={handleSaveExpense}
+            variant="contained"
+            disabled={!expenseFormData.description || !expenseFormData.amount}
+          >
+            {editingExpense ? 'Actualizar' : 'Guardar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

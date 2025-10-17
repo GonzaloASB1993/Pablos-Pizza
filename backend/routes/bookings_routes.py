@@ -187,6 +187,47 @@ def update_booking(booking_id):
                     except Exception as e:
                         print(f"❌ Error enviando WhatsApp al admin: {e}")
 
+        # Create event automatically when booking is completed
+        if new_status == 'completed' and old_status != 'completed':
+            print(f"🎉 Estado cambió de '{old_status}' a 'completed' - creando evento automáticamente")
+
+            try:
+                # Prepare event data from booking
+                event_data = {
+                    'title': f"{updated_booking.get('service_type', 'Evento').replace('workshop', 'Pizzeros en Acción').replace('pizza_party', 'Pizza Party')} - {updated_booking.get('client_name', 'Cliente')}",
+                    'description': f"Evento realizado para {updated_booking.get('client_name', 'cliente')} en {updated_booking.get('location', 'ubicación no especificada')}.",
+                    'event_date': updated_booking.get('event_date'),
+                    'participants': updated_booking.get('participants', 0),
+                    'pizzeros_participants': updated_booking.get('pizzeros_participants', 0),
+                    'party_guests': updated_booking.get('party_guests', 0) or updated_booking.get('party_participants', 0),
+                    'pizza_quantity': updated_booking.get('pizza_quantity', 10),
+                    'final_price': updated_booking.get('estimated_price', 0),
+                    'event_cost': data.get('event_cost', 0) or updated_booking.get('event_cost', 0),
+                    'profit': (updated_booking.get('estimated_price', 0) - (data.get('event_cost', 0) or updated_booking.get('event_cost', 0))),
+                    'notes': updated_booking.get('notes', ''),
+                    'status': 'completed',
+                    'booking_id': booking_id,
+                    'service_type': updated_booking.get('service_type', ''),
+                    'location': updated_booking.get('location', ''),
+                    'created_at': datetime.now(),
+                    'updated_at': datetime.now(),
+                    'is_published': False,  # Not published by default
+                    'is_featured': False,
+                    'category': 'workshop' if 'workshop' in updated_booking.get('service_type', '') else 'pizza_party',
+                    'satisfaction': 5,
+                    'highlight': 'Experiencia única',
+                    'age_group': 'Todas las edades'
+                }
+
+                # Create the event
+                event_ref = db.collection("events").add(event_data)
+                event_id = event_ref[1].id
+                print(f"✅ Evento creado automáticamente con ID: {event_id}")
+
+            except Exception as e:
+                print(f"❌ Error creando evento automáticamente: {e}")
+                # Don't fail the booking update if event creation fails
+
         return jsonify(updated_booking), 200
     except Exception as e:
         print(f"❌ Error en update_booking: {e}")

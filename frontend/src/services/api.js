@@ -458,4 +458,19 @@ export const customersAPI = {
   getBookings: (id, params = {}) => api.get(`/customers/${id}/bookings`, { params })
 }
 
+// Expenses API
+export const expensesAPI = {
+  // Fixed expenses
+  getFixed: () => api.get('/expenses/fixed'),
+  createFixed: (data) => api.post('/expenses/fixed', data),
+  updateFixed: (id, data) => api.put(`/expenses/fixed/${id}`, data),
+  deleteFixed: (id) => api.delete(`/expenses/fixed/${id}`),
+
+  // Variable expenses
+  getVariable: (params = {}) => api.get('/expenses/variable', { params }),
+  createVariable: (data) => api.post('/expenses/variable', data),
+  updateVariable: (id, data) => api.put(`/expenses/variable/${id}`, data),
+  deleteVariable: (id) => api.delete(`/expenses/variable/${id}`),
+}
+
 export default api
