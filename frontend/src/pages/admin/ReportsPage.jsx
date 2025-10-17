@@ -1389,8 +1389,8 @@ export default function ReportsPage() {
                                   minimumFractionDigits: 0
                                 }).format(
                                   incomeStatementView === 'monthly'
-                                    ? ((monthlyData?.total_expenses || 0) + (monthlyData?.waste_cost || 0))
-                                    : (getAnnualTotalExpenses() + getAnnualWasteCost())
+                                    ? (monthlyData?.total_expenses || 0)
+                                    : getAnnualTotalExpenses()
                                 )}
                               </Typography>
                             </AccordionSummary>
