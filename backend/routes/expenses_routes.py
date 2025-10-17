@@ -12,13 +12,16 @@ def get_fixed_expenses():
     """Get all fixed expenses"""
     try:
         db = get_db()
-        expenses = db.collection("fixed_expenses").order_by("created_at", direction=firestore.Query.DESCENDING).get()
+        expenses = db.collection("fixed_expenses").get()
 
         result = []
         for expense in expenses:
             data = expense.to_dict()
             data['id'] = expense.id
             result.append(data)
+
+        # Sort by created_at descending in Python
+        result.sort(key=lambda x: x.get('created_at', datetime.min), reverse=True)
 
         return jsonify(result), 200
     except Exception as e:
@@ -119,20 +122,24 @@ def get_variable_expenses():
         month = request.args.get('month')  # 1-12
         year = request.args.get('year')
 
-        query = db.collection("variable_expenses")
-
-        if year and month:
-            query = query.where("year", "==", int(year)).where("month", "==", int(month))
-        elif year:
-            query = query.where("year", "==", int(year))
-
-        expenses = query.order_by("created_at", direction=firestore.Query.DESCENDING).get()
+        # Get all expenses and filter in Python to avoid index requirements
+        all_expenses = db.collection("variable_expenses").get()
 
         result = []
-        for expense in expenses:
+        for expense in all_expenses:
             data = expense.to_dict()
             data['id'] = expense.id
+
+            # Apply filters
+            if year and data.get('year') != int(year):
+                continue
+            if month and data.get('month') != int(month):
+                continue
+
             result.append(data)
+
+        # Sort by created_at descending
+        result.sort(key=lambda x: x.get('created_at', datetime.min), reverse=True)
 
         return jsonify(result), 200
     except Exception as e:
@@ -225,5 +232,59 @@ def delete_variable_expense(expense_id):
         doc_ref.delete()
 
         return jsonify({"message": "Deleted"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Tax endpoints
+@expenses_bp.route('/tax', methods=['GET'])
+def get_tax():
+    """Get tax for a specific month/year"""
+    try:
+        db = get_db()
+        month = request.args.get('month')
+        year = request.args.get('year')
+
+        if not year or not month:
+            return jsonify({"error": "Year and month required"}), 400
+
+        # Get tax document for this month/year
+        tax_id = f"{year}_{month}"
+        doc = db.collection("monthly_taxes").document(tax_id).get()
+
+        if doc.exists:
+            data = doc.to_dict()
+            return jsonify({"amount": data.get('amount', 0)}), 200
+        else:
+            return jsonify({"amount": 0}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@expenses_bp.route('/tax', methods=['POST'])
+def save_tax():
+    """Save tax for a specific month/year"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data"}), 400
+
+        required_fields = ['year', 'month', 'amount']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing {field}"}), 400
+
+        db = get_db()
+        tax_id = f"{data['year']}_{data['month']}"
+
+        tax_data = {
+            'year': int(data['year']),
+            'month': int(data['month']),
+            'amount': float(data['amount']),
+            'updated_at': datetime.now()
+        }
+
+        db.collection("monthly_taxes").document(tax_id).set(tax_data)
+
+        return jsonify(tax_data), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

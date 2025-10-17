@@ -203,6 +203,7 @@ export default function ReportsPage() {
   useEffect(() => {
     loadReportsData()
     loadExpensesData()
+    loadMonthlyTax()
   }, [selectedMonth, selectedYear])
 
   const loadReportsData = async () => {
@@ -264,6 +265,32 @@ export default function ReportsPage() {
     } catch (error) {
       console.error('Error loading expenses data:', error)
       // Don't show error toast - expenses might not be set up yet
+    }
+  }
+
+  const loadMonthlyTax = async () => {
+    try {
+      const response = await expensesAPI.getTax({
+        year: selectedYear,
+        month: selectedMonth
+      })
+      setMonthlyTax(response.data.amount || 0)
+    } catch (error) {
+      console.error('Error loading tax:', error)
+      setMonthlyTax(0)
+    }
+  }
+
+  const saveMonthlyTax = async (amount) => {
+    try {
+      await expensesAPI.saveTax({
+        year: selectedYear,
+        month: selectedMonth,
+        amount: amount
+      })
+    } catch (error) {
+      console.error('Error saving tax:', error)
+      toast.error('Error al guardar impuesto')
     }
   }
 
@@ -418,6 +445,12 @@ export default function ReportsPage() {
 
   const getAnnualNetProfit = () => {
     return getAnnualEBITDA() - annualTax
+  }
+
+  const getAnnualTotalTaxes = async () => {
+    // This would need to load all monthly taxes for the year
+    // For now, return annualTax
+    return annualTax
   }
 
   const handleExportReport = async () => {
@@ -1469,6 +1502,8 @@ export default function ReportsPage() {
                               const value = parseFloat(e.target.value) || 0
                               if (incomeStatementView === 'monthly') {
                                 setMonthlyTax(value)
+                                // Save to database after a short delay
+                                setTimeout(() => saveMonthlyTax(value), 1000)
                               } else {
                                 setAnnualTax(value)
                               }
@@ -1477,6 +1512,7 @@ export default function ReportsPage() {
                               startAdornment: <Typography sx={{ mr: 0.5 }}>-$</Typography>,
                             }}
                             sx={{ width: '200px' }}
+                            placeholder="0"
                           />
                         </TableCell>
                       </TableRow>

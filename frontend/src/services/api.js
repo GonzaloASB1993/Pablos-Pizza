@@ -471,6 +471,10 @@ export const expensesAPI = {
   createVariable: (data) => api.post('/expenses/variable', data),
   updateVariable: (id, data) => api.put(`/expenses/variable/${id}`, data),
   deleteVariable: (id) => api.delete(`/expenses/variable/${id}`),
+
+  // Taxes
+  getTax: (params = {}) => api.get('/expenses/tax', { params }),
+  saveTax: (data) => api.post('/expenses/tax', data),
 }
 
 export default api
