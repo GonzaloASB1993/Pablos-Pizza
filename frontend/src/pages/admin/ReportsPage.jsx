@@ -1237,7 +1237,7 @@ export default function ReportsPage() {
                 <TableContainer>
                   <Table>
                     <TableBody>
-                      {/* Ingresos */}
+                      {/* NIVEL 1: INGRESOS */}
                       <TableRow>
                         <TableCell colSpan={2} sx={{ p: 0 }}>
                           <Accordion
@@ -1248,12 +1248,14 @@ export default function ReportsPage() {
                               borderRadius: '12px !important',
                               overflow: 'hidden',
                               my: 1,
+                              mx: 1,
                               borderLeft: '4px solid',
                               borderLeftColor: 'success.main',
                               '&:hover': { bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.2)' : 'rgba(102, 187, 106, 0.15)' }
                             }}
                           >
                             <AccordionSummary
+                              expandIcon={<ExpandMore />}
                               sx={{
                                 px: 2,
                                 '& .MuiAccordionSummary-content': {
@@ -1263,12 +1265,9 @@ export default function ReportsPage() {
                                 }
                               }}
                             >
-                              <Box display="flex" alignItems="center" gap={1}>
-                                <ExpandMore />
-                                <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
-                                  INGRESOS
-                                </Typography>
-                              </Box>
+                              <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                                Ingresos
+                              </Typography>
                               <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
                                 {new Intl.NumberFormat('es-CL', {
                                   style: 'currency',
@@ -1278,249 +1277,99 @@ export default function ReportsPage() {
                               </Typography>
                             </AccordionSummary>
                             <AccordionDetails sx={{ pt: 0, pb: 2, px: 2 }}>
-                              <Alert severity="info" sx={{ mb: 1 }}>
-                                {incomeStatementView === 'monthly'
-                                  ? `Ingresos totales de ${monthlyData?.total_events || 0} eventos realizados en ${new Date(selectedYear, selectedMonth - 1).toLocaleDateString('es-ES', { month: 'long' })}`
-                                  : `Ingresos totales de ${annualData?.annual_totals?.total_events || 0} eventos realizados en ${selectedYear}`
-                                }
-                              </Alert>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell><strong>Servicio</strong></TableCell>
+                                    <TableCell align="center"><strong>Cantidad</strong></TableCell>
+                                    <TableCell align="right"><strong>Ingreso</strong></TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  <TableRow>
+                                    <TableCell>Pizza Party</TableCell>
+                                    <TableCell align="center">
+                                      {incomeStatementView === 'monthly'
+                                        ? (monthlyData?.events_by_service?.pizza_party?.count || monthlyData?.events_by_service?.party?.count || 0)
+                                        : 0}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                      {new Intl.NumberFormat('es-CL', {
+                                        style: 'currency',
+                                        currency: 'CLP',
+                                        minimumFractionDigits: 0
+                                      }).format(incomeStatementView === 'monthly'
+                                        ? (monthlyData?.events_by_service?.pizza_party?.total_income || monthlyData?.events_by_service?.party?.total_income || 0)
+                                        : 0)}
+                                    </TableCell>
+                                  </TableRow>
+                                  <TableRow>
+                                    <TableCell>Pizzeros en Acción</TableCell>
+                                    <TableCell align="center">
+                                      {incomeStatementView === 'monthly'
+                                        ? (monthlyData?.events_by_service?.workshop?.count || 0)
+                                        : 0}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                      {new Intl.NumberFormat('es-CL', {
+                                        style: 'currency',
+                                        currency: 'CLP',
+                                        minimumFractionDigits: 0
+                                      }).format(incomeStatementView === 'monthly'
+                                        ? (monthlyData?.events_by_service?.workshop?.total_income || 0)
+                                        : 0)}
+                                    </TableCell>
+                                  </TableRow>
+                                  <TableRow>
+                                    <TableCell>Ambos Servicios</TableCell>
+                                    <TableCell align="center">
+                                      {incomeStatementView === 'monthly'
+                                        ? (monthlyData?.events_by_service?.['workshop,pizza_party']?.count || 0)
+                                        : 0}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                      {new Intl.NumberFormat('es-CL', {
+                                        style: 'currency',
+                                        currency: 'CLP',
+                                        minimumFractionDigits: 0
+                                      }).format(incomeStatementView === 'monthly'
+                                        ? (monthlyData?.events_by_service?.['workshop,pizza_party']?.total_income || 0)
+                                        : 0)}
+                                    </TableCell>
+                                  </TableRow>
+                                  <TableRow sx={{ bgcolor: 'action.hover' }}>
+                                    <TableCell>Venta Pizzas al Vacío</TableCell>
+                                    <TableCell align="center">
+                                      <Chip label="Próximamente" size="small" color="info" />
+                                    </TableCell>
+                                    <TableCell align="right">$0</TableCell>
+                                  </TableRow>
+                                </TableBody>
+                              </Table>
                             </AccordionDetails>
                           </Accordion>
                         </TableCell>
                       </TableRow>
 
-                      {/* Costo Eventos */}
-                      <TableRow>
-                        <TableCell sx={{ pl: 4 }}>Costo de Eventos</TableCell>
-                        <TableCell align="right">
-                          -{new Intl.NumberFormat('es-CL', {
-                            style: 'currency',
-                            currency: 'CLP',
-                            minimumFractionDigits: 0
-                          }).format(incomeStatementView === 'monthly' ? (monthlyData?.total_expenses || 0) : getAnnualTotalExpenses())}
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Costo Mermas */}
-                      <TableRow>
-                        <TableCell sx={{ pl: 4 }}>Costo de Mermas</TableCell>
-                        <TableCell align="right">
-                          -{new Intl.NumberFormat('es-CL', {
-                            style: 'currency',
-                            currency: 'CLP',
-                            minimumFractionDigits: 0
-                          }).format(incomeStatementView === 'monthly' ? (monthlyData?.waste_cost || 0) : getAnnualWasteCost())}
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Gastos Fijos */}
+                      {/* NIVEL 2: COSTOS DIRECTOS */}
                       <TableRow>
                         <TableCell colSpan={2} sx={{ p: 0 }}>
                           <Accordion
                             elevation={0}
                             sx={{
                               '&:before': { display: 'none' },
-                              bgcolor: 'transparent',
-                              borderRadius: '8px',
-                              my: 0.5
-                            }}
-                          >
-                            <AccordionSummary
-                              sx={{
-                                px: 2,
-                                '& .MuiAccordionSummary-content': {
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  my: 1
-                                }
-                              }}
-                            >
-                              <Box display="flex" alignItems="center" gap={1}>
-                                <ExpandMore />
-                                <Typography>
-                                  Gastos Fijos {incomeStatementView === 'annual' && '(x12 meses)'}
-                                </Typography>
-                              </Box>
-                              <Typography>
-                                -{new Intl.NumberFormat('es-CL', {
-                                  style: 'currency',
-                                  currency: 'CLP',
-                                  minimumFractionDigits: 0
-                                }).format(incomeStatementView === 'monthly' ? getTotalFixedExpenses() : getAnnualFixedExpenses())}
-                              </Typography>
-                            </AccordionSummary>
-                            <AccordionDetails sx={{ pt: 0 }}>
-                              <Box>
-                                <Button
-                                  variant="text"
-                                  startIcon={<Add />}
-                                  size="small"
-                                  sx={{ mb: 2 }}
-                                  onClick={() => handleOpenExpenseDialog('fixed')}
-                                >
-                                  Agregar Gasto Fijo
-                                </Button>
-                                {fixedExpenses.filter(exp => exp.is_active).length > 0 ? (
-                                  <Table size="small">
-                                    <TableBody>
-                                      {fixedExpenses.filter(exp => exp.is_active).map((expense) => (
-                                        <TableRow key={expense.id}>
-                                          <TableCell>{expense.description}</TableCell>
-                                          <TableCell>{expense.category}</TableCell>
-                                          <TableCell align="right">
-                                            {new Intl.NumberFormat('es-CL', {
-                                              style: 'currency',
-                                              currency: 'CLP',
-                                              minimumFractionDigits: 0
-                                            }).format(expense.amount)}
-                                          </TableCell>
-                                          <TableCell align="right">
-                                            <IconButton
-                                              size="small"
-                                              onClick={() => handleOpenExpenseDialog('fixed', expense)}
-                                            >
-                                              <Assessment fontSize="small" />
-                                            </IconButton>
-                                            <IconButton
-                                              size="small"
-                                              color="error"
-                                              onClick={() => handleDeleteExpense('fixed', expense.id)}
-                                            >
-                                              <RemoveCircleOutline fontSize="small" />
-                                            </IconButton>
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                ) : (
-                                  <Alert severity="info">
-                                    No hay gastos fijos registrados. Haz clic en "Agregar Gasto Fijo" para crear uno.
-                                  </Alert>
-                                )}
-                              </Box>
-                            </AccordionDetails>
-                          </Accordion>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Gastos Variables */}
-                      <TableRow>
-                        <TableCell colSpan={2} sx={{ p: 0 }}>
-                          <Accordion
-                            elevation={0}
-                            sx={{
-                              '&:before': { display: 'none' },
-                              bgcolor: 'transparent',
-                              borderRadius: '8px',
-                              my: 0.5
-                            }}
-                          >
-                            <AccordionSummary
-                              sx={{
-                                px: 2,
-                                '& .MuiAccordionSummary-content': {
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  my: 1
-                                }
-                              }}
-                            >
-                              <Box display="flex" alignItems="center" gap={1}>
-                                <ExpandMore />
-                                <Typography>Gastos Variables</Typography>
-                              </Box>
-                              <Typography>
-                                -{new Intl.NumberFormat('es-CL', {
-                                  style: 'currency',
-                                  currency: 'CLP',
-                                  minimumFractionDigits: 0
-                                }).format(incomeStatementView === 'monthly' ? getTotalVariableExpenses() : getAnnualVariableExpenses())}
-                              </Typography>
-                            </AccordionSummary>
-                            <AccordionDetails sx={{ pt: 0 }}>
-                              <Box>
-                                {incomeStatementView === 'monthly' && (
-                                  <Button
-                                    variant="text"
-                                    startIcon={<Add />}
-                                    size="small"
-                                    sx={{ mb: 2 }}
-                                    onClick={() => handleOpenExpenseDialog('variable')}
-                                  >
-                                    Agregar Gasto Variable
-                                  </Button>
-                                )}
-                                {incomeStatementView === 'monthly' && variableExpenses.length > 0 ? (
-                                  <Table size="small">
-                                    <TableBody>
-                                      {variableExpenses.map((expense) => (
-                                        <TableRow key={expense.id}>
-                                          <TableCell>
-                                            {expense.description}
-                                            {expense.notes && (
-                                              <Typography variant="caption" display="block" color="text.secondary">
-                                                {expense.notes}
-                                              </Typography>
-                                            )}
-                                          </TableCell>
-                                          <TableCell>{expense.category}</TableCell>
-                                          <TableCell align="right">
-                                            {new Intl.NumberFormat('es-CL', {
-                                              style: 'currency',
-                                              currency: 'CLP',
-                                              minimumFractionDigits: 0
-                                            }).format(expense.amount)}
-                                          </TableCell>
-                                          <TableCell align="right">
-                                            <IconButton
-                                              size="small"
-                                              onClick={() => handleOpenExpenseDialog('variable', expense)}
-                                            >
-                                              <Assessment fontSize="small" />
-                                            </IconButton>
-                                            <IconButton
-                                              size="small"
-                                              color="error"
-                                              onClick={() => handleDeleteExpense('variable', expense.id)}
-                                            >
-                                              <RemoveCircleOutline fontSize="small" />
-                                            </IconButton>
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                ) : (
-                                  <Alert severity="info">
-                                    {incomeStatementView === 'annual'
-                                      ? 'En vista anual se muestra el total de gastos variables del año'
-                                      : 'No hay gastos variables registrados. Haz clic en "Agregar Gasto Variable" para crear uno.'}
-                                  </Alert>
-                                )}
-                              </Box>
-                            </AccordionDetails>
-                          </Accordion>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* EBITDA */}
-                      <TableRow>
-                        <TableCell colSpan={2} sx={{ p: 0 }}>
-                          <Accordion
-                            elevation={0}
-                            sx={{
-                              '&:before': { display: 'none' },
-                              bgcolor: mode === 'dark' ? 'rgba(33, 150, 243, 0.15)' : 'rgba(33, 150, 243, 0.1)',
+                              bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(239, 83, 80, 0.1)',
                               borderRadius: '12px !important',
                               overflow: 'hidden',
                               my: 1,
+                              mx: 1,
                               borderLeft: '4px solid',
-                              borderLeftColor: 'primary.main',
-                              '&:hover': { bgcolor: mode === 'dark' ? 'rgba(33, 150, 243, 0.2)' : 'rgba(33, 150, 243, 0.15)' }
+                              borderLeftColor: 'error.main',
+                              '&:hover': { bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.2)' : 'rgba(239, 83, 80, 0.15)' }
                             }}
                           >
                             <AccordionSummary
+                              expandIcon={<ExpandMore />}
                               sx={{
                                 px: 2,
                                 '& .MuiAccordionSummary-content': {
@@ -1530,57 +1379,342 @@ export default function ReportsPage() {
                                 }
                               }}
                             >
-                              <Box display="flex" alignItems="center" gap={1}>
-                                <ExpandMore />
-                                <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
-                                  EBITDA
-                                </Typography>
-                              </Box>
                               <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
-                                {new Intl.NumberFormat('es-CL', {
+                                Costos Directos
+                              </Typography>
+                              <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                                -{new Intl.NumberFormat('es-CL', {
                                   style: 'currency',
                                   currency: 'CLP',
                                   minimumFractionDigits: 0
-                                }).format(incomeStatementView === 'monthly' ? getEBITDA() : getAnnualEBITDA())}
+                                }).format(
+                                  incomeStatementView === 'monthly'
+                                    ? ((monthlyData?.total_expenses || 0) + (monthlyData?.waste_cost || 0))
+                                    : (getAnnualTotalExpenses() + getAnnualWasteCost())
+                                )}
                               </Typography>
                             </AccordionSummary>
                             <AccordionDetails sx={{ pt: 0, pb: 2, px: 2 }}>
-                              <Alert severity="info">
-                                EBITDA = Ingresos - Costos de Eventos - Mermas - Gastos Fijos - Gastos Variables
-                              </Alert>
+                              <Table size="small">
+                                <TableBody>
+                                  <TableRow>
+                                    <TableCell>Costo de Eventos</TableCell>
+                                    <TableCell align="right">
+                                      {new Intl.NumberFormat('es-CL', {
+                                        style: 'currency',
+                                        currency: 'CLP',
+                                        minimumFractionDigits: 0
+                                      }).format(incomeStatementView === 'monthly' ? (monthlyData?.total_expenses || 0) : getAnnualTotalExpenses())}
+                                    </TableCell>
+                                  </TableRow>
+                                  <TableRow>
+                                    <TableCell>Costo de Mermas</TableCell>
+                                    <TableCell align="right">
+                                      {new Intl.NumberFormat('es-CL', {
+                                        style: 'currency',
+                                        currency: 'CLP',
+                                        minimumFractionDigits: 0
+                                      }).format(incomeStatementView === 'monthly' ? (monthlyData?.waste_cost || 0) : getAnnualWasteCost())}
+                                    </TableCell>
+                                  </TableRow>
+                                </TableBody>
+                              </Table>
                             </AccordionDetails>
                           </Accordion>
                         </TableCell>
                       </TableRow>
 
-                      {/* Impuestos */}
+                      {/* NIVEL 3: GASTOS */}
                       <TableRow>
-                        <TableCell sx={{ pl: 4 }}>Impuestos</TableCell>
-                        <TableCell align="right">
-                          <TextField
-                            type="number"
-                            size="small"
-                            value={incomeStatementView === 'monthly' ? monthlyTax : annualTax}
-                            onChange={(e) => {
-                              const value = parseFloat(e.target.value) || 0
-                              if (incomeStatementView === 'monthly') {
-                                setMonthlyTax(value)
-                                // Save to database after a short delay
-                                setTimeout(() => saveMonthlyTax(value), 1000)
-                              } else {
-                                setAnnualTax(value)
-                              }
+                        <TableCell colSpan={2} sx={{ p: 0 }}>
+                          <Accordion
+                            elevation={0}
+                            sx={{
+                              '&:before': { display: 'none' },
+                              bgcolor: mode === 'dark' ? 'rgba(255, 167, 38, 0.15)' : 'rgba(255, 167, 38, 0.1)',
+                              borderRadius: '12px !important',
+                              overflow: 'hidden',
+                              my: 1,
+                              mx: 1,
+                              borderLeft: '4px solid',
+                              borderLeftColor: 'warning.main',
+                              '&:hover': { bgcolor: mode === 'dark' ? 'rgba(255, 167, 38, 0.2)' : 'rgba(255, 167, 38, 0.15)' }
                             }}
-                            InputProps={{
-                              startAdornment: <Typography sx={{ mr: 0.5 }}>-$</Typography>,
-                            }}
-                            sx={{ width: '200px' }}
-                            placeholder="0"
-                          />
+                          >
+                            <AccordionSummary
+                              expandIcon={<ExpandMore />}
+                              sx={{
+                                px: 2,
+                                '& .MuiAccordionSummary-content': {
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  my: 2
+                                }
+                              }}
+                            >
+                              <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                                Gastos
+                              </Typography>
+                              <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                                -{new Intl.NumberFormat('es-CL', {
+                                  style: 'currency',
+                                  currency: 'CLP',
+                                  minimumFractionDigits: 0
+                                }).format(
+                                  incomeStatementView === 'monthly'
+                                    ? (getTotalFixedExpenses() + getTotalVariableExpenses())
+                                    : (getAnnualFixedExpenses() + getAnnualVariableExpenses())
+                                )}
+                              </Typography>
+                            </AccordionSummary>
+                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2 }}>
+                              {/* Gastos Fijos - Sub-acordeón */}
+                              <Accordion
+                                elevation={0}
+                                sx={{
+                                  '&:before': { display: 'none' },
+                                  bgcolor: 'transparent',
+                                  borderRadius: '8px',
+                                  mb: 1
+                                }}
+                              >
+                                <AccordionSummary
+                                  expandIcon={<ExpandMore />}
+                                  sx={{
+                                    px: 1,
+                                    minHeight: '48px',
+                                    '& .MuiAccordionSummary-content': {
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      my: 1
+                                    }
+                                  }}
+                                >
+                                  <Typography>
+                                    Gastos Fijos {incomeStatementView === 'annual' && '(x12 meses)'}
+                                  </Typography>
+                                  <Typography>
+                                    {new Intl.NumberFormat('es-CL', {
+                                      style: 'currency',
+                                      currency: 'CLP',
+                                      minimumFractionDigits: 0
+                                    }).format(incomeStatementView === 'monthly' ? getTotalFixedExpenses() : getAnnualFixedExpenses())}
+                                  </Typography>
+                                </AccordionSummary>
+                                <AccordionDetails sx={{ pt: 0, px: 1 }}>
+                                  <Box>
+                                    <Button
+                                      variant="text"
+                                      startIcon={<Add />}
+                                      size="small"
+                                      sx={{ mb: 2 }}
+                                      onClick={() => handleOpenExpenseDialog('fixed')}
+                                    >
+                                      Agregar Gasto Fijo
+                                    </Button>
+                                    {fixedExpenses.filter(exp => exp.is_active).length > 0 ? (
+                                      <Table size="small">
+                                        <TableBody>
+                                          {fixedExpenses.filter(exp => exp.is_active).map((expense) => (
+                                            <TableRow key={expense.id}>
+                                              <TableCell>{expense.description}</TableCell>
+                                              <TableCell>{expense.category}</TableCell>
+                                              <TableCell align="right">
+                                                {new Intl.NumberFormat('es-CL', {
+                                                  style: 'currency',
+                                                  currency: 'CLP',
+                                                  minimumFractionDigits: 0
+                                                }).format(expense.amount)}
+                                              </TableCell>
+                                              <TableCell align="right">
+                                                <IconButton
+                                                  size="small"
+                                                  onClick={() => handleOpenExpenseDialog('fixed', expense)}
+                                                >
+                                                  <Assessment fontSize="small" />
+                                                </IconButton>
+                                                <IconButton
+                                                  size="small"
+                                                  color="error"
+                                                  onClick={() => handleDeleteExpense('fixed', expense.id)}
+                                                >
+                                                  <RemoveCircleOutline fontSize="small" />
+                                                </IconButton>
+                                              </TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    ) : (
+                                      <Alert severity="info">
+                                        No hay gastos fijos registrados. Haz clic en "Agregar Gasto Fijo" para crear uno.
+                                      </Alert>
+                                    )}
+                                  </Box>
+                                </AccordionDetails>
+                              </Accordion>
+
+                              {/* Gastos Variables - Sub-acordeón */}
+                              <Accordion
+                                elevation={0}
+                                sx={{
+                                  '&:before': { display: 'none' },
+                                  bgcolor: 'transparent',
+                                  borderRadius: '8px'
+                                }}
+                              >
+                                <AccordionSummary
+                                  expandIcon={<ExpandMore />}
+                                  sx={{
+                                    px: 1,
+                                    minHeight: '48px',
+                                    '& .MuiAccordionSummary-content': {
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      my: 1
+                                    }
+                                  }}
+                                >
+                                  <Typography>Gastos Variables</Typography>
+                                  <Typography>
+                                    {new Intl.NumberFormat('es-CL', {
+                                      style: 'currency',
+                                      currency: 'CLP',
+                                      minimumFractionDigits: 0
+                                    }).format(incomeStatementView === 'monthly' ? getTotalVariableExpenses() : getAnnualVariableExpenses())}
+                                  </Typography>
+                                </AccordionSummary>
+                                <AccordionDetails sx={{ pt: 0, px: 1 }}>
+                                  <Box>
+                                    {incomeStatementView === 'monthly' && (
+                                      <Button
+                                        variant="text"
+                                        startIcon={<Add />}
+                                        size="small"
+                                        sx={{ mb: 2 }}
+                                        onClick={() => handleOpenExpenseDialog('variable')}
+                                      >
+                                        Agregar Gasto Variable
+                                      </Button>
+                                    )}
+                                    {incomeStatementView === 'monthly' && variableExpenses.length > 0 ? (
+                                      <Table size="small">
+                                        <TableBody>
+                                          {variableExpenses.map((expense) => (
+                                            <TableRow key={expense.id}>
+                                              <TableCell>
+                                                {expense.description}
+                                                {expense.notes && (
+                                                  <Typography variant="caption" display="block" color="text.secondary">
+                                                    {expense.notes}
+                                                  </Typography>
+                                                )}
+                                              </TableCell>
+                                              <TableCell>{expense.category}</TableCell>
+                                              <TableCell align="right">
+                                                {new Intl.NumberFormat('es-CL', {
+                                                  style: 'currency',
+                                                  currency: 'CLP',
+                                                  minimumFractionDigits: 0
+                                                }).format(expense.amount)}
+                                              </TableCell>
+                                              <TableCell align="right">
+                                                <IconButton
+                                                  size="small"
+                                                  onClick={() => handleOpenExpenseDialog('variable', expense)}
+                                                >
+                                                  <Assessment fontSize="small" />
+                                                </IconButton>
+                                                <IconButton
+                                                  size="small"
+                                                  color="error"
+                                                  onClick={() => handleDeleteExpense('variable', expense.id)}
+                                                >
+                                                  <RemoveCircleOutline fontSize="small" />
+                                                </IconButton>
+                                              </TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    ) : (
+                                      <Alert severity="info">
+                                        {incomeStatementView === 'annual'
+                                          ? 'En vista anual se muestra el total de gastos variables del año'
+                                          : 'No hay gastos variables registrados. Haz clic en "Agregar Gasto Variable" para crear uno.'}
+                                      </Alert>
+                                    )}
+                                  </Box>
+                                </AccordionDetails>
+                              </Accordion>
+                            </AccordionDetails>
+                          </Accordion>
                         </TableCell>
                       </TableRow>
 
-                      {/* Utilidad Neta */}
+                      {/* EBITDA */}
+                      <TableRow>
+                        <TableCell colSpan={2} sx={{ p: 0 }}>
+                          <Box
+                            sx={{
+                              bgcolor: mode === 'dark' ? 'rgba(33, 150, 243, 0.15)' : 'rgba(33, 150, 243, 0.1)',
+                              borderLeft: '4px solid',
+                              borderLeftColor: 'primary.main',
+                              borderRadius: '12px',
+                              my: 1,
+                              mx: 1,
+                              px: 2,
+                              py: 2.5,
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              '&:hover': { bgcolor: mode === 'dark' ? 'rgba(33, 150, 243, 0.2)' : 'rgba(33, 150, 243, 0.15)' }
+                            }}
+                          >
+                            <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                              EBITDA
+                            </Typography>
+                            <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                              {new Intl.NumberFormat('es-CL', {
+                                style: 'currency',
+                                currency: 'CLP',
+                                minimumFractionDigits: 0
+                              }).format(incomeStatementView === 'monthly' ? getEBITDA() : getAnnualEBITDA())}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Impuestos */}
+                      <TableRow>
+                        <TableCell colSpan={2} sx={{ p: 0 }}>
+                          <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography>Impuestos</Typography>
+                            <TextField
+                              type="number"
+                              size="small"
+                              value={incomeStatementView === 'monthly' ? monthlyTax : annualTax}
+                              onChange={(e) => {
+                                const value = parseFloat(e.target.value) || 0
+                                if (incomeStatementView === 'monthly') {
+                                  setMonthlyTax(value)
+                                  // Save to database after a short delay
+                                  setTimeout(() => saveMonthlyTax(value), 1000)
+                                } else {
+                                  setAnnualTax(value)
+                                }
+                              }}
+                              InputProps={{
+                                startAdornment: <Typography sx={{ mr: 0.5 }}>-$</Typography>,
+                              }}
+                              sx={{ width: '200px' }}
+                              placeholder="0"
+                            />
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+
+                      {/* UTILIDAD NETA */}
                       <TableRow>
                         <TableCell colSpan={2} sx={{ p: 0 }}>
                           <Box
@@ -1590,18 +1724,19 @@ export default function ReportsPage() {
                               borderLeftColor: 'warning.main',
                               borderRadius: '12px',
                               my: 1,
+                              mx: 1,
                               px: 2,
-                              py: 2.5,
+                              py: 3,
                               display: 'flex',
                               justifyContent: 'space-between',
                               alignItems: 'center',
                               '&:hover': { bgcolor: mode === 'dark' ? 'rgba(255, 167, 38, 0.2)' : 'rgba(255, 167, 38, 0.15)' }
                             }}
                           >
-                            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
+                            <Typography sx={{ fontWeight: 700, fontSize: '1.2rem' }}>
                               UTILIDAD NETA
                             </Typography>
-                            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
+                            <Typography sx={{ fontWeight: 700, fontSize: '1.2rem' }}>
                               {new Intl.NumberFormat('es-CL', {
                                 style: 'currency',
                                 currency: 'CLP',
