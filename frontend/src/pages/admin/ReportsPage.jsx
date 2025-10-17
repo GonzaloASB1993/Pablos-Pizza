@@ -1276,7 +1276,7 @@ export default function ReportsPage() {
                                 }).format(incomeStatementView === 'monthly' ? (monthlyData?.total_income || 0) : getAnnualTotalIncome())}
                               </Typography>
                             </AccordionSummary>
-                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2 }}>
+                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2, bgcolor: mode === 'dark' ? '#1e1e1e' : '#ffffff' }}>
                               <Table size="small">
                                 <TableHead>
                                   <TableRow>
@@ -1394,7 +1394,7 @@ export default function ReportsPage() {
                                 )}
                               </Typography>
                             </AccordionSummary>
-                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2 }}>
+                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2, bgcolor: mode === 'dark' ? '#1e1e1e' : '#ffffff' }}>
                               <Table size="small">
                                 <TableBody>
                                   <TableRow>
@@ -1404,7 +1404,11 @@ export default function ReportsPage() {
                                         style: 'currency',
                                         currency: 'CLP',
                                         minimumFractionDigits: 0
-                                      }).format(incomeStatementView === 'monthly' ? (monthlyData?.total_expenses || 0) : getAnnualTotalExpenses())}
+                                      }).format(
+                                        incomeStatementView === 'monthly'
+                                          ? ((monthlyData?.total_expenses || 0) - (monthlyData?.waste_cost || 0))
+                                          : (getAnnualTotalExpenses() - getAnnualWasteCost())
+                                      )}
                                     </TableCell>
                                   </TableRow>
                                   <TableRow>
@@ -1467,7 +1471,7 @@ export default function ReportsPage() {
                                 )}
                               </Typography>
                             </AccordionSummary>
-                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2 }}>
+                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2, bgcolor: mode === 'dark' ? '#1e1e1e' : '#ffffff' }}>
                               {/* Gastos Fijos - Sub-acordeón */}
                               <Accordion
                                 elevation={0}
