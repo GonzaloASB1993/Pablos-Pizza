@@ -384,6 +384,7 @@ export const inventoryAPI = {
   createMovement: (data) => api.post('/inventory/movements/', data),
   getMovements: (params = {}) => api.get('/inventory-movements/', { params }),
   getMovement: (id) => api.get(`/inventory/movements/${id}`),
+  revertWaste: (movementId) => api.post(`/inventory/movements/${movementId}/revert`),
 }
 
 export const recipesAPI = {
@@ -407,11 +408,12 @@ export const reportsAPI = {
   getMonthly: (year, month) => api.get(`/reports/monthly/${year}/${month}`),
   getAnnual: (year) => api.get(`/reports/annual/${year}`),
   getDashboard: () => api.get('/reports/dashboard'),
-  exportMonthly: (year, month, format = 'excel') => 
+  exportMonthly: (year, month, format = 'excel') =>
     api.get(`/reports/export/monthly/${year}/${month}?format=${format}`, {
       responseType: 'blob'
     }),
   getTopClients: (params = {}) => api.get('/reports/clients/top', { params }),
+  getWasteSummary: (params = {}) => api.get('/reports/waste-summary', { params }),
 }
 
 export const notificationsAPI = {

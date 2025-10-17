@@ -643,6 +643,28 @@ const InventoryManagement = () => {
 
   const filteredInventory = getFilteredInventory()
 
+  // Calculate inventory statistics
+  const getInventoryStats = () => {
+    const totalValue = inventory.reduce((sum, item) => {
+      return sum + (item.current_stock * (item.cost_per_unit || 0))
+    }, 0)
+
+    const stockByStatus = {
+      critical: inventory.filter(item => getStockStatus(item) === 'critical').length,
+      low: inventory.filter(item => getStockStatus(item) === 'low').length,
+      medium: inventory.filter(item => getStockStatus(item) === 'medium').length,
+      good: inventory.filter(item => getStockStatus(item) === 'good').length
+    }
+
+    return {
+      totalValue,
+      stockByStatus,
+      totalItems: inventory.length
+    }
+  }
+
+  const inventoryStats = getInventoryStats()
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -671,6 +693,229 @@ const InventoryManagement = () => {
           </Button>
         </Box>
       </Box>
+
+      {/* Inventory Summary Cards */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        {/* Total Inventory Value Card */}
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card
+            sx={{
+              height: '100%',
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 4
+              }
+            }}
+          >
+            <CardContent sx={{ p: 2.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                <Box
+                  sx={{
+                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)',
+                    color: 'inherit',
+                    p: 1.2,
+                    borderRadius: 2,
+                    mr: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Inventory fontSize="medium" />
+                </Box>
+                <Typography variant="subtitle2" fontWeight="600">
+                  Valor Inventario
+                </Typography>
+              </Box>
+              <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
+                {formatCurrency(inventoryStats.totalValue)}
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                {inventoryStats.totalItems} productos
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Critical Stock Card */}
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card
+            sx={{
+              height: '100%',
+              bgcolor: 'error.main',
+              color: 'error.contrastText',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 4
+              }
+            }}
+          >
+            <CardContent sx={{ p: 2.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                <Box
+                  sx={{
+                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)',
+                    color: 'inherit',
+                    p: 1.2,
+                    borderRadius: 2,
+                    mr: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Warning fontSize="medium" />
+                </Box>
+                <Typography variant="subtitle2" fontWeight="600">
+                  Stock Crítico
+                </Typography>
+              </Box>
+              <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
+                {inventoryStats.stockByStatus.critical}
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                Requiere atención
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Low Stock Card */}
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card
+            sx={{
+              height: '100%',
+              bgcolor: 'warning.main',
+              color: 'warning.contrastText',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 4
+              }
+            }}
+          >
+            <CardContent sx={{ p: 2.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                <Box
+                  sx={{
+                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)',
+                    color: 'inherit',
+                    p: 1.2,
+                    borderRadius: 2,
+                    mr: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <ArrowDownward fontSize="medium" />
+                </Box>
+                <Typography variant="subtitle2" fontWeight="600">
+                  Stock Bajo
+                </Typography>
+              </Box>
+              <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
+                {inventoryStats.stockByStatus.low}
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                Reabastecer pronto
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Medium Stock Card */}
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card
+            sx={{
+              height: '100%',
+              bgcolor: 'info.main',
+              color: 'info.contrastText',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 4
+              }
+            }}
+          >
+            <CardContent sx={{ p: 2.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                <Box
+                  sx={{
+                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)',
+                    color: 'inherit',
+                    p: 1.2,
+                    borderRadius: 2,
+                    mr: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Timeline fontSize="medium" />
+                </Box>
+                <Typography variant="subtitle2" fontWeight="600">
+                  Stock Medio
+                </Typography>
+              </Box>
+              <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
+                {inventoryStats.stockByStatus.medium}
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                Nivel aceptable
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Good Stock Card */}
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card
+            sx={{
+              height: '100%',
+              bgcolor: 'success.main',
+              color: 'success.contrastText',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 4
+              }
+            }}
+          >
+            <CardContent sx={{ p: 2.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                <Box
+                  sx={{
+                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)',
+                    color: 'inherit',
+                    p: 1.2,
+                    borderRadius: 2,
+                    mr: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <ArrowUpward fontSize="medium" />
+                </Box>
+                <Typography variant="subtitle2" fontWeight="600">
+                  Stock Bueno
+                </Typography>
+              </Box>
+              <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
+                {inventoryStats.stockByStatus.good}
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                Nivel óptimo
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
       {/* Low Stock Alert */}
       {lowStockItems.length > 0 && (
