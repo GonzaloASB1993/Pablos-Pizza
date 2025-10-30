@@ -101,7 +101,7 @@ def generate_calendar_invite_with_url(booking_data: dict) -> tuple:
         ics_content = generate_calendar_invite(booking_data)
 
         if not ics_content:
-            return "", "https://pablospizza.cl/agendar"
+            return "", "https://pablospizza.web.app/agendar"
 
         # Upload to Firebase Storage
         try:
@@ -122,8 +122,8 @@ def generate_calendar_invite_with_url(booking_data: dict) -> tuple:
             # Make publicly accessible
             blob.make_public()
 
-            # Generate short URL using custom domain redirect
-            short_url = f"https://pablospizza.cl/cal/{booking_id}"
+            # Generate URL pointing to backend API endpoint
+            short_url = f"https://us-central1-pablospizza-d84bf.cloudfunctions.net/main/cal/{booking_id}"
 
             print(f"📅 Calendar invite uploaded with short URL: {short_url}")
             return ics_content, short_url
@@ -132,9 +132,9 @@ def generate_calendar_invite_with_url(booking_data: dict) -> tuple:
             print(f"Error uploading calendar to storage: {storage_error}")
             # Fallback: return website URL
             booking_id = booking_data.get('id', '')
-            fallback_url = f"https://pablospizza.cl/agendar" if not booking_id else f"https://pablospizza.cl/cal/{booking_id}"
+            fallback_url = f"https://pablospizza.web.app/agendar" if not booking_id else f"https://us-central1-pablospizza-d84bf.cloudfunctions.net/main/cal/{booking_id}"
             return ics_content, fallback_url
 
     except Exception as e:
         print(f"Error generating calendar invite with URL: {e}")
-        return "", "https://pablospizza.cl/agendar"
+        return "", "https://pablospizza.web.app/agendar"
