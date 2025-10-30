@@ -79,7 +79,9 @@ def create_booking():
                 print(f"✅ New customer created: {customer_id}")
 
         # Create booking with customer reference
-        bd = {"id":bid,**data,"customer_id":customer_id,"status":"pending","created_at":datetime.now(),"estimated_price":ep}
+        # Map special_requests to notes for admin panel compatibility
+        notes = data.get('special_requests') or data.get('notes', '')
+        bd = {"id":bid,**data,"customer_id":customer_id,"notes":notes,"status":"pending","created_at":datetime.now(),"estimated_price":ep}
         db.collection("bookings").document(bid).set(bd)
 
         # Update customer stats if customer exists

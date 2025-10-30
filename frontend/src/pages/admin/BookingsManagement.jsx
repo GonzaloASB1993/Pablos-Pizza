@@ -830,7 +830,7 @@ const BookingsManagement = () => {
             const updatePayload = {}
 
             if (formData.status) updatePayload.status = formData.status
-            if (formData.notes) updatePayload.special_requests = formData.notes
+            if (formData.notes !== undefined && formData.notes !== null) updatePayload.notes = formData.notes
             if (formData.event_date) {
                 // Ensure the date is sent in the correct format to avoid timezone issues
                 const localDate = new Date(formData.event_date + 'T12:00:00')
