@@ -201,20 +201,33 @@ export default function ReportsPage() {
   const [monthlyTax, setMonthlyTax] = useState(0)
   const [annualTax, setAnnualTax] = useState(0)
 
-  // Load data that doesn't depend on filters only once
-  useEffect(() => {
-    const init = async () => {
-      await loadStaticData()
-      await loadFilteredData()
-      setInitialLoading(false)
-    }
-    init()
-  }, [])
+  // Define functions BEFORE useEffect to avoid initialization errors
+  const loadExpensesData = useCallback(async () => {
+    try {
+      // Parallel loading of expenses
+      const [fixedResponse, variableResponse] = await Promise.all([
+        expensesAPI.getFixed(),
+        expensesAPI.getVariable({ year: selectedYear, month: selectedMonth })
+      ])
 
-  // Load filtered data when month/year changes (but not on initial load)
-  useEffect(() => {
-    if (!initialLoading) {
-      loadFilteredData()
+      setFixedExpenses(fixedResponse.data || [])
+      setVariableExpenses(variableResponse.data || [])
+    } catch (error) {
+      console.error('Error loading expenses data:', error)
+      // Don't show error toast - expenses might not be set up yet
+    }
+  }, [selectedMonth, selectedYear])
+
+  const loadMonthlyTax = useCallback(async () => {
+    try {
+      const response = await expensesAPI.getTax({
+        year: selectedYear,
+        month: selectedMonth
+      })
+      setMonthlyTax(response.data.amount || 0)
+    } catch (error) {
+      console.error('Error loading tax:', error)
+      setMonthlyTax(0)
     }
   }, [selectedMonth, selectedYear])
 
@@ -273,34 +286,22 @@ export default function ReportsPage() {
     }
   }, [selectedMonth, selectedYear, loadExpensesData, loadMonthlyTax])
 
-  const loadExpensesData = useCallback(async () => {
-    try {
-      // Parallel loading of expenses
-      const [fixedResponse, variableResponse] = await Promise.all([
-        expensesAPI.getFixed(),
-        expensesAPI.getVariable({ year: selectedYear, month: selectedMonth })
-      ])
-
-      setFixedExpenses(fixedResponse.data || [])
-      setVariableExpenses(variableResponse.data || [])
-    } catch (error) {
-      console.error('Error loading expenses data:', error)
-      // Don't show error toast - expenses might not be set up yet
+  // Load data that doesn't depend on filters only once
+  useEffect(() => {
+    const init = async () => {
+      await loadStaticData()
+      await loadFilteredData()
+      setInitialLoading(false)
     }
-  }, [selectedMonth, selectedYear])
+    init()
+  }, [loadStaticData, loadFilteredData])
 
-  const loadMonthlyTax = useCallback(async () => {
-    try {
-      const response = await expensesAPI.getTax({
-        year: selectedYear,
-        month: selectedMonth
-      })
-      setMonthlyTax(response.data.amount || 0)
-    } catch (error) {
-      console.error('Error loading tax:', error)
-      setMonthlyTax(0)
+  // Load filtered data when month/year changes (but not on initial load)
+  useEffect(() => {
+    if (!initialLoading) {
+      loadFilteredData()
     }
-  }, [selectedMonth, selectedYear])
+  }, [selectedMonth, selectedYear, initialLoading, loadFilteredData])
 
   const saveMonthlyTax = async (amount) => {
     try {
