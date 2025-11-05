@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -173,6 +173,7 @@ export default function ReportsPage() {
   const theme = useTheme()
   const { mode, toggleTheme } = useThemeMode()
   const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [tabValue, setTabValue] = useState(0)
   const [selectedPeriod, setSelectedPeriod] = useState('current_month')
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
@@ -200,75 +201,95 @@ export default function ReportsPage() {
   const [monthlyTax, setMonthlyTax] = useState(0)
   const [annualTax, setAnnualTax] = useState(0)
 
+  // Load data that doesn't depend on filters only once
   useEffect(() => {
-    loadReportsData()
-    loadExpensesData()
-    loadMonthlyTax()
+    const init = async () => {
+      await loadStaticData()
+      await loadFilteredData()
+      setInitialLoading(false)
+    }
+    init()
+  }, [])
+
+  // Load filtered data when month/year changes (but not on initial load)
+  useEffect(() => {
+    if (!initialLoading) {
+      loadFilteredData()
+    }
   }, [selectedMonth, selectedYear])
 
-  const loadReportsData = async () => {
+  // Load data that doesn't change with filters (only once)
+  const loadStaticData = useCallback(async () => {
+    try {
+      // Parallel loading of static data
+      const [dashboardResponse, inventoryAlertsResponse, clientsResponse, inventoryResponse] =
+        await Promise.all([
+          reportsAPI.getDashboard(),
+          inventoryAPI.getAlerts(),
+          reportsAPI.getTopClients({ limit: 5 }),
+          inventoryAPI.getAll().catch(() => ({ data: { items: [] } }))
+        ])
+
+      setDashboardData(dashboardResponse.data)
+      setInventoryAlerts(inventoryAlertsResponse.data.alerts || [])
+      setTopClients(clientsResponse.data.clients || [])
+
+      const totalValue = inventoryResponse.data.items?.reduce((sum, item) => {
+        return sum + (item.total_value || 0)
+      }, 0) || 0
+      setInventoryTotalValue(totalValue)
+
+    } catch (error) {
+      console.error('Error loading static data:', error)
+      toast.error('Error al cargar datos estáticos')
+    }
+  }, [])
+
+  // Load data that changes with filters
+  const loadFilteredData = useCallback(async () => {
     try {
       setLoading(true)
 
-      // Load dashboard stats
-      const dashboardResponse = await reportsAPI.getDashboard()
-      setDashboardData(dashboardResponse.data)
+      // Parallel loading of filtered data
+      const [monthlyResponse, annualResponse] = await Promise.all([
+        reportsAPI.getMonthly(selectedYear, selectedMonth),
+        reportsAPI.getAnnual(selectedYear)
+      ])
 
-      // Load SELECTED month data (not current month)
-      const monthlyResponse = await reportsAPI.getMonthly(selectedYear, selectedMonth)
       setMonthlyData(monthlyResponse.data)
-
-      // Load annual data
-      const annualResponse = await reportsAPI.getAnnual(selectedYear)
       setAnnualData(annualResponse.data)
 
-      // Load inventory alerts
-      const inventoryResponse = await inventoryAPI.getAlerts()
-      setInventoryAlerts(inventoryResponse.data.alerts || [])
-
-      // Load top clients
-      const clientsResponse = await reportsAPI.getTopClients({ limit: 5 })
-      setTopClients(clientsResponse.data.clients || [])
-
-      // Load inventory total value for waste rate calculation
-      try {
-        const inventoryResponse = await inventoryAPI.getAll()
-        const totalValue = inventoryResponse.data.items?.reduce((sum, item) => {
-          return sum + (item.total_value || 0)
-        }, 0) || 0
-        setInventoryTotalValue(totalValue)
-      } catch (error) {
-        console.error('Error loading inventory value:', error)
-        setInventoryTotalValue(0)
-      }
+      // Load expenses and tax in parallel
+      await Promise.all([
+        loadExpensesData(),
+        loadMonthlyTax()
+      ])
 
     } catch (error) {
-      console.error('Error loading reports data:', error)
+      console.error('Error loading filtered data:', error)
       toast.error('Error al cargar datos de reportes')
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedMonth, selectedYear, loadExpensesData, loadMonthlyTax])
 
-  const loadExpensesData = async () => {
+  const loadExpensesData = useCallback(async () => {
     try {
-      // Load fixed expenses
-      const fixedResponse = await expensesAPI.getFixed()
-      setFixedExpenses(fixedResponse.data || [])
+      // Parallel loading of expenses
+      const [fixedResponse, variableResponse] = await Promise.all([
+        expensesAPI.getFixed(),
+        expensesAPI.getVariable({ year: selectedYear, month: selectedMonth })
+      ])
 
-      // Load variable expenses for selected month/year
-      const variableResponse = await expensesAPI.getVariable({
-        year: selectedYear,
-        month: selectedMonth
-      })
+      setFixedExpenses(fixedResponse.data || [])
       setVariableExpenses(variableResponse.data || [])
     } catch (error) {
       console.error('Error loading expenses data:', error)
       // Don't show error toast - expenses might not be set up yet
     }
-  }
+  }, [selectedMonth, selectedYear])
 
-  const loadMonthlyTax = async () => {
+  const loadMonthlyTax = useCallback(async () => {
     try {
       const response = await expensesAPI.getTax({
         year: selectedYear,
@@ -279,7 +300,7 @@ export default function ReportsPage() {
       console.error('Error loading tax:', error)
       setMonthlyTax(0)
     }
-  }
+  }, [selectedMonth, selectedYear])
 
   const saveMonthlyTax = async (amount) => {
     try {
@@ -382,76 +403,81 @@ export default function ReportsPage() {
     }
   }
 
-  // Calculate totals
-  const getTotalFixedExpenses = () => {
+  // Memoized calculations for better performance
+  const totalFixedExpenses = useMemo(() => {
     return fixedExpenses
       .filter(exp => exp.is_active)
       .reduce((sum, exp) => sum + (exp.amount || 0), 0)
-  }
+  }, [fixedExpenses])
 
-  const getTotalVariableExpenses = () => {
+  const totalVariableExpenses = useMemo(() => {
     return variableExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0)
-  }
+  }, [variableExpenses])
 
-  const getEBITDA = () => {
+  const ebitda = useMemo(() => {
     return (
       (monthlyData?.total_income || 0) -
       (monthlyData?.total_expenses || 0) -
       (monthlyData?.waste_cost || 0) -
-      getTotalFixedExpenses() -
-      getTotalVariableExpenses()
+      totalFixedExpenses -
+      totalVariableExpenses
     )
-  }
+  }, [monthlyData, totalFixedExpenses, totalVariableExpenses])
 
-  const getNetProfit = () => {
-    return getEBITDA() - monthlyTax
-  }
+  const netProfit = useMemo(() => {
+    return ebitda - monthlyTax
+  }, [ebitda, monthlyTax])
 
-  // Annual calculations
-  const getAnnualTotalIncome = () => {
+  // Annual calculations (memoized)
+  const annualTotalIncome = useMemo(() => {
     return annualData?.annual_totals?.total_income || 0
-  }
+  }, [annualData])
 
-  const getAnnualTotalExpenses = () => {
+  const annualTotalExpenses = useMemo(() => {
     return annualData?.annual_totals?.total_expenses || 0
-  }
+  }, [annualData])
 
-  const getAnnualWasteCost = () => {
-    // Sum waste from all months in annual data
+  const annualWasteCost = useMemo(() => {
     if (!annualData?.monthly_reports) return 0
     return annualData.monthly_reports.reduce((sum, month) => sum + (month.waste_cost || 0), 0)
-  }
+  }, [annualData])
 
-  const getAnnualFixedExpenses = () => {
-    // Fixed expenses * 12 months (assuming they repeat monthly)
-    return getTotalFixedExpenses() * 12
-  }
+  const annualFixedExpenses = useMemo(() => {
+    return totalFixedExpenses * 12
+  }, [totalFixedExpenses])
 
-  const getAnnualVariableExpenses = () => {
+  const annualVariableExpenses = useMemo(() => {
     // Would need to load all variable expenses for the year
     // For now, return 0 - can be enhanced later
     return 0
-  }
+  }, [])
 
-  const getAnnualEBITDA = () => {
+  const annualEBITDA = useMemo(() => {
     return (
-      getAnnualTotalIncome() -
-      getAnnualTotalExpenses() -
-      getAnnualWasteCost() -
-      getAnnualFixedExpenses() -
-      getAnnualVariableExpenses()
+      annualTotalIncome -
+      annualTotalExpenses -
+      annualWasteCost -
+      annualFixedExpenses -
+      annualVariableExpenses
     )
-  }
+  }, [annualTotalIncome, annualTotalExpenses, annualWasteCost, annualFixedExpenses, annualVariableExpenses])
 
-  const getAnnualNetProfit = () => {
-    return getAnnualEBITDA() - annualTax
-  }
+  const annualNetProfit = useMemo(() => {
+    return annualEBITDA - annualTax
+  }, [annualEBITDA, annualTax])
 
-  const getAnnualTotalTaxes = async () => {
-    // This would need to load all monthly taxes for the year
-    // For now, return annualTax
-    return annualTax
-  }
+  // Legacy function getters for compatibility (use memoized values)
+  const getTotalFixedExpenses = () => totalFixedExpenses
+  const getTotalVariableExpenses = () => totalVariableExpenses
+  const getEBITDA = () => ebitda
+  const getNetProfit = () => netProfit
+  const getAnnualTotalIncome = () => annualTotalIncome
+  const getAnnualTotalExpenses = () => annualTotalExpenses
+  const getAnnualWasteCost = () => annualWasteCost
+  const getAnnualFixedExpenses = () => annualFixedExpenses
+  const getAnnualVariableExpenses = () => annualVariableExpenses
+  const getAnnualEBITDA = () => annualEBITDA
+  const getAnnualNetProfit = () => annualNetProfit
 
   const handleExportReport = async () => {
     try {
@@ -483,8 +509,8 @@ export default function ReportsPage() {
     }
   }
 
-  // Chart configurations
-  const getMonthlyTrendData = () => {
+  // Memoized chart data for better performance
+  const monthlyTrendData = useMemo(() => {
     if (!annualData?.monthly_reports) return null
 
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -510,9 +536,9 @@ export default function ReportsPage() {
         }
       ]
     }
-  }
+  }, [annualData, mode])
 
-  const getServiceDistributionData = () => {
+  const serviceDistributionData = useMemo(() => {
     if (!monthlyData) return null
 
     // Mapear nombres de servicios a español
@@ -535,9 +561,6 @@ export default function ReportsPage() {
         serviceIncomes[label] = data.total_income || 0
       })
     } else {
-      // Fallback: si no hay events_by_service en la respuesta, calcularlo desde monthlyData
-      // Esto requeriría tener acceso a la lista de eventos individuales
-      // Por ahora asumimos que el backend envía events_by_service
       return null
     }
 
@@ -558,9 +581,13 @@ export default function ReportsPage() {
         ]
       }]
     }
-  }
+  }, [monthlyData])
 
-  const chartOptions = {
+  // Legacy getters for compatibility
+  const getMonthlyTrendData = () => monthlyTrendData
+  const getServiceDistributionData = () => serviceDistributionData
+
+  const chartOptions = useMemo(() => ({
     responsive: true,
     plugins: {
       legend: {
@@ -599,9 +626,9 @@ export default function ReportsPage() {
         },
       },
     }
-  }
+  }), [theme.palette.text.primary, theme.palette.text.secondary, mode])
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -618,7 +645,7 @@ export default function ReportsPage() {
         </Typography>
         <Stack direction="row" spacing={2}>
           <Tooltip title="Actualizar datos">
-            <IconButton onClick={loadReportsData} aria-label="refresh data">
+            <IconButton onClick={() => { loadStaticData(); loadFilteredData(); }} aria-label="refresh data">
               <Refresh />
             </IconButton>
           </Tooltip>
@@ -633,7 +660,13 @@ export default function ReportsPage() {
       </Box>
 
       {/* Month/Year Filter */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center' }}>
+      <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', position: 'relative' }}>
+        {loading && (
+          <CircularProgress
+            size={20}
+            sx={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)' }}
+          />
+        )}
         <FormControl size="small" sx={{ minWidth: 120 }}>
           <InputLabel>Mes</InputLabel>
           <Select
@@ -776,8 +809,8 @@ export default function ReportsPage() {
                 <Typography variant="h6" gutterBottom>
                   Tendencia Mensual - Ingresos vs Gastos
                 </Typography>
-                {getMonthlyTrendData() && (
-                  <Line data={getMonthlyTrendData()} options={chartOptions} />
+                {monthlyTrendData && (
+                  <Line data={monthlyTrendData} options={chartOptions} />
                 )}
               </CardContent>
             </Card>
@@ -790,9 +823,9 @@ export default function ReportsPage() {
                 <Typography variant="h6" gutterBottom>
                   Distribución de Servicios - Ingresos por Categoría
                 </Typography>
-                {getServiceDistributionData() && (
+                {serviceDistributionData && (
                   <Pie
-                    data={getServiceDistributionData()}
+                    data={serviceDistributionData}
                     options={{
                       responsive: true,
                       plugins: {
