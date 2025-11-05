@@ -36,6 +36,7 @@ import {
     Autocomplete
 } from '@mui/material'
 import CustomerAutocomplete from '../../components/forms/CustomerAutocomplete'
+import PhoneInput from '../../components/forms/PhoneInput'
 import {
     Add,
     Edit,
@@ -1982,11 +1983,11 @@ const BookingsManagement = () => {
                             />
                         </Grid>
                         <Grid item xs={12} sm={6}>
-                            <TextField
-                                fullWidth
-                                label="Teléfono del Cliente"
+                            <PhoneInput
                                 value={formData.client_phone}
-                                onChange={(e) => setFormData(prev => ({ ...prev, client_phone: e.target.value }))}
+                                onChange={(value) => setFormData(prev => ({ ...prev, client_phone: value }))}
+                                label="Teléfono del Cliente"
+                                helperText="Número de WhatsApp del cliente"
                             />
                         </Grid>
                         {/* Campos condicionales según tipo de servicio */}
@@ -2266,12 +2267,11 @@ const BookingsManagement = () => {
                                     />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Teléfono"
-                                        name="client_phone"
+                                    <PhoneInput
                                         value={newBookingData.client_phone}
-                                        onChange={handleNewBookingChange}
+                                        onChange={(value) => setNewBookingData(prev => ({ ...prev, client_phone: value }))}
+                                        label="Teléfono"
+                                        helperText="Número de WhatsApp del cliente"
                                         required
                                     />
                                 </Grid>

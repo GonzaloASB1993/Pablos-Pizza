@@ -33,6 +33,7 @@ import {
   Autocomplete,
   MenuItem
 } from '@mui/material'
+import PhoneInput from '../../components/forms/PhoneInput'
 import {
   ArrowBack,
   AccessTime,
@@ -529,19 +530,9 @@ export default function BookingPage() {
                                 />
                               </Grid>
                               <Grid item xs={12}>
-                                <TextField
-                                  label="Teléfono / WhatsApp"
-                                  fullWidth
-                                  required
+                                <PhoneInput
                                   value={formData.phone}
-                                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                                  InputProps={{
-                                    startAdornment: (
-                                      <Box sx={{ mr: 1, color: 'text.secondary' }}>
-                                        <WhatsApp />
-                                      </Box>
-                                    ),
-                                  }}
+                                  onChange={(value) => handleInputChange('phone', value)}
                                   helperText="Preferiblemente WhatsApp para confirmación rápida"
                                 />
                               </Grid>
