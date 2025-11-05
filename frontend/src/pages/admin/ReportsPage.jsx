@@ -750,7 +750,13 @@ export default function ReportsPage() {
 
       {/* Tabs */}
       <Paper sx={{ mb: 3 }}>
-        <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
+        <Tabs
+          value={tabValue}
+          onChange={(e, newValue) => setTabValue(newValue)}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+        >
           <Tab label="Resumen Ejecutivo" icon={<Assessment />} />
           <Tab label="Análisis Financiero" icon={<ShowChart />} />
           <Tab label="Clientes Top" icon={<People />} />
