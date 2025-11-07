@@ -84,8 +84,17 @@ def check_recent_notification(booking_id: str, notification_type: str,
         return has_recent
 
     except Exception as e:
-        logger.error(f"❌ Error checking recent notification: {e}")
-        # Fail safe: return True to prevent duplicate sends on error
+        error_message = str(e)
+        logger.error(f"❌ Error checking recent notification: {error_message}")
+
+        # If it's an index error, allow the notification to be sent
+        # (missing indexes shouldn't block legitimate notifications)
+        if "requires an index" in error_message or "index" in error_message.lower():
+            logger.warning(f"⚠️ Index missing - allowing notification (create indexes to fix)")
+            return False
+
+        # For other errors, fail safe: return True to prevent duplicate sends
+        logger.warning(f"⚠️ Unknown error - blocking notification as failsafe")
         return True
 
 
