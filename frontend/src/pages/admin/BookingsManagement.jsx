@@ -77,11 +77,17 @@ const localizer = dateFnsLocalizer({
 })
 
 const BookingsManagement = () => {
+    // Get current month in MM-YYYY format as default
+    const getCurrentMonthKey = () => {
+        const today = new Date()
+        return `${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`
+    }
+
     const [bookings, setBookings] = useState([])
     const [view, setView] = useState('table')
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
-    const [selectedMonth, setSelectedMonth] = useState("")
+    const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthKey())
     // 'all' => mostrar todos los agendamientos por defecto
     const [statusFilter, setStatusFilter] = useState('all')
     const [searchQuery, setSearchQuery] = useState('')
@@ -1253,10 +1259,11 @@ const BookingsManagement = () => {
         return months
     }
 
-    const pendingBookings = bookings.filter(b => b.status === 'pending')
-    const confirmedBookings = bookings.filter(b => b.status === 'confirmed')
-    const completedBookings = bookings.filter(b => b.status === 'completed')
-    const cancelledBookings = bookings.filter(b => b.status === 'cancelled')
+    // Use filteredBookings to respect month filter in statistics cards
+    const pendingBookings = filteredBookings.filter(b => b.status === 'pending')
+    const confirmedBookings = filteredBookings.filter(b => b.status === 'confirmed')
+    const completedBookings = filteredBookings.filter(b => b.status === 'completed')
+    const cancelledBookings = filteredBookings.filter(b => b.status === 'cancelled')
 
     const getBookingsByStatus = (status) => {
         return bookings.filter(booking => booking.status === status)
@@ -1477,7 +1484,7 @@ const BookingsManagement = () => {
                         <CardContent sx={{ textAlign: 'center' }}>
                             <TrendingUp sx={{ fontSize: 40, color: 'error.dark', mb: 1 }} />
                             <Typography variant="h4" sx={{ fontWeight: 700, color: 'error.dark' }}>
-                                {bookings.length}
+                                {filteredBookings.length}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
                                 Total
