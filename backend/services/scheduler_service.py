@@ -98,33 +98,11 @@ async def check_overdue_events() -> dict:
                 'reminders_sent': 0
             }
 
-        # Filter out bookings that already received recent reminders
-        bookings_to_notify = []
-        for booking in all_overdue:
-            booking_id = booking.get('id')
+        # Send reminders for ALL overdue events (daily reminders until completion)
+        # No filtering by recent notifications - admin needs daily reminders
+        bookings_to_notify = all_overdue
 
-            # Check if reminder was sent recently (within 3 days)
-            has_recent_reminder = check_recent_notification(
-                booking_id,
-                'overdue_reminder_single',
-                days_threshold=3
-            )
-
-            if not has_recent_reminder:
-                bookings_to_notify.append(booking)
-            else:
-                logger.info(f"⏭️ Skipping booking {booking_id} - recent reminder sent")
-
-        logger.info(f"📨 {len(bookings_to_notify)} bookings need reminders")
-
-        if not bookings_to_notify:
-            logger.info("✅ All overdue events already have recent reminders")
-            return {
-                'success': True,
-                'message': 'All overdue events already notified recently',
-                'overdue_count': len(all_overdue),
-                'reminders_sent': 0
-            }
+        logger.info(f"📨 {len(bookings_to_notify)} bookings need reminders (daily until completed)")
 
         # Send reminder(s)
         reminders_sent = 0

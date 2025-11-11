@@ -344,6 +344,8 @@ def prepare_multiple_overdue_reminder_variables(admin_name: str, bookings_list: 
     event_count = len(bookings_list)
 
     # Format event list
+    # NOTE: WhatsApp templates don't support newlines in variables
+    # Using " | " as separator instead
     event_records = []
     for idx, booking in enumerate(bookings_list[:5], 1):  # Limit to first 5 events
         client_name = booking.get('client_name', 'Cliente')
@@ -355,9 +357,10 @@ def prepare_multiple_overdue_reminder_variables(admin_name: str, bookings_list: 
 
     # Add "..." if there are more events
     if event_count > 5:
-        event_records.append(f"... y {event_count - 5} más")
+        event_records.append(f"y {event_count - 5} mas")
 
-    record_list = "\n".join(event_records)
+    # Use " | " separator instead of newlines (WhatsApp templates don't support \n in variables)
+    record_list = " | ".join(event_records)
 
     variables = {
         "1": admin_name,
