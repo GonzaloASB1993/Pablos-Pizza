@@ -91,29 +91,29 @@ ChartJS.register(
 // Enhanced KPI Card Component
 const KPICard = ({ title, value, subtitle, icon: Icon, trend, color = 'primary' }) => (
   <Card sx={{ height: '100%', position: 'relative', overflow: 'visible' }}>
-    <CardContent>
+    <CardContent sx={{ pb: '16px !important' }}>
       <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-        <Box>
-          <Typography color="textSecondary" gutterBottom variant="body2">
+        <Box flex={1} mr={1}>
+          <Typography color="textSecondary" gutterBottom variant="body2" sx={{ fontSize: '0.75rem' }}>
             {title}
           </Typography>
-          <Typography variant="h4" component="div" color={color + '.main'}>
+          <Typography variant="h5" component="div" color={color + '.main'} sx={{ fontWeight: 600, mb: 0.5 }}>
             {value}
           </Typography>
           {subtitle && (
-            <Typography variant="body2" color="textSecondary">
+            <Typography variant="caption" color="textSecondary">
               {subtitle}
             </Typography>
           )}
           {trend && (
-            <Box display="flex" alignItems="center" mt={1}>
+            <Box display="flex" alignItems="center" mt={0.5}>
               {trend > 0 ? (
                 <TrendingUp color="success" fontSize="small" />
               ) : (
                 <TrendingDown color="error" fontSize="small" />
               )}
               <Typography
-                variant="body2"
+                variant="caption"
                 color={trend > 0 ? 'success.main' : 'error.main'}
                 ml={0.5}
               >
@@ -126,11 +126,16 @@ const KPICard = ({ title, value, subtitle, icon: Icon, trend, color = 'primary' 
           sx={{
             backgroundColor: color + '.main',
             borderRadius: '50%',
-            p: 1,
-            color: 'white'
+            width: 48,
+            height: 48,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            flexShrink: 0
           }}
         >
-          <Icon />
+          <Icon sx={{ fontSize: 24 }} />
         </Box>
       </Box>
     </CardContent>
@@ -141,29 +146,40 @@ const KPICard = ({ title, value, subtitle, icon: Icon, trend, color = 'primary' 
 const AlertCard = ({ title, count, severity = 'warning', icon: Icon, onClick }) => (
   <Card
     sx={{
+      height: '100%',
       cursor: onClick ? 'pointer' : 'default',
       '&:hover': onClick ? { elevation: 4 } : {}
     }}
     onClick={onClick}
   >
-    <CardContent>
-      <Box display="flex" alignItems="center" justifyContent="space-between">
-        <Box display="flex" alignItems="center">
-          <Icon color={severity} sx={{ mr: 1 }} />
-          <Box>
-            <Typography variant="body2" color="textSecondary">
-              {title}
-            </Typography>
-            <Typography variant="h6" color={severity + '.main'}>
-              {count}
-            </Typography>
-          </Box>
+    <CardContent sx={{ pb: '16px !important' }}>
+      <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+        <Box flex={1} mr={1}>
+          <Typography color="textSecondary" gutterBottom variant="body2" sx={{ fontSize: '0.75rem' }}>
+            {title}
+          </Typography>
+          <Typography variant="h5" component="div" color={severity + '.main'} sx={{ fontWeight: 600, mb: 0.5 }}>
+            {count}
+          </Typography>
+          <Typography variant="caption" color="textSecondary">
+            Requiere atención
+          </Typography>
         </Box>
-        <Chip
-          label={count}
-          color={severity}
-          size="small"
-        />
+        <Box
+          sx={{
+            backgroundColor: severity + '.main',
+            borderRadius: '50%',
+            width: 48,
+            height: 48,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            flexShrink: 0
+          }}
+        >
+          <Icon sx={{ fontSize: 24 }} />
+        </Box>
       </Box>
     </CardContent>
   </Card>
@@ -708,9 +724,9 @@ export default function ReportsPage() {
         </Typography>
       </Box>
 
-      {/* KPI Cards */}
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={3}>
+      {/* KPI Cards & Alerts - All in one row */}
+      <Grid container spacing={2} mb={4}>
+        <Grid item xs={12} sm={6} md={2}>
           <KPICard
             title="Ingresos del Mes"
             value={new Intl.NumberFormat('es-CL', {
@@ -723,7 +739,7 @@ export default function ReportsPage() {
             color="success"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2}>
           <KPICard
             title="Eventos Realizados"
             value={monthlyData?.total_events || 0}
@@ -732,7 +748,7 @@ export default function ReportsPage() {
             color="primary"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2}>
           <KPICard
             title="Utilidad del Mes"
             value={new Intl.NumberFormat('es-CL', {
@@ -745,7 +761,7 @@ export default function ReportsPage() {
             color="warning"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2}>
           <KPICard
             title="Próximos Eventos"
             value={dashboardData?.upcoming_events || 0}
@@ -754,33 +770,29 @@ export default function ReportsPage() {
             color="info"
           />
         </Grid>
-      </Grid>
 
-      {/* Alerts */}
-      {(inventoryAlerts.length > 0 || (dashboardData?.alerts?.pending_reviews > 0)) && (
-        <Grid container spacing={2} mb={4}>
-          {inventoryAlerts.length > 0 && (
-            <Grid item xs={12} sm={6}>
-              <AlertCard
-                title="Items con Stock Bajo"
-                count={inventoryAlerts.length}
-                severity="warning"
-                icon={Inventory}
-              />
-            </Grid>
-          )}
-          {dashboardData?.alerts?.pending_reviews > 0 && (
-            <Grid item xs={12} sm={6}>
-              <AlertCard
-                title="Reseñas Pendientes"
-                count={dashboardData.alerts.pending_reviews}
-                severity="info"
-                icon={Star}
-              />
-            </Grid>
-          )}
-        </Grid>
-      )}
+        {/* Alert Cards integrated in the same row */}
+        {inventoryAlerts.length > 0 && (
+          <Grid item xs={12} sm={6} md={2}>
+            <AlertCard
+              title="Items con Stock Bajo"
+              count={inventoryAlerts.length}
+              severity="warning"
+              icon={Inventory}
+            />
+          </Grid>
+        )}
+        {dashboardData?.alerts?.pending_reviews > 0 && (
+          <Grid item xs={12} sm={6} md={2}>
+            <AlertCard
+              title="Reseñas Pendientes"
+              count={dashboardData.alerts.pending_reviews}
+              severity="info"
+              icon={Star}
+            />
+          </Grid>
+        )}
+      </Grid>
 
       {/* Tabs */}
       <Paper sx={{ mb: 3 }}>

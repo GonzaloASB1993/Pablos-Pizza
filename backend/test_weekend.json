@@ -1,0 +1,8 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Cuantos eventos tengo este fin de semana?"
+    }
+  ]
+}

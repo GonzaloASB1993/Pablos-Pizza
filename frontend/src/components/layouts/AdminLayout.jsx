@@ -17,7 +17,9 @@ import {
   Avatar,
   Divider,
   ListSubheader,
-  Collapse
+  Collapse,
+  Fab,
+  Zoom
 } from '@mui/material'
 import {
   Menu as MenuIcon,
@@ -39,13 +41,15 @@ import {
   MenuOpen,
   Factory,
   Brightness4,
-  Brightness7
+  Brightness7,
+  SmartToy
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { ThemeProvider } from '../../contexts/ThemeContext'
 import { useThemeMode } from '../../contexts/ThemeContext'
 import logo from '../../assets/logo.png'
+import ChatAssistant from '../common/ChatAssistant'
 
 const DRAWER_WIDTH = 280
 const DRAWER_WIDTH_COLLAPSED = 70
@@ -56,6 +60,7 @@ const AdminLayoutContent = () => {
   const [businessOpen, setBusinessOpen] = useState(true)
   const [analyticsOpen, setAnalyticsOpen] = useState(false)
   const [drawerCollapsed, setDrawerCollapsed] = useState(true) // Compact by default
+  const [chatOpen, setChatOpen] = useState(false)
   const { logout } = useAuth()
   const { mode, toggleTheme } = useThemeMode()
   const navigate = useNavigate()
@@ -612,6 +617,38 @@ const AdminLayoutContent = () => {
         <Toolbar />
         <Outlet />
       </Box>
+
+      {/* AI Chat Assistant - Floating Action Button */}
+      <Zoom in timeout={500}>
+        <Fab
+          color="primary"
+          aria-label="asistente ai"
+          onClick={() => setChatOpen(true)}
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            width: 64,
+            height: 64,
+            boxShadow: 6,
+            '&:hover': {
+              transform: 'scale(1.1)',
+              boxShadow: 12,
+            },
+            transition: 'all 0.3s ease',
+            zIndex: (theme) => theme.zIndex.drawer + 2,
+            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+          }}
+        >
+          <SmartToy sx={{ fontSize: 32 }} />
+        </Fab>
+      </Zoom>
+
+      {/* AI Chat Dialog */}
+      <ChatAssistant
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+      />
     </Box>
   )
 }

@@ -52,6 +52,7 @@ from routes.gallery_routes import gallery_bp
 from routes.contacts_routes import contacts_bp
 from routes.customers_routes import customers_bp
 from routes.expenses_routes import expenses_bp
+from routes.ai_chat_routes import ai_chat_bp
 
 
 try:
@@ -133,6 +134,8 @@ app.register_blueprint(customers_bp)
 print("  [OK] Customers routes registered")
 app.register_blueprint(expenses_bp)
 print("  [OK] Expenses routes registered")
+app.register_blueprint(ai_chat_bp)
+print("  [OK] AI Chat routes registered")
 print("[SUCCESS] All blueprints registered successfully!")
 
 
