@@ -439,43 +439,245 @@ def send_confirmation_email(booking_data: dict) -> bool:
         return False
 
 def send_admin_email_notification(booking_data: dict) -> bool:
-    """Send email notification to admin about new booking"""
+    """Send professional HTML email notification to admin about new booking"""
     try:
-        smtp_server,smtp_port = os.getenv('EMAIL_SERVER','smtp.gmail.com'),int(os.getenv('EMAIL_PORT',587))
-        email_username,email_password,email_from = os.getenv('EMAIL_USERNAME'),os.getenv('EMAIL_PASSWORD'),os.getenv('EMAIL_FROM')
-        if not all([email_username,email_password,email_from]): return False
-        
-        service_name = format_service_name(booking_data.get('service_type',''))
-        msg = MIMEMultipart()
-        msg['From'],msg['To'],msg['Subject'] = email_from,email_from,f"🍕 NUEVO AGENDAMIENTO - {booking_data.get('client_name','Cliente')}"
-        
-        html_content = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-        <h2 style="color:#FFC107;text-align:center">🍕 Pablo's Pizza</h2>
-        <h3 style="color:#000">¡NUEVO AGENDAMIENTO!</h3>
-        <div style="background-color:#f8f9fa;padding:20px;border-radius:8px;margin:20px 0">
-        <h4>👤 Información del Cliente:</h4>
-        <p><strong>Nombre:</strong> {booking_data.get('client_name','N/A')}</p>
-        <p><strong>Teléfono:</strong> {booking_data.get('client_phone','N/A')}</p>
-        <p><strong>Email:</strong> {booking_data.get('client_email','N/A')}</p>
-        <h4>🍕 Detalles del Evento:</h4>
-        <p><strong>Servicio:</strong> {service_name}</p>
-        <p><strong>Fecha:</strong> {booking_data.get('event_date','N/A')}</p>
-        <p><strong>Hora:</strong> {booking_data.get('event_time','N/A')}</p>
-        <p><strong>Participantes:</strong> {booking_data.get('participants','N/A')}</p>
-        <p><strong>Ubicación:</strong> {booking_data.get('location','N/A')}</p>
-        <p><strong>Precio estimado:</strong> ${booking_data.get('estimated_price',0):,.0f} CLP</p>
-        </div>
-        <div style="text-align:center;margin:30px 0">
-        <a href="https://pablospizza.web.app/admin/agendamientos" style="background-color:#FFC107;color:black;padding:12px 24px;text-decoration:none;border-radius:5px;font-weight:bold">Ver en Admin Panel</a>
-        </div></div>"""
-        
-        msg.attach(MIMEText(html_content,'html'))
-        server = smtplib.SMTP(smtp_server,smtp_port)
+        smtp_server = os.getenv('EMAIL_SERVER', 'smtp.gmail.com')
+        smtp_port = int(os.getenv('EMAIL_PORT', 587))
+        email_username = os.getenv('EMAIL_USERNAME')
+        email_password = os.getenv('EMAIL_PASSWORD')
+        email_from = os.getenv('EMAIL_FROM')
+
+        if not all([email_username, email_password, email_from]):
+            print("Error: Configuración de email incompleta")
+            return False
+
+        service_name = format_service_name(booking_data.get('service_type', ''))
+
+        # Format participants info
+        participants_display = ""
+        service_type = booking_data.get('service_type', '')
+        if 'workshop' in service_type or 'pizzeros' in service_type:
+            participants_display = f"{booking_data.get('pizzeros_participants', booking_data.get('participants', 0))} niños"
+        elif 'pizza_party' in service_type or 'party' in service_type:
+            participants_display = f"{booking_data.get('party_participants', booking_data.get('participants', 0))} personas"
+        else:
+            participants_display = f"{booking_data.get('participants', 0)} participantes"
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Nuevo Agendamiento - Pablo's Pizza</title>
+            <style>
+                * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #2c2c2c;
+                    background-color: #f8f9fa;
+                }}
+                .email-container {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background-color: #ffffff;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+                }}
+                .header {{
+                    background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+                    padding: 40px 30px;
+                    text-align: center;
+                }}
+                .logo-image {{
+                    width: 120px;
+                    height: 120px;
+                    border-radius: 50%;
+                    box-shadow: 0 8px 24px rgba(255, 193, 7, 0.4);
+                    margin-bottom: 20px;
+                    border: 3px solid #FFC107;
+                }}
+                .header h1 {{
+                    color: #ffffff;
+                    font-size: 24px;
+                    font-weight: 700;
+                    margin: 0;
+                }}
+                .status-badge {{
+                    display: inline-block;
+                    background: linear-gradient(135deg, #FFC107 0%, #FFD54F 100%);
+                    color: #000000;
+                    padding: 8px 20px;
+                    border-radius: 25px;
+                    font-weight: 700;
+                    font-size: 14px;
+                    margin-top: 15px;
+                }}
+                .content {{
+                    padding: 40px 30px;
+                }}
+                .section-title {{
+                    color: #000000;
+                    font-size: 18px;
+                    font-weight: 700;
+                    margin-bottom: 20px;
+                    border-bottom: 2px solid #FFC107;
+                    padding-bottom: 10px;
+                }}
+                .info-grid {{
+                    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+                    border: 2px solid #FFC107;
+                    border-radius: 12px;
+                    padding: 20px;
+                    margin: 20px 0;
+                }}
+                .info-row {{
+                    display: flex;
+                    align-items: flex-start;
+                    margin-bottom: 12px;
+                    padding: 8px 0;
+                    border-bottom: 1px solid #f0f0f0;
+                }}
+                .info-row:last-child {{ border-bottom: none; margin-bottom: 0; }}
+                .info-icon {{ width: 24px; font-size: 18px; margin-right: 12px; }}
+                .info-label {{ font-weight: 600; color: #2c2c2c; min-width: 120px; }}
+                .info-value {{ color: #4a4a4a; flex: 1; }}
+                .price-highlight {{
+                    color: #FFC107 !important;
+                    font-weight: 700;
+                    font-size: 20px;
+                }}
+                .action-section {{
+                    background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+                    border-radius: 12px;
+                    padding: 25px;
+                    margin: 30px 0;
+                    text-align: center;
+                }}
+                .action-btn {{
+                    display: inline-block;
+                    padding: 14px 32px;
+                    background: linear-gradient(135deg, #FFC107 0%, #FFD54F 100%);
+                    color: #000000;
+                    text-decoration: none;
+                    border-radius: 25px;
+                    font-weight: 700;
+                    font-size: 16px;
+                    margin: 10px;
+                }}
+                .footer {{
+                    background-color: #f8f9fa;
+                    padding: 20px;
+                    text-align: center;
+                    border-top: 1px solid #e9ecef;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="email-container">
+                <div class="header">
+                    <img src="https://pablospizza.web.app/assets/logo-nqn6pSjR.png" alt="Pablo's Pizza" class="logo-image">
+                    <h1>🎉 ¡Nuevo Agendamiento Recibido!</h1>
+                    <div class="status-badge">⚡ ACCIÓN REQUERIDA</div>
+                </div>
+
+                <div class="content">
+                    <div class="section-title">👤 Información del Cliente</div>
+                    <div class="info-grid">
+                        <div class="info-row">
+                            <span class="info-icon">👤</span>
+                            <span class="info-label">Nombre:</span>
+                            <span class="info-value"><strong>{booking_data.get('client_name', 'N/A')}</strong></span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-icon">📱</span>
+                            <span class="info-label">Teléfono:</span>
+                            <span class="info-value">{booking_data.get('client_phone', 'N/A')}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-icon">✉️</span>
+                            <span class="info-label">Email:</span>
+                            <span class="info-value">{booking_data.get('client_email', 'N/A')}</span>
+                        </div>
+                    </div>
+
+                    <div class="section-title">🍕 Detalles del Evento</div>
+                    <div class="info-grid">
+                        <div class="info-row">
+                            <span class="info-icon">🍕</span>
+                            <span class="info-label">Servicio:</span>
+                            <span class="info-value"><strong>{service_name}</strong></span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-icon">📅</span>
+                            <span class="info-label">Fecha:</span>
+                            <span class="info-value">{booking_data.get('event_date', 'N/A')}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-icon">⏰</span>
+                            <span class="info-label">Hora:</span>
+                            <span class="info-value">{booking_data.get('event_time', 'N/A')}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-icon">👥</span>
+                            <span class="info-label">Participantes:</span>
+                            <span class="info-value">{participants_display}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-icon">📍</span>
+                            <span class="info-label">Ubicación:</span>
+                            <span class="info-value">{booking_data.get('location', 'N/A')}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-icon">💰</span>
+                            <span class="info-label">Precio Estimado:</span>
+                            <span class="info-value price-highlight">${booking_data.get('estimated_price', 0):,.0f} CLP</span>
+                        </div>
+                    </div>
+
+                    <div class="action-section">
+                        <h3 style="color: #FFC107; margin-bottom: 15px;">🎯 Próximos Pasos</h3>
+                        <p style="color: #cccccc; margin-bottom: 20px;">
+                            Revisa los detalles del evento y contacta al cliente para confirmar disponibilidad
+                        </p>
+                        <a href="https://pablospizza.web.app/admin/agendamientos" class="action-btn">
+                            📊 Ver en Admin Panel
+                        </a>
+                        <a href="https://wa.me/{booking_data.get('client_phone', '').replace('+', '')}" class="action-btn">
+                            💬 Contactar por WhatsApp
+                        </a>
+                    </div>
+                </div>
+
+                <div class="footer">
+                    <p style="color: #6c757d; font-size: 14px; margin: 0;">
+                        Este es un email automático de notificación • Pablo's Pizza Admin System
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        msg = MIMEMultipart('alternative')
+        msg['From'] = email_from
+        msg['To'] = email_from
+        msg['Subject'] = f"🍕 NUEVO AGENDAMIENTO - {booking_data.get('client_name', 'Cliente')}"
+
+        html_part = MIMEText(html_content, 'html')
+        msg.attach(html_part)
+
+        server = smtplib.SMTP(smtp_server, smtp_port)
         server.starttls()
-        server.login(email_username,email_password)
+        server.login(email_username, email_password)
         server.send_message(msg)
         server.quit()
+
+        print(f"✅ Email de notificación admin enviado exitosamente")
         return True
+
     except Exception as e:
-        print(f"Error sending admin email: {e}")
+        print(f"❌ Error sending admin email: {e}")
         return False
