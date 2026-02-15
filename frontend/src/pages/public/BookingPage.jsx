@@ -33,6 +33,7 @@ import {
   Autocomplete,
   MenuItem
 } from '@mui/material'
+import SEO from '../../components/common/SEO'
 import PhoneInput from '../../components/forms/PhoneInput'
 import {
   ArrowBack,
@@ -62,7 +63,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { designTokens } from '../../utils/theme'
 import { createBooking } from '../../services/bookingService'
-import { santiagoComunas } from '../../data/chileanRegions'
+import { santiagoComunas, isComunaLejana, CARGO_COMUNA_LEJANA, comunasLejanas } from '../../data/chileanRegions'
 
 // Constantes de pricing (sincronizadas con backend)
 const PRICING_CONSTANTS = {
@@ -79,7 +80,8 @@ const PRICING_CONSTANTS = {
   ],
   PIZZA_PARTY_BASE_PRICE: 11990,
   PIZZA_PARTY_DISCOUNT_THRESHOLD: 20,
-  PIZZA_PARTY_DISCOUNT: 0.10
+  PIZZA_PARTY_DISCOUNT: 0.10,
+  CARGO_COMUNA_LEJANA: CARGO_COMUNA_LEJANA
 }
 
 // Opciones de horario generadas dinámicamente
@@ -364,12 +366,17 @@ export default function BookingPage() {
     setSubmitError('')
 
     try {
+      // Calcular cargo por comuna lejana
+      const comunaLejanaExtra = isComunaLejana(selectedComuna) ? CARGO_COMUNA_LEJANA : 0
+
       const bookingData = {
         ...formData,
         services,
         participants: getTotalParticipants(),
         participantsByService: getParticipantsByService(),
-        eventType: formData.eventType
+        eventType: formData.eventType,
+        selectedComuna: selectedComuna,
+        comunaLejanaExtra: comunaLejanaExtra
       }
 
       const result = await createBooking(bookingData)
@@ -408,6 +415,12 @@ export default function BookingPage() {
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(180deg, #FAFAFA 0%, #F5F5F5 100%)' }}>
+      <SEO
+        title="Reserva tu Taller de Pizza o Pizza Party"
+        description="Agenda tu taller de pizza para niños o pizza party en Santiago. Cotiza online, elige fecha y servicios. Respuesta en 24 horas. Precios desde $9.000 por niño."
+        keywords="reservar taller pizza niños, cotizar pizza party Santiago, agendar cumpleaños pizza, reserva evento infantil, cotización catering pizza"
+        url="/agendar"
+      />
       {/* Hero Section */}
       <HeroSection />
 
@@ -877,6 +890,24 @@ export default function BookingPage() {
                                       handleInputChange('location', `${newValue}, Región Metropolitana, Chile`)
                                     }
                                   }}
+                                  renderOption={(props, option) => (
+                                    <Box component="li" {...props}>
+                                      {option}
+                                      {isComunaLejana(option) && (
+                                        <Chip
+                                          label="+$20.000"
+                                          size="small"
+                                          sx={{
+                                            ml: 1,
+                                            height: 20,
+                                            fontSize: '0.7rem',
+                                            backgroundColor: 'warning.light',
+                                            color: 'warning.dark'
+                                          }}
+                                        />
+                                      )}
+                                    </Box>
+                                  )}
                                   renderInput={(params) => (
                                     <TextField
                                       {...params}
@@ -890,7 +921,14 @@ export default function BookingPage() {
                                           </Box>
                                         ),
                                       }}
-                                      helperText="Selecciona la comuna donde se realizará el evento"
+                                      helperText={
+                                        isComunaLejana(selectedComuna)
+                                          ? `⚠️ ${selectedComuna} tiene cargo adicional de $20.000`
+                                          : "Selecciona la comuna donde se realizará el evento"
+                                      }
+                                      FormHelperTextProps={{
+                                        sx: isComunaLejana(selectedComuna) ? { color: 'warning.main', fontWeight: 500 } : {}
+                                      }}
                                     />
                                   )}
                                 />
@@ -1156,6 +1194,7 @@ export default function BookingPage() {
                     pizzerosParticipants={pizzerosParticipants}
                     pizzaQuantity={pizzaQuantity}
                     participants={getTotalParticipants()}
+                    selectedComuna={selectedComuna}
                   />
 
                       {services.length > 0 && getTotalParticipants() > 0 && (
@@ -1536,10 +1575,10 @@ export default function BookingPage() {
 }
 
 // Componente de precio estimado premium con animaciones
-function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, pizzaQuantity }) {
-  const { totals, grandTotal, breakdown } = useMemo(() => {
+function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, pizzaQuantity, selectedComuna }) {
+  const { totals, grandTotal, breakdown, cargoLejana, totalConCargo } = useMemo(() => {
     if (!services || services.length === 0) {
-      return { totals: {}, grandTotal: 0, breakdown: [] }
+      return { totals: {}, grandTotal: 0, breakdown: [], cargoLejana: 0, totalConCargo: 0 }
     }
 
     const calculatedTotals = {}
@@ -1604,8 +1643,12 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
       }
     })
 
-    return { totals: calculatedTotals, grandTotal, breakdown: calculatedBreakdown }
-  }, [services, pizzerosParticipants, pizzaQuantity])
+    // Calcular cargo por comuna lejana
+    const cargoLejana = isComunaLejana(selectedComuna) ? PRICING_CONSTANTS.CARGO_COMUNA_LEJANA : 0
+    const totalConCargo = grandTotal + cargoLejana
+
+    return { totals: calculatedTotals, grandTotal, breakdown: calculatedBreakdown, cargoLejana, totalConCargo }
+  }, [services, pizzerosParticipants, pizzaQuantity, selectedComuna])
 
   const clp = (n) => n.toLocaleString('es-CL')
 
@@ -1633,14 +1676,18 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
             fontWeight: 900,
             color: '#FFD700',
             mb: 1,
-            // Sin textShadow ni efectos de sombra
           }}
         >
-          ${clp(grandTotal)}
+          ${clp(totalConCargo)}
         </Typography>
         <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.secondary' }}>
           {breakdown.map(b => `${b.label} (${b.serviceParticipants} ${b.service === 'pizzeros' ? 'niños' : 'pizzas'})`).join(' + ')}
         </Typography>
+        {cargoLejana > 0 && (
+          <Typography variant="body2" sx={{ color: 'warning.main', mt: 0.5 }}>
+            + Cargo comuna lejana ({selectedComuna})
+          </Typography>
+        )}
       </Box>
 
       {/* Desglose de precios por servicio */}
@@ -1697,6 +1744,31 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
 
         <Divider sx={{ my: 2 }} />
 
+        {/* Cargo por comuna lejana */}
+        {cargoLejana > 0 && (
+          <Box sx={{
+            mb: 2,
+            p: 1.5,
+            borderRadius: 2,
+            backgroundColor: 'rgba(255, 152, 0, 0.1)',
+            border: '1px solid rgba(255, 152, 0, 0.3)'
+          }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: 'warning.dark' }}>
+                  🚗 Cargo comuna lejana
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {selectedComuna} - Fuera de zona central
+                </Typography>
+              </Box>
+              <Typography variant="body1" sx={{ fontWeight: 700, color: 'warning.dark' }}>
+                +${clp(cargoLejana)}
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Total Final:
@@ -1705,7 +1777,7 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
             fontWeight: 800,
             color: designTokens.colors.golden[700]
           }}>
-            ${clp(grandTotal)}
+            ${clp(totalConCargo)}
           </Typography>
         </Box>
       </Box>

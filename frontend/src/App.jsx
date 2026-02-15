@@ -2,15 +2,17 @@ import { Routes, Route } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { useAuth } from './contexts/AuthContext'
 
-// Public pages - eager loading (critical for SEO and initial load)
+// HomePage - eager loading (crítico para primera carga)
 import HomePage from './pages/public/HomePage'
-import GalleryPage from './pages/public/GalleryPage'
-import TestimonialsPage from './pages/public/TestimonialsPage'
-import BookingPage from './pages/public/BookingPage'
-import ServicesPage from './pages/public/ServicesPage'
-import ContactPage from './pages/public/ContactPage'
 
-// Admin pages - lazy loading (no afecta SEO, optimiza bundle inicial)
+// Public pages - lazy loading (mejora rendimiento inicial)
+const GalleryPage = lazy(() => import('./pages/public/GalleryPage'))
+const TestimonialsPage = lazy(() => import('./pages/public/TestimonialsPage'))
+const BookingPage = lazy(() => import('./pages/public/BookingPage'))
+const ServicesPage = lazy(() => import('./pages/public/ServicesPage'))
+const ContactPage = lazy(() => import('./pages/public/ContactPage'))
+
+// Admin pages - lazy loading
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const BookingsManagement = lazy(() => import('./pages/admin/BookingsManagement'))
 const EventsManagement = lazy(() => import('./pages/admin/EventsManagement'))
@@ -20,6 +22,7 @@ const InventoryManagement = lazy(() => import('./pages/admin/InventoryManagement
 const ProductionManagement = lazy(() => import('./pages/admin/ProductionManagement'))
 const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'))
 const ContactManagement = lazy(() => import('./pages/admin/ContactManagement'))
+const VacuumSalesManagement = lazy(() => import('./pages/admin/VacuumSalesManagement'))
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
 
 // Layouts
@@ -43,11 +46,31 @@ function App() {
         {/* Public Routes */}
         <Route path="/" element={<PublicLayout />}>
           <Route index element={<HomePage />} />
-          <Route path="servicios" element={<ServicesPage />} />
-          <Route path="galeria" element={<GalleryPage />} />
-          <Route path="testimonios" element={<TestimonialsPage />} />
-          <Route path="agendar" element={<BookingPage />} />
-          <Route path="contacto" element={<ContactPage />} />
+          <Route path="servicios" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ServicesPage />
+            </Suspense>
+          } />
+          <Route path="galeria" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <GalleryPage />
+            </Suspense>
+          } />
+          <Route path="testimonios" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <TestimonialsPage />
+            </Suspense>
+          } />
+          <Route path="agendar" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <BookingPage />
+            </Suspense>
+          } />
+          <Route path="contacto" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ContactPage />
+            </Suspense>
+          } />
         </Route>
 
         {/* Admin Login */}
@@ -109,6 +132,11 @@ function App() {
           <Route path="contactos" element={
             <Suspense fallback={<LoadingSpinner />}>
               <ContactManagement />
+            </Suspense>
+          } />
+          <Route path="ventas-vacio" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <VacuumSalesManagement />
             </Suspense>
           } />
         </Route>

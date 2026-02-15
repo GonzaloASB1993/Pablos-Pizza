@@ -4,32 +4,131 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <!-- SEO Meta Tags -->
-  <meta name="description" content="Pablo's Pizza - Talleres de pizza para niños y eventos únicos. Experiencias gastronómicas educativas y pizza parties memorables." />
-  <meta name="keywords" content="talleres pizza niños, pizza party, eventos infantiles, educación gastronómica, fiestas infantiles" />
+
+  <!-- Primary SEO Meta Tags -->
+  <meta name="description" content="Talleres de pizza para niños y pizza parties en Santiago, Chile. Experiencias gastronómicas educativas donde los niños aprenden a hacer pizzas artesanales. Servicio a domicilio para cumpleaños y eventos." />
+  <meta name="keywords" content="talleres pizza niños Santiago, pizza party cumpleaños, eventos infantiles Santiago, taller cocina niños, catering pizza Santiago, fiestas infantiles Chile, pizzeros en acción, experiencias gastronómicas niños, pizza party a domicilio, cumpleaños niños Santiago" />
   <meta name="author" content="Pablo's Pizza" />
-  
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://pablospizza.cl/" />
+
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://pablospizza.com/" />
-  <meta property="og:title" content="Pablo's Pizza - Talleres de Pizza para Niños y Eventos" />
-  <meta property="og:description" content="Experiencias gastronómicas educativas y divertidas donde los niños aprenden a hacer pizzas. También ofrecemos servicio de catering para eventos." />
-  <meta property="og:image" content="https://pablospizza.com/assets/logo.png" />
+  <meta property="og:url" content="https://pablospizza.cl/" />
+  <meta property="og:title" content="Pablo's Pizza - Talleres de Pizza para Niños en Santiago" />
+  <meta property="og:description" content="Talleres de pizza para niños y pizza parties en Santiago. Experiencias gastronómicas educativas donde los niños aprenden a hacer pizzas artesanales." />
+  <meta property="og:image" content="https://pablospizza.cl/assets/logo.png" />
+  <meta property="og:image:alt" content="Pablo's Pizza - Talleres de pizza para niños" />
+  <meta property="og:site_name" content="Pablo's Pizza" />
+  <meta property="og:locale" content="es_CL" />
 
   <!-- Twitter -->
-  <meta property="twitter:card" content="summary_large_image" />
-  <meta property="twitter:url" content="https://pablospizza.com/" />
-  <meta property="twitter:title" content="Pablo's Pizza - Talleres de Pizza para Niños y Eventos" />
-  <meta property="twitter:description" content="Experiencias gastronómicas educativas y divertidas donde los niños aprenden a hacer pizzas." />
-  <meta property="twitter:image" content="https://pablospizza.com/assets/logo.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://pablospizza.cl/" />
+  <meta name="twitter:title" content="Pablo's Pizza - Talleres de Pizza para Niños en Santiago" />
+  <meta name="twitter:description" content="Talleres de pizza para niños y pizza parties en Santiago. Experiencias gastronómicas educativas." />
+  <meta name="twitter:image" content="https://pablospizza.cl/assets/logo.png" />
 
-  <!-- Google Fonts -->
+  <!-- Geo Tags for Local SEO -->
+  <meta name="geo.region" content="CL-RM" />
+  <meta name="geo.placename" content="Santiago, Chile" />
+  <meta name="geo.position" content="-33.4489;-70.6693" />
+  <meta name="ICBM" content="-33.4489, -70.6693" />
+
+  <!-- Preconnect for Performance -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+  <link rel="dns-prefetch" href="https://main-4kqeqojbsq-uc.a.run.app" />
 
-  <title>Pablo's Pizza - Talleres de Pizza para Niños y Eventos</title>
+  <!-- Google Fonts - con font-display: swap para no bloquear renderizado -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  </noscript>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#FFD700" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pablo's Pizza" />
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "Pablo's Pizza",
+    "alternateName": "Pablos Pizza Chile",
+    "description": "Talleres de pizza para niños y pizza parties en Santiago. Experiencias gastronómicas educativas donde los niños aprenden a hacer pizzas artesanales.",
+    "url": "https://pablospizza.cl",
+    "telephone": "+56989424566",
+    "email": "Pablospizza.cl@gmail.com",
+    "image": "https://pablospizza.cl/assets/logo.png",
+    "logo": "https://pablospizza.cl/assets/logo.png",
+    "priceRange": "$$",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Santiago",
+      "addressRegion": "Región Metropolitana",
+      "addressCountry": "CL"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": -33.4489,
+      "longitude": -70.6693
+    },
+    "areaServed": {
+      "@type": "City",
+      "name": "Santiago"
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        "opens": "09:00",
+        "closes": "20:00"
+      }
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "5",
+      "reviewCount": "50",
+      "bestRating": "5",
+      "worstRating": "1"
+    },
+    "sameAs": [
+      "https://www.instagram.com/pablospizza.cl"
+    ],
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": "Servicios de Pablo's Pizza",
+      "itemListElement": [
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Pizzeros en Acción",
+            "description": "Talleres de pizza para niños donde aprenden a hacer pizzas artesanales"
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Pizza Party",
+            "description": "Servicio de catering con pizzas artesanales para eventos y cumpleaños"
+          }
+        }
+      ]
+    }
+  }
+  </script>
+
+  <title>Pablo's Pizza - Talleres de Pizza para Niños en Santiago | Pizza Party</title>
 </head>
 <body>
   <div id="root"></div>

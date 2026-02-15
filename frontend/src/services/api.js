@@ -335,6 +335,11 @@ export const bookingsAPI = {
   getCalendarEvents: (year, month) => api.get(`/bookings/calendar/${year}/${month}`),
   // Aún no existe endpoint real para disponibilidad; mantener mock temporalmente
   checkAvailability: (selectedDate, selectedTime) => mockAPI.bookings.checkAvailability(selectedDate, selectedTime),
+
+  // Payments
+  addPayment: (bookingId, data) => api.post(`/bookings/${bookingId}/payments`, data),
+  updatePayment: (bookingId, paymentId, data) => api.put(`/bookings/${bookingId}/payments/${paymentId}`, data),
+  deletePayment: (bookingId, paymentId) => api.delete(`/bookings/${bookingId}/payments/${paymentId}`),
 }
 
 export const eventsAPI = {
@@ -475,6 +480,20 @@ export const expensesAPI = {
   // Taxes
   getTax: (params = {}) => api.get('/expenses/tax', { params }),
   saveTax: (data) => api.post('/expenses/tax', data),
+}
+
+// Vacuum Sales API (B2B Pizza Sales)
+export const vacuumSalesAPI = {
+  create: (data) => api.post('/vacuum-sales/', data),
+  getAll: (params = {}) => api.get('/vacuum-sales/', { params }),
+  getById: (id) => api.get(`/vacuum-sales/${id}`),
+  update: (id, data) => api.put(`/vacuum-sales/${id}`, data),
+  delete: (id) => api.delete(`/vacuum-sales/${id}`),
+  getSummary: (year, month) => api.get('/vacuum-sales/summary', { params: { year, month } }),
+  // Payments
+  addPayment: (saleId, data) => api.post(`/vacuum-sales/${saleId}/payments`, data),
+  updatePayment: (saleId, paymentId, data) => api.put(`/vacuum-sales/${saleId}/payments/${paymentId}`, data),
+  deletePayment: (saleId, paymentId) => api.delete(`/vacuum-sales/${saleId}/payments/${paymentId}`),
 }
 
 export default api

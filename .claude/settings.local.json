@@ -67,9 +67,15 @@
       "Bash(xargs:*)",
       "WebFetch(domain:us-central1-pablospizza-d84bf.cloudfunctions.net)",
       "mcp__playwright__browser_take_screenshot",
-      "mcp__playwright__browser_evaluate"
+      "mcp__playwright__browser_evaluate",
+      "Bash(gcloud logging read:*)",
+      "Bash(gcloud run deploy:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "magicui"
+  ],
+  "enableAllProjectMcpServers": true
 }

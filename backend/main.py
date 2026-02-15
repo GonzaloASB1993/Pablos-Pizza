@@ -53,6 +53,7 @@ from routes.contacts_routes import contacts_bp
 from routes.customers_routes import customers_bp
 from routes.expenses_routes import expenses_bp
 from routes.ai_chat_routes import ai_chat_bp
+from routes.vacuum_sales_routes import vacuum_sales_bp
 
 
 try:
@@ -136,6 +137,8 @@ app.register_blueprint(expenses_bp)
 print("  [OK] Expenses routes registered")
 app.register_blueprint(ai_chat_bp)
 print("  [OK] AI Chat routes registered")
+app.register_blueprint(vacuum_sales_bp)
+print("  [OK] Vacuum Sales routes registered")
 print("[SUCCESS] All blueprints registered successfully!")
 
 
@@ -4082,6 +4085,41 @@ def get_monthly_report_data(year: int, month: int):
             "total_income": round(service_incomes.get(service_type, 0.0), 2)
         }
 
+    # Calculate payment metrics
+    total_paid = 0.0
+    total_pending = 0.0
+    paid_count = 0
+    partial_count = 0
+    unpaid_count = 0
+
+    for booking_doc in bookings:
+        booking_data = booking_doc.to_dict()
+        payments = booking_data.get('payments', [])
+        estimated_price = float(booking_data.get('estimated_price', 0))
+
+        # Calculate total paid for this booking
+        booking_total_paid = sum(float(p.get('amount', 0)) for p in payments)
+        balance_due = estimated_price - booking_total_paid
+
+        total_paid += booking_total_paid
+        total_pending += max(balance_due, 0)  # Only count positive balance
+
+        # Count payment status
+        if booking_total_paid == 0:
+            unpaid_count += 1
+        elif balance_due > 0:
+            partial_count += 1
+        else:
+            paid_count += 1
+
+    payment_metrics = {
+        "total_paid": round(total_paid, 2),
+        "total_pending": round(total_pending, 2),
+        "paid_count": paid_count,
+        "partial_count": partial_count,
+        "unpaid_count": unpaid_count
+    }
+
     return {
         "month": month,
         "year": year,
@@ -4095,7 +4133,8 @@ def get_monthly_report_data(year: int, month: int):
         "events_by_service": events_by_service,
         "waste_cost": round(waste_cost, 2),
         "waste_items_count": waste_items_count,
-        "waste_details": waste_details
+        "waste_details": waste_details,
+        "payment_metrics": payment_metrics
     }
 
 @app.route('/api/reports/monthly/<int:year>/<int:month>', methods=['GET'])

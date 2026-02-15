@@ -57,7 +57,9 @@ import {
     UnfoldMore,
     ExpandMore,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Payment,
+    AttachMoney
 } from '@mui/icons-material'
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
@@ -110,6 +112,18 @@ const BookingsManagement = () => {
     const [editExpenseDialog, setEditExpenseDialog] = useState(false)
     const [selectedExpenseIndex, setSelectedExpenseIndex] = useState(null)
     const [selectedBooking, setSelectedBooking] = useState(null)
+
+    // Payment states
+    const [paymentDialog, setPaymentDialog] = useState(false)
+    const [completeWarningDialog, setCompleteWarningDialog] = useState(false)
+    const [editingPayment, setEditingPayment] = useState(null)
+    const [paymentData, setPaymentData] = useState({
+        type: 'abono',
+        amount: '',
+        method: 'transferencia',
+        date: new Date().toISOString().split('T')[0],
+        notes: ''
+    })
     const [costData, setCostData] = useState({
         event_cost: '',
         event_revenue: '',
@@ -167,7 +181,9 @@ const BookingsManagement = () => {
         party_guests: 0, // Nueva field para personas en pizza party
         pizza_quantity: 10,
         location: '',
-        special_requests: ''
+        special_requests: '',
+        initial_payment: '',
+        payment_method: 'transferencia'
     })
     const [selectedCustomer, setSelectedCustomer] = useState(null)
     const [manualCustomerEntry, setManualCustomerEntry] = useState(false)
@@ -920,6 +936,17 @@ const BookingsManagement = () => {
     }
 
     const handleCompleteWithCost = async () => {
+        // Check for pending payment balance before completing
+        if (selectedBooking?.payment_summary) {
+            const { payment_status, balance_due } = selectedBooking.payment_summary
+            if (payment_status !== 'paid' && balance_due > 0) {
+                // Show warning dialog instead of completing directly
+                setCostDialog(false)
+                setCompleteWarningDialog(true)
+                return
+            }
+        }
+
         try {
             const revenue = parseFloat(costData.event_revenue) || 0
             const cost = parseFloat(costData.event_cost) || 0
@@ -936,6 +963,31 @@ const BookingsManagement = () => {
             toast.success('¡Evento completado con costos registrados!')
             setCostDialog(false)
             setCostData({ event_cost: '', event_revenue: '', notes: '' })
+            loadBookings()
+        } catch (error) {
+            console.error('Error completing booking:', error)
+            toast.error('Error al completar evento')
+        }
+    }
+
+    const handleForceComplete = async () => {
+        // Force complete without payment verification
+        try {
+            const revenue = parseFloat(costData.event_revenue) || selectedBooking.estimated_price || 0
+            const cost = parseFloat(costData.event_cost) || 0
+            const updateData = {
+                status: 'completed',
+                event_cost: cost,
+                event_profit: revenue - cost,
+                estimated_price: revenue,
+                notes: costData.notes || selectedBooking.notes
+            }
+
+            await bookingsAPI.update(selectedBooking.id, updateData)
+
+            toast.success('¡Evento completado!')
+            setCompleteWarningDialog(false)
+            setCostDialog(false)
             loadBookings()
         } catch (error) {
             console.error('Error completing booking:', error)
@@ -1065,6 +1117,126 @@ const BookingsManagement = () => {
         }
     }
 
+    // Payment handlers
+    const handleOpenPaymentDialog = (payment = null) => {
+        if (payment) {
+            // Editing existing payment
+            setEditingPayment(payment)
+            setPaymentData({
+                type: payment.type,
+                amount: payment.amount.toString(),
+                method: payment.method,
+                date: payment.date.split('T')[0],
+                notes: payment.notes || ''
+            })
+        } else {
+            // New payment
+            setEditingPayment(null)
+            setPaymentData({
+                type: 'abono',
+                amount: '',
+                method: 'transferencia',
+                date: new Date().toISOString().split('T')[0],
+                notes: ''
+            })
+        }
+        setPaymentDialog(true)
+    }
+
+    const handlePaymentTypeChange = (newType) => {
+        if (newType === 'saldo' && selectedBooking?.payment_summary) {
+            // Auto-fill with remaining balance for "Saldo Final"
+            setPaymentData(prev => ({
+                ...prev,
+                type: newType,
+                amount: selectedBooking.payment_summary.balance_due.toString()
+            }))
+        } else if (newType === 'abono') {
+            // Clear amount for "Abono"
+            setPaymentData(prev => ({
+                ...prev,
+                type: newType,
+                amount: ''
+            }))
+        }
+    }
+
+    const handleAddPayment = async () => {
+        try {
+            setUpdating(true)
+
+            const paymentPayload = {
+                type: paymentData.type,
+                amount: parseFloat(paymentData.amount),
+                method: paymentData.method,
+                date: paymentData.date,
+                notes: paymentData.notes
+            }
+
+            if (editingPayment) {
+                // Update existing payment
+                await bookingsAPI.updatePayment(selectedBooking.id, editingPayment.id, paymentPayload)
+                toast.success('Pago actualizado correctamente')
+            } else {
+                // Add new payment
+                await bookingsAPI.addPayment(selectedBooking.id, paymentPayload)
+                toast.success('Pago registrado correctamente')
+            }
+
+            // Refresh booking data
+            const response = await bookingsAPI.getById(selectedBooking.id)
+            setSelectedBooking(response.data)
+
+            setPaymentDialog(false)
+            loadBookings()
+        } catch (error) {
+            console.error('Error managing payment:', error)
+            const errorMsg = error.response?.data?.error || 'Error al procesar el pago'
+            toast.error(errorMsg)
+        } finally {
+            setUpdating(false)
+        }
+    }
+
+    const handleDeletePayment = async (paymentId) => {
+        if (!window.confirm('¿Estás seguro de que quieres eliminar este pago?')) {
+            return
+        }
+
+        try {
+            setUpdating(true)
+            await bookingsAPI.deletePayment(selectedBooking.id, paymentId)
+
+            // Refresh booking data
+            const response = await bookingsAPI.getById(selectedBooking.id)
+            setSelectedBooking(response.data)
+
+            toast.success('Pago eliminado correctamente')
+            loadBookings()
+        } catch (error) {
+            console.error('Error deleting payment:', error)
+            toast.error('Error al eliminar pago')
+        } finally {
+            setUpdating(false)
+        }
+    }
+
+    const getPaymentStatusBadge = (paymentSummary) => {
+        if (!paymentSummary) {
+            return <Chip size="small" label="No pagado" color="error" />
+        }
+
+        const { payment_status, balance_due } = paymentSummary
+
+        if (payment_status === 'paid') {
+            return <Chip size="small" label="Pagado" color="success" icon={<CheckCircle />} />
+        } else if (payment_status === 'partial') {
+            return <Chip size="small" label={`Abonado (Saldo: ${formatCurrency(balance_due)})`} color="warning" icon={<AttachMoney />} />
+        } else {
+            return <Chip size="small" label="No pagado" color="error" />
+        }
+    }
+
     const handleOpenExpenseDialog = async (booking) => {
         setSelectedBooking(booking)
 
@@ -1093,7 +1265,9 @@ const BookingsManagement = () => {
             party_guests: 0,
             pizza_quantity: 10,
             location: '',
-            special_requests: ''
+            special_requests: '',
+            initial_payment: '',
+            payment_method: 'transferencia'
         })
         setSelectedCustomer(null)
         setManualCustomerEntry(false)
@@ -1178,8 +1352,28 @@ const BookingsManagement = () => {
                 bookingData.customer_id = selectedCustomer.id
             }
 
-            await bookingsAPI.create(bookingData)
-            toast.success('Agendamiento creado exitosamente')
+            const response = await bookingsAPI.create(bookingData)
+            const createdBooking = response.data
+
+            // Register initial payment if provided
+            if (newBookingData.initial_payment && parseFloat(newBookingData.initial_payment) > 0) {
+                try {
+                    await bookingsAPI.addPayment(createdBooking.id, {
+                        type: 'abono',
+                        amount: parseFloat(newBookingData.initial_payment),
+                        method: newBookingData.payment_method,
+                        date: new Date().toISOString().split('T')[0],
+                        notes: 'Abono inicial registrado al crear el agendamiento'
+                    })
+                    toast.success('Agendamiento creado con abono inicial registrado')
+                } catch (paymentError) {
+                    console.error('Error registering initial payment:', paymentError)
+                    toast.warning('Agendamiento creado pero hubo un error al registrar el abono')
+                }
+            } else {
+                toast.success('Agendamiento creado exitosamente')
+            }
+
             setCreateDialog(false)
             setSelectedCustomer(null)
             setManualCustomerEntry(false)
@@ -1438,56 +1632,172 @@ const BookingsManagement = () => {
                 </Box>
             </Box>
 
-            {/* Statistics Cards */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={12} md={3}>
-                    <Card sx={{ bgcolor: 'warning.light', backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05))' }}>
-                        <CardContent sx={{ textAlign: 'center' }}>
-                            <PendingActions sx={{ fontSize: 40, color: 'warning.dark', mb: 1 }} />
-                            <Typography variant="h4" sx={{ fontWeight: 700, color: 'warning.dark' }}>
+            {/* Statistics Cards - Diseño consistente con Inventario */}
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={12} sm={6} md={3}>
+                    <Card
+                        sx={{
+                            height: '100%',
+                            bgcolor: 'warning.main',
+                            color: 'warning.contrastText',
+                            transition: 'transform 0.2s, box-shadow 0.2s',
+                            '&:hover': {
+                                transform: 'translateY(-4px)',
+                                boxShadow: 4
+                            }
+                        }}
+                    >
+                        <CardContent sx={{ p: 2.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                                <Box
+                                    sx={{
+                                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)',
+                                        color: 'inherit',
+                                        p: 1.2,
+                                        borderRadius: 2,
+                                        mr: 1.5,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    <PendingActions fontSize="medium" />
+                                </Box>
+                                <Typography variant="subtitle2" fontWeight="600">
+                                    Pendientes
+                                </Typography>
+                            </Box>
+                            <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
                                 {pendingBookings.length}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Pendientes
+                            <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                                Por confirmar
                             </Typography>
                         </CardContent>
                     </Card>
                 </Grid>
-                <Grid item xs={12} md={3}>
-                    <Card sx={{ bgcolor: 'success.light', backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05))' }}>
-                        <CardContent sx={{ textAlign: 'center' }}>
-                            <CheckCircle sx={{ fontSize: 40, color: 'success.dark', mb: 1 }} />
-                            <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.dark' }}>
+                <Grid item xs={12} sm={6} md={3}>
+                    <Card
+                        sx={{
+                            height: '100%',
+                            bgcolor: 'success.main',
+                            color: 'success.contrastText',
+                            transition: 'transform 0.2s, box-shadow 0.2s',
+                            '&:hover': {
+                                transform: 'translateY(-4px)',
+                                boxShadow: 4
+                            }
+                        }}
+                    >
+                        <CardContent sx={{ p: 2.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                                <Box
+                                    sx={{
+                                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)',
+                                        color: 'inherit',
+                                        p: 1.2,
+                                        borderRadius: 2,
+                                        mr: 1.5,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    <CheckCircle fontSize="medium" />
+                                </Box>
+                                <Typography variant="subtitle2" fontWeight="600">
+                                    Confirmados
+                                </Typography>
+                            </Box>
+                            <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
                                 {confirmedBookings.length}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Confirmados
+                            <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                                Listos para evento
                             </Typography>
                         </CardContent>
                     </Card>
                 </Grid>
-                <Grid item xs={12} md={3}>
-                    <Card sx={{ bgcolor: 'info.light', backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05))' }}>
-                        <CardContent sx={{ textAlign: 'center' }}>
-                            <EventAvailable sx={{ fontSize: 40, color: 'info.dark', mb: 1 }} />
-                            <Typography variant="h4" sx={{ fontWeight: 700, color: 'info.dark' }}>
+                <Grid item xs={12} sm={6} md={3}>
+                    <Card
+                        sx={{
+                            height: '100%',
+                            bgcolor: 'info.main',
+                            color: 'info.contrastText',
+                            transition: 'transform 0.2s, box-shadow 0.2s',
+                            '&:hover': {
+                                transform: 'translateY(-4px)',
+                                boxShadow: 4
+                            }
+                        }}
+                    >
+                        <CardContent sx={{ p: 2.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                                <Box
+                                    sx={{
+                                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)',
+                                        color: 'inherit',
+                                        p: 1.2,
+                                        borderRadius: 2,
+                                        mr: 1.5,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    <EventAvailable fontSize="medium" />
+                                </Box>
+                                <Typography variant="subtitle2" fontWeight="600">
+                                    Completados
+                                </Typography>
+                            </Box>
+                            <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
                                 {completedBookings.length}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Completados
+                            <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                                Eventos realizados
                             </Typography>
                         </CardContent>
                     </Card>
                 </Grid>
-                <Grid item xs={12} md={3}>
-                    <Card sx={{ bgcolor: 'error.light', backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05))' }}>
-                        <CardContent sx={{ textAlign: 'center' }}>
-                            <TrendingUp sx={{ fontSize: 40, color: 'error.dark', mb: 1 }} />
-                            <Typography variant="h4" sx={{ fontWeight: 700, color: 'error.dark' }}>
+                <Grid item xs={12} sm={6} md={3}>
+                    <Card
+                        sx={{
+                            height: '100%',
+                            bgcolor: 'primary.main',
+                            color: 'primary.contrastText',
+                            transition: 'transform 0.2s, box-shadow 0.2s',
+                            '&:hover': {
+                                transform: 'translateY(-4px)',
+                                boxShadow: 4
+                            }
+                        }}
+                    >
+                        <CardContent sx={{ p: 2.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                                <Box
+                                    sx={{
+                                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)',
+                                        color: 'inherit',
+                                        p: 1.2,
+                                        borderRadius: 2,
+                                        mr: 1.5,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    <TrendingUp fontSize="medium" />
+                                </Box>
+                                <Typography variant="subtitle2" fontWeight="600">
+                                    Total
+                                </Typography>
+                            </Box>
+                            <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
                                 {filteredBookings.length}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Total
+                            <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                                Agendamientos
                             </Typography>
                         </CardContent>
                     </Card>
@@ -1681,6 +1991,7 @@ const BookingsManagement = () => {
                                                 {getSortIcon('status')}
                                             </Box>
                                         </TableCell>
+                                        <TableCell>Estado de Pago</TableCell>
                                         <TableCell
                                             sx={{ cursor: 'pointer', userSelect: 'none' }}
                                             onClick={() => handleSort('participants')}
@@ -1731,6 +2042,9 @@ const BookingsManagement = () => {
                                                     color={getStatusColor(booking.status)}
                                                     size="small"
                                                 />
+                                            </TableCell>
+                                            <TableCell>
+                                                {getPaymentStatusBadge(booking.payment_summary)}
                                             </TableCell>
                                             <TableCell>
                                                 {booking.pizzeros_participants > 0 && (
@@ -2219,6 +2533,118 @@ const BookingsManagement = () => {
                                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                             />
                         </Grid>
+
+                        {/* Payment Section */}
+                        {selectedBooking && (
+                            <Grid item xs={12}>
+                                <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                                    <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Payment /> Pagos y Abonos
+                                    </Typography>
+
+                                    {/* Payment Summary Cards */}
+                                    {selectedBooking.payment_summary && (
+                                        <Grid container spacing={2} sx={{ mb: 2 }}>
+                                            <Grid item xs={12} sm={4}>
+                                                <Card sx={{ bgcolor: 'success.light', p: 1.5 }}>
+                                                    <Typography variant="caption" color="text.secondary">Total Pagado</Typography>
+                                                    <Typography variant="h6" sx={{ fontWeight: 700, color: 'success.dark' }}>
+                                                        {formatCurrency(selectedBooking.payment_summary.total_paid)}
+                                                    </Typography>
+                                                </Card>
+                                            </Grid>
+                                            <Grid item xs={12} sm={4}>
+                                                <Card sx={{ bgcolor: 'warning.light', p: 1.5 }}>
+                                                    <Typography variant="caption" color="text.secondary">Saldo Pendiente</Typography>
+                                                    <Typography variant="h6" sx={{ fontWeight: 700, color: 'warning.dark' }}>
+                                                        {formatCurrency(selectedBooking.payment_summary.balance_due)}
+                                                    </Typography>
+                                                </Card>
+                                            </Grid>
+                                            <Grid item xs={12} sm={4}>
+                                                <Card sx={{ bgcolor: 'info.light', p: 1.5 }}>
+                                                    <Typography variant="caption" color="text.secondary">Estado</Typography>
+                                                    <Box sx={{ mt: 0.5 }}>
+                                                        {getPaymentStatusBadge(selectedBooking.payment_summary)}
+                                                    </Box>
+                                                </Card>
+                                            </Grid>
+                                        </Grid>
+                                    )}
+
+                                    {/* Register Payment Button */}
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Historial de Pagos</Typography>
+                                        <Button
+                                            size="small"
+                                            variant="outlined"
+                                            startIcon={<Add />}
+                                            onClick={() => handleOpenPaymentDialog()}
+                                        >
+                                            Registrar Pago
+                                        </Button>
+                                    </Box>
+
+                                    {/* Payments Table */}
+                                    {selectedBooking.payments && selectedBooking.payments.length > 0 ? (
+                                        <TableContainer>
+                                            <Table size="small">
+                                                <TableHead>
+                                                    <TableRow>
+                                                        <TableCell>Fecha</TableCell>
+                                                        <TableCell>Tipo</TableCell>
+                                                        <TableCell>Monto</TableCell>
+                                                        <TableCell>Método</TableCell>
+                                                        <TableCell>Notas</TableCell>
+                                                        <TableCell align="right">Acciones</TableCell>
+                                                    </TableRow>
+                                                </TableHead>
+                                                <TableBody>
+                                                    {selectedBooking.payments.map((payment) => (
+                                                        <TableRow key={payment.id}>
+                                                            <TableCell>{format(new Date(payment.date), 'dd/MM/yyyy')}</TableCell>
+                                                            <TableCell>
+                                                                <Chip
+                                                                    size="small"
+                                                                    label={payment.type === 'abono' ? 'Abono' : 'Saldo Final'}
+                                                                    color={payment.type === 'abono' ? 'warning' : 'success'}
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell sx={{ fontWeight: 600 }}>{formatCurrency(payment.amount)}</TableCell>
+                                                            <TableCell>
+                                                                <Chip
+                                                                    size="small"
+                                                                    label={payment.method === 'efectivo' ? 'Efectivo' : 'Transferencia'}
+                                                                    variant="outlined"
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell>{payment.notes || '-'}</TableCell>
+                                                            <TableCell align="right">
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={() => handleOpenPaymentDialog(payment)}
+                                                                >
+                                                                    <Edit fontSize="small" />
+                                                                </IconButton>
+                                                                <IconButton
+                                                                    size="small"
+                                                                    color="error"
+                                                                    onClick={() => handleDeletePayment(payment.id)}
+                                                                >
+                                                                    <Delete fontSize="small" />
+                                                                </IconButton>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </TableContainer>
+                                    ) : (
+                                        <Alert severity="info">No hay pagos registrados para este agendamiento.</Alert>
+                                    )}
+                                </Box>
+                            </Grid>
+                        )}
                     </Grid>
                 </DialogContent>
                 <DialogActions>
@@ -2508,6 +2934,46 @@ const BookingsManagement = () => {
                                 value={newBookingData.special_requests}
                                 onChange={handleNewBookingChange}
                             />
+                        </Grid>
+
+                        {/* Payment Fields - At the end */}
+                        <Grid item xs={12}>
+                            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
+                                <Payment fontSize="small" /> Abono Inicial (Opcional)
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                label="Monto del Abono"
+                                name="initial_payment"
+                                type="number"
+                                value={newBookingData.initial_payment}
+                                onChange={handleNewBookingChange}
+                                InputProps={{
+                                    startAdornment: <Typography variant="body2" sx={{ mr: 1 }}>$</Typography>,
+                                }}
+                                helperText={newBookingData.initial_payment && newEstimatedPrice ? `Saldo pendiente: ${formatCurrency(newEstimatedPrice - parseFloat(newBookingData.initial_payment || 0))}` : 'Dejar en blanco si no hay abono inicial'}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth>
+                                <Typography variant="caption" sx={{ mb: 0.5 }}>Método de Pago</Typography>
+                                <ToggleButtonGroup
+                                    value={newBookingData.payment_method}
+                                    exclusive
+                                    onChange={(e, value) => value && setNewBookingData(prev => ({ ...prev, payment_method: value }))}
+                                    fullWidth
+                                    size="small"
+                                >
+                                    <ToggleButton value="efectivo">
+                                        Efectivo
+                                    </ToggleButton>
+                                    <ToggleButton value="transferencia">
+                                        Transferencia
+                                    </ToggleButton>
+                                </ToggleButtonGroup>
+                            </FormControl>
                         </Grid>
                     </Grid>
                 </DialogContent>
@@ -3588,6 +4054,111 @@ const BookingsManagement = () => {
                                     </AccordionDetails>
                                 </Accordion>
 
+                                <Accordion defaultExpanded>
+                                    <AccordionSummary expandIcon={<ExpandMore />}>
+                                        <Typography sx={{ fontWeight: 600 }}>Pagos y Abonos</Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails>
+                                        {selectedBooking.payment_summary && (
+                                            <Grid container spacing={2} sx={{ mb: 2 }}>
+                                                <Grid item xs={12} sm={4}>
+                                                    <Card sx={{ bgcolor: 'success.light', p: 1.5 }}>
+                                                        <Typography variant="caption" color="text.secondary">Total Pagado</Typography>
+                                                        <Typography variant="h6" sx={{ fontWeight: 700, color: 'success.dark' }}>
+                                                            {formatCurrency(selectedBooking.payment_summary.total_paid)}
+                                                        </Typography>
+                                                    </Card>
+                                                </Grid>
+                                                <Grid item xs={12} sm={4}>
+                                                    <Card sx={{ bgcolor: 'warning.light', p: 1.5 }}>
+                                                        <Typography variant="caption" color="text.secondary">Saldo Pendiente</Typography>
+                                                        <Typography variant="h6" sx={{ fontWeight: 700, color: 'warning.dark' }}>
+                                                            {formatCurrency(selectedBooking.payment_summary.balance_due)}
+                                                        </Typography>
+                                                    </Card>
+                                                </Grid>
+                                                <Grid item xs={12} sm={4}>
+                                                    <Card sx={{ bgcolor: 'info.light', p: 1.5 }}>
+                                                        <Typography variant="caption" color="text.secondary">Estado</Typography>
+                                                        <Box sx={{ mt: 0.5 }}>
+                                                            {getPaymentStatusBadge(selectedBooking.payment_summary)}
+                                                        </Box>
+                                                    </Card>
+                                                </Grid>
+                                            </Grid>
+                                        )}
+
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Historial de Pagos</Typography>
+                                            <Button
+                                                size="small"
+                                                variant="outlined"
+                                                startIcon={<Add />}
+                                                onClick={() => handleOpenPaymentDialog()}
+                                            >
+                                                Registrar Pago
+                                            </Button>
+                                        </Box>
+
+                                        {selectedBooking.payments && selectedBooking.payments.length > 0 ? (
+                                            <TableContainer>
+                                                <Table size="small">
+                                                    <TableHead>
+                                                        <TableRow>
+                                                            <TableCell>Fecha</TableCell>
+                                                            <TableCell>Tipo</TableCell>
+                                                            <TableCell>Monto</TableCell>
+                                                            <TableCell>Método</TableCell>
+                                                            <TableCell>Notas</TableCell>
+                                                            <TableCell align="right">Acciones</TableCell>
+                                                        </TableRow>
+                                                    </TableHead>
+                                                    <TableBody>
+                                                        {selectedBooking.payments.map((payment) => (
+                                                            <TableRow key={payment.id}>
+                                                                <TableCell>{format(new Date(payment.date), 'dd/MM/yyyy')}</TableCell>
+                                                                <TableCell>
+                                                                    <Chip
+                                                                        size="small"
+                                                                        label={payment.type === 'abono' ? 'Abono' : 'Saldo Final'}
+                                                                        color={payment.type === 'abono' ? 'warning' : 'success'}
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell sx={{ fontWeight: 600 }}>{formatCurrency(payment.amount)}</TableCell>
+                                                                <TableCell>
+                                                                    <Chip
+                                                                        size="small"
+                                                                        label={payment.method === 'efectivo' ? 'Efectivo' : 'Transferencia'}
+                                                                        variant="outlined"
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell>{payment.notes || '-'}</TableCell>
+                                                                <TableCell align="right">
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        onClick={() => handleOpenPaymentDialog(payment)}
+                                                                    >
+                                                                        <Edit fontSize="small" />
+                                                                    </IconButton>
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        color="error"
+                                                                        onClick={() => handleDeletePayment(payment.id)}
+                                                                    >
+                                                                        <Delete fontSize="small" />
+                                                                    </IconButton>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </TableContainer>
+                                        ) : (
+                                            <Alert severity="info">No hay pagos registrados para este agendamiento.</Alert>
+                                        )}
+                                    </AccordionDetails>
+                                </Accordion>
+
                                 <Accordion>
                                     <AccordionSummary expandIcon={<ExpandMore />}>
                                         <Typography sx={{ fontWeight: 600 }}>Insumos y Consumo</Typography>
@@ -3620,6 +4191,171 @@ const BookingsManagement = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setViewDialog(false)}>Cerrar</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Payment Dialog */}
+            <Dialog open={paymentDialog} onClose={() => setPaymentDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>
+                    {editingPayment ? 'Editar Pago' : 'Registrar Pago'}
+                    <IconButton onClick={() => setPaymentDialog(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>
+                        <Close />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent dividers>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                            <FormControl fullWidth>
+                                <Typography variant="caption" sx={{ mb: 0.5 }}>Tipo de Pago</Typography>
+                                <ToggleButtonGroup
+                                    value={paymentData.type}
+                                    exclusive
+                                    onChange={(e, value) => value && handlePaymentTypeChange(value)}
+                                    fullWidth
+                                >
+                                    <ToggleButton value="abono">
+                                        Abono
+                                    </ToggleButton>
+                                    <ToggleButton value="saldo">
+                                        Saldo Final
+                                    </ToggleButton>
+                                </ToggleButtonGroup>
+                            </FormControl>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <TextField
+                                fullWidth
+                                label="Monto"
+                                type="number"
+                                value={paymentData.amount}
+                                onChange={(e) => setPaymentData({ ...paymentData, amount: e.target.value })}
+                                InputProps={{
+                                    startAdornment: <InputAdornment position="start">$</InputAdornment>
+                                }}
+                                required
+                            />
+                            {selectedBooking?.payment_summary && (
+                                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                                    Saldo pendiente: {formatCurrency(selectedBooking.payment_summary.balance_due)}
+                                </Typography>
+                            )}
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <FormControl fullWidth>
+                                <Typography variant="caption" sx={{ mb: 0.5 }}>Método de Pago</Typography>
+                                <ToggleButtonGroup
+                                    value={paymentData.method}
+                                    exclusive
+                                    onChange={(e, value) => value && setPaymentData({ ...paymentData, method: value })}
+                                    fullWidth
+                                >
+                                    <ToggleButton value="efectivo">
+                                        Efectivo
+                                    </ToggleButton>
+                                    <ToggleButton value="transferencia">
+                                        Transferencia
+                                    </ToggleButton>
+                                </ToggleButtonGroup>
+                            </FormControl>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <TextField
+                                fullWidth
+                                label="Fecha"
+                                type="date"
+                                value={paymentData.date}
+                                onChange={(e) => setPaymentData({ ...paymentData, date: e.target.value })}
+                                InputLabelProps={{ shrink: true }}
+                                required
+                            />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <TextField
+                                fullWidth
+                                label="Notas (opcional)"
+                                multiline
+                                rows={2}
+                                value={paymentData.notes}
+                                onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
+                                placeholder="Ej: Comprobante N° 12345, Banco..."
+                            />
+                        </Grid>
+                    </Grid>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setPaymentDialog(false)}>Cancelar</Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleAddPayment}
+                        disabled={!paymentData.amount || !paymentData.date || updating}
+                    >
+                        {updating ? <CircularProgress size={24} /> : editingPayment ? 'Actualizar' : 'Registrar'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Complete Warning Dialog */}
+            <Dialog open={completeWarningDialog} onClose={() => setCompleteWarningDialog(false)} maxWidth="sm">
+                <DialogTitle>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Payment color="warning" />
+                        Saldo Pendiente de Pago
+                    </Box>
+                </DialogTitle>
+                <DialogContent>
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                        Este evento tiene un saldo pendiente de pago.
+                    </Alert>
+                    {selectedBooking?.payment_summary && (
+                        <Grid container spacing={2} sx={{ mb: 2 }}>
+                            <Grid item xs={6}>
+                                <Typography variant="body2" color="text.secondary">Total del Evento:</Typography>
+                                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                    {formatCurrency(selectedBooking.estimated_price)}
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                                <Typography variant="body2" color="text.secondary">Total Pagado:</Typography>
+                                <Typography variant="h6" sx={{ fontWeight: 700, color: 'success.main' }}>
+                                    {formatCurrency(selectedBooking.payment_summary.total_paid)}
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={12}>
+                                <Card sx={{ bgcolor: 'warning.light', p: 2 }}>
+                                    <Typography variant="body2" color="text.secondary">Saldo Pendiente:</Typography>
+                                    <Typography variant="h5" sx={{ fontWeight: 700, color: 'warning.dark' }}>
+                                        {formatCurrency(selectedBooking.payment_summary.balance_due)}
+                                    </Typography>
+                                </Card>
+                            </Grid>
+                        </Grid>
+                    )}
+                    <Typography variant="body2" sx={{ mt: 2 }}>
+                        ¿Deseas marcar el evento como completado de todas formas?
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setCompleteWarningDialog(false)}>Cancelar</Button>
+                    <Button
+                        variant="outlined"
+                        onClick={() => {
+                            setCompleteWarningDialog(false)
+                            handleOpenPaymentDialog()
+                        }}
+                    >
+                        Registrar Pago
+                    </Button>
+                    <Button
+                        variant="contained"
+                        color="warning"
+                        onClick={handleForceComplete}
+                    >
+                        Completar de Todas Formas
+                    </Button>
                 </DialogActions>
             </Dialog>
         </Box>

@@ -25,6 +25,8 @@ export default defineConfig({
           'chart': ['chart.js', 'react-chartjs-2'],
           'date-utils': ['date-fns'],
           'firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+          'animations': ['gsap', 'framer-motion'],
+          'swiper': ['swiper'],
         },
       },
     },

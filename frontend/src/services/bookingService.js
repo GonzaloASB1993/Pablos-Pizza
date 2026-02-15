@@ -74,7 +74,10 @@ export const createBooking = async (bookingData) => {
         pizza_quantity: bookingData.participantsByService?.pizzas || 0,
         special_requests: bookingData.specialRequests || '',
         // Agregar información de servicios múltiples para el admin
-        services_selected: Array.isArray(bookingData.services) ? bookingData.services : [bookingData.service]
+        services_selected: Array.isArray(bookingData.services) ? bookingData.services : [bookingData.service],
+        // Cargo adicional por comuna lejana (Quilicura, Lampa, Colina, Huechuraba)
+        comuna_lejana_extra: bookingData.comunaLejanaExtra || 0,
+        selected_comuna: bookingData.selectedComuna || ''
       })
     })
 

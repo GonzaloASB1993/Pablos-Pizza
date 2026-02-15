@@ -70,3 +70,18 @@ export const getAllComunas = () => {
     regionId: 'RM'
   }))
 }
+
+// Comunas lejanas con cargo adicional de $20.000
+export const comunasLejanas = [
+  'Quilicura',
+  'Lampa',
+  'Colina',
+  'Huechuraba'
+]
+
+export const CARGO_COMUNA_LEJANA = 20000
+
+export const isComunaLejana = (comuna) => {
+  if (!comuna) return false
+  return comunasLejanas.some(c => c.toLowerCase() === comuna.toLowerCase())
+}

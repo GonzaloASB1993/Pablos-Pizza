@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from 'react-query'
 import { Toaster } from 'react-hot-toast'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
+import { HelmetProvider } from 'react-helmet-async'
 import theme from './utils/theme.js'
 
 import App from './App.jsx'
@@ -22,31 +23,33 @@ const queryClient = new QueryClient({
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <AuthProvider>
-              <App />
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  duration: 4000,
-                  style: {
-                    background: '#333',
-                    color: '#fff',
-                  },
-                  success: {
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <AuthProvider>
+                <App />
+                <Toaster
+                  position="top-right"
+                  toastOptions={{
+                    duration: 4000,
                     style: {
-                      background: '#FFD700',
-                      color: '#000',
+                      background: '#333',
+                      color: '#fff',
                     },
-                  },
-                }}
-              />
-          </AuthProvider>
-        </ThemeProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+                    success: {
+                      style: {
+                        background: '#FFD700',
+                        color: '#000',
+                      },
+                    },
+                  }}
+                />
+            </AuthProvider>
+          </ThemeProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </HelmetProvider>
   </React.StrictMode>,
 )

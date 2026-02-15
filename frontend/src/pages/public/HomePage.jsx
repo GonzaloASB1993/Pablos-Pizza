@@ -26,6 +26,7 @@ import {
   Skeleton,
   Alert
 } from '@mui/material'
+import SEO from '../../components/common/SEO'
 import {
   Restaurant,
   WhatsApp,
@@ -310,7 +311,7 @@ const FloatingCTA = ({ navigate, prefersReducedMotion }) => {
         elevation={8}
         role="button"
         tabIndex={0}
-        aria-label="Agendar evento ahora - 20% descuento este mes"
+        aria-label="Agendar evento ahora - 10% descuento este mes"
         onKeyDown={handleKeyDown}
         sx={{
           position: 'fixed',
@@ -343,7 +344,7 @@ const FloatingCTA = ({ navigate, prefersReducedMotion }) => {
               ¡Agenda HOY!
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.8 }}>
-              20% descuento este mes
+              10% descuento este mes
             </Typography>
           </Box>
         </Stack>
@@ -838,6 +839,12 @@ export default function HomePage() {
 
   return (
     <>
+      <SEO
+        title="Talleres de Pizza para Niños en Santiago"
+        description="Talleres de pizza para niños y pizza parties en Santiago. Experiencias gastronómicas educativas donde los niños aprenden a hacer pizzas artesanales. Servicio a domicilio para cumpleaños."
+        keywords="talleres pizza niños Santiago, pizza party cumpleaños, eventos infantiles Santiago, taller cocina niños, catering pizza, fiestas infantiles Chile, pizzeros en acción"
+        url="/"
+      />
       {/* Hero Section Premium con Aurora Gradient */}
       <Box
         sx={{
@@ -1158,7 +1165,7 @@ export default function HomePage() {
               right: 0,
               bottom: 0,
               width: { xs: '0%', md: '55%' },
-              backgroundImage: `url(${publicBase}images/talleres/taller-corporativo.jpg)`,
+              backgroundImage: `url(${publicBase}images/talleres/taller-corporativo.webp)`,
               backgroundSize: 'cover',
               backgroundPosition: 'center left',
               zIndex: 0,
@@ -1284,7 +1291,7 @@ export default function HomePage() {
               <Grid item xs={12} md={6} sx={{ display: { xs: 'block', md: 'none' } }}>
                 <Box
                   component="img"
-                  src={`${publicBase}images/talleres/taller-corporativo.jpg`}
+                  src={`${publicBase}images/talleres/taller-corporativo.webp`}
                   loading="lazy"
                   alt="Niños participando en taller de pizza Pizzeros en Acción, aprendiendo técnicas culinarias"
                   sx={{
@@ -1328,7 +1335,7 @@ export default function HomePage() {
               left: 0,
               bottom: 0,
               width: { xs: '0%', md: '55%' },
-              backgroundImage: `url(${publicBase}images/pizza-party.png)`,
+              backgroundImage: `url(${publicBase}images/pizza-party.webp)`,
               backgroundSize: 'cover',
               backgroundPosition: 'center right',
               zIndex: 0,
@@ -1356,7 +1363,7 @@ export default function HomePage() {
               <Grid item xs={12} md={6} sx={{ display: { xs: 'block', md: 'none' } }}>
                 <Box
                   component="img"
-                  src={`${publicBase}images/pizza-party.png`}
+                  src={`${publicBase}images/pizza-party.webp`}
                   loading="lazy"
                   alt="Pizza Party - Catering gourmet con pizzas artesanales en eventos"
                   sx={{

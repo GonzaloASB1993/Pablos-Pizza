@@ -132,26 +132,50 @@ const AdminDashboard = () => {
     return years
   }
 
-  const StatCard = ({ title, value, icon, color = 'primary' }) => (
-    <Card>
-      <CardContent sx={{ display: 'flex', alignItems: 'center' }}>
-        <Box sx={{
-          backgroundColor: `${color}.main`,
-          color: 'white',
-          p: 2,
-          borderRadius: 2,
-          mr: 2
-        }}>
-          {icon}
-        </Box>
-        <Box>
-          <Typography variant="h4" color={`${color}.main`}>
-            {value}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
+  // StatCard - Diseño consistente con Inventario
+  const StatCard = ({ title, value, icon, color = 'primary', subtitle = '' }) => (
+    <Card
+      sx={{
+        height: '100%',
+        bgcolor: `${color}.main`,
+        color: `${color}.contrastText`,
+        transition: 'transform 0.2s, box-shadow 0.2s',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: 4
+        }
+      }}
+    >
+      <CardContent sx={{ p: 2.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+          <Box
+            sx={{
+              bgcolor: (theme) => color === 'warning'
+                ? (theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)')
+                : (theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)'),
+              color: 'inherit',
+              p: 1.2,
+              borderRadius: 2,
+              mr: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {icon}
+          </Box>
+          <Typography variant="subtitle2" fontWeight="600">
             {title}
           </Typography>
         </Box>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
+          {value}
+        </Typography>
+        {subtitle && (
+          <Typography variant="caption" sx={{ opacity: 0.9 }}>
+            {subtitle}
+          </Typography>
+        )}
       </CardContent>
     </Card>
   )

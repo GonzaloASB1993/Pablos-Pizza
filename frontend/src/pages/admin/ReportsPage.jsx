@@ -70,7 +70,7 @@ import {
   ArcElement
 } from 'chart.js'
 import { Line, Bar, Pie } from 'react-chartjs-2'
-import { reportsAPI, inventoryAPI, expensesAPI } from '../../services/api'
+import { reportsAPI, inventoryAPI, expensesAPI, vacuumSalesAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 import { useThemeMode } from '../../contexts/ThemeContext'
 import { useTheme } from '@mui/material/styles'
@@ -88,99 +88,110 @@ ChartJS.register(
   Legend
 )
 
-// Enhanced KPI Card Component
+// Enhanced KPI Card Component - Diseño consistente con Inventario
 const KPICard = ({ title, value, subtitle, icon: Icon, trend, color = 'primary' }) => (
-  <Card sx={{ height: '100%', position: 'relative', overflow: 'visible' }}>
-    <CardContent sx={{ pb: '16px !important' }}>
-      <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-        <Box flex={1} mr={1}>
-          <Typography color="textSecondary" gutterBottom variant="body2" sx={{ fontSize: '0.75rem' }}>
-            {title}
-          </Typography>
-          <Typography variant="h5" component="div" color={color + '.main'} sx={{ fontWeight: 600, mb: 0.5 }}>
-            {value}
-          </Typography>
-          {subtitle && (
-            <Typography variant="caption" color="textSecondary">
-              {subtitle}
-            </Typography>
-          )}
-          {trend && (
-            <Box display="flex" alignItems="center" mt={0.5}>
-              {trend > 0 ? (
-                <TrendingUp color="success" fontSize="small" />
-              ) : (
-                <TrendingDown color="error" fontSize="small" />
-              )}
-              <Typography
-                variant="caption"
-                color={trend > 0 ? 'success.main' : 'error.main'}
-                ml={0.5}
-              >
-                {Math.abs(trend)}%
-              </Typography>
-            </Box>
-          )}
-        </Box>
+  <Card
+    sx={{
+      height: '100%',
+      bgcolor: color + '.main',
+      color: color + '.contrastText',
+      transition: 'transform 0.2s, box-shadow 0.2s',
+      '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: 4
+      }
+    }}
+  >
+    <CardContent sx={{ p: 2.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
         <Box
           sx={{
-            backgroundColor: color + '.main',
-            borderRadius: '50%',
-            width: 48,
-            height: 48,
+            bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)',
+            color: 'inherit',
+            p: 1.2,
+            borderRadius: 2,
+            mr: 1.5,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            flexShrink: 0
+            justifyContent: 'center'
           }}
         >
-          <Icon sx={{ fontSize: 24 }} />
+          <Icon fontSize="medium" />
         </Box>
+        <Typography variant="subtitle2" fontWeight="600">
+          {title}
+        </Typography>
+      </Box>
+      <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
+        {value}
+      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {subtitle && (
+          <Typography variant="caption" sx={{ opacity: 0.9 }}>
+            {subtitle}
+          </Typography>
+        )}
+        {trend !== undefined && trend !== null && (
+          <Box display="flex" alignItems="center">
+            {trend > 0 ? (
+              <TrendingUp fontSize="small" sx={{ opacity: 0.9 }} />
+            ) : (
+              <TrendingDown fontSize="small" sx={{ opacity: 0.9 }} />
+            )}
+            <Typography variant="caption" sx={{ opacity: 0.9 }} ml={0.3}>
+              {Math.abs(trend)}%
+            </Typography>
+          </Box>
+        )}
       </Box>
     </CardContent>
   </Card>
 )
 
-// Alert Card Component
+// Alert Card Component - Diseño consistente con Inventario
 const AlertCard = ({ title, count, severity = 'warning', icon: Icon, onClick }) => (
   <Card
     sx={{
       height: '100%',
+      bgcolor: severity + '.main',
+      color: severity + '.contrastText',
       cursor: onClick ? 'pointer' : 'default',
-      '&:hover': onClick ? { elevation: 4 } : {}
+      transition: 'transform 0.2s, box-shadow 0.2s',
+      '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: 4
+      }
     }}
     onClick={onClick}
   >
-    <CardContent sx={{ pb: '16px !important' }}>
-      <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-        <Box flex={1} mr={1}>
-          <Typography color="textSecondary" gutterBottom variant="body2" sx={{ fontSize: '0.75rem' }}>
-            {title}
-          </Typography>
-          <Typography variant="h5" component="div" color={severity + '.main'} sx={{ fontWeight: 600, mb: 0.5 }}>
-            {count}
-          </Typography>
-          <Typography variant="caption" color="textSecondary">
-            Requiere atención
-          </Typography>
-        </Box>
+    <CardContent sx={{ p: 2.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
         <Box
           sx={{
-            backgroundColor: severity + '.main',
-            borderRadius: '50%',
-            width: 48,
-            height: 48,
+            bgcolor: (theme) => severity === 'warning'
+              ? (theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)')
+              : (theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)'),
+            color: 'inherit',
+            p: 1.2,
+            borderRadius: 2,
+            mr: 1.5,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            flexShrink: 0
+            justifyContent: 'center'
           }}
         >
-          <Icon sx={{ fontSize: 24 }} />
+          <Icon fontSize="medium" />
         </Box>
+        <Typography variant="subtitle2" fontWeight="600">
+          {title}
+        </Typography>
       </Box>
+      <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
+        {count}
+      </Typography>
+      <Typography variant="caption" sx={{ opacity: 0.9 }}>
+        Requiere atención
+      </Typography>
     </CardContent>
   </Card>
 )
@@ -200,6 +211,7 @@ export default function ReportsPage() {
   const [inventoryAlerts, setInventoryAlerts] = useState([])
   const [topClients, setTopClients] = useState([])
   const [inventoryTotalValue, setInventoryTotalValue] = useState(0)
+  const [vacuumSalesData, setVacuumSalesData] = useState(null)
 
   // Expense management state
   const [fixedExpenses, setFixedExpenses] = useState([])
@@ -280,13 +292,15 @@ export default function ReportsPage() {
       setLoading(true)
 
       // Parallel loading of filtered data
-      const [monthlyResponse, annualResponse] = await Promise.all([
+      const [monthlyResponse, annualResponse, vacuumSalesResponse] = await Promise.all([
         reportsAPI.getMonthly(selectedYear, selectedMonth),
-        reportsAPI.getAnnual(selectedYear)
+        reportsAPI.getAnnual(selectedYear),
+        vacuumSalesAPI.getSummary(selectedYear, selectedMonth)
       ])
 
       setMonthlyData(monthlyResponse.data)
       setAnnualData(annualResponse.data)
+      setVacuumSalesData(vacuumSalesResponse.data)
 
       // Load expenses and tax in parallel
       await Promise.all([
@@ -432,14 +446,17 @@ export default function ReportsPage() {
   }, [variableExpenses])
 
   const ebitda = useMemo(() => {
+    // Include vacuum sales income and costs
+    const vacuumIncome = vacuumSalesData?.total_income || 0
+    const vacuumCost = vacuumSalesData?.total_cost || 0
     return (
-      (monthlyData?.total_income || 0) -
-      (monthlyData?.total_expenses || 0) -
+      (monthlyData?.total_income || 0) + vacuumIncome -
+      (monthlyData?.total_expenses || 0) - vacuumCost -
       (monthlyData?.waste_cost || 0) -
       totalFixedExpenses -
       totalVariableExpenses
     )
-  }, [monthlyData, totalFixedExpenses, totalVariableExpenses])
+  }, [monthlyData, vacuumSalesData, totalFixedExpenses, totalVariableExpenses])
 
   const netProfit = useMemo(() => {
     return ebitda - monthlyTax
@@ -741,6 +758,32 @@ export default function ReportsPage() {
         </Grid>
         <Grid item xs={12} sm={6} md={2}>
           <KPICard
+            title="Total Pagado"
+            value={new Intl.NumberFormat('es-CL', {
+              style: 'currency',
+              currency: 'CLP',
+              minimumFractionDigits: 0
+            }).format(monthlyData?.payment_metrics?.total_paid || 0)}
+            subtitle="Pagos recibidos"
+            icon={AccountBalanceWallet}
+            color="success"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <KPICard
+            title="Saldo por Cobrar"
+            value={new Intl.NumberFormat('es-CL', {
+              style: 'currency',
+              currency: 'CLP',
+              minimumFractionDigits: 0
+            }).format(monthlyData?.payment_metrics?.total_pending || 0)}
+            subtitle="Pendiente de pago"
+            icon={AccountBalance}
+            color="warning"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <KPICard
             title="Eventos Realizados"
             value={monthlyData?.total_events || 0}
             subtitle="Mes seleccionado"
@@ -758,7 +801,7 @@ export default function ReportsPage() {
             }).format(monthlyData?.total_profit || 0)}
             subtitle="Ganancia neta"
             icon={TrendingUp}
-            color="warning"
+            color="info"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={2}>
@@ -767,7 +810,7 @@ export default function ReportsPage() {
             value={dashboardData?.upcoming_events || 0}
             subtitle="Próximos 7 días"
             icon={CalendarToday}
-            color="info"
+            color="primary"
           />
         </Grid>
 
@@ -1325,7 +1368,7 @@ export default function ReportsPage() {
                                   style: 'currency',
                                   currency: 'CLP',
                                   minimumFractionDigits: 0
-                                }).format(incomeStatementView === 'monthly' ? (monthlyData?.total_income || 0) : getAnnualTotalIncome())}
+                                }).format(incomeStatementView === 'monthly' ? ((monthlyData?.total_income || 0) + (vacuumSalesData?.total_income || 0)) : getAnnualTotalIncome())}
                               </Typography>
                             </AccordionSummary>
                             <AccordionDetails sx={{ pt: 0, pb: 2, px: 2, bgcolor: mode === 'dark' ? '#1e1e1e' : '#ffffff' }}>
@@ -1392,9 +1435,19 @@ export default function ReportsPage() {
                                   <TableRow sx={{ bgcolor: 'action.hover' }}>
                                     <TableCell>Venta Pizzas al Vacío</TableCell>
                                     <TableCell align="center">
-                                      <Chip label="Próximamente" size="small" color="info" />
+                                      {incomeStatementView === 'monthly'
+                                        ? (vacuumSalesData?.total_sales || 0)
+                                        : '-'}
                                     </TableCell>
-                                    <TableCell align="right">$0</TableCell>
+                                    <TableCell align="right">
+                                      {new Intl.NumberFormat('es-CL', {
+                                        style: 'currency',
+                                        currency: 'CLP',
+                                        minimumFractionDigits: 0
+                                      }).format(incomeStatementView === 'monthly'
+                                        ? (vacuumSalesData?.total_income || 0)
+                                        : 0)}
+                                    </TableCell>
                                   </TableRow>
                                 </TableBody>
                               </Table>
@@ -1441,7 +1494,7 @@ export default function ReportsPage() {
                                   minimumFractionDigits: 0
                                 }).format(
                                   incomeStatementView === 'monthly'
-                                    ? (monthlyData?.total_expenses || 0)
+                                    ? ((monthlyData?.total_expenses || 0) + (vacuumSalesData?.total_cost || 0))
                                     : getAnnualTotalExpenses()
                                 )}
                               </Typography>
@@ -1471,6 +1524,16 @@ export default function ReportsPage() {
                                         currency: 'CLP',
                                         minimumFractionDigits: 0
                                       }).format(incomeStatementView === 'monthly' ? (monthlyData?.waste_cost || 0) : getAnnualWasteCost())}
+                                    </TableCell>
+                                  </TableRow>
+                                  <TableRow sx={{ bgcolor: 'action.hover' }}>
+                                    <TableCell>Costo Ventas al Vacío</TableCell>
+                                    <TableCell align="right">
+                                      {new Intl.NumberFormat('es-CL', {
+                                        style: 'currency',
+                                        currency: 'CLP',
+                                        minimumFractionDigits: 0
+                                      }).format(incomeStatementView === 'monthly' ? (vacuumSalesData?.total_cost || 0) : 0)}
                                     </TableCell>
                                   </TableRow>
                                 </TableBody>

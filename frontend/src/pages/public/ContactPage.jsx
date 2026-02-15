@@ -16,6 +16,7 @@ import {
   Select,
   MenuItem
 } from '@mui/material'
+import SEO from '../../components/common/SEO'
 import { WhatsApp, Phone, Email, Room, ArrowBack, Send } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { CONTACT_INFO } from '../../config/constants'
@@ -84,6 +85,12 @@ export default function ContactPage() {
 
   return (
     <Box>
+      <SEO
+        title="Contacto - Consultas y Cotizaciones"
+        description="Contáctanos para cotizar tu taller de pizza o pizza party en Santiago. WhatsApp +56 9 8942 4566. Respuesta en menos de 2 horas."
+        keywords="contacto pablo's pizza, whatsapp pizza party, cotizar evento infantil, consultas taller pizza, teléfono catering pizza Santiago"
+        url="/contacto"
+      />
       {/* Header Section */}
       <Box sx={{
         position: 'relative',

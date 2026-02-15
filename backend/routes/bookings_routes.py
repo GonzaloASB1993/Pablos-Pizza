@@ -21,7 +21,7 @@ except:
         @staticmethod
         def get_pizza_party_price(pizzas): return round(PricingConfig.PIZZA_PARTY_BASE_PRICE*0.9) if pizzas>=20 else PricingConfig.PIZZA_PARTY_BASE_PRICE
 
-def calculate_estimated_price(service_types, pizzeros_participants=0, party_participants=0, participants=0, pizza_quantity=0):
+def calculate_estimated_price(service_types, pizzeros_participants=0, party_participants=0, participants=0, pizza_quantity=0, comuna_lejana_extra=0):
     total = 0
     for s in [x.strip() for x in service_types.split(',') if x.strip()]:
         if s in ["workshop","pizzeros"]:
@@ -31,6 +31,8 @@ def calculate_estimated_price(service_types, pizzeros_participants=0, party_part
         elif s in ["pizza_party","party"]:
             pz = pizza_quantity or party_participants or participants
             if pz > 0: total += pz*PricingConfig.get_pizza_party_price(pz)
+    # Agregar cargo por comuna lejana (Quilicura, Lampa, Colina, Huechuraba)
+    total += comuna_lejana_extra
     return round(total, 2)
 
 @bookings_bp.route('/', methods=['POST'])
@@ -44,7 +46,8 @@ def create_booking():
 
         db = get_db()
         bid = str(uuid.uuid4())
-        ep = calculate_estimated_price(data.get('service_type',''),data.get('pizzeros_participants',0),data.get('party_participants',0),data.get('participants',0),data.get('pizza_quantity',0))
+        comuna_lejana_extra = int(data.get('comuna_lejana_extra', 0))
+        ep = calculate_estimated_price(data.get('service_type',''),data.get('pizzeros_participants',0),data.get('party_participants',0),data.get('participants',0),data.get('pizza_quantity',0),comuna_lejana_extra)
 
         # Handle customer linking/creation
         customer_id = data.get('customer_id')

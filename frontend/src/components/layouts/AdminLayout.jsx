@@ -42,7 +42,8 @@ import {
   Factory,
   Brightness4,
   Brightness7,
-  SmartToy
+  SmartToy,
+  LocalPizza
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -72,6 +73,7 @@ const AdminLayoutContent = () => {
     { label: 'Dashboard', path: '/admin', icon: <Dashboard />, category: 'main' },
     { label: 'Agendamientos', path: '/admin/agendamientos', icon: <Event />, category: 'business' },
     { label: 'Eventos', path: '/admin/eventos', icon: <Restaurant />, category: 'business' },
+    { label: 'Ventas Vacío', path: '/admin/ventas-vacio', icon: <LocalPizza />, category: 'business' },
     { label: 'Contactos', path: '/admin/contactos', icon: <ContactMail />, category: 'business' },
     { label: 'Testimonios', path: '/admin/testimonios', icon: <Star />, category: 'business' },
     { label: 'Inventario', path: '/admin/inventario', icon: <Inventory />, category: 'analytics' },
