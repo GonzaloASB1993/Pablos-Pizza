@@ -1857,7 +1857,18 @@ def create_inventory_item():
             'batch_size': float(data['batch_size']) if data.get('batch_size') else None,
             'shelf_life_days': int(data['shelf_life_days']) if data.get('shelf_life_days') else None,
             'last_updated': datetime.now(),
-            'needs_restock': float(data['current_stock']) <= float(data['min_stock'])
+            'needs_restock': float(data['current_stock']) <= float(data['min_stock']),
+            # Nutritional information per 100g/100ml
+            'nutrition_info': {
+                'calories': float(data.get('nutrition_info', {}).get('calories', 0)) if data.get('nutrition_info') else 0,
+                'proteins': float(data.get('nutrition_info', {}).get('proteins', 0)) if data.get('nutrition_info') else 0,
+                'carbohydrates': float(data.get('nutrition_info', {}).get('carbohydrates', 0)) if data.get('nutrition_info') else 0,
+                'sugars': float(data.get('nutrition_info', {}).get('sugars', 0)) if data.get('nutrition_info') else 0,
+                'fats': float(data.get('nutrition_info', {}).get('fats', 0)) if data.get('nutrition_info') else 0,
+                'saturated_fats': float(data.get('nutrition_info', {}).get('saturated_fats', 0)) if data.get('nutrition_info') else 0,
+                'fiber': float(data.get('nutrition_info', {}).get('fiber', 0)) if data.get('nutrition_info') else 0,
+                'sodium': float(data.get('nutrition_info', {}).get('sodium', 0)) if data.get('nutrition_info') else 0
+            }
         }
 
         # Save to Firestore
@@ -1931,6 +1942,20 @@ def update_inventory_item(item_id):
             update_data['batch_size'] = float(data['batch_size']) if data['batch_size'] else None
         if 'shelf_life_days' in data:
             update_data['shelf_life_days'] = int(data['shelf_life_days']) if data['shelf_life_days'] else None
+
+        # Update nutritional information if provided
+        if 'nutrition_info' in data:
+            nutrition = data['nutrition_info']
+            update_data['nutrition_info'] = {
+                'calories': float(nutrition.get('calories', 0)),
+                'proteins': float(nutrition.get('proteins', 0)),
+                'carbohydrates': float(nutrition.get('carbohydrates', 0)),
+                'sugars': float(nutrition.get('sugars', 0)),
+                'fats': float(nutrition.get('fats', 0)),
+                'saturated_fats': float(nutrition.get('saturated_fats', 0)),
+                'fiber': float(nutrition.get('fiber', 0)),
+                'sodium': float(nutrition.get('sodium', 0))
+            }
 
         update_data['last_updated'] = datetime.now()
 
@@ -2671,6 +2696,127 @@ def recalculate_recipe_cost(recipe_id):
         print(f"Error recalculating recipe cost: {e}")
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/api/recipes/<recipe_id>/nutrition', methods=['GET'])
+def get_recipe_nutrition(recipe_id):
+    """Calculate nutritional information for a recipe based on ingredients"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        recipe_ref = db.collection('recipes').document(recipe_id)
+        doc = recipe_ref.get()
+
+        if not doc.exists:
+            return jsonify({'error': 'Recipe not found'}), 404
+
+        recipe_data = doc.to_dict()
+
+        # Initialize totals for nutritional values
+        total_nutrition = {
+            'calories': 0.0,
+            'proteins': 0.0,
+            'carbohydrates': 0.0,
+            'sugars': 0.0,
+            'fats': 0.0,
+            'saturated_fats': 0.0,
+            'fiber': 0.0,
+            'sodium': 0.0
+        }
+        total_weight_grams = 0.0
+        ingredients_nutrition = []
+
+        for ingredient in recipe_data.get('ingredients', []):
+            inventory_doc = db.collection('inventory').document(ingredient['item_id']).get()
+
+            if inventory_doc.exists:
+                inventory_data = inventory_doc.to_dict()
+                nutrition_info = inventory_data.get('nutrition_info', {})
+
+                # Get ingredient quantity and unit
+                quantity = float(ingredient.get('quantity', 0))
+                unit = inventory_data.get('unit', 'g')
+
+                # Convert to grams (assuming 100g base for nutrition)
+                # Common conversions: kg->g, l->ml (treat ml as g for liquids)
+                if unit == 'kg':
+                    weight_grams = quantity * 1000
+                elif unit == 'l':
+                    weight_grams = quantity * 1000  # 1L ~ 1000ml ~ 1000g (approx)
+                elif unit == 'ml':
+                    weight_grams = quantity  # 1ml ~ 1g (approx)
+                else:  # g, unidad, etc.
+                    weight_grams = quantity
+
+                # Calculate nutrition for this ingredient (nutrition is per 100g)
+                factor = weight_grams / 100.0
+
+                ingredient_nutrition = {
+                    'item_id': ingredient['item_id'],
+                    'item_name': inventory_data.get('name', 'Unknown'),
+                    'quantity': quantity,
+                    'unit': unit,
+                    'weight_grams': weight_grams,
+                    'nutrition': {
+                        'calories': float(nutrition_info.get('calories', 0)) * factor,
+                        'proteins': float(nutrition_info.get('proteins', 0)) * factor,
+                        'carbohydrates': float(nutrition_info.get('carbohydrates', 0)) * factor,
+                        'sugars': float(nutrition_info.get('sugars', 0)) * factor,
+                        'fats': float(nutrition_info.get('fats', 0)) * factor,
+                        'saturated_fats': float(nutrition_info.get('saturated_fats', 0)) * factor,
+                        'fiber': float(nutrition_info.get('fiber', 0)) * factor,
+                        'sodium': float(nutrition_info.get('sodium', 0)) * factor
+                    }
+                }
+
+                # Add to totals
+                for key in total_nutrition:
+                    total_nutrition[key] += ingredient_nutrition['nutrition'][key]
+
+                total_weight_grams += weight_grams
+                ingredients_nutrition.append(ingredient_nutrition)
+
+        # Calculate nutrition per 100g of finished product
+        output_quantity = float(recipe_data.get('output_quantity', 1))
+        output_unit = recipe_data.get('output_unit', 'g')
+
+        # Convert output to grams
+        if output_unit == 'kg':
+            output_grams = output_quantity * 1000
+        elif output_unit == 'l':
+            output_grams = output_quantity * 1000
+        elif output_unit == 'ml':
+            output_grams = output_quantity
+        else:
+            output_grams = output_quantity
+
+        # Nutrition per 100g of output
+        per_100g_factor = 100.0 / output_grams if output_grams > 0 else 0
+        nutrition_per_100g = {key: value * per_100g_factor for key, value in total_nutrition.items()}
+
+        # Round values for cleaner display
+        for key in nutrition_per_100g:
+            nutrition_per_100g[key] = round(nutrition_per_100g[key], 2)
+        for key in total_nutrition:
+            total_nutrition[key] = round(total_nutrition[key], 2)
+
+        return jsonify({
+            'recipe_id': recipe_id,
+            'recipe_name': recipe_data.get('name', ''),
+            'output_quantity': output_quantity,
+            'output_unit': output_unit,
+            'output_grams': output_grams,
+            'total_ingredients_weight_grams': round(total_weight_grams, 2),
+            'nutrition_per_batch': total_nutrition,
+            'nutrition_per_100g': nutrition_per_100g,
+            'ingredients_breakdown': ingredients_nutrition
+        })
+    except Exception as e:
+        print(f"Error calculating recipe nutrition: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 # ===================== PRODUCTION BATCHES ENDPOINTS =====================
 
 @app.route('/api/production-batches/', methods=['GET'])
@@ -3192,6 +3338,158 @@ def cancel_production_batch(batch_id):
     except Exception as e:
         print(f"Error cancelling production batch: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/production-batches/<batch_id>/label', methods=['GET'])
+def get_production_batch_label(batch_id):
+    """Generate label data for a production batch including nutrition info and barcode"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        batch_ref = db.collection('production_batches').document(batch_id)
+        batch_doc = batch_ref.get()
+
+        if not batch_doc.exists:
+            return jsonify({'error': 'Production batch not found'}), 404
+
+        batch_data = batch_doc.to_dict()
+
+        if batch_data['status'] != 'completed':
+            return jsonify({'error': 'Label can only be generated for completed batches'}), 400
+
+        # Get recipe nutrition data
+        recipe_doc = db.collection('recipes').document(batch_data['recipe_id']).get()
+        if not recipe_doc.exists:
+            return jsonify({'error': 'Recipe not found'}), 404
+
+        recipe_data = recipe_doc.to_dict()
+
+        # Calculate nutritional information
+        total_nutrition = {
+            'calories': 0.0,
+            'proteins': 0.0,
+            'carbohydrates': 0.0,
+            'sugars': 0.0,
+            'fats': 0.0,
+            'saturated_fats': 0.0,
+            'fiber': 0.0,
+            'sodium': 0.0
+        }
+        total_weight_grams = 0.0
+
+        for ingredient in recipe_data.get('ingredients', []):
+            inventory_doc = db.collection('inventory').document(ingredient['item_id']).get()
+
+            if inventory_doc.exists:
+                inventory_data = inventory_doc.to_dict()
+                nutrition_info = inventory_data.get('nutrition_info', {})
+
+                quantity = float(ingredient.get('quantity', 0))
+                unit = inventory_data.get('unit', 'g')
+
+                # Convert to grams
+                if unit == 'kg':
+                    weight_grams = quantity * 1000
+                elif unit == 'l':
+                    weight_grams = quantity * 1000
+                elif unit == 'ml':
+                    weight_grams = quantity
+                else:
+                    weight_grams = quantity
+
+                factor = weight_grams / 100.0
+
+                for key in total_nutrition:
+                    total_nutrition[key] += float(nutrition_info.get(key, 0)) * factor
+
+                total_weight_grams += weight_grams
+
+        # Calculate per 100g of output
+        output_quantity = float(recipe_data.get('output_quantity', 1))
+        output_unit = recipe_data.get('output_unit', 'g')
+
+        if output_unit == 'kg':
+            output_grams = output_quantity * 1000
+        elif output_unit == 'l':
+            output_grams = output_quantity * 1000
+        elif output_unit == 'ml':
+            output_grams = output_quantity
+        else:
+            output_grams = output_quantity
+
+        # Multiply by number of batches produced
+        quantity_produced = float(batch_data.get('quantity_to_produce', 1))
+        total_output_grams = output_grams * quantity_produced
+
+        per_100g_factor = 100.0 / output_grams if output_grams > 0 else 0
+        nutrition_per_100g = {key: round(value * per_100g_factor, 2) for key, value in total_nutrition.items()}
+
+        # Generate batch code for barcode (EAN-13 compatible format)
+        # Using batch creation timestamp + shortened ID
+        created_at = batch_data.get('created_at')
+        if hasattr(created_at, 'timestamp'):
+            timestamp_part = str(int(created_at.timestamp()))[-6:]
+        else:
+            timestamp_part = '000000'
+
+        batch_short_id = batch_id[-6:].upper()
+
+        # Create a batch code (12 digits for EAN-13, checksum will be added on frontend)
+        batch_code = f"560{timestamp_part}{batch_short_id[:3]}"
+        # Ensure it's numeric for barcode
+        batch_numeric_code = ''.join([str(ord(c) % 10) if not c.isdigit() else c for c in batch_code])[:12]
+
+        # Calculate expiration date based on shelf_life_days of the output product
+        # Try to find the output product in inventory to get shelf_life_days
+        shelf_life_days = None
+        output_product_name = f"{recipe_data['name']} (Producido)"
+        existing_products = list(db.collection('inventory').where('name', '==', output_product_name).limit(1).stream())
+
+        if existing_products:
+            output_product = existing_products[0].to_dict()
+            shelf_life_days = output_product.get('shelf_life_days')
+
+        if not shelf_life_days:
+            shelf_life_days = recipe_data.get('shelf_life_days', 30)  # Default 30 days
+
+        production_date = batch_data.get('completed_at') or batch_data.get('created_at')
+        if hasattr(production_date, 'timestamp'):
+            production_datetime = production_date
+        else:
+            production_datetime = datetime.now()
+
+        expiration_date = production_datetime + timedelta(days=shelf_life_days)
+
+        # Build label data
+        label_data = {
+            'batch_id': batch_id,
+            'batch_number': f"LOTE-{batch_id[-8:].upper()}",
+            'barcode': batch_numeric_code,
+            'barcode_type': 'EAN-13',
+            'product_name': recipe_data.get('name', 'Producto'),
+            'quantity_produced': batch_data.get('output_quantity', 0),
+            'output_unit': batch_data.get('output_unit', 'unidades'),
+            'total_output_grams': total_output_grams,
+            'production_date': production_datetime.strftime('%Y-%m-%d') if hasattr(production_datetime, 'strftime') else str(production_datetime)[:10],
+            'expiration_date': expiration_date.strftime('%Y-%m-%d') if hasattr(expiration_date, 'strftime') else str(expiration_date)[:10],
+            'shelf_life_days': shelf_life_days,
+            'nutrition_per_100g': nutrition_per_100g,
+            'allergens': recipe_data.get('allergens', []),
+            'ingredients_list': ', '.join([ing.get('item_name', '') for ing in batch_data.get('ingredients_consumed', [])]),
+            'company_info': {
+                'name': "Pablo's Pizza",
+                'address': 'Chile',
+                'contact': 'pablospizza.cl'
+            }
+        }
+
+        return jsonify(label_data)
+    except Exception as e:
+        print(f"Error generating production batch label: {e}")
+        return jsonify({'error': str(e)}), 500
+
 
 # ==========================================
 # EVENT SUPPLIES (STOCK ESTIMADO) ENDPOINTS

@@ -64,7 +64,17 @@ const InventoryManagement = () => {
     cost_per_unit: '',
     batch_size: '',
     shelf_life_days: '',
-    notes: ''
+    notes: '',
+    nutrition_info: {
+      calories: '',
+      proteins: '',
+      carbohydrates: '',
+      sugars: '',
+      fats: '',
+      saturated_fats: '',
+      fiber: '',
+      sodium: ''
+    }
   })
   const [recipeFormData, setRecipeFormData] = useState({
     name: '',
@@ -150,6 +160,18 @@ const InventoryManagement = () => {
     try {
       let itemData
 
+      // Prepare nutrition_info object with numeric values
+      const nutritionInfo = {
+        calories: parseFloat(formData.nutrition_info.calories) || 0,
+        proteins: parseFloat(formData.nutrition_info.proteins) || 0,
+        carbohydrates: parseFloat(formData.nutrition_info.carbohydrates) || 0,
+        sugars: parseFloat(formData.nutrition_info.sugars) || 0,
+        fats: parseFloat(formData.nutrition_info.fats) || 0,
+        saturated_fats: parseFloat(formData.nutrition_info.saturated_fats) || 0,
+        fiber: parseFloat(formData.nutrition_info.fiber) || 0,
+        sodium: parseFloat(formData.nutrition_info.sodium) || 0
+      }
+
       if (editingItem) {
         // Al editar, NO incluir campos de stock ni costo - solo datos fijos
         itemData = {
@@ -162,7 +184,8 @@ const InventoryManagement = () => {
           supplier: formData.supplier,
           notes: formData.notes,
           batch_size: formData.batch_size ? parseFloat(formData.batch_size) : null,
-          shelf_life_days: formData.shelf_life_days ? parseInt(formData.shelf_life_days) : null
+          shelf_life_days: formData.shelf_life_days ? parseInt(formData.shelf_life_days) : null,
+          nutrition_info: nutritionInfo
         }
         await inventoryAPI.update(editingItem.id, itemData)
         toast.success('Datos del producto actualizados')
@@ -175,7 +198,8 @@ const InventoryManagement = () => {
           max_stock: parseFloat(formData.max_stock),
           cost_per_unit: parseFloat(formData.cost_per_unit) || 0,
           batch_size: formData.batch_size ? parseFloat(formData.batch_size) : null,
-          shelf_life_days: formData.shelf_life_days ? parseInt(formData.shelf_life_days) : null
+          shelf_life_days: formData.shelf_life_days ? parseInt(formData.shelf_life_days) : null,
+          nutrition_info: nutritionInfo
         }
         await inventoryAPI.create(itemData)
         toast.success('Ingrediente creado exitosamente')
@@ -191,6 +215,7 @@ const InventoryManagement = () => {
 
   const handleEdit = (item) => {
     setEditingItem(item)
+    const nutritionInfo = item.nutrition_info || {}
     setFormData({
       name: item.name || '',
       product_type: item.product_type || 'raw_material',
@@ -203,7 +228,17 @@ const InventoryManagement = () => {
       cost_per_unit: item.cost_per_unit?.toString() || '', // Solo lectura en edición
       batch_size: item.batch_size?.toString() || '',
       shelf_life_days: item.shelf_life_days?.toString() || '',
-      notes: item.notes || ''
+      notes: item.notes || '',
+      nutrition_info: {
+        calories: nutritionInfo.calories?.toString() || '',
+        proteins: nutritionInfo.proteins?.toString() || '',
+        carbohydrates: nutritionInfo.carbohydrates?.toString() || '',
+        sugars: nutritionInfo.sugars?.toString() || '',
+        fats: nutritionInfo.fats?.toString() || '',
+        saturated_fats: nutritionInfo.saturated_fats?.toString() || '',
+        fiber: nutritionInfo.fiber?.toString() || '',
+        sodium: nutritionInfo.sodium?.toString() || ''
+      }
     })
     setDialog(true)
   }
@@ -397,7 +432,17 @@ const InventoryManagement = () => {
       cost_per_unit: '',
       batch_size: '',
       shelf_life_days: '',
-      notes: ''
+      notes: '',
+      nutrition_info: {
+        calories: '',
+        proteins: '',
+        carbohydrates: '',
+        sugars: '',
+        fats: '',
+        saturated_fats: '',
+        fiber: '',
+        sodium: ''
+      }
     })
   }
 
@@ -1320,6 +1365,130 @@ const InventoryManagement = () => {
                 value={formData.notes}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
                 placeholder="Información adicional, fechas de vencimiento, etc."
+              />
+            </Grid>
+
+            {/* Nutritional Information Section */}
+            <Grid item xs={12}>
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                📊 Información Nutricional (por 100g/100ml)
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Estos valores se utilizan para calcular la información nutricional de los productos terminados.
+              </Typography>
+            </Grid>
+
+            <Grid item xs={6} sm={3}>
+              <TextField
+                fullWidth
+                label="Calorías (kcal)"
+                type="number"
+                value={formData.nutrition_info.calories}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  nutrition_info: { ...formData.nutrition_info, calories: e.target.value }
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <TextField
+                fullWidth
+                label="Proteínas (g)"
+                type="number"
+                value={formData.nutrition_info.proteins}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  nutrition_info: { ...formData.nutrition_info, proteins: e.target.value }
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <TextField
+                fullWidth
+                label="Carbohidratos (g)"
+                type="number"
+                value={formData.nutrition_info.carbohydrates}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  nutrition_info: { ...formData.nutrition_info, carbohydrates: e.target.value }
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <TextField
+                fullWidth
+                label="Azúcares (g)"
+                type="number"
+                value={formData.nutrition_info.sugars}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  nutrition_info: { ...formData.nutrition_info, sugars: e.target.value }
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <TextField
+                fullWidth
+                label="Grasas Totales (g)"
+                type="number"
+                value={formData.nutrition_info.fats}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  nutrition_info: { ...formData.nutrition_info, fats: e.target.value }
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <TextField
+                fullWidth
+                label="Grasas Saturadas (g)"
+                type="number"
+                value={formData.nutrition_info.saturated_fats}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  nutrition_info: { ...formData.nutrition_info, saturated_fats: e.target.value }
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <TextField
+                fullWidth
+                label="Fibra (g)"
+                type="number"
+                value={formData.nutrition_info.fiber}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  nutrition_info: { ...formData.nutrition_info, fiber: e.target.value }
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <TextField
+                fullWidth
+                label="Sodio (mg)"
+                type="number"
+                value={formData.nutrition_info.sodium}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  nutrition_info: { ...formData.nutrition_info, sodium: e.target.value }
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
               />
             </Grid>
           </Grid>

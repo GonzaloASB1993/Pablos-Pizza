@@ -399,6 +399,7 @@ export const recipesAPI = {
   update: (id, data) => api.put(`/recipes/${id}`, data),
   delete: (id) => api.delete(`/recipes/${id}`),
   calculateCost: (id) => api.post(`/recipes/${id}/calculate-cost`),
+  getNutrition: (id) => api.get(`/recipes/${id}/nutrition`),
 }
 
 export const productionBatchesAPI = {
@@ -407,6 +408,7 @@ export const productionBatchesAPI = {
   updateStatus: (id, status) => api.put(`/production-batches/${id}/status`, { status }),
   complete: (id) => api.post(`/production-batches/${id}/complete`),
   cancel: (id) => api.delete(`/production-batches/${id}`),
+  getLabel: (id) => api.get(`/production-batches/${id}/label`),
 }
 
 export const reportsAPI = {
