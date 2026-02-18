@@ -184,91 +184,448 @@ const ProductionManagement = () => {
 
   const handlePrintLabel = () => {
     const printWindow = window.open('', '_blank')
-    const labelContent = document.getElementById('label-content')
-    if (labelContent && printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Etiqueta - ${labelData?.product_name || 'Producto'}</title>
-          <style>
-            @page { size: 10cm 15cm; margin: 5mm; }
-            body {
-              font-family: Arial, sans-serif;
-              margin: 0;
-              padding: 10px;
-              font-size: 11px;
-            }
-            .label-container {
-              border: 2px solid #333;
-              padding: 10px;
-              max-width: 9cm;
-            }
-            .product-name {
-              font-size: 16px;
-              font-weight: bold;
-              text-align: center;
-              margin-bottom: 8px;
-              border-bottom: 1px solid #333;
-              padding-bottom: 5px;
-            }
-            .company-name {
-              font-size: 14px;
-              font-weight: bold;
-              text-align: center;
-              margin-bottom: 10px;
-            }
-            .nutrition-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 10px 0;
-              font-size: 10px;
-            }
-            .nutrition-table th, .nutrition-table td {
-              border: 1px solid #333;
-              padding: 3px 5px;
-              text-align: left;
-            }
-            .nutrition-table th {
-              background: #f0f0f0;
-            }
-            .info-row {
-              display: flex;
-              justify-content: space-between;
-              margin: 3px 0;
-              font-size: 10px;
-            }
-            .barcode {
-              text-align: center;
-              margin: 10px 0;
-              font-family: 'Libre Barcode 128', monospace;
-              font-size: 40px;
-            }
-            .barcode-number {
-              text-align: center;
-              font-size: 10px;
-              margin-top: -5px;
-            }
-            .batch-info {
-              background: #f5f5f5;
-              padding: 5px;
-              margin: 5px 0;
-              font-size: 10px;
-            }
-          </style>
-        </head>
-        <body>
-          ${labelContent.innerHTML}
-        </body>
-        </html>
-      `)
-      printWindow.document.close()
-      printWindow.focus()
-      setTimeout(() => {
-        printWindow.print()
-        printWindow.close()
-      }, 250)
+    if (!labelData || !printWindow) return
+
+    // Calculate dates
+    const productionDate = new Date(labelData.production_date)
+    const refrigeratedExpiry = new Date(productionDate)
+    refrigeratedExpiry.setDate(refrigeratedExpiry.getDate() + 7)
+    const frozenExpiry = new Date(productionDate)
+    frozenExpiry.setMonth(frozenExpiry.getMonth() + 6)
+
+    const formatDate = (date) => {
+      const d = new Date(date)
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
     }
+
+    // Nutrition calculations (per 100g and per portion ~140g for 420g pizza / 3 portions)
+    const portionSize = 140
+    const n = labelData.nutrition_per_100g || {}
+    const calcPortion = (val) => ((parseFloat(val) || 0) * portionSize / 100).toFixed(1)
+    const calcVD = (val, daily) => Math.round(((parseFloat(val) || 0) * portionSize / 100 / daily) * 100)
+
+    const labelHTML = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <title>Etiqueta - ${labelData.product_name}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+
+          @page {
+            size: 90mm 140mm;
+            margin: 0;
+          }
+
+          body {
+            font-family: 'IBM Plex Sans', Arial, sans-serif;
+            background: #fff;
+            padding: 0;
+            margin: 0;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+
+          .label {
+            width: 90mm;
+            background: #fff;
+            border: 2.5px solid #000;
+          }
+
+          .label-header {
+            background: #000;
+            color: #fff;
+            padding: 8px 10px 6px;
+            text-align: center;
+          }
+          .label-header .brand {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+          }
+          .label-header .tagline {
+            font-size: 7px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-top: 2px;
+            opacity: 0.8;
+          }
+
+          .label-product {
+            border-bottom: 2px solid #000;
+            padding: 6px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+          }
+          .label-product .name {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .label-product .variant {
+            font-size: 8px;
+            color: #444;
+            margin-top: 2px;
+          }
+          .vacuum-badge {
+            display: inline-block;
+            border: 1.5px solid #000;
+            font-size: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 1px 4px;
+            margin-top: 3px;
+          }
+          .label-product .weight {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            text-align: right;
+          }
+          .label-product .weight span {
+            font-size: 7px;
+            font-weight: 400;
+            display: block;
+          }
+
+          .label-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            border-bottom: 1.5px solid #000;
+          }
+          .meta-item {
+            padding: 4px 6px;
+            border-right: 1px solid #000;
+          }
+          .meta-item:last-child { border-right: none; }
+          .meta-item .meta-label {
+            font-size: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #555;
+            margin-bottom: 1px;
+          }
+          .meta-item .meta-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 8px;
+            font-weight: 700;
+          }
+
+          .section-title {
+            background: #000;
+            color: #fff;
+            font-size: 7px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 2px 10px;
+          }
+
+          .nutrition-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7px;
+          }
+          .nutrition-table thead tr { border-bottom: 1px solid #000; }
+          .nutrition-table thead th {
+            padding: 2px 6px;
+            text-align: left;
+            font-size: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+          .nutrition-table thead th:not(:first-child) { text-align: right; }
+          .nutrition-table tbody tr { border-bottom: 0.5px solid #ccc; }
+          .nutrition-table tbody tr:last-child { border-bottom: none; }
+          .nutrition-table tbody td {
+            padding: 2px 6px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 7px;
+          }
+          .nutrition-table tbody td:not(:first-child) { text-align: right; font-size: 6.5px; }
+          .nutrition-table .bold td { font-weight: 700; background: #f4f4f4; }
+          .nutrition-table .sub td:first-child { padding-left: 12px; color: #444; }
+
+          .nutrition-note {
+            font-size: 5.5px;
+            color: #555;
+            padding: 3px 6px;
+            border-bottom: 1px solid #000;
+            line-height: 1.3;
+          }
+
+          .ingredients {
+            padding: 4px 8px;
+            border-bottom: 1px solid #000;
+            font-size: 6px;
+            line-height: 1.4;
+          }
+          .ingredients strong {
+            font-size: 6px;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 1px;
+          }
+          .allergen { text-transform: uppercase; font-weight: 700; text-decoration: underline; }
+
+          .storage {
+            display: flex;
+            border-bottom: 1px solid #000;
+          }
+          .storage-item {
+            flex: 1;
+            padding: 4px 6px;
+            border-right: 1px solid #000;
+            text-align: center;
+          }
+          .storage-item:last-child { border-right: none; }
+          .storage-item .stor-icon { font-size: 10px; }
+          .storage-item .stor-label {
+            font-size: 5.5px;
+            text-transform: uppercase;
+            margin-top: 1px;
+            color: #333;
+          }
+          .storage-item .stor-temp {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 7px;
+            font-weight: 700;
+          }
+
+          .label-footer {
+            padding: 5px 8px;
+          }
+          .label-footer .company {
+            font-size: 6px;
+            line-height: 1.5;
+            color: #444;
+          }
+          .label-footer .company strong {
+            display: block;
+            font-size: 7px;
+            font-weight: 700;
+            color: #000;
+            text-transform: uppercase;
+          }
+          .barcode-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 4px 0 2px;
+            border-top: 1px dashed #bbb;
+            margin-top: 4px;
+          }
+          .barcode-label {
+            font-size: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #777;
+            margin-bottom: 3px;
+          }
+          .barcode-number {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 7px;
+            letter-spacing: 2px;
+            margin-top: 2px;
+          }
+
+          @media print {
+            body { background: none; }
+            .label { border: 2px solid #000; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="label">
+          <div class="label-header">
+            <div class="brand">Pablo's Pizza</div>
+            <div class="tagline">Producto envasado al vacío · Hecho artesanalmente</div>
+          </div>
+
+          <div class="label-product">
+            <div>
+              <div class="name">${labelData.product_name}</div>
+              <div class="variant">Pizza 25 cm · Envasado al vacío</div>
+              <div><span class="vacuum-badge">Al vacío</span></div>
+            </div>
+            <div class="weight">${labelData.total_output_grams || 420} g<span>Peso neto</span></div>
+          </div>
+
+          <div class="label-meta">
+            <div class="meta-item">
+              <div class="meta-label">Lote</div>
+              <div class="meta-value">${labelData.batch_number}</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Elaboración</div>
+              <div class="meta-value">${formatDate(labelData.production_date)}</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Consumir antes (ref.)</div>
+              <div class="meta-value">${formatDate(refrigeratedExpiry)}</div>
+            </div>
+          </div>
+
+          <div class="section-title">Información Nutricional</div>
+          <table class="nutrition-table">
+            <thead>
+              <tr>
+                <th>Nutrimento</th>
+                <th>Por 100 g</th>
+                <th>Por porción (${portionSize} g)</th>
+                <th>%VD*</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="bold">
+                <td>Energía</td>
+                <td>${n.calories || 0} kcal</td>
+                <td>${calcPortion(n.calories)} kcal</td>
+                <td>${calcVD(n.calories, 2000)}%</td>
+              </tr>
+              <tr>
+                <td>Proteínas</td>
+                <td>${n.proteins || 0} g</td>
+                <td>${calcPortion(n.proteins)} g</td>
+                <td>${calcVD(n.proteins, 75)}%</td>
+              </tr>
+              <tr class="bold">
+                <td>Grasas totales</td>
+                <td>${n.fats || 0} g</td>
+                <td>${calcPortion(n.fats)} g</td>
+                <td>${calcVD(n.fats, 65)}%</td>
+              </tr>
+              <tr class="sub">
+                <td>Grasas saturadas</td>
+                <td>${n.saturated_fats || 0} g</td>
+                <td>${calcPortion(n.saturated_fats)} g</td>
+                <td>${calcVD(n.saturated_fats, 22)}%</td>
+              </tr>
+              <tr class="bold">
+                <td>Hidratos de carbono</td>
+                <td>${n.carbohydrates || 0} g</td>
+                <td>${calcPortion(n.carbohydrates)} g</td>
+                <td>${calcVD(n.carbohydrates, 275)}%</td>
+              </tr>
+              <tr class="sub">
+                <td>Azúcares totales</td>
+                <td>${n.sugars || 0} g</td>
+                <td>${calcPortion(n.sugars)} g</td>
+                <td>—</td>
+              </tr>
+              <tr>
+                <td>Fibra dietética</td>
+                <td>${n.fiber || 0} g</td>
+                <td>${calcPortion(n.fiber)} g</td>
+                <td>${calcVD(n.fiber, 25)}%</td>
+              </tr>
+              <tr>
+                <td>Sodio</td>
+                <td>${n.sodium || 0} mg</td>
+                <td>${calcPortion(n.sodium)} mg</td>
+                <td>${calcVD(n.sodium, 2300)}%</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="nutrition-note">
+            *%VD = Valores diarios con base en una dieta de 2,000 kcal. Porciones por envase: 3.
+          </div>
+
+          <div class="section-title">Ingredientes</div>
+          <div class="ingredients">
+            <strong>Lista de ingredientes:</strong>
+            ${labelData.ingredients_list || 'Consultar en punto de venta'}
+          </div>
+
+          <div class="section-title">Condiciones de conservación</div>
+          <div class="storage">
+            <div class="storage-item">
+              <div class="stor-icon">❄</div>
+              <div class="stor-label">Refrigeración</div>
+              <div class="stor-temp">0 – 4 °C (7 días)</div>
+            </div>
+            <div class="storage-item">
+              <div class="stor-icon">▦</div>
+              <div class="stor-label">Congelación</div>
+              <div class="stor-temp">−18 °C (6 meses)</div>
+            </div>
+            <div class="storage-item">
+              <div class="stor-icon">✕</div>
+              <div class="stor-label">No recongelar</div>
+              <div class="stor-temp">Una vez abierto</div>
+            </div>
+          </div>
+
+          <div class="label-footer">
+            <div class="company">
+              <strong>Pablo's Pizza SpA</strong>
+              Los Tijerales 3814, Puente Alto · Santiago, Chile<br>
+              Tel: (+56) 9 8942 4566 · pablospizza.cl
+            </div>
+            <div class="barcode-area">
+              <div class="barcode-label">EAN-13</div>
+              <svg width="160" height="35" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
+                <rect x="10" width="2" height="50" fill="#000"/>
+                <rect x="14" width="2" height="50" fill="#000"/>
+                <rect x="20" width="3" height="44" fill="#000"/>
+                <rect x="25" width="1" height="44" fill="#000"/>
+                <rect x="29" width="2" height="44" fill="#000"/>
+                <rect x="33" width="1" height="44" fill="#000"/>
+                <rect x="37" width="3" height="44" fill="#000"/>
+                <rect x="42" width="2" height="44" fill="#000"/>
+                <rect x="47" width="1" height="44" fill="#000"/>
+                <rect x="50" width="2" height="44" fill="#000"/>
+                <rect x="54" width="3" height="44" fill="#000"/>
+                <rect x="59" width="1" height="44" fill="#000"/>
+                <rect x="62" width="2" height="44" fill="#000"/>
+                <rect x="67" width="1" height="44" fill="#000"/>
+                <rect x="71" width="3" height="44" fill="#000"/>
+                <rect x="76" width="2" height="44" fill="#000"/>
+                <rect x="83" width="1" height="50" fill="#000"/>
+                <rect x="86" width="1" height="50" fill="#000"/>
+                <rect x="89" width="1" height="50" fill="#000"/>
+                <rect x="94" width="3" height="44" fill="#000"/>
+                <rect x="99" width="1" height="44" fill="#000"/>
+                <rect x="103" width="2" height="44" fill="#000"/>
+                <rect x="107" width="3" height="44" fill="#000"/>
+                <rect x="113" width="1" height="44" fill="#000"/>
+                <rect x="116" width="2" height="44" fill="#000"/>
+                <rect x="120" width="1" height="44" fill="#000"/>
+                <rect x="124" width="3" height="44" fill="#000"/>
+                <rect x="129" width="2" height="44" fill="#000"/>
+                <rect x="133" width="1" height="44" fill="#000"/>
+                <rect x="137" width="3" height="44" fill="#000"/>
+                <rect x="142" width="1" height="44" fill="#000"/>
+                <rect x="146" width="2" height="44" fill="#000"/>
+                <rect x="151" width="3" height="44" fill="#000"/>
+                <rect x="158" width="2" height="50" fill="#000"/>
+                <rect x="162" width="2" height="50" fill="#000"/>
+                <rect x="166" width="2" height="50" fill="#000"/>
+              </svg>
+              <div class="barcode-number">${labelData.barcode}</div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+
+    printWindow.document.write(labelHTML)
+    printWindow.document.close()
+    printWindow.focus()
+
+    // Wait for fonts to load
+    setTimeout(() => {
+      printWindow.print()
+    }, 500)
   }
 
   const getStatusColor = (status) => {
@@ -673,20 +1030,20 @@ const ProductionManagement = () => {
       </Dialog>
 
       {/* Label Generation Dialog */}
-      <Dialog open={labelDialog} onClose={handleCloseLabelDialog} maxWidth="sm" fullWidth>
+      <Dialog open={labelDialog} onClose={handleCloseLabelDialog} maxWidth="md" fullWidth>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Label />
-            Etiqueta de Producto
+            Vista Previa de Etiqueta
           </Box>
           {labelData && (
-            <Box>
-              <Tooltip title="Imprimir Etiqueta">
-                <IconButton onClick={handlePrintLabel} color="primary">
-                  <Print />
-                </IconButton>
-              </Tooltip>
-            </Box>
+            <Button
+              variant="contained"
+              startIcon={<Print />}
+              onClick={handlePrintLabel}
+            >
+              Imprimir Etiqueta
+            </Button>
           )}
         </DialogTitle>
         <DialogContent>
@@ -695,177 +1052,166 @@ const ProductionManagement = () => {
               <LinearProgress sx={{ width: '100%' }} />
             </Box>
           ) : labelData ? (
-            <Box id="label-content" sx={{ p: 2 }}>
-              {/* Label Preview Container */}
+            <Box sx={{ p: 2, bgcolor: '#e8e8e8', borderRadius: 2 }}>
+              {/* Label Preview Container - Matching print design */}
               <Paper
-                elevation={3}
+                elevation={4}
                 sx={{
-                  p: 2,
-                  border: '2px solid #333',
-                  maxWidth: 350,
+                  width: '340px',
                   mx: 'auto',
-                  bgcolor: '#fff'
+                  bgcolor: '#fff',
+                  border: '2.5px solid #000',
+                  fontFamily: "'IBM Plex Sans', Arial, sans-serif",
+                  overflow: 'hidden'
                 }}
               >
-                {/* Company Name */}
-                <Typography
-                  variant="h6"
-                  align="center"
-                  sx={{ fontWeight: 'bold', mb: 1 }}
-                >
-                  {labelData.company_info?.name || "Pablo's Pizza"}
-                </Typography>
-
-                {/* Product Name */}
-                <Typography
-                  variant="h5"
-                  align="center"
-                  sx={{
-                    fontWeight: 'bold',
-                    borderBottom: '2px solid #333',
-                    borderTop: '2px solid #333',
-                    py: 1,
-                    mb: 2
-                  }}
-                >
-                  {labelData.product_name}
-                </Typography>
-
-                {/* Batch Info */}
-                <Paper variant="outlined" sx={{ p: 1, mb: 2, bgcolor: '#f5f5f5' }}>
-                  <Grid container spacing={1}>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">
-                        N° Lote:
-                      </Typography>
-                      <Typography variant="body2" fontWeight="bold">
-                        {labelData.batch_number}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">
-                        Cantidad:
-                      </Typography>
-                      <Typography variant="body2" fontWeight="bold">
-                        {labelData.quantity_produced} {labelData.output_unit}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">
-                        Fecha Producción:
-                      </Typography>
-                      <Typography variant="body2" fontWeight="bold">
-                        {labelData.production_date}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">
-                        Fecha Vencimiento:
-                      </Typography>
-                      <Typography variant="body2" fontWeight="bold" color="error.main">
-                        {labelData.expiration_date}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </Paper>
-
-                {/* Nutritional Information Table */}
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  INFORMACIÓN NUTRICIONAL
-                </Typography>
-                <Typography variant="caption" sx={{ display: 'block', mb: 1 }}>
-                  Porción: 100g
-                </Typography>
-
-                <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-                  <Table size="small">
-                    <TableBody>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold', py: 0.5 }}>Energía (kcal)</TableCell>
-                        <TableCell align="right" sx={{ py: 0.5 }}>
-                          {labelData.nutrition_per_100g?.calories || 0}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold', py: 0.5 }}>Proteínas (g)</TableCell>
-                        <TableCell align="right" sx={{ py: 0.5 }}>
-                          {labelData.nutrition_per_100g?.proteins || 0}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold', py: 0.5 }}>Carbohidratos (g)</TableCell>
-                        <TableCell align="right" sx={{ py: 0.5 }}>
-                          {labelData.nutrition_per_100g?.carbohydrates || 0}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell sx={{ pl: 2, py: 0.5 }}>- Azúcares (g)</TableCell>
-                        <TableCell align="right" sx={{ py: 0.5 }}>
-                          {labelData.nutrition_per_100g?.sugars || 0}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold', py: 0.5 }}>Grasas Totales (g)</TableCell>
-                        <TableCell align="right" sx={{ py: 0.5 }}>
-                          {labelData.nutrition_per_100g?.fats || 0}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell sx={{ pl: 2, py: 0.5 }}>- Saturadas (g)</TableCell>
-                        <TableCell align="right" sx={{ py: 0.5 }}>
-                          {labelData.nutrition_per_100g?.saturated_fats || 0}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold', py: 0.5 }}>Fibra (g)</TableCell>
-                        <TableCell align="right" sx={{ py: 0.5 }}>
-                          {labelData.nutrition_per_100g?.fiber || 0}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold', py: 0.5 }}>Sodio (mg)</TableCell>
-                        <TableCell align="right" sx={{ py: 0.5 }}>
-                          {labelData.nutrition_per_100g?.sodium || 0}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-                {/* Ingredients List */}
-                {labelData.ingredients_list && (
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                      INGREDIENTES:
-                    </Typography>
-                    <Typography variant="caption" sx={{ display: 'block' }}>
-                      {labelData.ingredients_list}
-                    </Typography>
-                  </Box>
-                )}
-
-                {/* Barcode */}
-                <Box sx={{ textAlign: 'center', mt: 2 }}>
-                  <Box
-                    sx={{
-                      fontFamily: "'Libre Barcode 128', 'Courier New', monospace",
-                      fontSize: 48,
-                      letterSpacing: 2
-                    }}
-                  >
-                    *{labelData.barcode}*
-                  </Box>
-                  <Typography variant="caption" sx={{ letterSpacing: 3 }}>
-                    {labelData.barcode}
+                {/* Header */}
+                <Box sx={{ bgcolor: '#000', color: '#fff', p: '10px 12px 8px', textAlign: 'center' }}>
+                  <Typography sx={{ fontFamily: 'monospace', fontSize: '20px', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>
+                    Pablo's Pizza
+                  </Typography>
+                  <Typography sx={{ fontSize: '8px', letterSpacing: 1.5, textTransform: 'uppercase', mt: 0.5, opacity: 0.8 }}>
+                    Producto envasado al vacío · Hecho artesanalmente
                   </Typography>
                 </Box>
 
-                {/* Company Contact */}
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="caption" align="center" sx={{ display: 'block' }}>
-                  {labelData.company_info?.contact || 'pablospizza.cl'}
+                {/* Product */}
+                <Box sx={{ borderBottom: '2px solid #000', p: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                  <Box>
+                    <Typography sx={{ fontSize: '14px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      {labelData.product_name}
+                    </Typography>
+                    <Typography sx={{ fontSize: '9px', color: '#444', mt: 0.5 }}>
+                      Pizza 25 cm · Envasado al vacío
+                    </Typography>
+                    <Chip label="AL VACÍO" size="small" sx={{ mt: 0.5, height: 16, fontSize: '7px', fontWeight: 700, border: '1.5px solid #000', bgcolor: 'transparent' }} />
+                  </Box>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography sx={{ fontFamily: 'monospace', fontSize: '18px', fontWeight: 700 }}>
+                      {labelData.total_output_grams || 420} g
+                    </Typography>
+                    <Typography sx={{ fontSize: '8px' }}>Peso neto</Typography>
+                  </Box>
+                </Box>
+
+                {/* Meta Info */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', borderBottom: '1.5px solid #000' }}>
+                  {[
+                    { label: 'Lote', value: labelData.batch_number },
+                    { label: 'Elaboración', value: new Date(labelData.production_date).toLocaleDateString('es-CL') },
+                    { label: 'Consumir antes (ref.)', value: (() => {
+                      const d = new Date(labelData.production_date)
+                      d.setDate(d.getDate() + 7)
+                      return d.toLocaleDateString('es-CL')
+                    })() }
+                  ].map((item, i) => (
+                    <Box key={i} sx={{ p: '6px 8px', borderRight: i < 2 ? '1px solid #000' : 'none' }}>
+                      <Typography sx={{ fontSize: '7px', textTransform: 'uppercase', letterSpacing: 0.5, color: '#555', mb: 0.5 }}>
+                        {item.label}
+                      </Typography>
+                      <Typography sx={{ fontFamily: 'monospace', fontSize: '9px', fontWeight: 700 }}>
+                        {item.value}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* Nutrition Table */}
+                <Box sx={{ bgcolor: '#000', color: '#fff', fontSize: '8px', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', p: '3px 12px' }}>
+                  Información Nutricional
+                </Box>
+                <TableContainer>
+                  <Table size="small" sx={{ '& td, & th': { py: 0.3, px: 1, fontSize: '8px', borderBottom: '0.5px solid #ccc' } }}>
+                    <TableHead>
+                      <TableRow sx={{ borderBottom: '1.5px solid #000' }}>
+                        <TableCell sx={{ fontWeight: 700, fontSize: '7px' }}>Nutrimento</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700, fontSize: '7px' }}>Por 100g</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700, fontSize: '7px' }}>Por porción (140g)</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {[
+                        { name: 'Energía', value: labelData.nutrition_per_100g?.calories || 0, unit: 'kcal', bold: true },
+                        { name: 'Proteínas', value: labelData.nutrition_per_100g?.proteins || 0, unit: 'g' },
+                        { name: 'Grasas totales', value: labelData.nutrition_per_100g?.fats || 0, unit: 'g', bold: true },
+                        { name: '  - Saturadas', value: labelData.nutrition_per_100g?.saturated_fats || 0, unit: 'g', sub: true },
+                        { name: 'Carbohidratos', value: labelData.nutrition_per_100g?.carbohydrates || 0, unit: 'g', bold: true },
+                        { name: '  - Azúcares', value: labelData.nutrition_per_100g?.sugars || 0, unit: 'g', sub: true },
+                        { name: 'Fibra', value: labelData.nutrition_per_100g?.fiber || 0, unit: 'g' },
+                        { name: 'Sodio', value: labelData.nutrition_per_100g?.sodium || 0, unit: 'mg' },
+                      ].map((row, i) => (
+                        <TableRow key={i} sx={{ bgcolor: row.bold ? '#f4f4f4' : 'transparent' }}>
+                          <TableCell sx={{ fontWeight: row.bold ? 700 : 400, color: row.sub ? '#666' : 'inherit', fontFamily: 'monospace' }}>
+                            {row.name}
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{row.value} {row.unit}</TableCell>
+                          <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{(parseFloat(row.value) * 1.4).toFixed(1)} {row.unit}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                <Typography sx={{ fontSize: '6px', color: '#555', p: '4px 8px', borderBottom: '1px solid #000', lineHeight: 1.3 }}>
+                  *%VD = Valores diarios con base en una dieta de 2,000 kcal. Porciones por envase: 3.
                 </Typography>
+
+                {/* Ingredients */}
+                <Box sx={{ bgcolor: '#000', color: '#fff', fontSize: '8px', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', p: '3px 12px' }}>
+                  Ingredientes
+                </Box>
+                <Box sx={{ p: '6px 10px', borderBottom: '1px solid #000', fontSize: '7px', lineHeight: 1.5 }}>
+                  <Typography sx={{ fontSize: '7px' }}>
+                    {labelData.ingredients_list || 'Consultar en punto de venta'}
+                  </Typography>
+                </Box>
+
+                {/* Storage */}
+                <Box sx={{ bgcolor: '#000', color: '#fff', fontSize: '8px', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', p: '3px 12px' }}>
+                  Condiciones de Conservación
+                </Box>
+                <Box sx={{ display: 'flex', borderBottom: '1.5px solid #000' }}>
+                  {[
+                    { icon: '❄', label: 'Refrigeración', temp: '0 – 4 °C (7 días)' },
+                    { icon: '▦', label: 'Congelación', temp: '−18 °C (6 meses)' },
+                    { icon: '✕', label: 'No recongelar', temp: 'Una vez abierto' }
+                  ].map((item, i) => (
+                    <Box key={i} sx={{ flex: 1, p: '6px', textAlign: 'center', borderRight: i < 2 ? '1px solid #000' : 'none' }}>
+                      <Typography sx={{ fontSize: '14px' }}>{item.icon}</Typography>
+                      <Typography sx={{ fontSize: '6px', textTransform: 'uppercase', mt: 0.5, color: '#333' }}>{item.label}</Typography>
+                      <Typography sx={{ fontFamily: 'monospace', fontSize: '8px', fontWeight: 700, mt: 0.5 }}>{item.temp}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* Footer */}
+                <Box sx={{ p: '8px 10px' }}>
+                  <Typography sx={{ fontSize: '8px', fontWeight: 700, textTransform: 'uppercase', color: '#000' }}>
+                    Pablo's Pizza SpA
+                  </Typography>
+                  <Typography sx={{ fontSize: '7px', color: '#444', lineHeight: 1.6 }}>
+                    Los Tijerales 3814, Puente Alto · Santiago, Chile<br />
+                    Tel: (+56) 9 8942 4566 · pablospizza.cl
+                  </Typography>
+                  <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography sx={{ fontSize: '6px', textTransform: 'uppercase', letterSpacing: 1, color: '#777', mb: 0.5 }}>
+                      EAN-13
+                    </Typography>
+                    <Typography sx={{ fontFamily: 'monospace', fontSize: '10px', letterSpacing: 2 }}>
+                      {labelData.barcode}
+                    </Typography>
+                  </Box>
+                </Box>
               </Paper>
+
+              {/* Warning about nutrition values */}
+              {(!labelData.nutrition_per_100g?.calories || labelData.nutrition_per_100g?.calories === 0) && (
+                <Alert severity="warning" sx={{ mt: 2, mx: 'auto', maxWidth: 340 }}>
+                  <Typography variant="body2">
+                    <strong>Valores nutricionales en 0:</strong> Debes agregar la información nutricional (por 100g) a cada ingrediente en el módulo de Inventario.
+                  </Typography>
+                </Alert>
+              )}
             </Box>
           ) : (
             <Alert severity="error">
@@ -875,15 +1221,6 @@ const ProductionManagement = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseLabelDialog}>Cerrar</Button>
-          {labelData && (
-            <Button
-              variant="contained"
-              startIcon={<Print />}
-              onClick={handlePrintLabel}
-            >
-              Imprimir
-            </Button>
-          )}
         </DialogActions>
       </Dialog>
     </Box>

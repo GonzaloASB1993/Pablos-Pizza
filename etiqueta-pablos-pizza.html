@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Etiqueta – Pablo's Pizza</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #e8e8e8;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'IBM Plex Sans', sans-serif;
+    padding: 2rem;
+  }
+
+  .label {
+    width: 90mm;
+    background: #fff;
+    border: 2.5px solid #000;
+    padding: 0;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* HEADER */
+  .label-header {
+    background: #000;
+    color: #fff;
+    padding: 10px 12px 8px;
+    text-align: center;
+  }
+  .label-header .brand {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .label-header .tagline {
+    font-size: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+    opacity: 0.75;
+  }
+
+  /* PRODUCTO */
+  .label-product {
+    border-bottom: 2px solid #000;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .label-product .name {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .label-product .variant {
+    font-size: 9px;
+    color: #444;
+    margin-top: 2px;
+  }
+  .label-product .weight {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: right;
+  }
+  .label-product .weight span {
+    font-size: 9px;
+    font-weight: 400;
+    display: block;
+    text-align: right;
+  }
+
+  /* LOTE / FECHAS */
+  .label-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-bottom: 1.5px solid #000;
+  }
+  .meta-item {
+    padding: 6px 8px;
+    border-right: 1px solid #000;
+  }
+  .meta-item:last-child { border-right: none; }
+  .meta-item .meta-label {
+    font-size: 7px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #555;
+    margin-bottom: 2px;
+  }
+  .meta-item .meta-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  /* TABLA NUTRICIONAL */
+  .section-title {
+    background: #000;
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 3px 12px;
+  }
+
+  .nutrition-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9px;
+  }
+  .nutrition-table thead tr {
+    border-bottom: 1.5px solid #000;
+  }
+  .nutrition-table thead th {
+    padding: 4px 8px;
+    text-align: left;
+    font-size: 7.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .nutrition-table thead th:not(:first-child) {
+    text-align: right;
+  }
+  .nutrition-table tbody tr {
+    border-bottom: 0.5px solid #ccc;
+  }
+  .nutrition-table tbody tr:last-child { border-bottom: none; }
+  .nutrition-table tbody td {
+    padding: 3px 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8.5px;
+  }
+  .nutrition-table tbody td:not(:first-child) {
+    text-align: right;
+    font-size: 8px;
+  }
+  .nutrition-table .bold td {
+    font-weight: 700;
+    background: #f4f4f4;
+  }
+  .nutrition-table .sub td:first-child {
+    padding-left: 16px;
+    color: #444;
+  }
+
+  .nutrition-note {
+    font-size: 7px;
+    color: #555;
+    padding: 4px 8px;
+    border-bottom: 1.5px solid #000;
+    line-height: 1.4;
+  }
+
+  /* INGREDIENTES */
+  .ingredients {
+    padding: 6px 10px;
+    border-bottom: 1.5px solid #000;
+    font-size: 7.5px;
+    line-height: 1.5;
+    color: #222;
+  }
+  .ingredients strong {
+    font-size: 7px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .allergen {
+    text-transform: uppercase;
+    font-weight: 700;
+    text-decoration: underline;
+  }
+
+  /* RECOMENDACIONES */
+  .recommendations {
+    padding: 6px 10px;
+    border-bottom: 1.5px solid #000;
+  }
+  .rec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .rec-item {
+    font-size: 7.5px;
+    line-height: 1.4;
+    color: #222;
+    display: flex;
+    gap: 4px;
+  }
+  .rec-item .icon {
+    font-size: 10px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  /* CONSERVACION */
+  .storage {
+    display: flex;
+    gap: 0;
+    border-bottom: 1.5px solid #000;
+  }
+  .storage-item {
+    flex: 1;
+    padding: 6px 8px;
+    border-right: 1px solid #000;
+    text-align: center;
+  }
+  .storage-item:last-child { border-right: none; }
+  .storage-item .stor-icon { font-size: 14px; }
+  .storage-item .stor-label {
+    font-size: 7px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+    color: #333;
+  }
+  .storage-item .stor-temp {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    margin-top: 1px;
+  }
+
+  /* FOOTER */
+  .label-footer {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .label-footer .company {
+    font-size: 7px;
+    line-height: 1.7;
+    color: #444;
+  }
+  .label-footer .company strong {
+    display: block;
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #000;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .barcode-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 0 2px;
+    border-top: 1px dashed #bbb;
+  }
+  .barcode-label {
+    font-size: 6.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #777;
+    margin-bottom: 5px;
+  }
+  .barcode-svg { display: block; }
+  .barcode-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 3px;
+    margin-top: 4px;
+    color: #000;
+  }
+
+  /* VACÍO badge */
+  .vacuum-badge {
+    display: inline-block;
+    border: 1.5px solid #000;
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 1px 5px;
+    margin-top: 3px;
+  }
+
+  @media print {
+    body { background: none; padding: 0; }
+    .label { border: 2px solid #000; }
+  }
+</style>
+</head>
+<body>
+
+<div class="label">
+
+  <!-- ENCABEZADO -->
+  <div class="label-header">
+    <div class="brand">Pablo's Pizza</div>
+    <div class="tagline">Producto envasado al vacío · Hecho artesanalmente</div>
+  </div>
+
+  <!-- NOMBRE DEL PRODUCTO -->
+  <div class="label-product">
+    <div>
+      <div class="name">Pizza Margarita</div>
+      <div class="variant">Masa delgada · Salsa de tomate · Mozzarella</div>
+      <div><span class="vacuum-badge">Al vacío</span></div>
+    </div>
+    <div class="weight">420 g<span>Peso neto</span></div>
+  </div>
+
+  <!-- LOTE / FECHAS -->
+  <div class="label-meta">
+    <div class="meta-item">
+      <div class="meta-label">Lote</div>
+      <div class="meta-value">PP-2025-041</div>
+    </div>
+    <div class="meta-item">
+      <div class="meta-label">Elaboración</div>
+      <div class="meta-value">14/02/2025</div>
+    </div>
+    <div class="meta-item">
+      <div class="meta-label">Consumir antes</div>
+      <div class="meta-value">21/02/2025</div>
+    </div>
+  </div>
+
+  <!-- INFORMACIÓN NUTRICIONAL -->
+  <div class="section-title">Información Nutricional</div>
+  <table class="nutrition-table">
+    <thead>
+      <tr>
+        <th>Nutrimento</th>
+        <th>Por 100 g</th>
+        <th>Por porción<br>(140 g)</th>
+        <th>%VD*</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="bold">
+        <td>Energía</td>
+        <td>248 kcal</td>
+        <td>347 kcal</td>
+        <td>17%</td>
+      </tr>
+      <tr>
+        <td>Proteínas</td>
+        <td>10.2 g</td>
+        <td>14.3 g</td>
+        <td>19%</td>
+      </tr>
+      <tr class="bold">
+        <td>Grasas totales</td>
+        <td>9.5 g</td>
+        <td>13.3 g</td>
+        <td>20%</td>
+      </tr>
+      <tr class="sub">
+        <td>Grasas saturadas</td>
+        <td>4.1 g</td>
+        <td>5.7 g</td>
+        <td>26%</td>
+      </tr>
+      <tr class="sub">
+        <td>Grasas trans</td>
+        <td>0 g</td>
+        <td>0 g</td>
+        <td>—</td>
+      </tr>
+      <tr class="bold">
+        <td>Hidratos de carbono</td>
+        <td>30.6 g</td>
+        <td>42.8 g</td>
+        <td>16%</td>
+      </tr>
+      <tr class="sub">
+        <td>Azúcares totales</td>
+        <td>3.2 g</td>
+        <td>4.5 g</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Fibra dietética</td>
+        <td>1.8 g</td>
+        <td>2.5 g</td>
+        <td>10%</td>
+      </tr>
+      <tr>
+        <td>Sodio</td>
+        <td>480 mg</td>
+        <td>672 mg</td>
+        <td>29%</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="nutrition-note">
+    *%VD = Valores diarios con base en una dieta de 2,000 kcal. Sus valores diarios pueden ser mayores o menores dependiendo de sus necesidades energéticas. Porciones por envase: 3.
+  </div>
+
+  <!-- INGREDIENTES -->
+  <div class="section-title">Ingredientes</div>
+  <div class="ingredients">
+    <strong>Lista de ingredientes:</strong>
+    Harina de <span class="allergen">trigo</span>, agua, salsa de tomate (tomate, sal, orégano, ajo), queso mozzarella (<span class="allergen">leche</span> de vaca, cuajo, sal), aceite de oliva, levadura, sal, azúcar, orégano.
+  </div>
+
+  <!-- CONSERVACIÓN -->
+  <div class="section-title">Condiciones de conservación</div>
+  <div class="storage">
+    <div class="storage-item">
+      <div class="stor-icon">❄</div>
+      <div class="stor-label">Refrigeración</div>
+      <div class="stor-temp">0 – 4 °C</div>
+    </div>
+    <div class="storage-item">
+      <div class="stor-icon">▦</div>
+      <div class="stor-label">Congelación</div>
+      <div class="stor-temp">−18 °C</div>
+    </div>
+    <div class="storage-item">
+      <div class="stor-icon">✕</div>
+      <div class="stor-label">No recongelar</div>
+      <div class="stor-temp">Una vez abierto</div>
+    </div>
+  </div>
+
+  <!-- RECOMENDACIONES -->
+  <div class="section-title">Recomendaciones de consumo</div>
+  <div class="recommendations">
+    <div class="rec-grid">
+      <div class="rec-item">
+        <span class="icon">1</span>
+        <span>Retirar del vacío y dejar atemperar 10 min antes de hornear.</span>
+      </div>
+      <div class="rec-item">
+        <span class="icon">2</span>
+        <span>Hornear a 200 °C por 12–15 min o hasta que el queso esté dorado.</span>
+      </div>
+      <div class="rec-item">
+        <span class="icon">3</span>
+        <span>Si estaba congelada, descongelar en refrigeración 8 h antes.</span>
+      </div>
+      <div class="rec-item">
+        <span class="icon">4</span>
+        <span>Una vez abierto, consumir en un máximo de 24 horas.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="label-footer">
+    <div class="company">
+      <strong>Pablo's Pizza SpA</strong>
+      Los Tijerales 3814, Puente Alto · Santiago, Chile<br>
+      Tel: (+56) 9 8942 4566 &nbsp;·&nbsp; pablospizza.cl
+    </div>
+    <div class="barcode-area">
+      <div class="barcode-label">EAN-13</div>
+      <svg class="barcode-svg" width="200" height="50" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
+        <!-- Guardas izquierda -->
+        <rect x="10"  width="2" height="50" fill="#000"/>
+        <rect x="14"  width="2" height="50" fill="#000"/>
+        <!-- Dígitos grupo 1 -->
+        <rect x="20"  width="3" height="44" fill="#000"/>
+        <rect x="25"  width="1" height="44" fill="#000"/>
+        <rect x="29"  width="2" height="44" fill="#000"/>
+        <rect x="33"  width="1" height="44" fill="#000"/>
+        <rect x="37"  width="3" height="44" fill="#000"/>
+        <rect x="42"  width="2" height="44" fill="#000"/>
+        <rect x="47"  width="1" height="44" fill="#000"/>
+        <rect x="50"  width="2" height="44" fill="#000"/>
+        <rect x="54"  width="3" height="44" fill="#000"/>
+        <rect x="59"  width="1" height="44" fill="#000"/>
+        <rect x="62"  width="2" height="44" fill="#000"/>
+        <rect x="67"  width="1" height="44" fill="#000"/>
+        <rect x="71"  width="3" height="44" fill="#000"/>
+        <rect x="76"  width="2" height="44" fill="#000"/>
+        <!-- Guarda central -->
+        <rect x="83"  width="1" height="50" fill="#000"/>
+        <rect x="86"  width="1" height="50" fill="#000"/>
+        <rect x="89"  width="1" height="50" fill="#000"/>
+        <!-- Dígitos grupo 2 -->
+        <rect x="94"  width="3" height="44" fill="#000"/>
+        <rect x="99"  width="1" height="44" fill="#000"/>
+        <rect x="103" width="2" height="44" fill="#000"/>
+        <rect x="107" width="3" height="44" fill="#000"/>
+        <rect x="113" width="1" height="44" fill="#000"/>
+        <rect x="116" width="2" height="44" fill="#000"/>
+        <rect x="120" width="1" height="44" fill="#000"/>
+        <rect x="124" width="3" height="44" fill="#000"/>
+        <rect x="129" width="2" height="44" fill="#000"/>
+        <rect x="133" width="1" height="44" fill="#000"/>
+        <rect x="137" width="3" height="44" fill="#000"/>
+        <rect x="142" width="1" height="44" fill="#000"/>
+        <rect x="146" width="2" height="44" fill="#000"/>
+        <rect x="151" width="3" height="44" fill="#000"/>
+        <!-- Guardas derecha -->
+        <rect x="158" width="2" height="50" fill="#000"/>
+        <rect x="162" width="2" height="50" fill="#000"/>
+        <rect x="166" width="2" height="50" fill="#000"/>
+      </svg>
+      <div class="barcode-number">7 80123 45678 5</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
