@@ -615,10 +615,15 @@ const BookingsManagement = () => {
                 const estimated = Math.max(0, parseFloat(value) || 0)
                 // Validar que no exceda el stock disponible
                 const inventoryItem = inventoryItems.find(inv => inv.id === item.item_id)
-                const maxStock = inventoryItem ? inventoryItem.current_stock : Infinity
+                // Redondear a 2 decimales y tratar valores muy pequeños como 0
+                let maxStock = inventoryItem ? inventoryItem.current_stock : Infinity
+                if (maxStock !== Infinity) {
+                    maxStock = Math.round(maxStock * 100) / 100
+                    if (maxStock < 0.01) maxStock = 0
+                }
 
                 if (estimated > maxStock) {
-                    toast.error(`No puedes llevar más de ${maxStock} ${getShortUnit(item.unit)} (stock disponible)`)
+                    toast.error(`No puedes llevar más de ${maxStock.toFixed(2)} ${getShortUnit(item.unit)} (stock disponible)`)
                     return prev // No actualizar si excede stock
                 }
 
@@ -3183,16 +3188,18 @@ const BookingsManagement = () => {
                                                                                 size="small"
                                                                                 options={inventoryItems}
                                                                                 getOptionLabel={(option) => option?.name || ''}
-                                                                                renderOption={(props, option) => (
+                                                                                renderOption={(props, option) => {
+                                                                                    const stock = Math.round((option.current_stock || 0) * 100) / 100
+                                                                                    return (
                                                                                     <li {...props} key={option.id}>
                                                                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                                                             <span>{option.name}</span>
                                                                                             <Typography variant="caption" color="text.secondary">
-                                                                                                ({option.current_stock} {option.unit})
+                                                                                                ({stock < 0.01 ? 0 : stock.toFixed(2)} {option.unit})
                                                                                             </Typography>
                                                                                         </Box>
                                                                                     </li>
-                                                                                )}
+                                                                                )}}
                                                                                 value={inventoryItems.find(inv => inv.id === item.item_id) || null}
                                                                                 onChange={(e, newValue) => handleSupplyItemChange(index, 'item_id', newValue ? newValue.id : '')}
                                                                                 renderInput={(params) => (
@@ -3666,16 +3673,18 @@ const BookingsManagement = () => {
                                                                                     size="small"
                                                                                     options={inventoryItems}
                                                                                     getOptionLabel={(option) => option?.name || ''}
-                                                                                    renderOption={(props, option) => (
+                                                                                    renderOption={(props, option) => {
+                                                                                        const stock = Math.round((option.current_stock || 0) * 100) / 100
+                                                                                        return (
                                                                                         <li {...props} key={option.id}>
                                                                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                                                                 <span>{option.name}</span>
                                                                                                 <Typography variant="caption" color="text.secondary">
-                                                                                                    ({option.current_stock} {option.unit})
+                                                                                                    ({stock < 0.01 ? 0 : stock.toFixed(2)} {option.unit})
                                                                                                 </Typography>
                                                                                             </Box>
                                                                                         </li>
-                                                                                    )}
+                                                                                    )}}
                                                                                     value={inventoryItems.find(inv => inv.id === item.item_id) || null}
                                                                                     onChange={(e, newValue) => handleSupplyItemChange(index, 'item_id', newValue ? newValue.id : '')}
                                                                                     renderInput={(params) => (

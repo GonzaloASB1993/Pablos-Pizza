@@ -736,7 +736,10 @@ const VacuumSalesManagement = () => {
                 <Grid item xs={12} md={4}>
                   <Autocomplete
                     options={products}
-                    getOptionLabel={(option) => `${option.name} (Stock: ${option.current_stock} ${option.unit || 'unidades'})`}
+                    getOptionLabel={(option) => {
+                      const stock = Math.round((option.current_stock || 0) * 100) / 100
+                      return `${option.name} (Stock: ${stock < 0.01 ? 0 : stock.toFixed(2)} ${option.unit || 'unidades'})`
+                    }}
                     value={products.find(p => p.id === newItem.product_id) || null}
                     onChange={(_, newValue) => {
                       setNewItem(prev => ({

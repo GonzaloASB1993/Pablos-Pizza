@@ -2052,6 +2052,8 @@ def update_inventory_stock(item_id):
         else:
             return jsonify({'error': 'Invalid operation'}), 400
 
+        # Redondear a 2 decimales para evitar errores de precisión flotante
+        final_stock = round(final_stock, 2)
         needs_restock = final_stock <= min_stock
 
         item_ref.update({
@@ -2783,6 +2785,8 @@ def complete_production_batch(batch_id):
             if item_doc.exists:
                 item_data = item_doc.to_dict()
                 new_stock = max(0, item_data['current_stock'] - ingredient['quantity'])
+                # Redondear a 2 decimales para evitar errores de precisión flotante
+                new_stock = round(new_stock, 2)
                 needs_restock = new_stock <= item_data['min_stock']
 
                 item_ref.update({
@@ -3504,6 +3508,8 @@ def create_event_consumption():
                     if inventory_doc.exists:
                         inventory_data = inventory_doc.to_dict()
                         restored_stock = inventory_data['current_stock'] + abs(old_item['actual_quantity_consumed'])
+                        # Redondear a 2 decimales para evitar errores de precisión flotante
+                        restored_stock = round(restored_stock, 2)
                         inventory_ref.update({
                             'current_stock': restored_stock,
                             'needs_restock': restored_stock <= inventory_data.get('min_stock', 0),
@@ -3646,6 +3652,8 @@ def create_event_consumption():
 
             # Actualizar stock en inventario
             new_stock = inventory_data['current_stock'] - item['actual_quantity_consumed']
+            # Redondear a 2 decimales para evitar errores de precisión flotante
+            new_stock = round(new_stock, 2)
             needs_restock = new_stock <= inventory_data.get('min_stock', 0)
 
             inventory_ref.update({

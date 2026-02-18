@@ -20,6 +20,7 @@ export const formatCurrency = (amount) => {
 
 /**
  * Format stock/quantity numbers - show decimals only when necessary
+ * Handles floating point precision errors by rounding to 2 decimals
  * @param {number} amount - The amount to format
  * @param {boolean} forceInteger - Force integer display
  * @returns {string} - Formatted number string
@@ -27,12 +28,18 @@ export const formatCurrency = (amount) => {
 export const formatStock = (amount, forceInteger = true) => {
   if (amount == null || isNaN(amount)) return '0'
 
-  if (forceInteger || amount % 1 === 0) {
-    return Math.round(amount).toString()
+  // Redondear a 2 decimales para evitar errores de precisión flotante
+  let rounded = Math.round(amount * 100) / 100
+
+  // Tratar valores muy pequeños como 0
+  if (Math.abs(rounded) < 0.01) rounded = 0
+
+  if (forceInteger || rounded % 1 === 0) {
+    return Math.round(rounded).toString()
   }
 
   // Show up to 2 decimals for fractional amounts
-  return Number(amount).toFixed(2).replace(/\.?0+$/, '')
+  return rounded.toFixed(2).replace(/\.?0+$/, '')
 }
 
 /**

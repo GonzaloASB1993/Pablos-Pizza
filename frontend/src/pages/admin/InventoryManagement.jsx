@@ -1081,7 +1081,7 @@ const InventoryManagement = () => {
                         <TableCell>
                           <Box>
                             <Typography variant="body2">
-                              {item.current_stock} {item.unit}
+                              {formatStock(item.current_stock, false)} {item.unit}
                             </Typography>
                             <LinearProgress
                               variant="determinate"
