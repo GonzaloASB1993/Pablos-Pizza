@@ -2018,6 +2018,192 @@ def get_inventory_categories():
         print(f"Error getting categories: {e}")
         return jsonify({'error': str(e)}), 500
 
+# Nutritional database for common pizza ingredients (per 100g)
+NUTRITION_DATABASE = {
+    # Harinas
+    'harina': {'calories': 364, 'proteins': 10.3, 'carbohydrates': 76.3, 'sugars': 0.3, 'fats': 1.0, 'saturated_fats': 0.2, 'fiber': 2.7, 'sodium': 2},
+    'harina de trigo': {'calories': 364, 'proteins': 10.3, 'carbohydrates': 76.3, 'sugars': 0.3, 'fats': 1.0, 'saturated_fats': 0.2, 'fiber': 2.7, 'sodium': 2},
+    'harina 000': {'calories': 364, 'proteins': 10.3, 'carbohydrates': 76.3, 'sugars': 0.3, 'fats': 1.0, 'saturated_fats': 0.2, 'fiber': 2.7, 'sodium': 2},
+
+    # Lácteos
+    'mozzarella': {'calories': 280, 'proteins': 28.0, 'carbohydrates': 2.2, 'sugars': 1.0, 'fats': 17.0, 'saturated_fats': 11.0, 'fiber': 0, 'sodium': 627},
+    'queso mozzarella': {'calories': 280, 'proteins': 28.0, 'carbohydrates': 2.2, 'sugars': 1.0, 'fats': 17.0, 'saturated_fats': 11.0, 'fiber': 0, 'sodium': 627},
+    'queso': {'calories': 280, 'proteins': 28.0, 'carbohydrates': 2.2, 'sugars': 1.0, 'fats': 17.0, 'saturated_fats': 11.0, 'fiber': 0, 'sodium': 627},
+    'queso parmesano': {'calories': 431, 'proteins': 38.5, 'carbohydrates': 4.1, 'sugars': 0.9, 'fats': 29.0, 'saturated_fats': 19.0, 'fiber': 0, 'sodium': 1529},
+    'queso cheddar': {'calories': 403, 'proteins': 25.0, 'carbohydrates': 1.3, 'sugars': 0.5, 'fats': 33.0, 'saturated_fats': 21.0, 'fiber': 0, 'sodium': 621},
+    'queso azul': {'calories': 353, 'proteins': 21.0, 'carbohydrates': 2.3, 'sugars': 0.5, 'fats': 29.0, 'saturated_fats': 19.0, 'fiber': 0, 'sodium': 1395},
+    'ricotta': {'calories': 174, 'proteins': 11.3, 'carbohydrates': 3.0, 'sugars': 0.3, 'fats': 13.0, 'saturated_fats': 8.3, 'fiber': 0, 'sodium': 84},
+
+    # Salsas
+    'salsa de tomate': {'calories': 29, 'proteins': 1.3, 'carbohydrates': 5.8, 'sugars': 3.9, 'fats': 0.3, 'saturated_fats': 0.04, 'fiber': 1.2, 'sodium': 331},
+    'tomate': {'calories': 18, 'proteins': 0.9, 'carbohydrates': 3.9, 'sugars': 2.6, 'fats': 0.2, 'saturated_fats': 0.03, 'fiber': 1.2, 'sodium': 5},
+    'tomate triturado': {'calories': 24, 'proteins': 1.2, 'carbohydrates': 4.5, 'sugars': 3.2, 'fats': 0.3, 'saturated_fats': 0.04, 'fiber': 1.0, 'sodium': 9},
+    'pasta de tomate': {'calories': 82, 'proteins': 4.3, 'carbohydrates': 18.9, 'sugars': 12.2, 'fats': 0.5, 'saturated_fats': 0.1, 'fiber': 4.1, 'sodium': 59},
+
+    # Carnes
+    'jamon': {'calories': 145, 'proteins': 21.0, 'carbohydrates': 1.5, 'sugars': 0.0, 'fats': 6.0, 'saturated_fats': 2.0, 'fiber': 0, 'sodium': 1203},
+    'jamon serrano': {'calories': 241, 'proteins': 31.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 12.8, 'saturated_fats': 4.5, 'fiber': 0, 'sodium': 2340},
+    'pepperoni': {'calories': 494, 'proteins': 22.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 44.0, 'saturated_fats': 17.0, 'fiber': 0, 'sodium': 1761},
+    'salame': {'calories': 378, 'proteins': 22.0, 'carbohydrates': 1.2, 'sugars': 0.0, 'fats': 31.0, 'saturated_fats': 11.0, 'fiber': 0, 'sodium': 1890},
+    'tocino': {'calories': 541, 'proteins': 37.0, 'carbohydrates': 1.4, 'sugars': 0.0, 'fats': 42.0, 'saturated_fats': 14.0, 'fiber': 0, 'sodium': 1717},
+    'bacon': {'calories': 541, 'proteins': 37.0, 'carbohydrates': 1.4, 'sugars': 0.0, 'fats': 42.0, 'saturated_fats': 14.0, 'fiber': 0, 'sodium': 1717},
+    'pollo': {'calories': 165, 'proteins': 31.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 3.6, 'saturated_fats': 1.0, 'fiber': 0, 'sodium': 74},
+    'carne molida': {'calories': 254, 'proteins': 17.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 20.0, 'saturated_fats': 8.0, 'fiber': 0, 'sodium': 66},
+    'chorizo': {'calories': 455, 'proteins': 24.0, 'carbohydrates': 2.0, 'sugars': 0.0, 'fats': 38.0, 'saturated_fats': 14.0, 'fiber': 0, 'sodium': 1235},
+
+    # Mariscos
+    'anchoas': {'calories': 131, 'proteins': 20.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 4.8, 'saturated_fats': 1.3, 'fiber': 0, 'sodium': 3668},
+    'atun': {'calories': 130, 'proteins': 29.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 0.6, 'saturated_fats': 0.2, 'fiber': 0, 'sodium': 40},
+    'camaron': {'calories': 99, 'proteins': 24.0, 'carbohydrates': 0.2, 'sugars': 0.0, 'fats': 0.3, 'saturated_fats': 0.1, 'fiber': 0, 'sodium': 111},
+    'mariscos': {'calories': 99, 'proteins': 20.0, 'carbohydrates': 2.0, 'sugars': 0.0, 'fats': 1.0, 'saturated_fats': 0.2, 'fiber': 0, 'sodium': 200},
+
+    # Vegetales
+    'champiñon': {'calories': 22, 'proteins': 3.1, 'carbohydrates': 3.3, 'sugars': 2.0, 'fats': 0.3, 'saturated_fats': 0.05, 'fiber': 1.0, 'sodium': 5},
+    'champiñones': {'calories': 22, 'proteins': 3.1, 'carbohydrates': 3.3, 'sugars': 2.0, 'fats': 0.3, 'saturated_fats': 0.05, 'fiber': 1.0, 'sodium': 5},
+    'hongos': {'calories': 22, 'proteins': 3.1, 'carbohydrates': 3.3, 'sugars': 2.0, 'fats': 0.3, 'saturated_fats': 0.05, 'fiber': 1.0, 'sodium': 5},
+    'cebolla': {'calories': 40, 'proteins': 1.1, 'carbohydrates': 9.3, 'sugars': 4.2, 'fats': 0.1, 'saturated_fats': 0.02, 'fiber': 1.7, 'sodium': 4},
+    'pimenton': {'calories': 31, 'proteins': 1.0, 'carbohydrates': 6.0, 'sugars': 4.2, 'fats': 0.3, 'saturated_fats': 0.04, 'fiber': 2.1, 'sodium': 4},
+    'pimiento': {'calories': 31, 'proteins': 1.0, 'carbohydrates': 6.0, 'sugars': 4.2, 'fats': 0.3, 'saturated_fats': 0.04, 'fiber': 2.1, 'sodium': 4},
+    'morron': {'calories': 31, 'proteins': 1.0, 'carbohydrates': 6.0, 'sugars': 4.2, 'fats': 0.3, 'saturated_fats': 0.04, 'fiber': 2.1, 'sodium': 4},
+    'aceitunas': {'calories': 115, 'proteins': 0.8, 'carbohydrates': 6.0, 'sugars': 0.0, 'fats': 11.0, 'saturated_fats': 1.4, 'fiber': 3.2, 'sodium': 735},
+    'alcachofa': {'calories': 47, 'proteins': 3.3, 'carbohydrates': 10.5, 'sugars': 1.0, 'fats': 0.2, 'saturated_fats': 0.04, 'fiber': 5.4, 'sodium': 94},
+    'espinaca': {'calories': 23, 'proteins': 2.9, 'carbohydrates': 3.6, 'sugars': 0.4, 'fats': 0.4, 'saturated_fats': 0.06, 'fiber': 2.2, 'sodium': 79},
+    'rucula': {'calories': 25, 'proteins': 2.6, 'carbohydrates': 3.7, 'sugars': 2.1, 'fats': 0.7, 'saturated_fats': 0.09, 'fiber': 1.6, 'sodium': 27},
+    'albahaca': {'calories': 22, 'proteins': 3.2, 'carbohydrates': 2.7, 'sugars': 0.3, 'fats': 0.6, 'saturated_fats': 0.04, 'fiber': 1.6, 'sodium': 4},
+    'ajo': {'calories': 149, 'proteins': 6.4, 'carbohydrates': 33.0, 'sugars': 1.0, 'fats': 0.5, 'saturated_fats': 0.09, 'fiber': 2.1, 'sodium': 17},
+    'jalapeño': {'calories': 29, 'proteins': 0.9, 'carbohydrates': 6.5, 'sugars': 4.1, 'fats': 0.4, 'saturated_fats': 0.04, 'fiber': 2.8, 'sodium': 3},
+    'palta': {'calories': 160, 'proteins': 2.0, 'carbohydrates': 8.5, 'sugars': 0.7, 'fats': 15.0, 'saturated_fats': 2.1, 'fiber': 6.7, 'sodium': 7},
+    'aguacate': {'calories': 160, 'proteins': 2.0, 'carbohydrates': 8.5, 'sugars': 0.7, 'fats': 15.0, 'saturated_fats': 2.1, 'fiber': 6.7, 'sodium': 7},
+    'piña': {'calories': 50, 'proteins': 0.5, 'carbohydrates': 13.0, 'sugars': 10.0, 'fats': 0.1, 'saturated_fats': 0.01, 'fiber': 1.4, 'sodium': 1},
+
+    # Aceites y grasas
+    'aceite de oliva': {'calories': 884, 'proteins': 0.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 100.0, 'saturated_fats': 14.0, 'fiber': 0, 'sodium': 2},
+    'aceite': {'calories': 884, 'proteins': 0.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 100.0, 'saturated_fats': 14.0, 'fiber': 0, 'sodium': 0},
+    'mantequilla': {'calories': 717, 'proteins': 0.9, 'carbohydrates': 0.1, 'sugars': 0.1, 'fats': 81.0, 'saturated_fats': 51.0, 'fiber': 0, 'sodium': 643},
+
+    # Condimentos
+    'sal': {'calories': 0, 'proteins': 0.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 0.0, 'saturated_fats': 0.0, 'fiber': 0, 'sodium': 38758},
+    'oregano': {'calories': 265, 'proteins': 9.0, 'carbohydrates': 69.0, 'sugars': 4.1, 'fats': 4.3, 'saturated_fats': 1.6, 'fiber': 42.5, 'sodium': 25},
+    'pimienta': {'calories': 251, 'proteins': 10.0, 'carbohydrates': 64.0, 'sugars': 0.6, 'fats': 3.3, 'saturated_fats': 1.4, 'fiber': 25.3, 'sodium': 20},
+    'azucar': {'calories': 387, 'proteins': 0.0, 'carbohydrates': 100.0, 'sugars': 100.0, 'fats': 0.0, 'saturated_fats': 0.0, 'fiber': 0, 'sodium': 1},
+
+    # Otros
+    'levadura': {'calories': 325, 'proteins': 40.0, 'carbohydrates': 41.0, 'sugars': 0.0, 'fats': 2.0, 'saturated_fats': 0.3, 'fiber': 8.5, 'sodium': 51},
+    'huevo': {'calories': 155, 'proteins': 13.0, 'carbohydrates': 1.1, 'sugars': 1.1, 'fats': 11.0, 'saturated_fats': 3.3, 'fiber': 0, 'sodium': 124},
+    'agua': {'calories': 0, 'proteins': 0.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 0.0, 'saturated_fats': 0.0, 'fiber': 0, 'sodium': 0},
+    'leche': {'calories': 61, 'proteins': 3.2, 'carbohydrates': 4.8, 'sugars': 5.0, 'fats': 3.3, 'saturated_fats': 1.9, 'fiber': 0, 'sodium': 43},
+}
+
+
+@app.route('/api/inventory/nutrition-lookup', methods=['GET'])
+def get_nutrition_lookup():
+    """Get suggested nutritional values based on ingredient name"""
+    try:
+        ingredient_name = request.args.get('name', '').lower().strip()
+
+        if not ingredient_name:
+            return jsonify({'error': 'Ingredient name is required'}), 400
+
+        # Try exact match first
+        if ingredient_name in NUTRITION_DATABASE:
+            return jsonify({
+                'found': True,
+                'exact_match': True,
+                'ingredient': ingredient_name,
+                'nutrition_info': NUTRITION_DATABASE[ingredient_name]
+            })
+
+        # Try partial match
+        matches = []
+        for key, value in NUTRITION_DATABASE.items():
+            if ingredient_name in key or key in ingredient_name:
+                matches.append({'name': key, 'nutrition_info': value})
+
+        if matches:
+            # Return the best match (first one found)
+            return jsonify({
+                'found': True,
+                'exact_match': False,
+                'ingredient': ingredient_name,
+                'matches': matches,
+                'nutrition_info': matches[0]['nutrition_info']  # Best guess
+            })
+
+        # No match found
+        return jsonify({
+            'found': False,
+            'ingredient': ingredient_name,
+            'message': 'No nutritional data found for this ingredient',
+            'available_ingredients': list(NUTRITION_DATABASE.keys())
+        })
+
+    except Exception as e:
+        print(f"Error looking up nutrition: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/inventory/<item_id>/auto-nutrition', methods=['POST'])
+def auto_fill_nutrition(item_id):
+    """Auto-fill nutritional information for an inventory item based on its name"""
+    try:
+        db = get_db()
+        if not db:
+            return jsonify({'error': 'Database connection failed'}), 500
+
+        item_ref = db.collection('inventory').document(item_id)
+        doc = item_ref.get()
+
+        if not doc.exists:
+            return jsonify({'error': 'Item not found'}), 404
+
+        item_data = doc.to_dict()
+        item_name = item_data.get('name', '').lower().strip()
+
+        # Remove common suffixes/prefixes for better matching
+        clean_name = item_name.replace('(producido)', '').replace('fresco', '').replace('seco', '').strip()
+
+        # Try to find matching nutrition data
+        nutrition_info = None
+        matched_name = None
+
+        # Try exact match
+        if clean_name in NUTRITION_DATABASE:
+            nutrition_info = NUTRITION_DATABASE[clean_name]
+            matched_name = clean_name
+        else:
+            # Try partial match
+            for key in NUTRITION_DATABASE:
+                if key in clean_name or clean_name in key:
+                    nutrition_info = NUTRITION_DATABASE[key]
+                    matched_name = key
+                    break
+
+        if nutrition_info:
+            # Update the item with the found nutrition info
+            item_ref.update({
+                'nutrition_info': nutrition_info,
+                'nutrition_auto_filled': True,
+                'nutrition_matched_from': matched_name,
+                'last_updated': datetime.now()
+            })
+
+            return jsonify({
+                'success': True,
+                'message': f'Nutritional info auto-filled from "{matched_name}"',
+                'nutrition_info': nutrition_info
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'No nutritional data found for "{item_name}"',
+                'suggestion': 'Please enter nutritional values manually'
+            })
+
+    except Exception as e:
+        print(f"Error auto-filling nutrition: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/inventory/alerts', methods=['GET'])
 def get_inventory_alerts():
     """Get items that need restocking"""
@@ -3378,6 +3564,7 @@ def get_production_batch_label(batch_id):
             'sodium': 0.0
         }
         total_weight_grams = 0.0
+        ingredients_with_weight = []
 
         for ingredient in recipe_data.get('ingredients', []):
             inventory_doc = db.collection('inventory').document(ingredient['item_id']).get()
@@ -3389,7 +3576,7 @@ def get_production_batch_label(batch_id):
                 quantity = float(ingredient.get('quantity', 0))
                 unit = inventory_data.get('unit', 'g')
 
-                # Convert to grams
+                # Convert to grams for nutrition calculation
                 if unit == 'kg':
                     weight_grams = quantity * 1000
                 elif unit == 'l':
@@ -3397,8 +3584,17 @@ def get_production_batch_label(batch_id):
                 elif unit == 'ml':
                     weight_grams = quantity
                 else:
+                    # For 'g' or other units, use quantity directly
                     weight_grams = quantity
 
+                # Store ingredient with weight for sorting
+                ingredients_with_weight.append({
+                    'name': inventory_data.get('name', 'Ingrediente'),
+                    'weight_grams': weight_grams,
+                    'category': inventory_data.get('category', '')
+                })
+
+                # Calculate nutrition contribution (nutrition_info is per 100g)
                 factor = weight_grams / 100.0
 
                 for key in total_nutrition:
@@ -3406,23 +3602,37 @@ def get_production_batch_label(batch_id):
 
                 total_weight_grams += weight_grams
 
+        # Sort ingredients by weight (descending) for label
+        ingredients_with_weight.sort(key=lambda x: x['weight_grams'], reverse=True)
+        sorted_ingredients_list = ', '.join([ing['name'] for ing in ingredients_with_weight])
+
         # Calculate per 100g of output
+        # IMPORTANT: Use total_weight_grams as the actual product weight
+        # This is more accurate than trying to convert "unidades" to grams
         output_quantity = float(recipe_data.get('output_quantity', 1))
         output_unit = recipe_data.get('output_unit', 'g')
 
+        # Determine output weight in grams
         if output_unit == 'kg':
             output_grams = output_quantity * 1000
         elif output_unit == 'l':
             output_grams = output_quantity * 1000
         elif output_unit == 'ml':
             output_grams = output_quantity
-        else:
+        elif output_unit == 'g':
             output_grams = output_quantity
+        else:
+            # For units like "unidades", "pizzas", etc., use the total ingredient weight
+            # This is the actual weight of the finished product
+            output_grams = total_weight_grams
 
         # Multiply by number of batches produced
         quantity_produced = float(batch_data.get('quantity_to_produce', 1))
         total_output_grams = output_grams * quantity_produced
 
+        # Calculate nutrition per 100g of output
+        # total_nutrition contains the nutrition for the entire batch (all ingredients)
+        # We need to calculate per 100g of finished product
         per_100g_factor = 100.0 / output_grams if output_grams > 0 else 0
         nutrition_per_100g = {key: round(value * per_100g_factor, 2) for key, value in total_nutrition.items()}
 
@@ -3471,13 +3681,15 @@ def get_production_batch_label(batch_id):
             'product_name': recipe_data.get('name', 'Producto'),
             'quantity_produced': batch_data.get('output_quantity', 0),
             'output_unit': batch_data.get('output_unit', 'unidades'),
-            'total_output_grams': total_output_grams,
+            'total_output_grams': round(total_output_grams, 0),
+            'total_weight_grams': round(output_grams, 0),  # Weight of one unit
             'production_date': production_datetime.strftime('%Y-%m-%d') if hasattr(production_datetime, 'strftime') else str(production_datetime)[:10],
             'expiration_date': expiration_date.strftime('%Y-%m-%d') if hasattr(expiration_date, 'strftime') else str(expiration_date)[:10],
             'shelf_life_days': shelf_life_days,
             'nutrition_per_100g': nutrition_per_100g,
             'allergens': recipe_data.get('allergens', []),
-            'ingredients_list': ', '.join([ing.get('item_name', '') for ing in batch_data.get('ingredients_consumed', [])]),
+            'ingredients_list': sorted_ingredients_list,  # Sorted by weight (descending)
+            'ingredients_detail': ingredients_with_weight,  # Full details for debugging
             'company_info': {
                 'name': "Pablo's Pizza",
                 'address': 'Chile',

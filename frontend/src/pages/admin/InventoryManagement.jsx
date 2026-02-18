@@ -35,7 +35,7 @@ import {
   ListItemText,
   InputAdornment
 } from '@mui/material'
-import { Add, Edit, Delete, Warning, Inventory, Kitchen, Build, Timeline, ArrowDownward, ArrowUpward, AddBox, Visibility, SwapHoriz, Search, RemoveCircleOutline, Undo } from '@mui/icons-material'
+import { Add, Edit, Delete, Warning, Inventory, Kitchen, Build, Timeline, ArrowDownward, ArrowUpward, AddBox, Visibility, SwapHoriz, Search, RemoveCircleOutline, Undo, AutoAwesome } from '@mui/icons-material'
 import { inventoryAPI, recipesAPI } from '../../services/api'
 import { formatCurrency, formatStock, safeFormatCost, formatDateTime } from '../../utils/formatters'
 import UnitConverter from '../../components/UnitConverter'
@@ -381,6 +381,41 @@ const InventoryManagement = () => {
       reason: 'damaged',
       notes: ''
     })
+  }
+
+  const handleAutoFillNutrition = async () => {
+    if (!formData.name) {
+      toast.error('Primero ingresa el nombre del ingrediente')
+      return
+    }
+
+    try {
+      const response = await inventoryAPI.nutritionLookup(formData.name)
+      const data = response.data
+
+      if (data.found && data.nutrition_info) {
+        setFormData({
+          ...formData,
+          nutrition_info: {
+            calories: data.nutrition_info.calories?.toString() || '',
+            proteins: data.nutrition_info.proteins?.toString() || '',
+            carbohydrates: data.nutrition_info.carbohydrates?.toString() || '',
+            sugars: data.nutrition_info.sugars?.toString() || '',
+            fats: data.nutrition_info.fats?.toString() || '',
+            saturated_fats: data.nutrition_info.saturated_fats?.toString() || '',
+            fiber: data.nutrition_info.fiber?.toString() || '',
+            sodium: data.nutrition_info.sodium?.toString() || ''
+          }
+        })
+        const matchInfo = data.exact_match ? '' : ` (basado en "${data.matches?.[0]?.name || 'ingrediente similar'}")`
+        toast.success(`Valores nutricionales auto-completados${matchInfo}`)
+      } else {
+        toast.error(`No se encontraron datos nutricionales para "${formData.name}". Ingresa los valores manualmente.`)
+      }
+    } catch (error) {
+      console.error('Error auto-filling nutrition:', error)
+      toast.error('Error al buscar información nutricional')
+    }
   }
 
   const handleRevertWaste = async (movementId) => {
@@ -1371,11 +1406,24 @@ const InventoryManagement = () => {
             {/* Nutritional Information Section */}
             <Grid item xs={12}>
               <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                📊 Información Nutricional (por 100g/100ml)
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  📊 Información Nutricional (por 100g/100ml)
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AutoAwesome />}
+                  onClick={handleAutoFillNutrition}
+                  disabled={!formData.name}
+                  color="secondary"
+                >
+                  Auto-completar
+                </Button>
+              </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Estos valores se utilizan para calcular la información nutricional de los productos terminados.
+                Haz clic en "Auto-completar" para llenar automáticamente según el nombre del ingrediente.
               </Typography>
             </Grid>
 

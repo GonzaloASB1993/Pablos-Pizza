@@ -390,6 +390,9 @@ export const inventoryAPI = {
   getMovements: (params = {}) => api.get('/inventory-movements/', { params }),
   getMovement: (id) => api.get(`/inventory/movements/${id}`),
   revertWaste: (movementId) => api.post(`/inventory/movements/${movementId}/revert`),
+  // Nutrition auto-fill
+  nutritionLookup: (name) => api.get('/inventory/nutrition-lookup', { params: { name } }),
+  autoFillNutrition: (id) => api.post(`/inventory/${id}/auto-nutrition`),
 }
 
 export const recipesAPI = {

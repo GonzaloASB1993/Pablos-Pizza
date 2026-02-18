@@ -456,7 +456,7 @@ const ProductionManagement = () => {
               <div class="variant">Pizza 25 cm · Envasado al vacío</div>
               <div><span class="vacuum-badge">Al vacío</span></div>
             </div>
-            <div class="weight">${labelData.total_output_grams || 420} g<span>Peso neto</span></div>
+            <div class="weight">${labelData.total_weight_grams || 420} g<span>Peso neto</span></div>
           </div>
 
           <div class="label-meta">
@@ -1088,7 +1088,7 @@ const ProductionManagement = () => {
                   </Box>
                   <Box sx={{ textAlign: 'right' }}>
                     <Typography sx={{ fontFamily: 'monospace', fontSize: '18px', fontWeight: 700 }}>
-                      {labelData.total_output_grams || 420} g
+                      {labelData.total_weight_grams || 420} g
                     </Typography>
                     <Typography sx={{ fontSize: '8px' }}>Peso neto</Typography>
                   </Box>
