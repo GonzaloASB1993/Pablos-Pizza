@@ -339,6 +339,46 @@
 
 ---
 
+## 💳 M_MP: Integración MercadoPago - Pago de Abonos
+**Duración**: 2-3 semanas
+**Estado**: Pendiente
+
+### Backend - MercadoPago API
+- [ ] Configurar credenciales MercadoPago (Access Token, Public Key) en variables de entorno
+- [ ] Instalar SDK de MercadoPago para Python (`mercadopago`)
+- [ ] Endpoint `POST /api/payments/create-preference` para crear preferencia de pago
+  - Recibe: booking_id, monto_abono, descripción
+  - Retorna: preference_id, init_point (URL de pago)
+- [ ] Endpoint `POST /api/payments/webhook` para recibir notificaciones de MercadoPago
+  - Validar firma del webhook
+  - Actualizar estado del pago en Firestore
+  - Actualizar abono en la reserva correspondiente
+- [ ] Endpoint `GET /api/payments/status/:payment_id` para consultar estado de pago
+- [ ] Modelo de datos `payments` en Firestore con campos: booking_id, payment_id, monto, estado, fecha, metodo_pago
+
+### Frontend - Flujo de Pago
+- [ ] Botón "Pagar Abono" en vista de reserva del cliente (página pública)
+- [ ] Modal de confirmación con monto del abono antes de redirigir a MercadoPago
+- [ ] Página de resultado post-pago (`/pago/exitoso`, `/pago/fallido`, `/pago/pendiente`)
+- [ ] Mostrar comprobante básico con número de operación MercadoPago
+- [ ] En Admin Panel: historial de pagos por reserva con estado (aprobado/pendiente/rechazado)
+- [ ] Badge visual en BookingsManagement indicando si la reserva tiene abono pagado online
+
+### Lógica de Negocio - Abonos
+- [ ] Definir monto del abono: porcentaje fijo (ej. 30%) o monto fijo por configuración admin
+- [ ] Al aprobar pago: marcar abono como pagado en booking, enviar notificación WhatsApp al admin
+- [ ] Enviar comprobante automático por email al cliente al confirmar pago
+- [ ] Prevenir doble pago: deshabilitar botón si abono ya está pagado
+- [ ] Refund handling: flujo manual para devoluciones desde admin panel
+
+### Testing & Seguridad
+- [ ] Probar con tarjetas de prueba MercadoPago en ambiente sandbox
+- [ ] Validar webhook con firma HMAC antes de procesar
+- [ ] Manejo de estados intermedios: pago pendiente (transferencia bancaria)
+- [ ] Deploy en producción y prueba con pago real de monto mínimo
+
+---
+
 ## 🌍 M7: Scalability & Multi-tenant (Future)
 **Duración**: 6-8 semanas
 **Estado**: Futuro
@@ -468,5 +508,5 @@
 **Última actualización**: Marzo 2026
 **Total tareas activas**: 55+ items
 **Estado del proyecto**: M0 ✅, M1 ✅, M2 ✅, M3 ✅, M_NUT ✅ COMPLETADO
-**Próximo milestone**: M4 - Mobile Experience Enhancement
+**Próximo milestone**: M_MP - Integración MercadoPago Abonos
 **Último cambio**: Sistema nutricional completo - CSV con fuzzy matching, etiquetas mejoradas, auto-llenado (21/03/2026)
