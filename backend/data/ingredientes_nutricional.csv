@@ -1,0 +1,76 @@
+id,nombre,categoria,energia_kcal,proteinas_g,grasas_totales_g,grasas_saturadas_g,grasas_trans_g,grasas_insaturadas_g,carbohidratos_g,azucares_g,fibra_g,sodio_mg,colesterol_mg,calcio_mg,hierro_mg,alergenos
+1,Harina de trigo (todo uso),Masas y harinas,364,10.3,1.0,0.2,0.0,0.8,76.3,0.3,2.7,2,0,15,1.2,gluten
+2,Harina de trigo integral,Masas y harinas,340,13.2,2.5,0.4,0.0,2.1,72.0,0.4,10.7,5,0,34,3.6,gluten
+3,Harina sin gluten (arroz),Masas y harinas,366,6.0,0.5,0.1,0.0,0.4,80.4,0.1,2.4,0,0,10,0.4,—
+4,Harina de semolina,Masas y harinas,360,12.7,1.1,0.2,0.0,0.9,72.8,0.8,3.9,1,0,17,1.6,gluten
+5,Levadura fresca,Masas y harinas,105,8.4,1.9,0.2,0.0,1.7,18.1,0.0,8.1,30,0,19,2.2,—
+6,Aceite de oliva virgen extra,Aceites y grasas,884,0.0,100.0,13.8,0.0,86.2,0.0,0.0,0.0,2,0,1,0.6,—
+7,Aceite vegetal (girasol),Aceites y grasas,884,0.0,100.0,10.3,0.0,89.7,0.0,0.0,0.0,0,0,0,0.0,—
+8,Mantequilla,Aceites y grasas,717,0.9,81.1,51.4,3.3,26.4,0.1,0.1,0.0,643,215,24,0.0,lacteos
+9,Salsa de tomate (base),Salsas,29,1.3,0.2,0.0,0.0,0.2,6.3,4.0,1.2,331,0,13,0.5,—
+10,Salsa de tomate casera (sin sal),Salsas,29,1.3,0.2,0.0,0.0,0.2,6.3,4.0,1.2,20,0,13,0.5,—
+11,Salsa BBQ,Salsas,172,0.8,0.6,0.1,0.0,0.5,41.0,33.0,0.7,1027,0,20,0.8,—
+12,Pesto (albahaca),Salsas,387,4.0,37.0,6.5,0.0,30.5,6.0,1.5,2.0,980,5,110,2.0,frutos secos; lacteos
+13,Crema de leche (nata),Salsas,340,2.1,36.1,22.5,1.2,12.4,2.8,0.1,0.0,35,137,65,0.1,lacteos
+14,Salsa ranch,Salsas,477,1.1,50.0,7.8,0.0,42.2,4.7,2.2,0.4,903,26,27,0.2,lacteos; huevo
+15,Salsa de ajo,Salsas,424,0.5,44.0,6.3,0.0,37.7,6.0,0.0,0.1,860,23,10,0.2,lacteos; huevo
+16,Mozzarella fresca,Quesos,280,22.2,22.4,13.9,0.0,8.5,2.2,1.0,0.0,486,79,505,0.2,lacteos
+17,Mozzarella rallada (block),Quesos,302,22.2,22.9,14.0,0.0,8.9,2.4,0.5,0.0,628,79,575,0.2,lacteos
+18,Queso parmesano,Quesos,420,28.4,28.0,17.3,0.0,10.7,3.2,0.9,0.0,1376,88,1109,0.5,lacteos
+19,Queso cheddar,Quesos,403,24.9,33.1,21.1,1.0,11.0,1.3,0.5,0.0,621,99,721,0.7,lacteos
+20,Queso azul (gorgonzola),Quesos,353,21.4,28.7,18.7,0.7,9.3,2.3,0.5,0.0,1395,75,528,0.3,lacteos
+21,Queso brie,Quesos,334,20.8,27.7,17.4,0.0,10.3,0.5,0.5,0.0,629,100,184,0.5,lacteos
+22,Queso de cabra (fresco),Quesos,268,18.5,21.1,14.6,0.0,6.5,0.1,0.0,0.0,368,65,298,1.9,lacteos
+23,Queso gouda,Quesos,356,24.9,27.4,17.6,0.0,9.8,2.2,0.0,0.0,819,114,700,0.2,lacteos
+24,Queso ricotta,Quesos,174,11.3,13.0,8.3,0.0,4.7,3.0,0.3,0.0,84,51,207,0.4,lacteos
+25,Queso manchego curado,Quesos,390,25.0,30.0,19.0,0.0,11.0,1.0,0.0,0.0,950,90,750,0.3,lacteos
+26,Pepperoni,Carnes y embutidos,504,19.3,46.3,17.7,0.0,28.6,1.2,0.0,0.0,1582,97,8,1.1,—
+27,Jamón serrano,Carnes y embutidos,241,30.5,12.0,4.2,0.0,7.8,0.5,0.0,0.0,2300,65,9,2.3,—
+28,Jamón cocido (de pavo),Carnes y embutidos,126,20.0,4.0,1.3,0.0,2.7,2.0,1.5,0.0,1050,55,10,0.8,—
+29,Tocino / bacon,Carnes y embutidos,541,37.0,42.0,14.0,0.1,28.0,1.4,0.0,0.0,1717,110,11,1.0,—
+30,Chorizo,Carnes y embutidos,455,24.1,38.3,14.5,0.0,23.8,1.9,0.0,0.0,1235,88,21,2.5,—
+31,Salchicha italiana,Carnes y embutidos,304,14.2,27.0,9.3,0.0,17.7,3.4,0.0,0.0,749,74,14,1.4,—
+32,Pollo a la plancha (pechuga),Carnes y embutidos,165,31.0,3.6,1.0,0.0,2.6,0.0,0.0,0.0,74,85,15,1.0,—
+33,Carne molida (res 80/20),Carnes y embutidos,254,17.2,20.0,7.7,1.0,11.3,0.0,0.0,0.0,72,78,18,2.3,—
+34,Anchoas en aceite,Mariscos,210,29.2,9.7,2.2,0.0,7.5,0.0,0.0,0.0,3668,60,232,4.6,pescado
+35,Camarones cocidos,Mariscos,99,24.0,0.3,0.1,0.0,0.2,0.2,0.0,0.0,111,189,64,3.1,mariscos
+36,Pulpo cocido,Mariscos,164,29.8,2.1,0.5,0.0,1.6,4.4,0.0,0.0,460,96,106,8.1,mariscos
+37,Tomate (fresco),Vegetales,18,0.9,0.2,0.0,0.0,0.2,3.9,2.6,1.2,5,0,10,0.3,—
+38,Tomate cherry,Vegetales,18,0.9,0.2,0.0,0.0,0.2,3.9,2.7,1.2,5,0,10,0.3,—
+39,Tomate deshidratado,Vegetales,258,14.1,3.0,0.4,0.0,2.6,55.8,37.6,12.3,2095,0,110,9.1,—
+40,Pimiento rojo,Vegetales,31,1.0,0.3,0.0,0.0,0.3,6.0,4.2,2.1,4,0,7,0.4,—
+41,Pimiento verde,Vegetales,20,0.9,0.2,0.0,0.0,0.2,4.6,2.4,1.7,3,0,10,0.3,—
+42,Pimiento amarillo,Vegetales,27,1.0,0.2,0.0,0.0,0.2,6.3,2.4,0.9,2,0,11,0.5,—
+43,Cebolla morada,Vegetales,40,1.1,0.1,0.0,0.0,0.1,9.3,4.2,1.7,4,0,23,0.2,—
+44,Cebolla blanca,Vegetales,40,1.1,0.1,0.0,0.0,0.1,9.3,4.2,1.7,4,0,23,0.2,—
+45,Cebollín (green onion),Vegetales,32,1.8,0.2,0.0,0.0,0.2,7.3,2.3,2.6,16,0,72,1.5,—
+46,Ajo fresco,Vegetales,149,6.4,0.5,0.1,0.0,0.4,33.1,1.0,2.1,17,0,181,1.7,—
+47,Ajo en polvo,Especias y condimentos,331,16.6,0.7,0.1,0.0,0.6,72.7,2.6,9.0,26,0,79,2.3,—
+48,Espinaca fresca,Vegetales,23,2.9,0.4,0.1,0.0,0.3,3.6,0.4,2.2,79,0,99,2.7,—
+49,Rúcula,Vegetales,25,2.6,0.7,0.1,0.0,0.6,3.7,2.1,1.6,27,0,160,1.5,—
+50,Albahaca fresca,Especias y condimentos,23,3.2,0.6,0.0,0.0,0.6,2.6,0.3,1.6,4,0,177,3.2,—
+51,Albahaca seca,Especias y condimentos,233,14.4,4.0,2.2,0.0,1.8,48.0,1.7,38.0,34,0,2240,42.0,—
+52,Orégano seco,Especias y condimentos,265,9.0,4.3,1.6,0.0,2.7,69.0,4.1,42.5,25,0,1597,37.0,—
+53,Pimiento chile (jalapeño),Vegetales,29,0.9,0.4,0.0,0.0,0.4,6.5,4.1,2.8,3,0,12,0.3,—
+54,Aceitunas negras,Vegetales,115,0.8,10.7,1.4,0.0,9.3,6.3,0.0,3.2,735,0,88,6.3,—
+55,Aceitunas verdes,Vegetales,145,1.0,15.3,2.0,0.0,13.3,3.8,0.5,3.3,1556,0,52,0.5,—
+56,Alcachofa (corazón en conserva),Vegetales,53,2.9,0.3,0.1,0.0,0.2,10.5,1.0,5.4,296,0,21,0.6,—
+57,Champiñón (Agaricus bisporus),Hongos,22,3.1,0.3,0.0,0.0,0.3,3.3,2.0,1.0,5,0,3,0.5,—
+58,Portobello,Hongos,22,2.1,0.4,0.1,0.0,0.3,4.0,2.5,1.3,9,0,3,0.3,—
+59,Setas / shiitake,Hongos,34,2.2,0.5,0.1,0.0,0.4,6.8,2.4,2.5,9,0,2,0.4,—
+60,Trufa negra (melanosporum),Hongos,92,6.0,0.5,0.1,0.0,0.4,17.0,0.0,8.0,140,0,50,8.0,—
+61,Piña (ananá) en rodajas,Frutas,50,0.5,0.1,0.0,0.0,0.1,13.1,9.9,1.4,1,0,13,0.3,—
+62,Pera,Frutas,57,0.4,0.1,0.0,0.0,0.1,15.2,9.8,3.1,1,0,9,0.2,—
+63,Higos frescos,Frutas,74,0.8,0.3,0.1,0.0,0.2,19.2,16.3,2.9,1,0,35,0.4,—
+64,Nuez (pecan / walnut),Frutos secos,654,15.2,65.2,6.1,0.0,59.1,13.7,2.6,6.7,0,0,98,2.9,frutos secos
+65,Piñones,Frutos secos,673,13.7,68.4,4.9,0.0,63.5,13.1,3.6,3.7,2,0,16,5.5,frutos secos
+66,Maíz (choclo en grano, cocido),Vegetales,96,3.4,1.5,0.2,0.0,1.3,21.0,4.5,2.4,1,0,2,0.5,—
+67,Remolacha asada,Vegetales,43,1.6,0.2,0.0,0.0,0.2,9.6,7.0,2.8,78,0,16,0.8,—
+68,Aguacate / palta,Vegetales,160,2.0,14.7,2.1,0.0,12.6,8.5,0.7,6.7,7,0,12,0.6,—
+69,Alcaparras en conserva,Condimentos,23,2.4,0.9,0.2,0.0,0.7,4.9,0.4,3.2,2964,0,40,1.7,—
+70,Pepinillos en vinagre,Condimentos,11,0.3,0.2,0.0,0.0,0.2,2.3,1.1,1.2,1208,0,1,0.4,—
+71,Chile en hojuelas (seco),Especias y condimentos,314,12.0,17.3,3.0,0.0,14.3,54.0,10.0,28.0,30,0,148,8.0,—
+72,Sal (cloruro de sodio),Especias y condimentos,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,38758,0,24,0.3,—
+73,Azúcar blanca (masa),Masas y harinas,387,0.0,0.0,0.0,0.0,0.0,99.8,99.8,0.0,1,0,1,0.0,—
+74,Huevo entero,Masas y harinas,147,12.6,9.9,3.1,0.0,6.8,0.8,0.4,0.0,140,423,53,1.8,huevo
+75,Cerveza (para masa),Masas y harinas,43,0.5,0.0,0.0,0.0,0.0,3.6,0.0,0.0,4,0,4,0.0,gluten

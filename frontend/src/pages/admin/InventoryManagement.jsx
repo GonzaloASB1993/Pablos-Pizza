@@ -52,6 +52,9 @@ const InventoryManagement = () => {
   const [currentTab, setCurrentTab] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
   const [stockStatusFilter, setStockStatusFilter] = useState('all') // all, critical, low, medium, good
+  const [nutritionMatchDialog, setNutritionMatchDialog] = useState(false)
+  const [nutritionMatches, setNutritionMatches] = useState([])
+  const [searchingNutrition, setSearchingNutrition] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     product_type: 'raw_material',
@@ -72,8 +75,14 @@ const InventoryManagement = () => {
       sugars: '',
       fats: '',
       saturated_fats: '',
+      trans_fats: '',
+      unsaturated_fats: '',
       fiber: '',
-      sodium: ''
+      sodium: '',
+      cholesterol: '',
+      calcium: '',
+      iron: '',
+      allergens: ''
     }
   })
   const [recipeFormData, setRecipeFormData] = useState({
@@ -160,7 +169,7 @@ const InventoryManagement = () => {
     try {
       let itemData
 
-      // Prepare nutrition_info object with numeric values
+      // Prepare nutrition_info object with numeric values (extended fields)
       const nutritionInfo = {
         calories: parseFloat(formData.nutrition_info.calories) || 0,
         proteins: parseFloat(formData.nutrition_info.proteins) || 0,
@@ -168,8 +177,14 @@ const InventoryManagement = () => {
         sugars: parseFloat(formData.nutrition_info.sugars) || 0,
         fats: parseFloat(formData.nutrition_info.fats) || 0,
         saturated_fats: parseFloat(formData.nutrition_info.saturated_fats) || 0,
+        trans_fats: parseFloat(formData.nutrition_info.trans_fats) || 0,
+        unsaturated_fats: parseFloat(formData.nutrition_info.unsaturated_fats) || 0,
         fiber: parseFloat(formData.nutrition_info.fiber) || 0,
-        sodium: parseFloat(formData.nutrition_info.sodium) || 0
+        sodium: parseFloat(formData.nutrition_info.sodium) || 0,
+        cholesterol: parseFloat(formData.nutrition_info.cholesterol) || 0,
+        calcium: parseFloat(formData.nutrition_info.calcium) || 0,
+        iron: parseFloat(formData.nutrition_info.iron) || 0,
+        allergens: formData.nutrition_info.allergens || ''
       }
 
       if (editingItem) {
@@ -236,8 +251,14 @@ const InventoryManagement = () => {
         sugars: nutritionInfo.sugars?.toString() || '',
         fats: nutritionInfo.fats?.toString() || '',
         saturated_fats: nutritionInfo.saturated_fats?.toString() || '',
+        trans_fats: nutritionInfo.trans_fats?.toString() || '',
+        unsaturated_fats: nutritionInfo.unsaturated_fats?.toString() || '',
         fiber: nutritionInfo.fiber?.toString() || '',
-        sodium: nutritionInfo.sodium?.toString() || ''
+        sodium: nutritionInfo.sodium?.toString() || '',
+        cholesterol: nutritionInfo.cholesterol?.toString() || '',
+        calcium: nutritionInfo.calcium?.toString() || '',
+        iron: nutritionInfo.iron?.toString() || '',
+        allergens: nutritionInfo.allergens || ''
       }
     })
     setDialog(true)
@@ -389,33 +410,55 @@ const InventoryManagement = () => {
       return
     }
 
+    setSearchingNutrition(true)
     try {
       const response = await inventoryAPI.nutritionLookup(formData.name)
       const data = response.data
 
-      if (data.found && data.nutrition_info) {
-        setFormData({
-          ...formData,
-          nutrition_info: {
-            calories: data.nutrition_info.calories?.toString() || '',
-            proteins: data.nutrition_info.proteins?.toString() || '',
-            carbohydrates: data.nutrition_info.carbohydrates?.toString() || '',
-            sugars: data.nutrition_info.sugars?.toString() || '',
-            fats: data.nutrition_info.fats?.toString() || '',
-            saturated_fats: data.nutrition_info.saturated_fats?.toString() || '',
-            fiber: data.nutrition_info.fiber?.toString() || '',
-            sodium: data.nutrition_info.sodium?.toString() || ''
-          }
-        })
-        const matchInfo = data.exact_match ? '' : ` (basado en "${data.matches?.[0]?.name || 'ingrediente similar'}")`
-        toast.success(`Valores nutricionales auto-completados${matchInfo}`)
+      if (data.found) {
+        // Show matches dialog for user to confirm
+        const matches = data.matches || [{
+          name: data.matched_name || data.ingredient,
+          similarity: data.exact_match ? 1.0 : (data.similarity || 0.9),
+          nutrition_info: data.nutrition_info
+        }]
+        setNutritionMatches(matches)
+        setNutritionMatchDialog(true)
       } else {
-        toast.error(`No se encontraron datos nutricionales para "${formData.name}". Ingresa los valores manualmente.`)
+        toast.error(`No se encontraron coincidencias para "${formData.name}". Ingresa los valores manualmente.`)
       }
     } catch (error) {
-      console.error('Error auto-filling nutrition:', error)
+      console.error('Error searching nutrition:', error)
       toast.error('Error al buscar información nutricional')
+    } finally {
+      setSearchingNutrition(false)
     }
+  }
+
+  const handleSelectNutritionMatch = (match) => {
+    const info = match.nutrition_info
+    setFormData({
+      ...formData,
+      nutrition_info: {
+        calories: info.calories?.toString() || '',
+        proteins: info.proteins?.toString() || '',
+        carbohydrates: info.carbohydrates?.toString() || '',
+        sugars: info.sugars?.toString() || '',
+        fats: info.fats?.toString() || '',
+        saturated_fats: info.saturated_fats?.toString() || '',
+        trans_fats: info.trans_fats?.toString() || '',
+        unsaturated_fats: info.unsaturated_fats?.toString() || '',
+        fiber: info.fiber?.toString() || '',
+        sodium: info.sodium?.toString() || '',
+        cholesterol: info.cholesterol?.toString() || '',
+        calcium: info.calcium?.toString() || '',
+        iron: info.iron?.toString() || '',
+        allergens: info.allergens || ''
+      }
+    })
+    setNutritionMatchDialog(false)
+    setNutritionMatches([])
+    toast.success(`Información nutricional aplicada de "${match.name}"`)
   }
 
   const handleRevertWaste = async (movementId) => {
@@ -475,8 +518,14 @@ const InventoryManagement = () => {
         sugars: '',
         fats: '',
         saturated_fats: '',
+        trans_fats: '',
+        unsaturated_fats: '',
         fiber: '',
-        sodium: ''
+        sodium: '',
+        cholesterol: '',
+        calcium: '',
+        iron: '',
+        allergens: ''
       }
     })
   }
@@ -1514,6 +1563,34 @@ const InventoryManagement = () => {
             <Grid item xs={6} sm={3}>
               <TextField
                 fullWidth
+                label="Grasas Trans (g)"
+                type="number"
+                value={formData.nutrition_info.trans_fats}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  nutrition_info: { ...formData.nutrition_info, trans_fats: e.target.value }
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <TextField
+                fullWidth
+                label="Grasas Insaturadas (g)"
+                type="number"
+                value={formData.nutrition_info.unsaturated_fats}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  nutrition_info: { ...formData.nutrition_info, unsaturated_fats: e.target.value }
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <TextField
+                fullWidth
                 label="Fibra (g)"
                 type="number"
                 value={formData.nutrition_info.fiber}
@@ -1537,6 +1614,62 @@ const InventoryManagement = () => {
                 })}
                 inputProps={{ min: 0, step: 0.1 }}
                 size="small"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <TextField
+                fullWidth
+                label="Colesterol (mg)"
+                type="number"
+                value={formData.nutrition_info.cholesterol}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  nutrition_info: { ...formData.nutrition_info, cholesterol: e.target.value }
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <TextField
+                fullWidth
+                label="Calcio (mg)"
+                type="number"
+                value={formData.nutrition_info.calcium}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  nutrition_info: { ...formData.nutrition_info, calcium: e.target.value }
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <TextField
+                fullWidth
+                label="Hierro (mg)"
+                type="number"
+                value={formData.nutrition_info.iron}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  nutrition_info: { ...formData.nutrition_info, iron: e.target.value }
+                })}
+                inputProps={{ min: 0, step: 0.1 }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Alérgenos"
+                value={formData.nutrition_info.allergens}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  nutrition_info: { ...formData.nutrition_info, allergens: e.target.value }
+                })}
+                size="small"
+                placeholder="ej: gluten, lacteos, frutos secos"
+                helperText="Separar por coma o punto y coma"
               />
             </Grid>
           </Grid>
@@ -2228,6 +2361,85 @@ const InventoryManagement = () => {
         open={unitConverterOpen}
         onClose={() => setUnitConverterOpen(false)}
       />
+
+      {/* Nutrition Match Selection Dialog */}
+      <Dialog
+        open={nutritionMatchDialog}
+        onClose={() => {
+          setNutritionMatchDialog(false)
+          setNutritionMatches([])
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AutoAwesome color="primary" />
+          Coincidencias encontradas para "{formData.name}"
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Selecciona el ingrediente que mejor coincida para aplicar su información nutricional:
+          </Typography>
+          <List>
+            {nutritionMatches.map((match, index) => (
+              <ListItem
+                key={index}
+                sx={{
+                  border: '1px solid',
+                  borderColor: index === 0 ? 'primary.main' : 'divider',
+                  borderRadius: 1,
+                  mb: 1,
+                  bgcolor: index === 0 ? 'primary.50' : 'transparent',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'action.hover' }
+                }}
+                onClick={() => handleSelectNutritionMatch(match)}
+              >
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="subtitle1" fontWeight={index === 0 ? 600 : 400}>
+                        {match.name}
+                      </Typography>
+                      {index === 0 && (
+                        <Chip label="Mejor coincidencia" size="small" color="primary" />
+                      )}
+                      <Chip
+                        label={`${Math.round((match.similarity || 0.9) * 100)}% similar`}
+                        size="small"
+                        variant="outlined"
+                      />
+                    </Box>
+                  }
+                  secondary={
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="caption" component="div">
+                        {match.nutrition_info?.calories || 0} kcal |
+                        Prot: {match.nutrition_info?.proteins || 0}g |
+                        Grasas: {match.nutrition_info?.fats || 0}g |
+                        Carb: {match.nutrition_info?.carbohydrates || 0}g
+                      </Typography>
+                      {match.nutrition_info?.allergens && (
+                        <Typography variant="caption" color="warning.main">
+                          Alérgenos: {match.nutrition_info.allergens}
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setNutritionMatchDialog(false)
+            setNutritionMatches([])
+          }}>
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
     </Box>
   )

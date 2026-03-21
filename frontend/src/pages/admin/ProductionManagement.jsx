@@ -198,8 +198,10 @@ const ProductionManagement = () => {
       return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
     }
 
-    // Nutrition calculations (per 100g and per portion ~140g for 420g pizza / 3 portions)
-    const portionSize = 140
+    // Nutrition calculations - 8 slices per pizza (industry standard)
+    const slicesPerPizza = 8
+    const totalWeightGrams = labelData.total_weight_grams || 420 // peso total de la pizza
+    const portionSize = Math.round(totalWeightGrams / slicesPerPizza) // peso por slice
     const n = labelData.nutrition_per_100g || {}
     const calcPortion = (val) => ((parseFloat(val) || 0) * portionSize / 100).toFixed(1)
     const calcVD = (val, daily) => Math.round(((parseFloat(val) || 0) * portionSize / 100 / daily) * 100)
@@ -327,6 +329,25 @@ const ProductionManagement = () => {
             letter-spacing: 1.5px;
             text-transform: uppercase;
             padding: 2px 10px;
+          }
+
+          .serving-info {
+            padding: 4px 10px;
+            font-size: 7px;
+            border-bottom: 1px solid #ccc;
+            line-height: 1.5;
+          }
+          .serving-info strong {
+            font-weight: 700;
+          }
+
+          .net-content {
+            padding: 5px 10px;
+            font-size: 8px;
+            text-align: center;
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            background: #f4f4f4;
           }
 
           .nutrition-table {
@@ -475,68 +496,68 @@ const ProductionManagement = () => {
           </div>
 
           <div class="section-title">Información Nutricional</div>
+          <div class="serving-info">
+            <div><strong>Porción:</strong> 1 trozo (${portionSize}g)</div>
+            <div><strong>Porciones por envase:</strong> ${slicesPerPizza} aprox.</div>
+          </div>
           <table class="nutrition-table">
             <thead>
               <tr>
-                <th>Nutrimento</th>
-                <th>Por 100 g</th>
-                <th>Por porción (${portionSize} g)</th>
-                <th>%VD*</th>
+                <th></th>
+                <th>100g</th>
+                <th>1 porción</th>
               </tr>
             </thead>
             <tbody>
-              <tr class="bold">
-                <td>Energía</td>
-                <td>${n.calories || 0} kcal</td>
-                <td>${calcPortion(n.calories)} kcal</td>
-                <td>${calcVD(n.calories, 2000)}%</td>
+              <tr>
+                <td>Energía (kcal)</td>
+                <td>${n.calories || 0}</td>
+                <td>${calcPortion(n.calories)}</td>
               </tr>
               <tr>
-                <td>Proteínas</td>
-                <td>${n.proteins || 0} g</td>
-                <td>${calcPortion(n.proteins)} g</td>
-                <td>${calcVD(n.proteins, 75)}%</td>
+                <td>Proteínas (g)</td>
+                <td>${n.proteins || 0}</td>
+                <td>${calcPortion(n.proteins)}</td>
               </tr>
-              <tr class="bold">
-                <td>Grasas totales</td>
-                <td>${n.fats || 0} g</td>
-                <td>${calcPortion(n.fats)} g</td>
-                <td>${calcVD(n.fats, 65)}%</td>
+              <tr>
+                <td>Grasas totales (g)</td>
+                <td>${n.fats || 0}</td>
+                <td>${calcPortion(n.fats)}</td>
               </tr>
               <tr class="sub">
-                <td>Grasas saturadas</td>
-                <td>${n.saturated_fats || 0} g</td>
-                <td>${calcPortion(n.saturated_fats)} g</td>
-                <td>${calcVD(n.saturated_fats, 22)}%</td>
-              </tr>
-              <tr class="bold">
-                <td>Hidratos de carbono</td>
-                <td>${n.carbohydrates || 0} g</td>
-                <td>${calcPortion(n.carbohydrates)} g</td>
-                <td>${calcVD(n.carbohydrates, 275)}%</td>
+                <td>Grasas saturadas (g)</td>
+                <td>${n.saturated_fats || 0}</td>
+                <td>${calcPortion(n.saturated_fats)}</td>
               </tr>
               <tr class="sub">
-                <td>Azúcares totales</td>
-                <td>${n.sugars || 0} g</td>
-                <td>${calcPortion(n.sugars)} g</td>
-                <td>—</td>
+                <td>Grasas trans (g)</td>
+                <td>${n.trans_fats || 0}</td>
+                <td>${calcPortion(n.trans_fats)}</td>
               </tr>
               <tr>
-                <td>Fibra dietética</td>
-                <td>${n.fiber || 0} g</td>
-                <td>${calcPortion(n.fiber)} g</td>
-                <td>${calcVD(n.fiber, 25)}%</td>
+                <td>Colesterol (mg)</td>
+                <td>${n.cholesterol || 0}</td>
+                <td>${calcPortion(n.cholesterol)}</td>
               </tr>
               <tr>
-                <td>Sodio</td>
-                <td>${n.sodium || 0} mg</td>
-                <td>${calcPortion(n.sodium)} mg</td>
-                <td>${calcVD(n.sodium, 2300)}%</td>
+                <td>H. de C. Disp. (g)</td>
+                <td>${n.carbohydrates || 0}</td>
+                <td>${calcPortion(n.carbohydrates)}</td>
+              </tr>
+              <tr class="sub">
+                <td>Azúcares totales (g)</td>
+                <td>${n.sugars || 0}</td>
+                <td>${calcPortion(n.sugars)}</td>
+              </tr>
+              <tr>
+                <td>Sodio (mg)</td>
+                <td>${n.sodium || 0}</td>
+                <td>${calcPortion(n.sodium)}</td>
               </tr>
             </tbody>
           </table>
-          <div class="nutrition-note">
-            *%VD = Valores diarios con base en una dieta de 2,000 kcal. Porciones por envase: 3.
+          <div class="net-content">
+            <strong>Contenido Neto:</strong> ${totalWeightGrams}g
           </div>
 
           <div class="section-title">Ingredientes</div>
@@ -1120,40 +1141,49 @@ const ProductionManagement = () => {
                 <Box sx={{ bgcolor: '#000', color: '#fff', fontSize: '8px', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', p: '3px 12px' }}>
                   Información Nutricional
                 </Box>
+                <Box sx={{ p: '4px 10px', fontSize: '7px', borderBottom: '1px solid #ccc', lineHeight: 1.5 }}>
+                  <div><strong>Porción:</strong> 1 trozo ({Math.round((labelData.total_weight_grams || 420) / 8)}g)</div>
+                  <div><strong>Porciones por envase:</strong> 8 aprox.</div>
+                </Box>
                 <TableContainer>
                   <Table size="small" sx={{ '& td, & th': { py: 0.3, px: 1, fontSize: '8px', borderBottom: '0.5px solid #ccc' } }}>
                     <TableHead>
                       <TableRow sx={{ borderBottom: '1.5px solid #000' }}>
-                        <TableCell sx={{ fontWeight: 700, fontSize: '7px' }}>Nutrimento</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700, fontSize: '7px' }}>Por 100g</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700, fontSize: '7px' }}>Por porción (140g)</TableCell>
+                        <TableCell sx={{ fontWeight: 700, fontSize: '7px' }}></TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700, fontSize: '7px' }}>100g</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700, fontSize: '7px' }}>1 porción</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {[
-                        { name: 'Energía', value: labelData.nutrition_per_100g?.calories || 0, unit: 'kcal', bold: true },
-                        { name: 'Proteínas', value: labelData.nutrition_per_100g?.proteins || 0, unit: 'g' },
-                        { name: 'Grasas totales', value: labelData.nutrition_per_100g?.fats || 0, unit: 'g', bold: true },
-                        { name: '  - Saturadas', value: labelData.nutrition_per_100g?.saturated_fats || 0, unit: 'g', sub: true },
-                        { name: 'Carbohidratos', value: labelData.nutrition_per_100g?.carbohydrates || 0, unit: 'g', bold: true },
-                        { name: '  - Azúcares', value: labelData.nutrition_per_100g?.sugars || 0, unit: 'g', sub: true },
-                        { name: 'Fibra', value: labelData.nutrition_per_100g?.fiber || 0, unit: 'g' },
-                        { name: 'Sodio', value: labelData.nutrition_per_100g?.sodium || 0, unit: 'mg' },
-                      ].map((row, i) => (
-                        <TableRow key={i} sx={{ bgcolor: row.bold ? '#f4f4f4' : 'transparent' }}>
-                          <TableCell sx={{ fontWeight: row.bold ? 700 : 400, color: row.sub ? '#666' : 'inherit', fontFamily: 'monospace' }}>
-                            {row.name}
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{row.value} {row.unit}</TableCell>
-                          <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{(parseFloat(row.value) * 1.4).toFixed(1)} {row.unit}</TableCell>
-                        </TableRow>
-                      ))}
+                      {(() => {
+                        const portionG = Math.round((labelData.total_weight_grams || 420) / 8)
+                        const calcP = (val) => ((parseFloat(val) || 0) * portionG / 100).toFixed(1)
+                        return [
+                          { name: 'Energía (kcal)', value: labelData.nutrition_per_100g?.calories || 0 },
+                          { name: 'Proteínas (g)', value: labelData.nutrition_per_100g?.proteins || 0 },
+                          { name: 'Grasas totales (g)', value: labelData.nutrition_per_100g?.fats || 0 },
+                          { name: '  Grasas saturadas (g)', value: labelData.nutrition_per_100g?.saturated_fats || 0, sub: true },
+                          { name: '  Grasas trans (g)', value: labelData.nutrition_per_100g?.trans_fats || 0, sub: true },
+                          { name: 'Colesterol (mg)', value: labelData.nutrition_per_100g?.cholesterol || 0 },
+                          { name: 'H. de C. Disp. (g)', value: labelData.nutrition_per_100g?.carbohydrates || 0 },
+                          { name: '  Azúcares totales (g)', value: labelData.nutrition_per_100g?.sugars || 0, sub: true },
+                          { name: 'Sodio (mg)', value: labelData.nutrition_per_100g?.sodium || 0 },
+                        ].map((row, i) => (
+                          <TableRow key={i}>
+                            <TableCell sx={{ color: row.sub ? '#666' : 'inherit', fontFamily: 'monospace', pl: row.sub ? 2 : 1 }}>
+                              {row.name}
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{row.value}</TableCell>
+                            <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{calcP(row.value)}</TableCell>
+                          </TableRow>
+                        ))
+                      })()}
                     </TableBody>
                   </Table>
                 </TableContainer>
-                <Typography sx={{ fontSize: '6px', color: '#555', p: '4px 8px', borderBottom: '1px solid #000', lineHeight: 1.3 }}>
-                  *%VD = Valores diarios con base en una dieta de 2,000 kcal. Porciones por envase: 3.
-                </Typography>
+                <Box sx={{ p: '5px 10px', fontSize: '8px', textAlign: 'center', borderTop: '1px solid #000', bgcolor: '#f4f4f4' }}>
+                  <strong>Contenido Neto:</strong> {labelData.total_weight_grams || 420}g
+                </Box>
 
                 {/* Ingredients */}
                 <Box sx={{ bgcolor: '#000', color: '#fff', fontSize: '8px', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', p: '3px 12px' }}>

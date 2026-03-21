@@ -439,8 +439,34 @@
 
 ---
 
-**Última actualización**: Octubre 2025
+## 🍕 M_NUT: Sistema Nutricional Avanzado (Sesión Marzo 2026)
+**Estado**: ✅ COMPLETADO
+
+### Base de Datos Nutricional CSV con Fuzzy Matching
+- [✅] **CSV Nutricional**: Base de datos `ingredientes_nutricional.csv` con ~200+ ingredientes reales
+- [✅] **Carga dinámica desde CSV**: `load_nutrition_database()` en backend reemplaza dict hardcodeado
+- [✅] **Fuzzy matching**: `calculate_similarity()` + `normalize_text()` para búsqueda tolerante a errores ortográficos
+- [✅] **Endpoint de búsqueda nutricional**: Retorna múltiples coincidencias ordenadas por relevancia
+- [✅] **Auto-llenado en Inventario**: Al escribir nombre del ingrediente, busca y propone datos nutricionales automáticamente
+- [✅] **Dialog de confirmación**: Modal para que usuario seleccione la coincidencia correcta
+- [✅] **Campos nutricionales extendidos**: Se agregan trans_fats, unsaturated_fats, cholesterol, calcium, iron, allergens
+- [✅] **Cálculo nutricional corregido**: Fix en cálculo ponderado por peso de ingredientes en lotes
+
+### Etiqueta Nutricional Mejorada (ProductionManagement)
+- [✅] **Datos por porción**: Cálculo automático por porción (1 trozo = peso_total/8 slices)
+- [✅] **Tabla extendida**: Muestra valores por 100g y por porción
+- [✅] **Campos adicionales en etiqueta**: Grasas trans, colesterol, calcio, hierro
+- [✅] **Diseño profesional mejorado**: serving-info, net-content, layout refinado
+
+### AdminDashboard Refactoring
+- [✅] **Componentes inline**: StatCard, SectionCard, SkeletonCard para mejor organización
+- [✅] **Carga de datos mejorada**: Estados separados para cada sección de datos
+- [✅] **CORS actualizado**: Agregados dominios pablospizza.cl y www.pablospizza.cl
+
+---
+
+**Última actualización**: Marzo 2026
 **Total tareas activas**: 55+ items
-**Estado del proyecto**: M0 ✅, M1 ✅, M2 ✅, M3 ✅ COMPLETADO
+**Estado del proyecto**: M0 ✅, M1 ✅, M2 ✅, M3 ✅, M_NUT ✅ COMPLETADO
 **Próximo milestone**: M4 - Mobile Experience Enhancement
-**Último cambio**: M3 COMPLETADO - Pagination, Rate Limiting, Audit Logs, Performance Optimization (10/10/2025)
+**Último cambio**: Sistema nutricional completo - CSV con fuzzy matching, etiquetas mejoradas, auto-llenado (21/03/2026)

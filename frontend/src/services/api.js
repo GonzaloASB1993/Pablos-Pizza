@@ -7,7 +7,7 @@ const isDevelopment = window.location.hostname === 'localhost' || window.locatio
 
 const BASE_URL = isDevelopment
   ? 'http://localhost:8000/api'  // Development - Flask runs on port 8000
-  : 'https://main-4kqeqojbsq-uc.a.run.app/api'  // Production Cloud Run
+  : 'https://main-446811667554.us-central1.run.app/api'  // Production Cloud Run
 
 
 // Create axios instance

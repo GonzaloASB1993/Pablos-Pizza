@@ -1,11 +1,13 @@
 from firebase_functions import https_fn
 import os
+import csv
+import unicodedata
 from dotenv import load_dotenv
 
 # Load environment variables (only if .env exists)
 if os.path.exists('.env'):
     load_dotenv('.env')
-# Force deployment update - event-inventory integration - fix event_doc error - add null checks
+# Force deployment update - nutrition database from CSV with fuzzy matching
 
 # Import after loading env variables
 import firebase_admin
@@ -93,7 +95,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # Configure CORS with allowed origins from environment
-cors_origins = os.getenv('CORS_ORIGINS', 'https://pablospizza.web.app').split(',')
+cors_origins = os.getenv('CORS_ORIGINS', 'https://pablospizza.web.app,https://pablospizza.cl,https://www.pablospizza.cl').split(',')
 CORS(app, resources={
     r"/api/*": {
         "origins": cors_origins,
@@ -1858,7 +1860,7 @@ def create_inventory_item():
             'shelf_life_days': int(data['shelf_life_days']) if data.get('shelf_life_days') else None,
             'last_updated': datetime.now(),
             'needs_restock': float(data['current_stock']) <= float(data['min_stock']),
-            # Nutritional information per 100g/100ml
+            # Nutritional information per 100g/100ml (extended fields)
             'nutrition_info': {
                 'calories': float(data.get('nutrition_info', {}).get('calories', 0)) if data.get('nutrition_info') else 0,
                 'proteins': float(data.get('nutrition_info', {}).get('proteins', 0)) if data.get('nutrition_info') else 0,
@@ -1866,8 +1868,14 @@ def create_inventory_item():
                 'sugars': float(data.get('nutrition_info', {}).get('sugars', 0)) if data.get('nutrition_info') else 0,
                 'fats': float(data.get('nutrition_info', {}).get('fats', 0)) if data.get('nutrition_info') else 0,
                 'saturated_fats': float(data.get('nutrition_info', {}).get('saturated_fats', 0)) if data.get('nutrition_info') else 0,
+                'trans_fats': float(data.get('nutrition_info', {}).get('trans_fats', 0)) if data.get('nutrition_info') else 0,
+                'unsaturated_fats': float(data.get('nutrition_info', {}).get('unsaturated_fats', 0)) if data.get('nutrition_info') else 0,
                 'fiber': float(data.get('nutrition_info', {}).get('fiber', 0)) if data.get('nutrition_info') else 0,
-                'sodium': float(data.get('nutrition_info', {}).get('sodium', 0)) if data.get('nutrition_info') else 0
+                'sodium': float(data.get('nutrition_info', {}).get('sodium', 0)) if data.get('nutrition_info') else 0,
+                'cholesterol': float(data.get('nutrition_info', {}).get('cholesterol', 0)) if data.get('nutrition_info') else 0,
+                'calcium': float(data.get('nutrition_info', {}).get('calcium', 0)) if data.get('nutrition_info') else 0,
+                'iron': float(data.get('nutrition_info', {}).get('iron', 0)) if data.get('nutrition_info') else 0,
+                'allergens': data.get('nutrition_info', {}).get('allergens', '') if data.get('nutrition_info') else ''
             }
         }
 
@@ -1943,7 +1951,7 @@ def update_inventory_item(item_id):
         if 'shelf_life_days' in data:
             update_data['shelf_life_days'] = int(data['shelf_life_days']) if data['shelf_life_days'] else None
 
-        # Update nutritional information if provided
+        # Update nutritional information if provided (extended fields)
         if 'nutrition_info' in data:
             nutrition = data['nutrition_info']
             update_data['nutrition_info'] = {
@@ -1953,8 +1961,14 @@ def update_inventory_item(item_id):
                 'sugars': float(nutrition.get('sugars', 0)),
                 'fats': float(nutrition.get('fats', 0)),
                 'saturated_fats': float(nutrition.get('saturated_fats', 0)),
+                'trans_fats': float(nutrition.get('trans_fats', 0)),
+                'unsaturated_fats': float(nutrition.get('unsaturated_fats', 0)),
                 'fiber': float(nutrition.get('fiber', 0)),
-                'sodium': float(nutrition.get('sodium', 0))
+                'sodium': float(nutrition.get('sodium', 0)),
+                'cholesterol': float(nutrition.get('cholesterol', 0)),
+                'calcium': float(nutrition.get('calcium', 0)),
+                'iron': float(nutrition.get('iron', 0)),
+                'allergens': nutrition.get('allergens', '')
             }
 
         update_data['last_updated'] = datetime.now()
@@ -2018,81 +2032,231 @@ def get_inventory_categories():
         print(f"Error getting categories: {e}")
         return jsonify({'error': str(e)}), 500
 
-# Nutritional database for common pizza ingredients (per 100g)
-NUTRITION_DATABASE = {
-    # Harinas
-    'harina': {'calories': 364, 'proteins': 10.3, 'carbohydrates': 76.3, 'sugars': 0.3, 'fats': 1.0, 'saturated_fats': 0.2, 'fiber': 2.7, 'sodium': 2},
-    'harina de trigo': {'calories': 364, 'proteins': 10.3, 'carbohydrates': 76.3, 'sugars': 0.3, 'fats': 1.0, 'saturated_fats': 0.2, 'fiber': 2.7, 'sodium': 2},
-    'harina 000': {'calories': 364, 'proteins': 10.3, 'carbohydrates': 76.3, 'sugars': 0.3, 'fats': 1.0, 'saturated_fats': 0.2, 'fiber': 2.7, 'sodium': 2},
+# ===================== NUTRITIONAL DATABASE FROM CSV =====================
 
-    # Lácteos
-    'mozzarella': {'calories': 280, 'proteins': 28.0, 'carbohydrates': 2.2, 'sugars': 1.0, 'fats': 17.0, 'saturated_fats': 11.0, 'fiber': 0, 'sodium': 627},
-    'queso mozzarella': {'calories': 280, 'proteins': 28.0, 'carbohydrates': 2.2, 'sugars': 1.0, 'fats': 17.0, 'saturated_fats': 11.0, 'fiber': 0, 'sodium': 627},
-    'queso': {'calories': 280, 'proteins': 28.0, 'carbohydrates': 2.2, 'sugars': 1.0, 'fats': 17.0, 'saturated_fats': 11.0, 'fiber': 0, 'sodium': 627},
-    'queso parmesano': {'calories': 431, 'proteins': 38.5, 'carbohydrates': 4.1, 'sugars': 0.9, 'fats': 29.0, 'saturated_fats': 19.0, 'fiber': 0, 'sodium': 1529},
-    'queso cheddar': {'calories': 403, 'proteins': 25.0, 'carbohydrates': 1.3, 'sugars': 0.5, 'fats': 33.0, 'saturated_fats': 21.0, 'fiber': 0, 'sodium': 621},
-    'queso azul': {'calories': 353, 'proteins': 21.0, 'carbohydrates': 2.3, 'sugars': 0.5, 'fats': 29.0, 'saturated_fats': 19.0, 'fiber': 0, 'sodium': 1395},
-    'ricotta': {'calories': 174, 'proteins': 11.3, 'carbohydrates': 3.0, 'sugars': 0.3, 'fats': 13.0, 'saturated_fats': 8.3, 'fiber': 0, 'sodium': 84},
+def normalize_text(text):
+    """Remove accents and convert to lowercase for better matching"""
+    if not text:
+        return ''
+    # Normalize unicode characters and remove accents
+    normalized = unicodedata.normalize('NFD', text)
+    ascii_text = ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')
+    return ascii_text.lower().strip()
 
-    # Salsas
-    'salsa de tomate': {'calories': 29, 'proteins': 1.3, 'carbohydrates': 5.8, 'sugars': 3.9, 'fats': 0.3, 'saturated_fats': 0.04, 'fiber': 1.2, 'sodium': 331},
-    'tomate': {'calories': 18, 'proteins': 0.9, 'carbohydrates': 3.9, 'sugars': 2.6, 'fats': 0.2, 'saturated_fats': 0.03, 'fiber': 1.2, 'sodium': 5},
-    'tomate triturado': {'calories': 24, 'proteins': 1.2, 'carbohydrates': 4.5, 'sugars': 3.2, 'fats': 0.3, 'saturated_fats': 0.04, 'fiber': 1.0, 'sodium': 9},
-    'pasta de tomate': {'calories': 82, 'proteins': 4.3, 'carbohydrates': 18.9, 'sugars': 12.2, 'fats': 0.5, 'saturated_fats': 0.1, 'fiber': 4.1, 'sodium': 59},
 
-    # Carnes
-    'jamon': {'calories': 145, 'proteins': 21.0, 'carbohydrates': 1.5, 'sugars': 0.0, 'fats': 6.0, 'saturated_fats': 2.0, 'fiber': 0, 'sodium': 1203},
-    'jamon serrano': {'calories': 241, 'proteins': 31.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 12.8, 'saturated_fats': 4.5, 'fiber': 0, 'sodium': 2340},
-    'pepperoni': {'calories': 494, 'proteins': 22.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 44.0, 'saturated_fats': 17.0, 'fiber': 0, 'sodium': 1761},
-    'salame': {'calories': 378, 'proteins': 22.0, 'carbohydrates': 1.2, 'sugars': 0.0, 'fats': 31.0, 'saturated_fats': 11.0, 'fiber': 0, 'sodium': 1890},
-    'tocino': {'calories': 541, 'proteins': 37.0, 'carbohydrates': 1.4, 'sugars': 0.0, 'fats': 42.0, 'saturated_fats': 14.0, 'fiber': 0, 'sodium': 1717},
-    'bacon': {'calories': 541, 'proteins': 37.0, 'carbohydrates': 1.4, 'sugars': 0.0, 'fats': 42.0, 'saturated_fats': 14.0, 'fiber': 0, 'sodium': 1717},
-    'pollo': {'calories': 165, 'proteins': 31.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 3.6, 'saturated_fats': 1.0, 'fiber': 0, 'sodium': 74},
-    'carne molida': {'calories': 254, 'proteins': 17.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 20.0, 'saturated_fats': 8.0, 'fiber': 0, 'sodium': 66},
-    'chorizo': {'calories': 455, 'proteins': 24.0, 'carbohydrates': 2.0, 'sugars': 0.0, 'fats': 38.0, 'saturated_fats': 14.0, 'fiber': 0, 'sodium': 1235},
+def load_nutrition_database():
+    """Load nutritional database from CSV file"""
+    database = {}
 
-    # Mariscos
-    'anchoas': {'calories': 131, 'proteins': 20.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 4.8, 'saturated_fats': 1.3, 'fiber': 0, 'sodium': 3668},
-    'atun': {'calories': 130, 'proteins': 29.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 0.6, 'saturated_fats': 0.2, 'fiber': 0, 'sodium': 40},
-    'camaron': {'calories': 99, 'proteins': 24.0, 'carbohydrates': 0.2, 'sugars': 0.0, 'fats': 0.3, 'saturated_fats': 0.1, 'fiber': 0, 'sodium': 111},
-    'mariscos': {'calories': 99, 'proteins': 20.0, 'carbohydrates': 2.0, 'sugars': 0.0, 'fats': 1.0, 'saturated_fats': 0.2, 'fiber': 0, 'sodium': 200},
+    # Try multiple paths for the CSV file
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), 'data', 'ingredientes_nutricional.csv'),
+        os.path.join(os.path.dirname(__file__), 'ingredientes_nutricional.csv'),
+        'backend/data/ingredientes_nutricional.csv',
+        'data/ingredientes_nutricional.csv',
+    ]
 
-    # Vegetales
-    'champiñon': {'calories': 22, 'proteins': 3.1, 'carbohydrates': 3.3, 'sugars': 2.0, 'fats': 0.3, 'saturated_fats': 0.05, 'fiber': 1.0, 'sodium': 5},
-    'champiñones': {'calories': 22, 'proteins': 3.1, 'carbohydrates': 3.3, 'sugars': 2.0, 'fats': 0.3, 'saturated_fats': 0.05, 'fiber': 1.0, 'sodium': 5},
-    'hongos': {'calories': 22, 'proteins': 3.1, 'carbohydrates': 3.3, 'sugars': 2.0, 'fats': 0.3, 'saturated_fats': 0.05, 'fiber': 1.0, 'sodium': 5},
-    'cebolla': {'calories': 40, 'proteins': 1.1, 'carbohydrates': 9.3, 'sugars': 4.2, 'fats': 0.1, 'saturated_fats': 0.02, 'fiber': 1.7, 'sodium': 4},
-    'pimenton': {'calories': 31, 'proteins': 1.0, 'carbohydrates': 6.0, 'sugars': 4.2, 'fats': 0.3, 'saturated_fats': 0.04, 'fiber': 2.1, 'sodium': 4},
-    'pimiento': {'calories': 31, 'proteins': 1.0, 'carbohydrates': 6.0, 'sugars': 4.2, 'fats': 0.3, 'saturated_fats': 0.04, 'fiber': 2.1, 'sodium': 4},
-    'morron': {'calories': 31, 'proteins': 1.0, 'carbohydrates': 6.0, 'sugars': 4.2, 'fats': 0.3, 'saturated_fats': 0.04, 'fiber': 2.1, 'sodium': 4},
-    'aceitunas': {'calories': 115, 'proteins': 0.8, 'carbohydrates': 6.0, 'sugars': 0.0, 'fats': 11.0, 'saturated_fats': 1.4, 'fiber': 3.2, 'sodium': 735},
-    'alcachofa': {'calories': 47, 'proteins': 3.3, 'carbohydrates': 10.5, 'sugars': 1.0, 'fats': 0.2, 'saturated_fats': 0.04, 'fiber': 5.4, 'sodium': 94},
-    'espinaca': {'calories': 23, 'proteins': 2.9, 'carbohydrates': 3.6, 'sugars': 0.4, 'fats': 0.4, 'saturated_fats': 0.06, 'fiber': 2.2, 'sodium': 79},
-    'rucula': {'calories': 25, 'proteins': 2.6, 'carbohydrates': 3.7, 'sugars': 2.1, 'fats': 0.7, 'saturated_fats': 0.09, 'fiber': 1.6, 'sodium': 27},
-    'albahaca': {'calories': 22, 'proteins': 3.2, 'carbohydrates': 2.7, 'sugars': 0.3, 'fats': 0.6, 'saturated_fats': 0.04, 'fiber': 1.6, 'sodium': 4},
-    'ajo': {'calories': 149, 'proteins': 6.4, 'carbohydrates': 33.0, 'sugars': 1.0, 'fats': 0.5, 'saturated_fats': 0.09, 'fiber': 2.1, 'sodium': 17},
-    'jalapeño': {'calories': 29, 'proteins': 0.9, 'carbohydrates': 6.5, 'sugars': 4.1, 'fats': 0.4, 'saturated_fats': 0.04, 'fiber': 2.8, 'sodium': 3},
-    'palta': {'calories': 160, 'proteins': 2.0, 'carbohydrates': 8.5, 'sugars': 0.7, 'fats': 15.0, 'saturated_fats': 2.1, 'fiber': 6.7, 'sodium': 7},
-    'aguacate': {'calories': 160, 'proteins': 2.0, 'carbohydrates': 8.5, 'sugars': 0.7, 'fats': 15.0, 'saturated_fats': 2.1, 'fiber': 6.7, 'sodium': 7},
-    'piña': {'calories': 50, 'proteins': 0.5, 'carbohydrates': 13.0, 'sugars': 10.0, 'fats': 0.1, 'saturated_fats': 0.01, 'fiber': 1.4, 'sodium': 1},
+    csv_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            csv_path = path
+            break
 
-    # Aceites y grasas
-    'aceite de oliva': {'calories': 884, 'proteins': 0.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 100.0, 'saturated_fats': 14.0, 'fiber': 0, 'sodium': 2},
-    'aceite': {'calories': 884, 'proteins': 0.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 100.0, 'saturated_fats': 14.0, 'fiber': 0, 'sodium': 0},
-    'mantequilla': {'calories': 717, 'proteins': 0.9, 'carbohydrates': 0.1, 'sugars': 0.1, 'fats': 81.0, 'saturated_fats': 51.0, 'fiber': 0, 'sodium': 643},
+    if not csv_path:
+        print("Warning: Nutritional database CSV not found, using empty database")
+        return database
 
-    # Condimentos
-    'sal': {'calories': 0, 'proteins': 0.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 0.0, 'saturated_fats': 0.0, 'fiber': 0, 'sodium': 38758},
-    'oregano': {'calories': 265, 'proteins': 9.0, 'carbohydrates': 69.0, 'sugars': 4.1, 'fats': 4.3, 'saturated_fats': 1.6, 'fiber': 42.5, 'sodium': 25},
-    'pimienta': {'calories': 251, 'proteins': 10.0, 'carbohydrates': 64.0, 'sugars': 0.6, 'fats': 3.3, 'saturated_fats': 1.4, 'fiber': 25.3, 'sodium': 20},
-    'azucar': {'calories': 387, 'proteins': 0.0, 'carbohydrates': 100.0, 'sugars': 100.0, 'fats': 0.0, 'saturated_fats': 0.0, 'fiber': 0, 'sodium': 1},
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                # Create nutrition info dict with extended fields
+                nutrition_info = {
+                    'calories': float(row.get('energia_kcal', 0) or 0),
+                    'proteins': float(row.get('proteinas_g', 0) or 0),
+                    'carbohydrates': float(row.get('carbohidratos_g', 0) or 0),
+                    'sugars': float(row.get('azucares_g', 0) or 0),
+                    'fats': float(row.get('grasas_totales_g', 0) or 0),
+                    'saturated_fats': float(row.get('grasas_saturadas_g', 0) or 0),
+                    'trans_fats': float(row.get('grasas_trans_g', 0) or 0),
+                    'unsaturated_fats': float(row.get('grasas_insaturadas_g', 0) or 0),
+                    'fiber': float(row.get('fibra_g', 0) or 0),
+                    'sodium': float(row.get('sodio_mg', 0) or 0),
+                    'cholesterol': float(row.get('colesterol_mg', 0) or 0),
+                    'calcium': float(row.get('calcio_mg', 0) or 0),
+                    'iron': float(row.get('hierro_mg', 0) or 0),
+                    'allergens': row.get('alergenos', '—') if row.get('alergenos') != '—' else '',
+                    'category': row.get('categoria', '')
+                }
 
-    # Otros
-    'levadura': {'calories': 325, 'proteins': 40.0, 'carbohydrates': 41.0, 'sugars': 0.0, 'fats': 2.0, 'saturated_fats': 0.3, 'fiber': 8.5, 'sodium': 51},
-    'huevo': {'calories': 155, 'proteins': 13.0, 'carbohydrates': 1.1, 'sugars': 1.1, 'fats': 11.0, 'saturated_fats': 3.3, 'fiber': 0, 'sodium': 124},
-    'agua': {'calories': 0, 'proteins': 0.0, 'carbohydrates': 0.0, 'sugars': 0.0, 'fats': 0.0, 'saturated_fats': 0.0, 'fiber': 0, 'sodium': 0},
-    'leche': {'calories': 61, 'proteins': 3.2, 'carbohydrates': 4.8, 'sugars': 5.0, 'fats': 3.3, 'saturated_fats': 1.9, 'fiber': 0, 'sodium': 43},
-}
+                # Get original name and create variants for matching
+                original_name = row.get('nombre', '').strip()
+                if not original_name:
+                    continue
+
+                # Add original name (lowercase)
+                database[original_name.lower()] = nutrition_info
+
+                # Add normalized name (without accents)
+                normalized_name = normalize_text(original_name)
+                if normalized_name != original_name.lower():
+                    database[normalized_name] = nutrition_info
+
+                # Extract base name without parentheses for partial matching
+                # e.g., "Harina de trigo (todo uso)" -> "harina de trigo"
+                if '(' in original_name:
+                    base_name = original_name.split('(')[0].strip().lower()
+                    if base_name and base_name not in database:
+                        database[base_name] = nutrition_info
+                    # Also add normalized version
+                    base_normalized = normalize_text(base_name)
+                    if base_normalized and base_normalized not in database:
+                        database[base_normalized] = nutrition_info
+
+                # Add common variations/aliases
+                name_lower = original_name.lower()
+
+                # Handle specific ingredient aliases
+                if 'mozzarella' in name_lower:
+                    database['mozzarella'] = nutrition_info
+                    database['queso mozzarella'] = nutrition_info
+                if 'parmesano' in name_lower:
+                    database['parmesano'] = nutrition_info
+                    database['queso parmesano'] = nutrition_info
+                if 'cheddar' in name_lower:
+                    database['cheddar'] = nutrition_info
+                    database['queso cheddar'] = nutrition_info
+                if 'champiñon' in name_lower or 'champinon' in normalized_name:
+                    database['champiñon'] = nutrition_info
+                    database['champiñones'] = nutrition_info
+                    database['champinon'] = nutrition_info
+                    database['champinones'] = nutrition_info
+                    database['hongos'] = nutrition_info
+                if 'tocino' in name_lower or 'bacon' in name_lower:
+                    database['tocino'] = nutrition_info
+                    database['bacon'] = nutrition_info
+                if 'jamón serrano' in name_lower or 'jamon serrano' in normalized_name:
+                    database['jamon serrano'] = nutrition_info
+                    database['jamon'] = nutrition_info
+                if 'pollo' in name_lower:
+                    database['pollo'] = nutrition_info
+                if 'cebolla' in name_lower:
+                    database['cebolla'] = nutrition_info
+                if 'pimiento' in name_lower or 'pimenton' in normalized_name:
+                    database['pimiento'] = nutrition_info
+                    database['pimenton'] = nutrition_info
+                    database['morron'] = nutrition_info
+                if 'aceite de oliva' in name_lower:
+                    database['aceite de oliva'] = nutrition_info
+                    database['aceite'] = nutrition_info
+                if 'tomate' in name_lower and 'salsa' not in name_lower and 'deshidratado' not in name_lower:
+                    database['tomate'] = nutrition_info
+                if 'salsa de tomate' in name_lower:
+                    database['salsa de tomate'] = nutrition_info
+                    database['tomate triturado'] = nutrition_info
+                if 'aguacate' in name_lower or 'palta' in name_lower:
+                    database['palta'] = nutrition_info
+                    database['aguacate'] = nutrition_info
+                if 'piña' in name_lower or 'pina' in normalized_name or 'anana' in normalized_name:
+                    database['pina'] = nutrition_info
+                    database['piña'] = nutrition_info
+                    database['anana'] = nutrition_info
+                if 'aceitunas negras' in name_lower:
+                    database['aceitunas'] = nutrition_info
+                    database['aceitunas negras'] = nutrition_info
+                if 'camarones' in name_lower or 'camaron' in normalized_name:
+                    database['camaron'] = nutrition_info
+                    database['camarones'] = nutrition_info
+                if 'jalapeño' in name_lower or 'jalapeno' in normalized_name:
+                    database['jalapeno'] = nutrition_info
+                    database['jalapeño'] = nutrition_info
+                if 'orégano' in name_lower or 'oregano' in normalized_name:
+                    database['oregano'] = nutrition_info
+                    database['orégano'] = nutrition_info
+                if 'albahaca' in name_lower:
+                    database['albahaca'] = nutrition_info
+                if 'rúcula' in name_lower or 'rucula' in normalized_name:
+                    database['rucula'] = nutrition_info
+                    database['rúcula'] = nutrition_info
+                if 'espinaca' in name_lower:
+                    database['espinaca'] = nutrition_info
+                if 'ajo' in name_lower and 'polvo' not in name_lower:
+                    database['ajo'] = nutrition_info
+                if 'sal' in name_lower and 'salsa' not in name_lower and 'salchicha' not in name_lower:
+                    database['sal'] = nutrition_info
+                if 'azúcar' in name_lower or 'azucar' in normalized_name:
+                    database['azucar'] = nutrition_info
+                    database['azúcar'] = nutrition_info
+                if 'huevo' in name_lower:
+                    database['huevo'] = nutrition_info
+                if 'levadura' in name_lower:
+                    database['levadura'] = nutrition_info
+                if 'anchoas' in name_lower:
+                    database['anchoas'] = nutrition_info
+                if 'ricotta' in name_lower:
+                    database['ricotta'] = nutrition_info
+                if 'chorizo' in name_lower:
+                    database['chorizo'] = nutrition_info
+                if 'alcachofa' in name_lower:
+                    database['alcachofa'] = nutrition_info
+
+        print(f"Loaded {len(database)} nutrition entries from CSV")
+
+    except Exception as e:
+        print(f"Error loading nutrition database: {e}")
+
+    # Add basic items that might not be in CSV (water, milk, etc.)
+    if 'agua' not in database:
+        database['agua'] = {
+            'calories': 0, 'proteins': 0.0, 'carbohydrates': 0.0, 'sugars': 0.0,
+            'fats': 0.0, 'saturated_fats': 0.0, 'trans_fats': 0.0, 'unsaturated_fats': 0.0,
+            'fiber': 0, 'sodium': 0, 'cholesterol': 0, 'calcium': 0, 'iron': 0,
+            'allergens': '', 'category': 'Otros'
+        }
+    if 'leche' not in database:
+        database['leche'] = {
+            'calories': 61, 'proteins': 3.2, 'carbohydrates': 4.8, 'sugars': 5.0,
+            'fats': 3.3, 'saturated_fats': 1.9, 'trans_fats': 0.0, 'unsaturated_fats': 1.4,
+            'fiber': 0, 'sodium': 43, 'cholesterol': 10, 'calcium': 113, 'iron': 0.0,
+            'allergens': 'lacteos', 'category': 'Lácteos'
+        }
+
+    return database
+
+
+# Load nutrition database from CSV
+NUTRITION_DATABASE = load_nutrition_database()
+
+
+def calculate_similarity(s1, s2):
+    """Calculate similarity ratio between two strings (0-1)"""
+    s1, s2 = s1.lower(), s2.lower()
+    if s1 == s2:
+        return 1.0
+
+    # Check if one contains the other
+    if s1 in s2 or s2 in s1:
+        return 0.9
+
+    # Calculate character-based similarity
+    set1, set2 = set(s1), set(s2)
+    intersection = len(set1 & set2)
+    union = len(set1 | set2)
+    jaccard = intersection / union if union > 0 else 0
+
+    # Also check for common substrings (minimum 3 chars)
+    common_substr_score = 0
+    for i in range(len(s1) - 2):
+        substr = s1[i:i+3]
+        if substr in s2:
+            common_substr_score += 1
+
+    # Normalize substring score
+    max_substrs = max(len(s1) - 2, 1)
+    substr_ratio = min(common_substr_score / max_substrs, 1.0)
+
+    # Combined score
+    return (jaccard * 0.4) + (substr_ratio * 0.6)
 
 
 @app.route('/api/inventory/nutrition-lookup', methods=['GET'])
@@ -2100,41 +2264,76 @@ def get_nutrition_lookup():
     """Get suggested nutritional values based on ingredient name"""
     try:
         ingredient_name = request.args.get('name', '').lower().strip()
+        normalized_name = normalize_text(ingredient_name)
 
         if not ingredient_name:
             return jsonify({'error': 'Ingredient name is required'}), 400
 
-        # Try exact match first
+        # Try exact match first (with both original and normalized)
         if ingredient_name in NUTRITION_DATABASE:
             return jsonify({
                 'found': True,
                 'exact_match': True,
                 'ingredient': ingredient_name,
+                'matched_name': ingredient_name,
                 'nutrition_info': NUTRITION_DATABASE[ingredient_name]
             })
+        if normalized_name in NUTRITION_DATABASE:
+            return jsonify({
+                'found': True,
+                'exact_match': True,
+                'ingredient': normalized_name,
+                'matched_name': normalized_name,
+                'nutrition_info': NUTRITION_DATABASE[normalized_name]
+            })
 
-        # Try partial match
+        # Try partial match with normalization
         matches = []
         for key, value in NUTRITION_DATABASE.items():
-            if ingredient_name in key or key in ingredient_name:
-                matches.append({'name': key, 'nutrition_info': value})
+            key_normalized = normalize_text(key)
+
+            # Calculate similarity score
+            similarity = max(
+                calculate_similarity(ingredient_name, key),
+                calculate_similarity(normalized_name, key_normalized),
+                calculate_similarity(ingredient_name, key_normalized)
+            )
+
+            # Also check for substring matches
+            if (ingredient_name in key or key in ingredient_name or
+                normalized_name in key_normalized or key_normalized in normalized_name):
+                similarity = max(similarity, 0.85)
+
+            # Include if similarity is above threshold
+            if similarity >= 0.4:
+                matches.append({
+                    'name': key,
+                    'similarity': round(similarity, 2),
+                    'nutrition_info': value
+                })
 
         if matches:
-            # Return the best match (first one found)
+            # Sort by similarity (highest first)
+            matches.sort(key=lambda x: x['similarity'], reverse=True)
+            # Keep top 5 matches
+            matches = matches[:5]
+
+            best_match = matches[0]
             return jsonify({
                 'found': True,
                 'exact_match': False,
                 'ingredient': ingredient_name,
+                'matched_name': best_match['name'],
+                'similarity': best_match['similarity'],
                 'matches': matches,
-                'nutrition_info': matches[0]['nutrition_info']  # Best guess
+                'nutrition_info': best_match['nutrition_info']
             })
 
         # No match found
         return jsonify({
             'found': False,
             'ingredient': ingredient_name,
-            'message': 'No nutritional data found for this ingredient',
-            'available_ingredients': list(NUTRITION_DATABASE.keys())
+            'message': 'No nutritional data found for this ingredient'
         })
 
     except Exception as e:
@@ -2161,19 +2360,26 @@ def auto_fill_nutrition(item_id):
 
         # Remove common suffixes/prefixes for better matching
         clean_name = item_name.replace('(producido)', '').replace('fresco', '').replace('seco', '').strip()
+        # Also try normalized version (without accents)
+        normalized_name = normalize_text(clean_name)
 
         # Try to find matching nutrition data
         nutrition_info = None
         matched_name = None
 
-        # Try exact match
+        # Try exact match first
         if clean_name in NUTRITION_DATABASE:
             nutrition_info = NUTRITION_DATABASE[clean_name]
             matched_name = clean_name
+        elif normalized_name in NUTRITION_DATABASE:
+            nutrition_info = NUTRITION_DATABASE[normalized_name]
+            matched_name = normalized_name
         else:
-            # Try partial match
+            # Try partial match with both versions
             for key in NUTRITION_DATABASE:
-                if key in clean_name or clean_name in key:
+                key_normalized = normalize_text(key)
+                if (key in clean_name or clean_name in key or
+                    key_normalized in normalized_name or normalized_name in key_normalized):
                     nutrition_info = NUTRITION_DATABASE[key]
                     matched_name = key
                     break
@@ -2899,7 +3105,7 @@ def get_recipe_nutrition(recipe_id):
 
         recipe_data = doc.to_dict()
 
-        # Initialize totals for nutritional values
+        # Initialize totals for nutritional values (extended fields)
         total_nutrition = {
             'calories': 0.0,
             'proteins': 0.0,
@@ -2907,11 +3113,17 @@ def get_recipe_nutrition(recipe_id):
             'sugars': 0.0,
             'fats': 0.0,
             'saturated_fats': 0.0,
+            'trans_fats': 0.0,
+            'unsaturated_fats': 0.0,
             'fiber': 0.0,
-            'sodium': 0.0
+            'sodium': 0.0,
+            'cholesterol': 0.0,
+            'calcium': 0.0,
+            'iron': 0.0
         }
         total_weight_grams = 0.0
         ingredients_nutrition = []
+        all_allergens = set()
 
         for ingredient in recipe_data.get('ingredients', []):
             inventory_doc = db.collection('inventory').document(ingredient['item_id']).get()
@@ -2919,6 +3131,14 @@ def get_recipe_nutrition(recipe_id):
             if inventory_doc.exists:
                 inventory_data = inventory_doc.to_dict()
                 nutrition_info = inventory_data.get('nutrition_info', {})
+
+                # Collect allergens
+                allergens = nutrition_info.get('allergens', '')
+                if allergens:
+                    for a in allergens.replace(';', ',').split(','):
+                        a = a.strip()
+                        if a and a != '—':
+                            all_allergens.add(a)
 
                 # Get ingredient quantity and unit
                 quantity = float(ingredient.get('quantity', 0))
@@ -2951,8 +3171,13 @@ def get_recipe_nutrition(recipe_id):
                         'sugars': float(nutrition_info.get('sugars', 0)) * factor,
                         'fats': float(nutrition_info.get('fats', 0)) * factor,
                         'saturated_fats': float(nutrition_info.get('saturated_fats', 0)) * factor,
+                        'trans_fats': float(nutrition_info.get('trans_fats', 0)) * factor,
+                        'unsaturated_fats': float(nutrition_info.get('unsaturated_fats', 0)) * factor,
                         'fiber': float(nutrition_info.get('fiber', 0)) * factor,
-                        'sodium': float(nutrition_info.get('sodium', 0)) * factor
+                        'sodium': float(nutrition_info.get('sodium', 0)) * factor,
+                        'cholesterol': float(nutrition_info.get('cholesterol', 0)) * factor,
+                        'calcium': float(nutrition_info.get('calcium', 0)) * factor,
+                        'iron': float(nutrition_info.get('iron', 0)) * factor
                     }
                 }
 
@@ -2996,7 +3221,8 @@ def get_recipe_nutrition(recipe_id):
             'total_ingredients_weight_grams': round(total_weight_grams, 2),
             'nutrition_per_batch': total_nutrition,
             'nutrition_per_100g': nutrition_per_100g,
-            'ingredients_breakdown': ingredients_nutrition
+            'ingredients_breakdown': ingredients_nutrition,
+            'allergens': sorted(list(all_allergens))
         })
     except Exception as e:
         print(f"Error calculating recipe nutrition: {e}")
@@ -3552,7 +3778,7 @@ def get_production_batch_label(batch_id):
 
         recipe_data = recipe_doc.to_dict()
 
-        # Calculate nutritional information
+        # Calculate nutritional information (extended fields)
         total_nutrition = {
             'calories': 0.0,
             'proteins': 0.0,
@@ -3560,11 +3786,17 @@ def get_production_batch_label(batch_id):
             'sugars': 0.0,
             'fats': 0.0,
             'saturated_fats': 0.0,
+            'trans_fats': 0.0,
+            'unsaturated_fats': 0.0,
             'fiber': 0.0,
-            'sodium': 0.0
+            'sodium': 0.0,
+            'cholesterol': 0.0,
+            'calcium': 0.0,
+            'iron': 0.0
         }
         total_weight_grams = 0.0
         ingredients_with_weight = []
+        all_allergens = set()
 
         for ingredient in recipe_data.get('ingredients', []):
             inventory_doc = db.collection('inventory').document(ingredient['item_id']).get()
@@ -3572,6 +3804,14 @@ def get_production_batch_label(batch_id):
             if inventory_doc.exists:
                 inventory_data = inventory_doc.to_dict()
                 nutrition_info = inventory_data.get('nutrition_info', {})
+
+                # Collect allergens from ingredients
+                allergens = nutrition_info.get('allergens', '')
+                if allergens:
+                    for a in allergens.replace(';', ',').split(','):
+                        a = a.strip()
+                        if a and a != '—':
+                            all_allergens.add(a)
 
                 quantity = float(ingredient.get('quantity', 0))
                 unit = inventory_data.get('unit', 'g')
@@ -3687,7 +3927,7 @@ def get_production_batch_label(batch_id):
             'expiration_date': expiration_date.strftime('%Y-%m-%d') if hasattr(expiration_date, 'strftime') else str(expiration_date)[:10],
             'shelf_life_days': shelf_life_days,
             'nutrition_per_100g': nutrition_per_100g,
-            'allergens': recipe_data.get('allergens', []),
+            'allergens': sorted(list(all_allergens)) if all_allergens else recipe_data.get('allergens', []),
             'ingredients_list': sorted_ingredients_list,  # Sorted by weight (descending)
             'ingredients_detail': ingredients_with_weight,  # Full details for debugging
             'company_info': {
@@ -4817,10 +5057,10 @@ def get_top_clients():
                 final_price = booking_data.get("final_price", estimated_price)
                 client_stats[client_email]["total_spent"] += final_price
 
-        # Ordenar por número de bookings
+        # Ordenar por número de bookings, luego por monto gastado
         top_clients = sorted(
             client_stats.values(),
-            key=lambda x: x["total_bookings"],
+            key=lambda x: (x["total_bookings"], x["total_spent"]),
             reverse=True
         )[:limit]
 

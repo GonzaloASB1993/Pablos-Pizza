@@ -29,7 +29,7 @@ import toast from 'react-hot-toast'
 const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 const BASE_URL = isDevelopment
   ? 'http://localhost:8000/api'
-  : 'https://main-4kqeqojbsq-uc.a.run.app/api'
+  : 'https://main-446811667554.us-central1.run.app/api'
 
 const ChatAssistant = ({ open, onClose }) => {
   const theme = useTheme()
