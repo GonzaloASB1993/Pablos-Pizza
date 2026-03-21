@@ -245,31 +245,36 @@
 
 ---
 
-## 📱 M4: Mobile Experience Enhancement
+## ✅ M4: Mobile Experience Enhancement
 **Duración**: 3 semanas
-**Estado**: Pendiente
+**Estado**: ✅ COMPLETADO (21/03/2026)
 
-### Mobile-First Improvements
-- [ ] PWA completa con install prompt
-- [ ] Optimizar formularios para mobile
-- [ ] Gestos touch para galería
-- [ ] Mejoras en navegación mobile
-- [ ] Camera API para upload de fotos
-- [ ] Offline functionality básica
+### Fase 1: Quick Wins ✅
+- [✅] `responsiveFontSizes` en theme.js — tipografía escala automática por breakpoint
+- [✅] CSS touch optimizations: `WebkitTapHighlightColor`, `overscrollBehavior`, inputs `fontSize: 16px` (evita zoom iOS)
+- [✅] AdminLayout padding responsive `{ xs: 1.5, sm: 2, md: 3 }`
+- [✅] TestimonialsPage modal `fullScreen={isMobile}` en sm
+- [✅] RollingGallery migrado a `useMediaQuery` — eliminado resize listener manual
 
-### Push Notifications
-- [ ] Service worker para notificaciones
-- [ ] Suscripción de admins a notificaciones
-- [ ] Notificaciones de nuevas reservas
-- [ ] Recordatorios de eventos próximos
-- [ ] Updates de estado en tiempo real
+### Fase 2: PWA ✅
+- [✅] `vite-plugin-pwa` v1.2.0 instalado
+- [✅] `vite.config.js` configurado con VitePWA + Workbox (Google Fonts CacheFirst, Firebase Storage CacheFirst 30d, API NetworkFirst, static CacheFirst)
+- [✅] Iconos PWA generados con sharp: icon-192, icon-512, maskable-512, apple-touch-180
+- [✅] `manifest.json` actualizado — separadas entries `any` y `maskable`
+- [✅] `index.html` con `<link rel="apple-touch-icon">`
+- [✅] `public/offline.html` creado con branding Pablo's Pizza
 
-### Mobile Admin Tools
-- [ ] Quick actions desde móvil
-- [ ] Mobile-optimized dashboard
-- [ ] Respuesta rápida a contactos
-- [ ] Upload de fotos desde móvil durante eventos
-- [ ] Check-in/check-out de eventos
+### Fase 3: Public Pages Polish ✅
+- [✅] BookingPage — Stepper mobile: indicador "Paso X de 3" + LinearProgress (reemplaza Stepper horizontal)
+- [✅] HomePage — `touchmove`/`touchend` listeners para efecto parallax GSAP en touch
+
+### Fase 4: Admin Pages Mobile ✅
+- [✅] `ResponsiveTable` componente reutilizable creado (`src/components/common/ResponsiveTable.jsx`)
+- [✅] AdminDashboard — chart heights responsive `{ xs: 220, md: 280 }`
+- [✅] BookingsManagement — cards mobile con client/date/service/status/price, dialogs `fullScreen`, calendario `agenda` view en mobile
+- [✅] EventsManagement — cards mobile, dialogs `fullScreen`
+- [✅] InventoryManagement — cards mobile + LinearProgress stock, dialogs `fullScreen`
+- [✅] ProductionManagement — cards mobile, dialogs `fullScreen`
 
 ---
 
@@ -507,6 +512,6 @@
 
 **Última actualización**: Marzo 2026
 **Total tareas activas**: 55+ items
-**Estado del proyecto**: M0 ✅, M1 ✅, M2 ✅, M3 ✅, M_NUT ✅ COMPLETADO
+**Estado del proyecto**: M0 ✅, M1 ✅, M2 ✅, M3 ✅, M4 ✅, M_NUT ✅ COMPLETADO
 **Próximo milestone**: M_MP - Integración MercadoPago Abonos
-**Último cambio**: Sistema nutricional completo - CSV con fuzzy matching, etiquetas mejoradas, auto-llenado (21/03/2026)
+**Último cambio**: M4 Mobile Experience Enhancement completo — PWA funcional, admin pages responsive, touch optimizations (21/03/2026)

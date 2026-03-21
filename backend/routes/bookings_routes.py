@@ -318,7 +318,7 @@ def add_payment(booking_id):
             return jsonify({"error": "Invalid amount"}), 400
 
         # Validate method
-        if data['method'] not in ['efectivo', 'transferencia']:
+        if data['method'] not in ['efectivo', 'transferencia', 'mercadopago']:
             return jsonify({"error": "Invalid payment method"}), 400
 
         # Validate type
@@ -419,7 +419,7 @@ def update_payment(booking_id, payment_id):
         payment = payments[payment_index]
         if 'amount' in data:
             payment['amount'] = round(float(data['amount']), 2)
-        if 'method' in data and data['method'] in ['efectivo', 'transferencia']:
+        if 'method' in data and data['method'] in ['efectivo', 'transferencia', 'mercadopago']:
             payment['method'] = data['method']
         if 'type' in data and data['type'] in ['abono', 'saldo']:
             payment['type'] = data['type']

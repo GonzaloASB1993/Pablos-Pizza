@@ -56,6 +56,7 @@ from routes.customers_routes import customers_bp
 from routes.expenses_routes import expenses_bp
 from routes.ai_chat_routes import ai_chat_bp
 from routes.vacuum_sales_routes import vacuum_sales_bp
+from routes.payments_routes import payments_bp
 
 
 try:
@@ -141,6 +142,8 @@ app.register_blueprint(ai_chat_bp)
 print("  [OK] AI Chat routes registered")
 app.register_blueprint(vacuum_sales_bp)
 print("  [OK] Vacuum Sales routes registered")
+app.register_blueprint(payments_bp)
+print("  [OK] Payments routes registered")
 print("[SUCCESS] All blueprints registered successfully!")
 
 

@@ -120,6 +120,33 @@ export const createBooking = async (bookingData) => {
   }
 }
 
+export const createPaymentPreference = async ({ booking_id, amount, description }) => {
+  try {
+    const response = await fetch(`${API_BASE}/payments/create-preference`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ booking_id, amount, description })
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      try {
+        const errorData = JSON.parse(errorText)
+        throw new Error(errorData.error || errorData.detail || `Error ${response.status}`)
+      } catch {
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      }
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error creating payment preference:', error)
+    throw error
+  }
+}
+
 export const getBookings = async () => {
   try {
     const response = await fetch(`${API_BASE}/bookings/`)

@@ -1,4 +1,4 @@
-import { createTheme } from '@mui/material/styles'
+import { createTheme, responsiveFontSizes } from '@mui/material/styles'
 
 // Design tokens reutilizables para estilos (gradientes, radios, sombras, paleta extendida)
 export const designTokens = {
@@ -128,6 +128,17 @@ const theme = createTheme({
     },
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          WebkitTapHighlightColor: 'transparent',
+          overscrollBehavior: 'none',
+        },
+        'input, textarea, select': {
+          fontSize: '16px',
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {
@@ -255,4 +266,4 @@ const theme = createTheme({
   },
 })
 
-export default theme
+export default responsiveFontSizes(theme)

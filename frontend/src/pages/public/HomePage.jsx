@@ -149,12 +149,44 @@ const Hero3DLogo = ({ prefersReducedMotion, animationsEnabled }) => {
       })
     }
 
+    const handleTouchMove = (e) => {
+      if (!container || !e.touches[0]) return
+      const rect = container.getBoundingClientRect()
+      const centerX = rect.left + rect.width / 2
+      const centerY = rect.top + rect.height / 2
+      const deltaX = (e.touches[0].clientX - centerX) / 20
+      const deltaY = (e.touches[0].clientY - centerY) / 20
+      gsap.to(logo, {
+        x: deltaX,
+        y: deltaY,
+        rotationY: deltaX / 2,
+        rotationX: -deltaY / 2,
+        duration: 0.3,
+        ease: 'power2.out',
+      })
+    }
+
+    const handleTouchEnd = () => {
+      gsap.to(logo, {
+        x: 0,
+        y: 0,
+        rotationY: 0,
+        rotationX: 0,
+        duration: 0.5,
+        ease: 'elastic.out(1, 0.5)',
+      })
+    }
+
     container.addEventListener('mousemove', handleMouseMove)
     container.addEventListener('mouseleave', handleMouseLeave)
+    container.addEventListener('touchmove', handleTouchMove, { passive: true })
+    container.addEventListener('touchend', handleTouchEnd)
 
     return () => {
       container.removeEventListener('mousemove', handleMouseMove)
       container.removeEventListener('mouseleave', handleMouseLeave)
+      container.removeEventListener('touchmove', handleTouchMove)
+      container.removeEventListener('touchend', handleTouchEnd)
     }
   }, [prefersReducedMotion, animationsEnabled])
 

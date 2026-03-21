@@ -33,7 +33,10 @@ import {
   List,
   ListItem,
   ListItemText,
-  InputAdornment
+  InputAdornment,
+  Stack,
+  useTheme,
+  useMediaQuery
 } from '@mui/material'
 import { Add, Edit, Delete, Warning, Inventory, Kitchen, Build, Timeline, ArrowDownward, ArrowUpward, AddBox, Visibility, SwapHoriz, Search, RemoveCircleOutline, Undo, AutoAwesome } from '@mui/icons-material'
 import { inventoryAPI, recipesAPI } from '../../services/api'
@@ -42,6 +45,8 @@ import UnitConverter from '../../components/UnitConverter'
 import toast from 'react-hot-toast'
 
 const InventoryManagement = () => {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [inventory, setInventory] = useState([])
   const [recipes, setRecipes] = useState([])
   const [loading, setLoading] = useState(true)
@@ -1167,126 +1172,188 @@ const InventoryManagement = () => {
                 sx={{ ml: 2 }}
               />
             </Typography>
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Producto</TableCell>
-                    <TableCell>Tipo</TableCell>
-                    <TableCell>Categoría</TableCell>
-                    <TableCell>Stock Actual</TableCell>
-                    <TableCell>Stock Mínimo</TableCell>
-                    <TableCell>Estado</TableCell>
-                    <TableCell>Costo/Unidad</TableCell>
-                    <TableCell>Acciones</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredInventory.map((item) => {
-                    const stockStatus = getStockStatus(item)
-                    const stockPercentage = (item.current_stock / item.max_stock) * 100
-
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <Box>
+            {isMobile ? (
+              <Stack spacing={1.5}>
+                {filteredInventory.length === 0 ? (
+                  <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
+                    No hay productos en esta categoría
+                  </Typography>
+                ) : filteredInventory.map((item) => {
+                  const stockStatus = getStockStatus(item)
+                  const stockPercentage = (item.current_stock / item.max_stock) * 100
+                  return (
+                    <Card key={item.id} variant="outlined" sx={{ p: 0 }}>
+                      <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                          <Box sx={{ flex: 1, mr: 1 }}>
                             <Typography variant="body2" fontWeight="bold">
                               {item.name}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              {item.unit && `Unidad: ${item.unit}`}
+                              {getCategoryLabel(item.category)}
                             </Typography>
                           </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={getProductTypeLabel(item.product_type)}
-                            size="small"
-                            color={item.product_type === 'raw_material' ? 'primary' :
-                                   item.product_type === 'intermediate' ? 'secondary' : 'default'}
-                          />
-                        </TableCell>
-                        <TableCell>{getCategoryLabel(item.category)}</TableCell>
-                        <TableCell>
-                          <Box>
-                            <Typography variant="body2">
-                              {formatStock(item.current_stock, false)} {item.unit}
-                            </Typography>
-                            <LinearProgress
-                              variant="determinate"
-                              value={Math.min(stockPercentage, 100)}
-                              color={getStockColor(stockStatus)}
-                              sx={{ width: 80, height: 4, mt: 0.5 }}
-                            />
-                          </Box>
-                        </TableCell>
-                        <TableCell>{item.min_stock} {item.unit}</TableCell>
-                        <TableCell>
                           <Chip
                             label={getStockLabel(stockStatus)}
                             color={getStockColor(stockStatus)}
                             size="small"
                           />
-                        </TableCell>
-                        <TableCell>
-                          ${item.cost_per_unit?.toLocaleString('es-CL') || '0'}
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                            <Button
+                        </Box>
+                        <Box sx={{ mb: 1 }}>
+                          <Typography variant="body2">
+                            Stock: {formatStock(item.current_stock, false)} {item.unit}
+                          </Typography>
+                          <LinearProgress
+                            variant="determinate"
+                            value={Math.min(stockPercentage, 100)}
+                            color={getStockColor(stockStatus)}
+                            sx={{ height: 4, mt: 0.5, mb: 0.5 }}
+                          />
+                          <Typography variant="caption" color="text.secondary">
+                            Costo/Unidad: ${item.cost_per_unit?.toLocaleString('es-CL') || '0'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          <Button size="small" startIcon={<Edit />} onClick={() => handleEdit(item)}>
+                            Editar
+                          </Button>
+                          <Button size="small" color="success" startIcon={<AddBox />} onClick={() => handleAddStock(item)}>
+                            + Stock
+                          </Button>
+                          <Button size="small" color="warning" startIcon={<RemoveCircleOutline />} onClick={() => handleWasteOpen(item)}>
+                            Merma
+                          </Button>
+                          <Button size="small" color="error" startIcon={<Delete />} onClick={() => handleDelete(item.id)}>
+                            Eliminar
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </Stack>
+            ) : (
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Producto</TableCell>
+                      <TableCell>Tipo</TableCell>
+                      <TableCell>Categoría</TableCell>
+                      <TableCell>Stock Actual</TableCell>
+                      <TableCell>Stock Mínimo</TableCell>
+                      <TableCell>Estado</TableCell>
+                      <TableCell>Costo/Unidad</TableCell>
+                      <TableCell>Acciones</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filteredInventory.map((item) => {
+                      const stockStatus = getStockStatus(item)
+                      const stockPercentage = (item.current_stock / item.max_stock) * 100
+
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <Box>
+                              <Typography variant="body2" fontWeight="bold">
+                                {item.name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {item.unit && `Unidad: ${item.unit}`}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={getProductTypeLabel(item.product_type)}
                               size="small"
-                              startIcon={<Edit />}
-                              onClick={() => handleEdit(item)}
-                            >
-                              Editar
-                            </Button>
-                            <Button
+                              color={item.product_type === 'raw_material' ? 'primary' :
+                                     item.product_type === 'intermediate' ? 'secondary' : 'default'}
+                            />
+                          </TableCell>
+                          <TableCell>{getCategoryLabel(item.category)}</TableCell>
+                          <TableCell>
+                            <Box>
+                              <Typography variant="body2">
+                                {formatStock(item.current_stock, false)} {item.unit}
+                              </Typography>
+                              <LinearProgress
+                                variant="determinate"
+                                value={Math.min(stockPercentage, 100)}
+                                color={getStockColor(stockStatus)}
+                                sx={{ width: 80, height: 4, mt: 0.5 }}
+                              />
+                            </Box>
+                          </TableCell>
+                          <TableCell>{item.min_stock} {item.unit}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={getStockLabel(stockStatus)}
+                              color={getStockColor(stockStatus)}
                               size="small"
-                              color="success"
-                              startIcon={<AddBox />}
-                              onClick={() => handleAddStock(item)}
-                            >
-                              + Stock
-                            </Button>
-                            <Button
-                              size="small"
-                              color="warning"
-                              startIcon={<RemoveCircleOutline />}
-                              onClick={() => handleWasteOpen(item)}
-                            >
-                              Merma
-                            </Button>
-                            <Button
-                              size="small"
-                              color="error"
-                              startIcon={<Delete />}
-                              onClick={() => handleDelete(item.id)}
-                            >
-                              Eliminar
-                            </Button>
-                          </Box>
+                            />
+                          </TableCell>
+                          <TableCell>
+                            ${item.cost_per_unit?.toLocaleString('es-CL') || '0'}
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                              <Button
+                                size="small"
+                                startIcon={<Edit />}
+                                onClick={() => handleEdit(item)}
+                              >
+                                Editar
+                              </Button>
+                              <Button
+                                size="small"
+                                color="success"
+                                startIcon={<AddBox />}
+                                onClick={() => handleAddStock(item)}
+                              >
+                                + Stock
+                              </Button>
+                              <Button
+                                size="small"
+                                color="warning"
+                                startIcon={<RemoveCircleOutline />}
+                                onClick={() => handleWasteOpen(item)}
+                              >
+                                Merma
+                              </Button>
+                              <Button
+                                size="small"
+                                color="error"
+                                startIcon={<Delete />}
+                                onClick={() => handleDelete(item.id)}
+                              >
+                                Eliminar
+                              </Button>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                    {filteredInventory.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center">
+                          <Typography color="text.secondary">
+                            No hay productos en esta categoría
+                          </Typography>
                         </TableCell>
                       </TableRow>
-                    )
-                  })}
-                  {filteredInventory.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={8} align="center">
-                        <Typography color="text.secondary">
-                          No hay productos en esta categoría
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Add/Edit Dialog */}
-      <Dialog open={dialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog open={dialog} onClose={handleCloseDialog} maxWidth="md" fullWidth fullScreen={isMobile}>
         <DialogTitle>
           {editingItem ? 'Editar Producto' : 'Agregar Nuevo Producto'}
         </DialogTitle>
@@ -1683,7 +1750,7 @@ const InventoryManagement = () => {
       </Dialog>
 
       {/* Recipe Management Dialog */}
-      <Dialog open={recipeDialog} onClose={handleCloseRecipeDialog} maxWidth="lg" fullWidth>
+      <Dialog open={recipeDialog} onClose={handleCloseRecipeDialog} maxWidth="lg" fullWidth fullScreen={isMobile}>
         <DialogTitle>
           Gestión de Recetas
         </DialogTitle>
@@ -2011,7 +2078,7 @@ const InventoryManagement = () => {
       </Dialog>
 
       {/* Modal para Agregar Stock con Historial */}
-      <Dialog open={stockDialog} onClose={handleCloseStockDialog} maxWidth="lg" fullWidth>
+      <Dialog open={stockDialog} onClose={handleCloseStockDialog} maxWidth="lg" fullWidth fullScreen={isMobile}>
         <DialogTitle>
           Agregar Stock - {stockItem?.name}
         </DialogTitle>
@@ -2254,7 +2321,7 @@ const InventoryManagement = () => {
       </Dialog>
 
       {/* Modal de Registro de Mermas */}
-      <Dialog open={wasteDialog} onClose={handleWasteClose} maxWidth="md" fullWidth>
+      <Dialog open={wasteDialog} onClose={handleWasteClose} maxWidth="md" fullWidth fullScreen={isMobile}>
         <DialogTitle>
           Registrar Merma - {wasteItem?.name}
         </DialogTitle>

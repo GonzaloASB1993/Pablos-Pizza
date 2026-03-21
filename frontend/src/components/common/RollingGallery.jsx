@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { motion, useMotionValue, useAnimation, useTransform } from 'framer-motion'
-import { Box } from '@mui/material'
+import { Box, useTheme, useMediaQuery } from '@mui/material'
 
 const IMGS = [
   '/images/gallery_rolling/IMG-20250615-WA0018.jpg',
@@ -18,13 +18,8 @@ const IMGS = [
 const RollingGallery = ({ autoplay = true, pauseOnHover = true, images = [] }) => {
   images = images.length > 0 ? images : IMGS
 
-  const [isScreenSizeSm, setIsScreenSizeSm] = useState(window.innerWidth <= 640)
-
-  useEffect(() => {
-    const handleResize = () => setIsScreenSizeSm(window.innerWidth <= 640)
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  const theme = useTheme()
+  const isScreenSizeSm = useMediaQuery(theme.breakpoints.down('sm'))
 
   const cylinderWidth = isScreenSizeSm ? 1500 : 2500
   const faceCount = images.length

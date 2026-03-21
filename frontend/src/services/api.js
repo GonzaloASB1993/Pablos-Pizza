@@ -501,4 +501,9 @@ export const vacuumSalesAPI = {
   deletePayment: (saleId, paymentId) => api.delete(`/vacuum-sales/${saleId}/payments/${paymentId}`),
 }
 
+export const paymentsAPI = {
+  createPreference: (data) => api.post('/payments/create-preference', data),
+  getStatus: (bookingId) => api.get(`/payments/status/${bookingId}`),
+}
+
 export default api

@@ -30,7 +30,10 @@ import {
   ListItemText,
   Divider,
   Tooltip,
-  IconButton
+  IconButton,
+  Stack,
+  useTheme,
+  useMediaQuery
 } from '@mui/material'
 import {
   Add,
@@ -49,6 +52,8 @@ import { productionBatchesAPI, recipesAPI, inventoryAPI } from '../../services/a
 import toast from 'react-hot-toast'
 
 const ProductionManagement = () => {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [batches, setBatches] = useState([])
   const [recipes, setRecipes] = useState([])
   const [inventory, setInventory] = useState([])
@@ -721,140 +726,209 @@ const ProductionManagement = () => {
       ) : (
         <Card>
           <CardContent>
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Lote</TableCell>
-                    <TableCell>Receta</TableCell>
-                    <TableCell>Cantidad</TableCell>
-                    <TableCell>Produce</TableCell>
-                    <TableCell>Costo Total</TableCell>
-                    <TableCell>Estado</TableCell>
-                    <TableCell>Creado</TableCell>
-                    <TableCell>Acciones</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {batches.map((batch) => (
-                    <TableRow key={batch.id}>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="bold">
-                          #{batch.id.slice(-8)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {batch.recipe_name}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {batch.quantity_to_produce} lotes
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {batch.output_quantity} {batch.output_unit}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          ${batch.total_cost?.toLocaleString('es-CL') || '0'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
+            {isMobile ? (
+              <Stack spacing={1.5}>
+                {batches.length === 0 ? (
+                  <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
+                    No hay lotes de producción programados
+                  </Typography>
+                ) : batches.map((batch) => (
+                  <Card key={batch.id} variant="outlined" sx={{ p: 0 }}>
+                    <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Box>
+                          <Typography variant="body2" fontWeight="bold">
+                            #{batch.id.slice(-8)}
+                          </Typography>
+                          <Typography variant="body2">
+                            {batch.recipe_name}
+                          </Typography>
+                        </Box>
                         <Chip
                           label={getStatusLabel(batch.status)}
                           color={getStatusColor(batch.status)}
                           size="small"
                         />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 1 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          Cantidad: {batch.quantity_to_produce} lotes
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Produce: {batch.output_quantity} {batch.output_unit}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Costo: ${batch.total_cost?.toLocaleString('es-CL') || '0'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
                           {new Date(batch.created_at).toLocaleDateString('es-CL')}
                         </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Tooltip title="Ver detalles">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleViewDetails(batch)}
-                            >
-                              <Visibility fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-
-                          {batch.status === 'pending' && (
-                            <Tooltip title="Iniciar producción">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleStartBatch(batch.id)}
-                              >
-                                <PlayArrow fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-
-                          {batch.status === 'in_progress' && (
-                            <Tooltip title="Completar lote">
-                              <IconButton
-                                size="small"
-                                color="success"
-                                onClick={() => handleCompleteBatch(batch.id)}
-                              >
-                                <CheckCircle fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-
-                          {batch.status === 'completed' && (
-                            <Tooltip title="Generar Etiqueta">
-                              <IconButton
-                                size="small"
-                                color="secondary"
-                                onClick={() => handleGenerateLabel(batch)}
-                              >
-                                <Label fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-
-                          {(batch.status === 'pending' || batch.status === 'in_progress') && (
-                            <Tooltip title="Cancelar lote">
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => handleCancelBatch(batch.id)}
-                              >
-                                <Cancel fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {batches.length === 0 && (
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        <IconButton size="small" onClick={() => handleViewDetails(batch)}>
+                          <Visibility fontSize="small" />
+                        </IconButton>
+                        {batch.status === 'pending' && (
+                          <IconButton size="small" color="primary" onClick={() => handleStartBatch(batch.id)}>
+                            <PlayArrow fontSize="small" />
+                          </IconButton>
+                        )}
+                        {batch.status === 'in_progress' && (
+                          <IconButton size="small" color="success" onClick={() => handleCompleteBatch(batch.id)}>
+                            <CheckCircle fontSize="small" />
+                          </IconButton>
+                        )}
+                        {batch.status === 'completed' && (
+                          <IconButton size="small" color="secondary" onClick={() => handleGenerateLabel(batch)}>
+                            <Label fontSize="small" />
+                          </IconButton>
+                        )}
+                        {(batch.status === 'pending' || batch.status === 'in_progress') && (
+                          <IconButton size="small" color="error" onClick={() => handleCancelBatch(batch.id)}>
+                            <Cancel fontSize="small" />
+                          </IconButton>
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Stack>
+            ) : (
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
                     <TableRow>
-                      <TableCell colSpan={8} align="center">
-                        <Typography color="text.secondary">
-                          No hay lotes de producción programados
-                        </Typography>
-                      </TableCell>
+                      <TableCell>Lote</TableCell>
+                      <TableCell>Receta</TableCell>
+                      <TableCell>Cantidad</TableCell>
+                      <TableCell>Produce</TableCell>
+                      <TableCell>Costo Total</TableCell>
+                      <TableCell>Estado</TableCell>
+                      <TableCell>Creado</TableCell>
+                      <TableCell>Acciones</TableCell>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {batches.map((batch) => (
+                      <TableRow key={batch.id}>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="bold">
+                            #{batch.id.slice(-8)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {batch.recipe_name}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {batch.quantity_to_produce} lotes
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {batch.output_quantity} {batch.output_unit}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            ${batch.total_cost?.toLocaleString('es-CL') || '0'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={getStatusLabel(batch.status)}
+                            color={getStatusColor(batch.status)}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {new Date(batch.created_at).toLocaleDateString('es-CL')}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Tooltip title="Ver detalles">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleViewDetails(batch)}
+                              >
+                                <Visibility fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+
+                            {batch.status === 'pending' && (
+                              <Tooltip title="Iniciar producción">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleStartBatch(batch.id)}
+                                >
+                                  <PlayArrow fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+
+                            {batch.status === 'in_progress' && (
+                              <Tooltip title="Completar lote">
+                                <IconButton
+                                  size="small"
+                                  color="success"
+                                  onClick={() => handleCompleteBatch(batch.id)}
+                                >
+                                  <CheckCircle fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+
+                            {batch.status === 'completed' && (
+                              <Tooltip title="Generar Etiqueta">
+                                <IconButton
+                                  size="small"
+                                  color="secondary"
+                                  onClick={() => handleGenerateLabel(batch)}
+                                >
+                                  <Label fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+
+                            {(batch.status === 'pending' || batch.status === 'in_progress') && (
+                              <Tooltip title="Cancelar lote">
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleCancelBatch(batch.id)}
+                                >
+                                  <Cancel fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {batches.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center">
+                          <Typography color="text.secondary">
+                            No hay lotes de producción programados
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Add Batch Dialog */}
-      <Dialog open={dialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog open={dialog} onClose={handleCloseDialog} maxWidth="md" fullWidth fullScreen={isMobile}>
         <DialogTitle>
           Crear Nuevo Lote de Producción
         </DialogTitle>
@@ -939,7 +1013,7 @@ const ProductionManagement = () => {
       </Dialog>
 
       {/* Batch Detail Dialog */}
-      <Dialog open={detailDialog} onClose={handleCloseDetailDialog} maxWidth="md" fullWidth>
+      <Dialog open={detailDialog} onClose={handleCloseDetailDialog} maxWidth="md" fullWidth fullScreen={isMobile}>
         <DialogTitle>
           Detalles del Lote #{selectedBatch?.id?.slice(-8)}
         </DialogTitle>
@@ -1051,7 +1125,7 @@ const ProductionManagement = () => {
       </Dialog>
 
       {/* Label Generation Dialog */}
-      <Dialog open={labelDialog} onClose={handleCloseLabelDialog} maxWidth="md" fullWidth>
+      <Dialog open={labelDialog} onClose={handleCloseLabelDialog} maxWidth="md" fullWidth fullScreen={isMobile}>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Label />

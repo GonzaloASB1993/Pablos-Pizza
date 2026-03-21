@@ -33,7 +33,10 @@ import {
     AccordionSummary,
     AccordionDetails,
     InputAdornment,
-    Autocomplete
+    Autocomplete,
+    Stack,
+    useTheme,
+    useMediaQuery
 } from '@mui/material'
 import CustomerAutocomplete from '../../components/forms/CustomerAutocomplete'
 import PhoneInput from '../../components/forms/PhoneInput'
@@ -79,6 +82,8 @@ const localizer = dateFnsLocalizer({
 })
 
 const BookingsManagement = () => {
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     // Get current month in MM-YYYY format as default
     const getCurrentMonthKey = () => {
         const today = new Date()
@@ -1956,68 +1961,17 @@ const BookingsManagement = () => {
             ) : view === 'table' ? (
                 <Card>
                     <CardContent>
-                        <TableContainer component={Paper}>
-                            <Table>
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell
-                                            sx={{ cursor: 'pointer', userSelect: 'none' }}
-                                            onClick={() => handleSort('client_name')}
-                                        >
-                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                Cliente
-                                                {getSortIcon('client_name')}
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell
-                                            sx={{ cursor: 'pointer', userSelect: 'none' }}
-                                            onClick={() => handleSort('service_type')}
-                                        >
-                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                Servicio
-                                                {getSortIcon('service_type')}
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell
-                                            sx={{ cursor: 'pointer', userSelect: 'none' }}
-                                            onClick={() => handleSort('event_date')}
-                                        >
-                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                Fecha
-                                                {getSortIcon('event_date')}
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell
-                                            sx={{ cursor: 'pointer', userSelect: 'none' }}
-                                            onClick={() => handleSort('status')}
-                                        >
-                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                Estado
-                                                {getSortIcon('status')}
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell>Estado de Pago</TableCell>
-                                        <TableCell
-                                            sx={{ cursor: 'pointer', userSelect: 'none' }}
-                                            onClick={() => handleSort('participants')}
-                                        >
-                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                Participantes
-                                                {getSortIcon('participants')}
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell>Total</TableCell>
-                                        <TableCell>Costo</TableCell>
-                                        <TableCell>Utilidad</TableCell>
-                                        <TableCell>% Utilidad</TableCell>
-                                        <TableCell>Acciones</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {filteredBookings.map((booking) => (
-                                        <TableRow key={booking.id}>
-                                            <TableCell>
-                                                <Box>
+                        {isMobile ? (
+                            <Stack spacing={1.5}>
+                                {filteredBookings.length === 0 ? (
+                                    <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
+                                        No hay agendamientos disponibles
+                                    </Typography>
+                                ) : filteredBookings.map((booking) => (
+                                    <Card key={booking.id} variant="outlined" sx={{ p: 0 }}>
+                                        <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                                                <Box sx={{ flex: 1, mr: 1 }}>
                                                     <Typography variant="body2" fontWeight="bold">
                                                         {booking.client_name}
                                                     </Typography>
@@ -2025,160 +1979,290 @@ const BookingsManagement = () => {
                                                         {booking.client_phone}
                                                     </Typography>
                                                 </Box>
-                                            </TableCell>
-                                            <TableCell>
-                                                {getServiceLabel(booking.service_type)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {booking.event_date ? (
-                                                    parseEventDate(booking.event_date) ?
-                                                    format(parseEventDate(booking.event_date), 'dd/MM/yyyy') :
-                                                    'Fecha inválida'
-                                                ) : '-'}
-                                                {booking.event_time && (
-                                                    <Typography variant="caption" display="block">
-                                                        {booking.event_time}
-                                                    </Typography>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Chip
-                                                    label={getStatusLabel(booking.status)}
-                                                    color={getStatusColor(booking.status)}
-                                                    size="small"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                {getPaymentStatusBadge(booking.payment_summary)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {booking.pizzeros_participants > 0 && (
-                                                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                                                        Pizzeros: {booking.pizzeros_participants}
-                                                    </Typography>
-                                                )}
-                                                {booking.party_guests > 0 || booking.pizza_quantity > 0 ? (
-                                                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                                                        Party: {booking.party_guests || '-'} personas / {booking.pizza_quantity || 10} pizzas
-                                                    </Typography>
-                                                ) : null}
-                                                {(!booking.pizzeros_participants && !(booking.party_guests > 0 || booking.pizza_quantity > 0)) && (
-                                                    <Typography variant="body2">
-                                                        {booking.participants}
-                                                    </Typography>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'flex-end' }}>
+                                                    <Chip
+                                                        label={getStatusLabel(booking.status)}
+                                                        color={getStatusColor(booking.status)}
+                                                        size="small"
+                                                    />
+                                                    <Chip
+                                                        label={getServiceLabel(booking.service_type)}
+                                                        size="small"
+                                                        variant="outlined"
+                                                    />
+                                                </Box>
+                                            </Box>
+                                            <Box sx={{ mb: 1 }}>
+                                                <Typography variant="caption" color="text.secondary" display="block">
+                                                    {booking.event_date ? (
+                                                        parseEventDate(booking.event_date) ?
+                                                        format(parseEventDate(booking.event_date), 'dd/MM/yyyy') :
+                                                        'Fecha inválida'
+                                                    ) : 'Fecha por definir'}
+                                                    {booking.event_time && ` · ${booking.event_time}`}
+                                                </Typography>
                                                 <Typography variant="body2" fontWeight="bold">
                                                     {booking.estimated_price ? formatCurrency(booking.estimated_price) : '-'}
                                                 </Typography>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Typography variant="body2" color={calculateTotalCost(booking) ? 'text.primary' : 'text.secondary'}>
-                                                    {calculateTotalCost(booking) ? formatCurrency(calculateTotalCost(booking)) : '-'}
-                                                </Typography>
-                                            </TableCell>
-                                            <TableCell>
-                                                {(() => {
-                                                    const est = Number(booking.estimated_price || 0)
-                                                    const cost = Number(calculateTotalCost(booking) || 0)
-                                                    const profit = est - cost
-                                                    return (
-                                                        <Typography
-                                                            variant="body2"
-                                                            fontWeight="bold"
-                                                            color={profit > 0 ? 'success.main' : 'text.secondary'}
-                                                        >
-                                                            {profit ? formatCurrency(profit) : '-'}
-                                                        </Typography>
-                                                    )
-                                                })()}
-                                            </TableCell>
-                                            <TableCell>
-                                                {(() => {
-                                                    const est = Number(booking.estimated_price || 0)
-                                                    const cost = Number(calculateTotalCost(booking) || 0)
-                                                    const profit = est - cost
-                                                    const profitPercentage = est > 0 ? ((profit / est) * 100) : 0
-                                                    return (
-                                                        <Typography
-                                                            variant="body2"
-                                                            fontWeight="bold"
-                                                            color={profitPercentage > 0 ? 'success.main' : 'text.secondary'}
-                                                        >
-                                                            {est > 0 ? `${profitPercentage.toFixed(1)}%` : '-'}
-                                                        </Typography>
-                                                    )
-                                                })()}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                                    {booking.status !== 'completed' && (
-                                                        <Button
-                                                            size="small"
-                                                            startIcon={<Edit />}
-                                                            onClick={() => handleEditClick(booking)}
-                                                        >
-                                                            Editar
+                                                <Box sx={{ mt: 0.5 }}>
+                                                    {getPaymentStatusBadge(booking.payment_summary)}
+                                                </Box>
+                                            </Box>
+                                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                                {booking.status !== 'completed' && (
+                                                    <Button size="small" startIcon={<Edit />} onClick={() => handleEditClick(booking)}>
+                                                        Editar
+                                                    </Button>
+                                                )}
+                                                {booking.status === 'confirmed' && (
+                                                    <>
+                                                        <Button size="small" color="primary" startIcon={<AddBox />} onClick={() => handleOpenExpenseDialog(booking)}>
+                                                            +Gasto
                                                         </Button>
-                                                    )}
-                                                    {booking.status === 'confirmed' && (
-                                                        <>
-                                                            <Button
-                                                                size="small"
-                                                                color="primary"
-                                                                startIcon={<AddBox />}
-                                                                onClick={() => handleOpenExpenseDialog(booking)}
-                                                            >
-                                                                +Gasto
-                                                            </Button>
-                                                            <Button
-                                                                size="small"
-                                                                color="info"
-                                                                startIcon={<CheckCircle />}
-                                                                onClick={() => handleOpenCostDialog(booking)}
-                                                            >
-                                                                Completar
-                                                            </Button>
-                                                        </>
-                                                    )}
-                                                    {booking.status === 'completed' ? (
-                                                        <Button
-                                                            size="small"
-                                                            startIcon={<ViewList />}
-                                                            onClick={async () => { setSelectedBooking(booking); await loadSupplyStatus(booking.id); setViewDialog(true) }}
-                                                        >
-                                                            Ver detalle
+                                                        <Button size="small" color="info" startIcon={<CheckCircle />} onClick={() => handleOpenCostDialog(booking)}>
+                                                            Completar
                                                         </Button>
-                                                    ) : (
-                                                        <Button
-                                                            size="small"
-                                                            color="error"
-                                                            startIcon={<Delete />}
-                                                            onClick={() => {
-                                                                setSelectedBooking(booking)
-                                                                setDeleteDialog(true)
-                                                            }}
-                                                        >
-                                                            Eliminar
-                                                        </Button>
-                                                    )}
+                                                    </>
+                                                )}
+                                                {booking.status === 'completed' ? (
+                                                    <Button size="small" startIcon={<ViewList />} onClick={async () => { setSelectedBooking(booking); await loadSupplyStatus(booking.id); setViewDialog(true) }}>
+                                                        Ver detalle
+                                                    </Button>
+                                                ) : (
+                                                    <Button size="small" color="error" startIcon={<Delete />} onClick={() => { setSelectedBooking(booking); setDeleteDialog(true) }}>
+                                                        Eliminar
+                                                    </Button>
+                                                )}
+                                            </Box>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </Stack>
+                        ) : (
+                            <TableContainer component={Paper}>
+                                <Table>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell
+                                                sx={{ cursor: 'pointer', userSelect: 'none' }}
+                                                onClick={() => handleSort('client_name')}
+                                            >
+                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                    Cliente
+                                                    {getSortIcon('client_name')}
                                                 </Box>
                                             </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {filteredBookings.length === 0 && (
-                                        <TableRow>
-                                            <TableCell colSpan={10} align="center">
-                                                <Typography color="text.secondary">
-                                                    No hay agendamientos disponibles
-                                                </Typography>
+                                            <TableCell
+                                                sx={{ cursor: 'pointer', userSelect: 'none' }}
+                                                onClick={() => handleSort('service_type')}
+                                            >
+                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                    Servicio
+                                                    {getSortIcon('service_type')}
+                                                </Box>
                                             </TableCell>
+                                            <TableCell
+                                                sx={{ cursor: 'pointer', userSelect: 'none' }}
+                                                onClick={() => handleSort('event_date')}
+                                            >
+                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                    Fecha
+                                                    {getSortIcon('event_date')}
+                                                </Box>
+                                            </TableCell>
+                                            <TableCell
+                                                sx={{ cursor: 'pointer', userSelect: 'none' }}
+                                                onClick={() => handleSort('status')}
+                                            >
+                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                    Estado
+                                                    {getSortIcon('status')}
+                                                </Box>
+                                            </TableCell>
+                                            <TableCell>Estado de Pago</TableCell>
+                                            <TableCell
+                                                sx={{ cursor: 'pointer', userSelect: 'none' }}
+                                                onClick={() => handleSort('participants')}
+                                            >
+                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                    Participantes
+                                                    {getSortIcon('participants')}
+                                                </Box>
+                                            </TableCell>
+                                            <TableCell>Total</TableCell>
+                                            <TableCell>Costo</TableCell>
+                                            <TableCell>Utilidad</TableCell>
+                                            <TableCell>% Utilidad</TableCell>
+                                            <TableCell>Acciones</TableCell>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
+                                    </TableHead>
+                                    <TableBody>
+                                        {filteredBookings.map((booking) => (
+                                            <TableRow key={booking.id}>
+                                                <TableCell>
+                                                    <Box>
+                                                        <Typography variant="body2" fontWeight="bold">
+                                                            {booking.client_name}
+                                                        </Typography>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {booking.client_phone}
+                                                        </Typography>
+                                                    </Box>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {getServiceLabel(booking.service_type)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {booking.event_date ? (
+                                                        parseEventDate(booking.event_date) ?
+                                                        format(parseEventDate(booking.event_date), 'dd/MM/yyyy') :
+                                                        'Fecha inválida'
+                                                    ) : '-'}
+                                                    {booking.event_time && (
+                                                        <Typography variant="caption" display="block">
+                                                            {booking.event_time}
+                                                        </Typography>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Chip
+                                                        label={getStatusLabel(booking.status)}
+                                                        color={getStatusColor(booking.status)}
+                                                        size="small"
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    {getPaymentStatusBadge(booking.payment_summary)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {booking.pizzeros_participants > 0 && (
+                                                        <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                                                            Pizzeros: {booking.pizzeros_participants}
+                                                        </Typography>
+                                                    )}
+                                                    {booking.party_guests > 0 || booking.pizza_quantity > 0 ? (
+                                                        <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                                                            Party: {booking.party_guests || '-'} personas / {booking.pizza_quantity || 10} pizzas
+                                                        </Typography>
+                                                    ) : null}
+                                                    {(!booking.pizzeros_participants && !(booking.party_guests > 0 || booking.pizza_quantity > 0)) && (
+                                                        <Typography variant="body2">
+                                                            {booking.participants}
+                                                        </Typography>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Typography variant="body2" fontWeight="bold">
+                                                        {booking.estimated_price ? formatCurrency(booking.estimated_price) : '-'}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Typography variant="body2" color={calculateTotalCost(booking) ? 'text.primary' : 'text.secondary'}>
+                                                        {calculateTotalCost(booking) ? formatCurrency(calculateTotalCost(booking)) : '-'}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {(() => {
+                                                        const est = Number(booking.estimated_price || 0)
+                                                        const cost = Number(calculateTotalCost(booking) || 0)
+                                                        const profit = est - cost
+                                                        return (
+                                                            <Typography
+                                                                variant="body2"
+                                                                fontWeight="bold"
+                                                                color={profit > 0 ? 'success.main' : 'text.secondary'}
+                                                            >
+                                                                {profit ? formatCurrency(profit) : '-'}
+                                                            </Typography>
+                                                        )
+                                                    })()}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {(() => {
+                                                        const est = Number(booking.estimated_price || 0)
+                                                        const cost = Number(calculateTotalCost(booking) || 0)
+                                                        const profit = est - cost
+                                                        const profitPercentage = est > 0 ? ((profit / est) * 100) : 0
+                                                        return (
+                                                            <Typography
+                                                                variant="body2"
+                                                                fontWeight="bold"
+                                                                color={profitPercentage > 0 ? 'success.main' : 'text.secondary'}
+                                                            >
+                                                                {est > 0 ? `${profitPercentage.toFixed(1)}%` : '-'}
+                                                            </Typography>
+                                                        )
+                                                    })()}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                                        {booking.status !== 'completed' && (
+                                                            <Button
+                                                                size="small"
+                                                                startIcon={<Edit />}
+                                                                onClick={() => handleEditClick(booking)}
+                                                            >
+                                                                Editar
+                                                            </Button>
+                                                        )}
+                                                        {booking.status === 'confirmed' && (
+                                                            <>
+                                                                <Button
+                                                                    size="small"
+                                                                    color="primary"
+                                                                    startIcon={<AddBox />}
+                                                                    onClick={() => handleOpenExpenseDialog(booking)}
+                                                                >
+                                                                    +Gasto
+                                                                </Button>
+                                                                <Button
+                                                                    size="small"
+                                                                    color="info"
+                                                                    startIcon={<CheckCircle />}
+                                                                    onClick={() => handleOpenCostDialog(booking)}
+                                                                >
+                                                                    Completar
+                                                                </Button>
+                                                            </>
+                                                        )}
+                                                        {booking.status === 'completed' ? (
+                                                            <Button
+                                                                size="small"
+                                                                startIcon={<ViewList />}
+                                                                onClick={async () => { setSelectedBooking(booking); await loadSupplyStatus(booking.id); setViewDialog(true) }}
+                                                            >
+                                                                Ver detalle
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                size="small"
+                                                                color="error"
+                                                                startIcon={<Delete />}
+                                                                onClick={() => {
+                                                                    setSelectedBooking(booking)
+                                                                    setDeleteDialog(true)
+                                                                }}
+                                                            >
+                                                                Eliminar
+                                                            </Button>
+                                                        )}
+                                                    </Box>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {filteredBookings.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={10} align="center">
+                                                    <Typography color="text.secondary">
+                                                        No hay agendamientos disponibles
+                                                    </Typography>
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        )}
                         {/* Pagination Controls */}
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, px: 2 }}>
                             <Typography variant="body2" color="text.secondary">
@@ -2210,13 +2294,15 @@ const BookingsManagement = () => {
             ) : (
                 <Card>
                     <CardContent>
-                        <Box sx={{ height: 600 }}>
+                        <Box sx={{ height: isMobile ? 400 : 600 }}>
                             <Calendar
                                 localizer={localizer}
                                 events={calendarEvents}
                                 startAccessor="start"
                                 endAccessor="end"
                                 culture="es"
+                                defaultView={isMobile ? 'agenda' : 'month'}
+                                style={{ height: isMobile ? 400 : 600 }}
                                 formats={{
                                     dayHeaderFormat: (date, culture, localizer) => {
                                         return localizer.format(date, 'eeeeee', culture)
@@ -2238,7 +2324,7 @@ const BookingsManagement = () => {
                 </Card>
             )}
 
-            <Dialog open={editDialog} onClose={() => setEditDialog(false)} maxWidth="md" fullWidth>
+            <Dialog open={editDialog} onClose={() => setEditDialog(false)} maxWidth="md" fullWidth fullScreen={isMobile}>
                 <DialogTitle>
                     Editar Agendamiento
                     <IconButton
@@ -2667,7 +2753,7 @@ const BookingsManagement = () => {
                 </DialogActions>
             </Dialog>
 
-            <Dialog open={createDialog} onClose={() => setCreateDialog(false)} maxWidth="md" fullWidth>
+            <Dialog open={createDialog} onClose={() => setCreateDialog(false)} maxWidth="md" fullWidth fullScreen={isMobile}>
                 <DialogTitle>Crear Nuevo Agendamiento</DialogTitle>
                 <DialogContent>
                     <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -2991,7 +3077,7 @@ const BookingsManagement = () => {
             </Dialog>
 
             {/* Enhanced Cost Dialog with Supplies and Consumption */}
-            <Dialog open={costDialog} onClose={() => setCostDialog(false)} maxWidth="lg" fullWidth>
+            <Dialog open={costDialog} onClose={() => setCostDialog(false)} maxWidth="lg" fullWidth fullScreen={isMobile}>
                 <DialogTitle>
                     Gestión de Evento - {selectedBooking?.client_name}
                 </DialogTitle>
@@ -3421,7 +3507,7 @@ const BookingsManagement = () => {
             </Dialog>
 
             {/* Enhanced Expense Dialog with Tabs (Gastos | Insumos) */}
-            <Dialog open={expenseDialog} onClose={() => setExpenseDialog(false)} maxWidth="lg" fullWidth>
+            <Dialog open={expenseDialog} onClose={() => setExpenseDialog(false)} maxWidth="lg" fullWidth fullScreen={isMobile}>
                 <DialogTitle>
                     Gestión de Gastos e Insumos - {selectedBooking?.client_name}
                     <IconButton
@@ -3978,7 +4064,7 @@ const BookingsManagement = () => {
             </Dialog>
 
             {/* Ver Detalle (solo lectura) */}
-            <Dialog open={viewDialog} onClose={() => setViewDialog(false)} maxWidth="md" fullWidth>
+            <Dialog open={viewDialog} onClose={() => setViewDialog(false)} maxWidth="md" fullWidth fullScreen={isMobile}>
                 <DialogTitle>
                     Resumen del Evento
                     <IconButton onClick={() => setViewDialog(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>

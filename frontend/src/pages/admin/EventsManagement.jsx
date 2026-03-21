@@ -24,13 +24,18 @@ import {
   MenuItem,
   Chip,
   IconButton,
-  Alert
+  Alert,
+  Stack,
+  useTheme,
+  useMediaQuery
 } from '@mui/material'
 import { Add, Edit, Delete, Upload, Image, Visibility, VisibilityOff, Star, AutoAwesome } from '@mui/icons-material'
 import { eventsAPI, galleryAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 
 const EventsManagement = () => {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [events, setEvents] = useState([])
   const [filteredEvents, setFilteredEvents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -436,139 +441,209 @@ const EventsManagement = () => {
       ) : (
         <Card>
           <CardContent>
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Evento</TableCell>
-                    <TableCell>Tipo</TableCell>
-                    <TableCell>Fecha</TableCell>
-                    <TableCell>Participantes</TableCell>
-                    <TableCell>Estado</TableCell>
-                    <TableCell>Galería</TableCell>
-                    <TableCell>Publicación</TableCell>
-                    <TableCell>Acciones</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredEvents.map((event) => (
-                    <TableRow key={event.id}>
-                      <TableCell>
-                        <Box>
+            {isMobile ? (
+              <Stack spacing={1.5}>
+                {filteredEvents.length === 0 ? (
+                  <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
+                    {selectedMonth ? 'No hay eventos para el mes seleccionado.' : 'No hay eventos en la galería. Los eventos se crean automáticamente cuando completas agendamientos.'}
+                  </Typography>
+                ) : filteredEvents.map((event) => (
+                  <Card key={event.id} variant="outlined" sx={{ p: 0 }}>
+                    <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Box sx={{ flex: 1, mr: 1 }}>
                           <Typography variant="body2" fontWeight="bold">
                             {event.title}
+                            {event.booking_id && (
+                              <Chip label="Auto" size="small" color="info" sx={{ ml: 1 }} />
+                            )}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             {event.description || 'Sin descripción'}
                           </Typography>
-                          {event.booking_id && (
-                            <Chip label="Auto" size="small" color="info" sx={{ ml: 1 }} />
-                          )}
                         </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={getEventType(event)} 
-                          color={getEventType(event) === 'Taller' ? 'secondary' : 'primary'}
-                          variant="outlined"
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {event.event_date ? (() => {
-                          // Parse date without timezone conversion
-                          const dateParts = event.event_date.split('T')[0].split('-')
-                          const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2])
-                          return date.toLocaleDateString('es-CL')
-                        })() : 'No especificada'}
-                      </TableCell>
-                      <TableCell>{event.participants || 'N/A'}</TableCell>
-                      <TableCell>
                         <Chip
                           label={getStatusLabel(event.status)}
                           color={getStatusColor(event.status)}
                           size="small"
                         />
-                      </TableCell>
-                      <TableCell>
-                        <Button
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+                        <Chip
+                          label={getEventType(event)}
+                          color={getEventType(event) === 'Taller' ? 'secondary' : 'primary'}
+                          variant="outlined"
                           size="small"
-                          startIcon={<Upload />}
-                          color="primary"
-                          onClick={() => handleOpenPhotoDialog(event)}
-                        >
+                        />
+                        <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                          {event.event_date ? (() => {
+                            const dateParts = event.event_date.split('T')[0].split('-')
+                            const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2])
+                            return date.toLocaleDateString('es-CL')
+                          })() : 'No especificada'}
+                        </Typography>
+                        {event.participants && (
+                          <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                            {event.participants} participantes
+                          </Typography>
+                        )}
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <Button size="small" startIcon={<Upload />} color="primary" onClick={() => handleOpenPhotoDialog(event)}>
                           Fotos
                         </Button>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          {event.is_published ? (
-                            <>
-                              <Chip
-                                label="Publicado"
-                                color="success"
-                                size="small"
-                                icon={<Visibility />}
-                              />
-                              {event.is_featured && (
-                                <Chip
-                                  label="Destacado"
-                                  color="warning"
-                                  size="small"
-                                  icon={<Star />}
-                                />
-                              )}
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                color="warning"
-                                startIcon={<VisibilityOff />}
-                                onClick={() => handlePublishEvent(event.id, false)}
-                              >
-                                Despublicar
-                              </Button>
-                            </>
-                          ) : (
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="primary"
-                              startIcon={<Visibility />}
-                              onClick={() => handlePublishEvent(event.id, true)}
-                            >
-                              Publicar
-                            </Button>
-                          )}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEdit(event)}
-                        >
+                        {event.is_published ? (
+                          <Button size="small" variant="outlined" color="warning" startIcon={<VisibilityOff />} onClick={() => handlePublishEvent(event.id, false)}>
+                            Despublicar
+                          </Button>
+                        ) : (
+                          <Button size="small" variant="contained" color="primary" startIcon={<Visibility />} onClick={() => handlePublishEvent(event.id, true)}>
+                            Publicar
+                          </Button>
+                        )}
+                        <IconButton size="small" onClick={() => handleEdit(event)}>
                           <Edit />
                         </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredEvents.length === 0 && (
+                      </Box>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Stack>
+            ) : (
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
                     <TableRow>
-                      <TableCell colSpan={7} align="center">
-                        <Typography color="text.secondary">
-                          {selectedMonth ? `No hay eventos para el mes seleccionado.` : `No hay eventos en la galería. Los eventos se crean automáticamente cuando completas agendamientos.`}
-                        </Typography>
-                      </TableCell>
+                      <TableCell>Evento</TableCell>
+                      <TableCell>Tipo</TableCell>
+                      <TableCell>Fecha</TableCell>
+                      <TableCell>Participantes</TableCell>
+                      <TableCell>Estado</TableCell>
+                      <TableCell>Galería</TableCell>
+                      <TableCell>Publicación</TableCell>
+                      <TableCell>Acciones</TableCell>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {filteredEvents.map((event) => (
+                      <TableRow key={event.id}>
+                        <TableCell>
+                          <Box>
+                            <Typography variant="body2" fontWeight="bold">
+                              {event.title}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {event.description || 'Sin descripción'}
+                            </Typography>
+                            {event.booking_id && (
+                              <Chip label="Auto" size="small" color="info" sx={{ ml: 1 }} />
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={getEventType(event)}
+                            color={getEventType(event) === 'Taller' ? 'secondary' : 'primary'}
+                            variant="outlined"
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {event.event_date ? (() => {
+                            // Parse date without timezone conversion
+                            const dateParts = event.event_date.split('T')[0].split('-')
+                            const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2])
+                            return date.toLocaleDateString('es-CL')
+                          })() : 'No especificada'}
+                        </TableCell>
+                        <TableCell>{event.participants || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={getStatusLabel(event.status)}
+                            color={getStatusColor(event.status)}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="small"
+                            startIcon={<Upload />}
+                            color="primary"
+                            onClick={() => handleOpenPhotoDialog(event)}
+                          >
+                            Fotos
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            {event.is_published ? (
+                              <>
+                                <Chip
+                                  label="Publicado"
+                                  color="success"
+                                  size="small"
+                                  icon={<Visibility />}
+                                />
+                                {event.is_featured && (
+                                  <Chip
+                                    label="Destacado"
+                                    color="warning"
+                                    size="small"
+                                    icon={<Star />}
+                                  />
+                                )}
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  color="warning"
+                                  startIcon={<VisibilityOff />}
+                                  onClick={() => handlePublishEvent(event.id, false)}
+                                >
+                                  Despublicar
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="primary"
+                                startIcon={<Visibility />}
+                                onClick={() => handlePublishEvent(event.id, true)}
+                              >
+                                Publicar
+                              </Button>
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEdit(event)}
+                          >
+                            <Edit />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredEvents.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} align="center">
+                          <Typography color="text.secondary">
+                            {selectedMonth ? `No hay eventos para el mes seleccionado.` : `No hay eventos en la galería. Los eventos se crean automáticamente cuando completas agendamientos.`}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth fullScreen={isMobile}>
         <DialogTitle>
           {editingEvent ? 'Editar Evento' : 'Agregar Nuevo Evento'}
         </DialogTitle>
@@ -702,7 +777,7 @@ const EventsManagement = () => {
       </Dialog>
 
       {/* Photo Upload Dialog */}
-      <Dialog open={photoDialog} onClose={() => setPhotoDialog(false)} maxWidth="lg" fullWidth>
+      <Dialog open={photoDialog} onClose={() => setPhotoDialog(false)} maxWidth="lg" fullWidth fullScreen={isMobile}>
         <DialogTitle>
           Gestionar Fotos del Evento
         </DialogTitle>

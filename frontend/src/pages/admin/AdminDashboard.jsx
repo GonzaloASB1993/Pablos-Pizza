@@ -546,11 +546,11 @@ const AdminDashboard = () => {
             {loading ? (
               <Skeleton variant="rectangular" height={280} sx={{ borderRadius: 1 }} />
             ) : revenueTrendData() ? (
-              <Box sx={{ height: 280 }}>
+              <Box sx={{ height: { xs: 220, md: 280 } }}>
                 <Line data={revenueTrendData()} options={lineChartOptions} />
               </Box>
             ) : (
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 280 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: { xs: 220, md: 280 } }}>
                 <Typography color="text.secondary">Sin datos anuales disponibles</Typography>
               </Box>
             )}
@@ -565,11 +565,11 @@ const AdminDashboard = () => {
             {loading ? (
               <Skeleton variant="circular" width={200} height={200} sx={{ mx: 'auto', mt: 4 }} />
             ) : servicePieData() ? (
-              <Box sx={{ height: 280 }}>
+              <Box sx={{ height: { xs: 220, md: 280 } }}>
                 <Pie data={servicePieData()} options={pieChartOptions} />
               </Box>
             ) : (
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 280 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: { xs: 220, md: 280 } }}>
                 <Typography color="text.secondary">Sin eventos este mes</Typography>
               </Box>
             )}

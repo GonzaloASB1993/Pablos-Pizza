@@ -58,11 +58,13 @@ import {
   AutoAwesome,
   TrendingUp,
   LocalPizza,
-  Group
+  Group,
+  CreditCard,
+  Lock
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { designTokens } from '../../utils/theme'
-import { createBooking } from '../../services/bookingService'
+import { createBooking, createPaymentPreference } from '../../services/bookingService'
 import { santiagoComunas, isComunaLejana, CARGO_COMUNA_LEJANA, comunasLejanas } from '../../data/chileanRegions'
 
 // Constantes de pricing (sincronizadas con backend)
@@ -243,6 +245,44 @@ const HeroSection = () => {
 
 // Componente de pasos del formulario
 const FormStepper = ({ activeStep, steps }) => {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+
+  if (isMobile) {
+    const progress = ((activeStep + 1) / steps.length) * 100
+    return (
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          mb: 3,
+          borderRadius: designTokens.radius.lg,
+          background: 'rgba(255, 215, 0, 0.05)',
+          border: '1px solid rgba(255, 215, 0, 0.2)',
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, color: designTokens.colors.golden[500] }}>
+            Paso {activeStep + 1} de {steps.length}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {steps[activeStep]}
+          </Typography>
+        </Box>
+        <LinearProgress
+          variant="determinate"
+          value={progress}
+          sx={{
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: 'rgba(255, 215, 0, 0.15)',
+            '& .MuiLinearProgress-bar': { backgroundColor: designTokens.colors.golden[500], borderRadius: 3 }
+          }}
+        />
+      </Paper>
+    )
+  }
+
   return (
     <Paper
       elevation={0}
@@ -352,6 +392,21 @@ export default function BookingPage() {
     return result
   }
 
+  // Calcula precio estimado igual que PremiumEstimatedPrice para uso en el paso 3
+  const calculateEstimatedPrice = () => {
+    let total = 0
+    services.forEach(service => {
+      if (service === 'pizzeros' && pizzerosParticipants > 0) {
+        const price = getPizzerosPrice(pizzerosParticipants)
+        total += Math.max(PRICING_CONSTANTS.PIZZEROS_MINIMUM, pizzerosParticipants * price)
+      } else if (service === 'party' && pizzaQuantity > 0) {
+        total += pizzaQuantity * getPizzaPartyPrice(pizzaQuantity)
+      }
+    })
+    if (isComunaLejana(selectedComuna)) total += PRICING_CONSTANTS.CARGO_COMUNA_LEJANA
+    return Math.round(total)
+  }
+
   const handleNext = () => {
     setActiveStep((prevActiveStep) => prevActiveStep + 1)
   }
@@ -360,32 +415,51 @@ export default function BookingPage() {
     setActiveStep((prevActiveStep) => prevActiveStep - 1)
   }
 
+  const buildBookingData = () => {
+    const comunaLejanaExtra = isComunaLejana(selectedComuna) ? CARGO_COMUNA_LEJANA : 0
+    return {
+      ...formData,
+      services,
+      participants: getTotalParticipants(),
+      participantsByService: getParticipantsByService(),
+      eventType: formData.eventType,
+      selectedComuna: selectedComuna,
+      comunaLejanaExtra: comunaLejanaExtra
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
     setSubmitError('')
-
     try {
-      // Calcular cargo por comuna lejana
-      const comunaLejanaExtra = isComunaLejana(selectedComuna) ? CARGO_COMUNA_LEJANA : 0
-
-      const bookingData = {
-        ...formData,
-        services,
-        participants: getTotalParticipants(),
-        participantsByService: getParticipantsByService(),
-        eventType: formData.eventType,
-        selectedComuna: selectedComuna,
-        comunaLejanaExtra: comunaLejanaExtra
-      }
-
-      const result = await createBooking(bookingData)
+      const result = await createBooking(buildBookingData())
       setBookingResult(result)
       setShowSuccessModal(true)
     } catch (error) {
       console.error('Error creating booking:', error)
       setSubmitError(error.message || 'Hubo un problema al enviar tu reserva. Por favor intenta nuevamente.')
     } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handlePayAndBook = async () => {
+    setIsSubmitting(true)
+    setSubmitError('')
+    try {
+      const result = await createBooking(buildBookingData())
+      const estimatedPrice = calculateEstimatedPrice()
+      const abonoAmount = Math.round(estimatedPrice * 0.15)
+      const preference = await createPaymentPreference({
+        booking_id: result.id,
+        amount: abonoAmount,
+        description: "Abono Reserva Pablo's Pizza"
+      })
+      window.location.href = preference.init_point
+    } catch (error) {
+      console.error('Error creating booking+payment:', error)
+      setSubmitError(error.message || 'Hubo un problema al procesar tu reserva. Por favor intenta nuevamente.')
       setIsSubmitting(false)
     }
   }
