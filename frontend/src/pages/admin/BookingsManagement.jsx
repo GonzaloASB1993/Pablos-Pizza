@@ -62,12 +62,14 @@ import {
     ChevronLeft,
     ChevronRight,
     Payment,
-    AttachMoney
+    AttachMoney,
+    Link,
+    ContentCopy
 } from '@mui/icons-material'
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { bookingsAPI, inventoryAPI, eventSuppliesAPI, eventConsumptionAPI } from '../../services/api'
+import { bookingsAPI, inventoryAPI, eventSuppliesAPI, eventConsumptionAPI, paymentsAPI } from '../../services/api'
 import { formatCurrency } from '../../utils/formatters'
 import toast from 'react-hot-toast'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
@@ -117,6 +119,12 @@ const BookingsManagement = () => {
     const [editExpenseDialog, setEditExpenseDialog] = useState(false)
     const [selectedExpenseIndex, setSelectedExpenseIndex] = useState(null)
     const [selectedBooking, setSelectedBooking] = useState(null)
+
+    // MercadoPago link generation states
+    const [mpLinkDialog, setMpLinkDialog] = useState(false)
+    const [mpLinkAmount, setMpLinkAmount] = useState('')
+    const [mpLinkResult, setMpLinkResult] = useState(null)
+    const [mpLinkLoading, setMpLinkLoading] = useState(false)
 
     // Payment states
     const [paymentDialog, setPaymentDialog] = useState(false)
@@ -1124,6 +1132,31 @@ const BookingsManagement = () => {
         } catch (error) {
             console.error('Error deleting expense:', error)
             toast.error('Error al eliminar gasto')
+        }
+    }
+
+    // MercadoPago link handler
+    const handleOpenMpLinkDialog = () => {
+        const balance = selectedBooking?.payment_summary?.balance_due || selectedBooking?.estimated_price || 0
+        setMpLinkAmount(balance.toString())
+        setMpLinkResult(null)
+        setMpLinkDialog(true)
+    }
+
+    const handleGenerateMpLink = async () => {
+        if (!selectedBooking || !mpLinkAmount) return
+        setMpLinkLoading(true)
+        try {
+            const response = await paymentsAPI.createPreference({
+                booking_id: selectedBooking.id,
+                amount: parseFloat(mpLinkAmount),
+                description: "Pago Reserva Pablo's Pizza"
+            })
+            setMpLinkResult(response.data)
+        } catch (error) {
+            toast.error(error.response?.data?.error || 'Error al generar el link')
+        } finally {
+            setMpLinkLoading(false)
         }
     }
 
@@ -2664,16 +2697,29 @@ const BookingsManagement = () => {
                                     )}
 
                                     {/* Register Payment Button */}
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
                                         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Historial de Pagos</Typography>
-                                        <Button
-                                            size="small"
-                                            variant="outlined"
-                                            startIcon={<Add />}
-                                            onClick={() => handleOpenPaymentDialog()}
-                                        >
-                                            Registrar Pago
-                                        </Button>
+                                        <Stack direction="row" spacing={1}>
+                                            {selectedBooking?.payment_summary?.payment_status !== 'paid' && (
+                                                <Button
+                                                    size="small"
+                                                    variant="outlined"
+                                                    color="primary"
+                                                    startIcon={<Link />}
+                                                    onClick={handleOpenMpLinkDialog}
+                                                >
+                                                    Link MercadoPago
+                                                </Button>
+                                            )}
+                                            <Button
+                                                size="small"
+                                                variant="outlined"
+                                                startIcon={<Add />}
+                                                onClick={() => handleOpenPaymentDialog()}
+                                            >
+                                                Registrar Pago
+                                            </Button>
+                                        </Stack>
                                     </Box>
 
                                     {/* Payments Table */}
@@ -2705,7 +2751,12 @@ const BookingsManagement = () => {
                                                             <TableCell>
                                                                 <Chip
                                                                     size="small"
-                                                                    label={payment.method === 'efectivo' ? 'Efectivo' : 'Transferencia'}
+                                                                    label={
+                                                                        payment.method === 'efectivo' ? 'Efectivo' :
+                                                                        payment.method === 'mercadopago' ? 'MercadoPago' :
+                                                                        'Transferencia'
+                                                                    }
+                                                                    color={payment.method === 'mercadopago' ? 'primary' : 'default'}
                                                                     variant="outlined"
                                                                 />
                                                             </TableCell>
@@ -4183,16 +4234,29 @@ const BookingsManagement = () => {
                                             </Grid>
                                         )}
 
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
                                             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Historial de Pagos</Typography>
-                                            <Button
-                                                size="small"
-                                                variant="outlined"
-                                                startIcon={<Add />}
-                                                onClick={() => handleOpenPaymentDialog()}
-                                            >
-                                                Registrar Pago
-                                            </Button>
+                                            <Stack direction="row" spacing={1}>
+                                                {selectedBooking?.payment_summary?.payment_status !== 'paid' && (
+                                                    <Button
+                                                        size="small"
+                                                        variant="outlined"
+                                                        color="primary"
+                                                        startIcon={<Link />}
+                                                        onClick={handleOpenMpLinkDialog}
+                                                    >
+                                                        Link MercadoPago
+                                                    </Button>
+                                                )}
+                                                <Button
+                                                    size="small"
+                                                    variant="outlined"
+                                                    startIcon={<Add />}
+                                                    onClick={() => handleOpenPaymentDialog()}
+                                                >
+                                                    Registrar Pago
+                                                </Button>
+                                            </Stack>
                                         </Box>
 
                                         {selectedBooking.payments && selectedBooking.payments.length > 0 ? (
@@ -4223,7 +4287,12 @@ const BookingsManagement = () => {
                                                                 <TableCell>
                                                                     <Chip
                                                                         size="small"
-                                                                        label={payment.method === 'efectivo' ? 'Efectivo' : 'Transferencia'}
+                                                                        label={
+                                                                            payment.method === 'efectivo' ? 'Efectivo' :
+                                                                            payment.method === 'mercadopago' ? 'MercadoPago' :
+                                                                            'Transferencia'
+                                                                        }
+                                                                        color={payment.method === 'mercadopago' ? 'primary' : 'default'}
                                                                         variant="outlined"
                                                                     />
                                                                 </TableCell>
@@ -4290,6 +4359,107 @@ const BookingsManagement = () => {
             </Dialog>
 
             {/* Payment Dialog */}
+            {/* MercadoPago Link Dialog */}
+            <Dialog open={mpLinkDialog} onClose={() => { setMpLinkDialog(false); setMpLinkResult(null) }} maxWidth="sm" fullWidth>
+                <DialogTitle>
+                    Generar Link de Pago MercadoPago
+                    <IconButton onClick={() => { setMpLinkDialog(false); setMpLinkResult(null) }} sx={{ position: 'absolute', right: 8, top: 8 }}>
+                        <Close />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent dividers>
+                    {!mpLinkResult ? (
+                        <Grid container spacing={2}>
+                            <Grid item xs={12}>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                    Genera un link de pago para que el cliente pueda abonar online.
+                                </Typography>
+                            </Grid>
+                            {selectedBooking?.payment_summary && (
+                                <Grid item xs={12}>
+                                    <Alert severity="info" sx={{ mb: 1 }}>
+                                        Saldo pendiente: {formatCurrency(selectedBooking.payment_summary.balance_due)}
+                                    </Alert>
+                                </Grid>
+                            )}
+                            <Grid item xs={12}>
+                                <TextField
+                                    label="Monto a cobrar (CLP)"
+                                    type="number"
+                                    value={mpLinkAmount}
+                                    onChange={(e) => setMpLinkAmount(e.target.value)}
+                                    fullWidth
+                                    inputProps={{ min: 1 }}
+                                />
+                            </Grid>
+                        </Grid>
+                    ) : (
+                        <Box>
+                            <Alert severity="success" sx={{ mb: 2 }}>
+                                Link generado exitosamente
+                            </Alert>
+                            <TextField
+                                label="Link de pago"
+                                value={mpLinkResult.init_point || ''}
+                                fullWidth
+                                InputProps={{
+                                    readOnly: true,
+                                    endAdornment: (
+                                        <IconButton
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(mpLinkResult.init_point || '')
+                                                toast.success('Link copiado')
+                                            }}
+                                        >
+                                            <ContentCopy />
+                                        </IconButton>
+                                    )
+                                }}
+                                sx={{ mb: 2 }}
+                            />
+                            <Stack direction="row" spacing={1}>
+                                <Button
+                                    variant="contained"
+                                    color="success"
+                                    startIcon={<ContentCopy />}
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(mpLinkResult.init_point || '')
+                                        toast.success('Link copiado al portapapeles')
+                                    }}
+                                    fullWidth
+                                >
+                                    Copiar Link
+                                </Button>
+                                {selectedBooking?.client_phone && (
+                                    <Button
+                                        variant="outlined"
+                                        color="success"
+                                        href={`https://wa.me/${selectedBooking.client_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola! Te comparto el link para pagar el abono de tu reserva en Pablo's Pizza: ${mpLinkResult.init_point}`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        fullWidth
+                                    >
+                                        Enviar por WhatsApp
+                                    </Button>
+                                )}
+                            </Stack>
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => { setMpLinkDialog(false); setMpLinkResult(null) }}>Cerrar</Button>
+                    {!mpLinkResult && (
+                        <Button
+                            variant="contained"
+                            onClick={handleGenerateMpLink}
+                            disabled={mpLinkLoading || !mpLinkAmount}
+                        >
+                            {mpLinkLoading ? <CircularProgress size={20} /> : 'Generar Link'}
+                        </Button>
+                    )}
+                </DialogActions>
+            </Dialog>
+
             <Dialog open={paymentDialog} onClose={() => setPaymentDialog(false)} maxWidth="sm" fullWidth>
                 <DialogTitle>
                     {editingPayment ? 'Editar Pago' : 'Registrar Pago'}

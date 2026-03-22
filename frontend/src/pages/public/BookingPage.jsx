@@ -429,7 +429,7 @@ export default function BookingPage() {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    if (e && e.preventDefault) e.preventDefault()
     setIsSubmitting(true)
     setSubmitError('')
     try {
@@ -1135,6 +1135,82 @@ export default function BookingPage() {
                               </Grid>
                             </Paper>
 
+                            {/* Sección de Abono MercadoPago */}
+                            {calculateEstimatedPrice() > 0 && (
+                              <Paper
+                                elevation={0}
+                                sx={{
+                                  p: 3,
+                                  mb: 3,
+                                  borderRadius: designTokens.radius.lg,
+                                  background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.08) 0%, rgba(255, 255, 255, 0.95) 100%)',
+                                  border: '1px solid rgba(33, 150, 243, 0.25)',
+                                }}
+                              >
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                  <CreditCard sx={{ mr: 1, color: 'primary.main' }} />
+                                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                    Abono para confirmar tu reserva
+                                  </Typography>
+                                </Box>
+                                <Grid container spacing={0.5} sx={{ mb: 2 }}>
+                                  <Grid item xs={7}>
+                                    <Typography variant="body2" color="text.secondary">Precio estimado:</Typography>
+                                  </Grid>
+                                  <Grid item xs={5} sx={{ textAlign: 'right' }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                      ${calculateEstimatedPrice().toLocaleString('es-CL')} CLP
+                                    </Typography>
+                                  </Grid>
+                                  <Grid item xs={7}>
+                                    <Typography variant="body2" color="text.secondary">Abono online (15%):</Typography>
+                                  </Grid>
+                                  <Grid item xs={5} sx={{ textAlign: 'right' }}>
+                                    <Typography variant="body1" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                                      ${Math.round(calculateEstimatedPrice() * 0.15).toLocaleString('es-CL')} CLP
+                                    </Typography>
+                                  </Grid>
+                                </Grid>
+                                <Divider sx={{ my: 2 }} />
+
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                                  <Lock sx={{ fontSize: 14, color: 'text.secondary' }} />
+                                  <Typography variant="caption" color="text.secondary">
+                                    Pago seguro vía
+                                  </Typography>
+                                  <Box
+                                    sx={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 0.4,
+                                      backgroundColor: '#009EE3',
+                                      color: '#fff',
+                                      borderRadius: '4px',
+                                      px: 0.8,
+                                      py: 0.2,
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700,
+                                      letterSpacing: 0.2,
+                                      lineHeight: 1.4,
+                                    }}
+                                  >
+                                    Mercado Pago
+                                  </Box>
+                                </Box>
+
+                                <Alert
+                                  severity="warning"
+                                  sx={{
+                                    borderRadius: designTokens.radius.md,
+                                    py: 0.5,
+                                    '& .MuiAlert-message': { fontSize: '0.8rem' }
+                                  }}
+                                >
+                                  El abono debe pagarse <strong>al menos 1 semana antes</strong> del evento para confirmar tu fecha. Sin el abono, la fecha queda tentativa.
+                                </Alert>
+                              </Paper>
+                            )}
+
                             {/* Alert de información */}
                             <Alert
                               icon={<WhatsApp />}
@@ -1155,11 +1231,12 @@ export default function BookingPage() {
                               </Alert>
                             )}
 
-                            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
+                            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
                               <Button
                                 onClick={handleBack}
                                 startIcon={<ArrowBack />}
                                 size="large"
+                                disabled={isSubmitting}
                                 sx={{
                                   px: 4,
                                   py: 1.5,
@@ -1170,35 +1247,63 @@ export default function BookingPage() {
                               >
                                 Anterior
                               </Button>
-                              <Button
-                                type="submit"
-                                variant="contained"
-                                size="large"
-                                disabled={isSubmitting}
-                                startIcon={isSubmitting ? <AutoAwesome className="spin" /> : <WhatsApp />}
-                                sx={{
-                                  px: 4,
-                                  py: 1.5,
-                                  minHeight: 48,
-                                  borderRadius: designTokens.radius.lg,
-                                  fontWeight: 600,
-                                  background: designTokens.colors.aurora.sunset,
-                                  '&:hover': {
-                                    background: `linear-gradient(135deg, ${designTokens.colors.golden[400]} 0%, #FF8A00 100%)`,
-                                    transform: 'translateY(-3px)',
-                                    boxShadow: designTokens.shadows.glowHover,
-                                  },
-                                  '&:disabled': {
-                                    background: 'rgba(0,0,0,0.12)',
-                                    color: 'rgba(0,0,0,0.38)'
-                                  },
-                                  '& .spin': {
-                                    animation: 'spin 1s linear infinite'
-                                  }
-                                }}
-                              >
-                                {isSubmitting ? 'Enviando...' : 'Confirmar Reserva'}
-                              </Button>
+                              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                                <Button
+                                  type="submit"
+                                  variant="outlined"
+                                  size="large"
+                                  disabled={isSubmitting}
+                                  startIcon={<WhatsApp />}
+                                  sx={{
+                                    px: 3,
+                                    py: 1.5,
+                                    minHeight: 48,
+                                    borderRadius: designTokens.radius.lg,
+                                    fontWeight: 600,
+                                    borderColor: designTokens.colors.golden[500],
+                                    color: designTokens.colors.charcoal[800],
+                                    '&:hover': {
+                                      borderColor: designTokens.colors.golden[600],
+                                      backgroundColor: 'rgba(255,215,0,0.08)',
+                                    },
+                                    '&:disabled': { opacity: 0.6 },
+                                  }}
+                                >
+                                  Reservar sin Abonar
+                                </Button>
+                                {calculateEstimatedPrice() > 0 && (
+                                  <Button
+                                    type="button"
+                                    variant="contained"
+                                    size="large"
+                                    disabled={isSubmitting}
+                                    onClick={handlePayAndBook}
+                                    startIcon={isSubmitting ? <AutoAwesome className="spin" /> : <CreditCard />}
+                                    sx={{
+                                      px: 3,
+                                      py: 1.5,
+                                      minHeight: 48,
+                                      borderRadius: designTokens.radius.lg,
+                                      fontWeight: 600,
+                                      background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                                      '&:hover': {
+                                        background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
+                                        transform: 'translateY(-2px)',
+                                        boxShadow: '0 6px 20px rgba(25,118,210,0.4)',
+                                      },
+                                      '&:disabled': {
+                                        background: 'rgba(0,0,0,0.12)',
+                                        color: 'rgba(0,0,0,0.38)',
+                                      },
+                                      '& .spin': {
+                                        animation: 'spin 1s linear infinite'
+                                      }
+                                    }}
+                                  >
+                                    {isSubmitting ? 'Procesando...' : `Pagar Abono ($${Math.round(calculateEstimatedPrice() * 0.15).toLocaleString('es-CL')})`}
+                                  </Button>
+                                )}
+                              </Stack>
                             </Box>
                           </Box>
                         </Fade>
@@ -1370,6 +1475,7 @@ export default function BookingPage() {
           </Grid>
         </Grid>
       </Container>
+
 
 
       {/* Modal de Confirmación Moderno */}

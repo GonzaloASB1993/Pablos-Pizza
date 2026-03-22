@@ -9,7 +9,8 @@ import mercadopago
 
 payments_bp = Blueprint('payments', __name__, url_prefix='/api/payments')
 
-PRODUCTION_BACKEND_URL = 'https://main-446811667554.us-central1.run.app'
+# Usar el dominio estable de Firebase Hosting para el webhook (no cambia con cada deploy)
+PRODUCTION_BACKEND_URL = 'https://pablospizza.web.app'
 PRODUCTION_FRONTEND_URL = 'https://pablospizza.web.app'
 
 
@@ -86,7 +87,9 @@ def create_preference():
         preference_data = {
             "items": [
                 {
+                    "id": booking_id,
                     "title": description,
+                    "description": f"Reserva de evento en Pablo's Pizza - ID {booking_id[:8].upper()}",
                     "quantity": 1,
                     "unit_price": round(amount),
                     "currency_id": "CLP"
@@ -137,6 +140,7 @@ def create_preference():
 def webhook():
     """MercadoPago webhook - always returns 200"""
     try:
+        print(f"[WEBHOOK] Received: args={dict(request.args)}, body={request.get_data(as_text=True)[:200]}")
         # MP sends either query params or JSON body
         topic = request.args.get('topic') or request.args.get('type')
         payment_id = request.args.get('id') or request.args.get('data.id')
@@ -162,27 +166,29 @@ def webhook():
         mp_status = payment_info.get("status")
         mp_amount = payment_info.get("transaction_amount", 0)
 
+        print(f"[WEBHOOK] payment_id={payment_id}, status={mp_status}, external_ref={external_reference}, amount={mp_amount}")
+
         if not external_reference:
+            print("[WEBHOOK] ERROR: no external_reference in payment")
             return jsonify({"status": "no external_reference"}), 200
 
         db = get_db()
         booking_id = external_reference
 
-        # Idempotency: check if already processed
-        existing_payments = db.collection("mp_payments") \
-            .where("booking_id", "==", booking_id) \
-            .where("status", "==", "approved") \
+        # Idempotencia: verificar por mp_payment_id específico (un booking puede tener múltiples pagos)
+        existing_mp_payment = db.collection("mp_payments") \
+            .where("mp_payment_id", "==", str(payment_id)) \
             .limit(1) \
             .get()
 
-        if list(existing_payments) and mp_status == "approved":
+        if list(existing_mp_payment) and mp_status == "approved":
+            print(f"[WEBHOOK] Payment #{payment_id} already processed, skipping")
             return jsonify({"status": "already processed"}), 200
 
-        # Update mp_payments record
+        # Update mp_payments record (sin order_by para evitar índice compuesto)
         mp_payment_docs = db.collection("mp_payments") \
             .where("booking_id", "==", booking_id) \
             .where("status", "==", "pending") \
-            .order_by("created_at", direction="DESCENDING") \
             .limit(1) \
             .get()
 
@@ -195,6 +201,7 @@ def webhook():
                 "updated_at": datetime.now()
             })
 
+        print(f"[WEBHOOK] Processing payment: status={mp_status}, booking={booking_id}")
         if mp_status == "approved":
             booking_ref = db.collection("bookings").document(booking_id)
             booking_doc = booking_ref.get()
@@ -202,6 +209,15 @@ def webhook():
             if booking_doc.exists:
                 booking_data = booking_doc.to_dict()
                 payments = booking_data.get('payments', [])
+
+                # Idempotencia por payment_id: evitar duplicados si MP manda múltiples notificaciones
+                already_registered = any(
+                    str(payment_id) in p.get('notes', '')
+                    for p in payments
+                )
+                if already_registered:
+                    print(f"[WEBHOOK] Payment #{payment_id} already registered, skipping duplicate")
+                    return jsonify({"status": "already processed"}), 200
 
                 new_payment = {
                     "id": str(uuid.uuid4()),
@@ -255,8 +271,11 @@ def webhook():
 
         return jsonify({"status": "ok"}), 200
 
-    except Exception:
+    except Exception as e:
         # Webhook must always return 200
+        print(f"[WEBHOOK] ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"status": "ok"}), 200
 
 

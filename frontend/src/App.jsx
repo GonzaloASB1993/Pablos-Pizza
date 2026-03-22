@@ -11,6 +11,7 @@ const TestimonialsPage = lazy(() => import('./pages/public/TestimonialsPage'))
 const BookingPage = lazy(() => import('./pages/public/BookingPage'))
 const ServicesPage = lazy(() => import('./pages/public/ServicesPage'))
 const ContactPage = lazy(() => import('./pages/public/ContactPage'))
+const PaymentResultPage = lazy(() => import('./pages/public/PaymentResultPage'))
 
 // Admin pages - lazy loading
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
@@ -69,6 +70,21 @@ function App() {
           <Route path="contacto" element={
             <Suspense fallback={<LoadingSpinner />}>
               <ContactPage />
+            </Suspense>
+          } />
+          <Route path="pago/exitoso" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <PaymentResultPage status="success" />
+            </Suspense>
+          } />
+          <Route path="pago/fallido" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <PaymentResultPage status="failure" />
+            </Suspense>
+          } />
+          <Route path="pago/pendiente" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <PaymentResultPage status="pending" />
             </Suspense>
           } />
         </Route>

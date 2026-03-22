@@ -11,8 +11,8 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'icons/*.png'],
       manifest: false, // use the existing public/manifest.json
       workbox: {
-        navigateFallback: '/offline.html',
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//, /^\/offline\.html$/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
