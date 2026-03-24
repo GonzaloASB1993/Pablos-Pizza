@@ -86,17 +86,12 @@ const localizer = dateFnsLocalizer({
 const BookingsManagement = () => {
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-    // Get current month in MM-YYYY format as default
-    const getCurrentMonthKey = () => {
-        const today = new Date()
-        return `${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`
-    }
-
     const [bookings, setBookings] = useState([])
     const [view, setView] = useState('table')
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
-    const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthKey())
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+    const [selectedMonthNum, setSelectedMonthNum] = useState(new Date().getMonth() + 1) // 0 = todos
     // 'all' => mostrar todos los agendamientos por defecto
     const [statusFilter, setStatusFilter] = useState('all')
     const [searchQuery, setSearchQuery] = useState('')
@@ -316,16 +311,15 @@ const BookingsManagement = () => {
     const filteredBookings = useMemo(() => {
         let filtered = bookings
 
-        // Filter by month
-        if (selectedMonth) {
-            filtered = filtered.filter(booking => {
-                if (!booking.event_date) return false
-                const eventDate = parseEventDate(booking.event_date)
-                if (!eventDate) return false
-                const eventMonth = `${String(eventDate.getMonth() + 1).padStart(2, '0')}-${eventDate.getFullYear()}`
-                return eventMonth === selectedMonth
-            })
-        }
+        // Filter by year and month
+        filtered = filtered.filter(booking => {
+            if (!booking.event_date) return false
+            const eventDate = parseEventDate(booking.event_date)
+            if (!eventDate) return false
+            if (eventDate.getFullYear() !== selectedYear) return false
+            if (selectedMonthNum !== 0 && eventDate.getMonth() + 1 !== selectedMonthNum) return false
+            return true
+        })
 
         // Filter by search query
         if (searchQuery) {
@@ -383,7 +377,7 @@ const BookingsManagement = () => {
         })
 
         return filtered
-    }, [bookings, selectedMonth, searchQuery, statusFilter, sortField, sortDirection, getServiceLabel, parseEventDate])
+    }, [bookings, selectedYear, selectedMonthNum, searchQuery, statusFilter, sortField, sortDirection, getServiceLabel, parseEventDate])
 
     const handleSort = (field) => {
         if (sortField === field) {
@@ -1467,34 +1461,30 @@ const BookingsManagement = () => {
             })
     }, [bookings])
 
-    const getMonthOptions = () => {
-        const months = []
-        const today = new Date()
-        const startDate = new Date(2025, 8) // September 2025 (0-indexed months)
-
-        // Generate months from current month backward 1 month and forward 2 months
-        for (let i = -1; i <= 2; i++) {
-            const date = new Date(today.getFullYear(), today.getMonth() + i)
-
-            // Only include months from September 2025 onwards
-            if (date >= startDate) {
-                const monthKey = `${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`
-                const monthLabel = format(date, 'MMMM yyyy', { locale: es })
-                months.push({ key: monthKey, label: monthLabel })
-            }
+    const getYearOptions = () => {
+        const currentYear = new Date().getFullYear()
+        const years = []
+        for (let y = 2025; y <= currentYear + 1; y++) {
+            years.push(y)
         }
-
-        // Sort in descending order (newest first)
-        months.sort((a, b) => {
-            const [monthA, yearA] = a.key.split('-').map(Number)
-            const [monthB, yearB] = b.key.split('-').map(Number)
-
-            if (yearA !== yearB) return yearB - yearA
-            return monthB - monthA
-        })
-
-        return months
+        return years
     }
+
+    const monthLabels = [
+        { num: 0, label: 'Todos los meses' },
+        { num: 1, label: 'Enero' },
+        { num: 2, label: 'Febrero' },
+        { num: 3, label: 'Marzo' },
+        { num: 4, label: 'Abril' },
+        { num: 5, label: 'Mayo' },
+        { num: 6, label: 'Junio' },
+        { num: 7, label: 'Julio' },
+        { num: 8, label: 'Agosto' },
+        { num: 9, label: 'Septiembre' },
+        { num: 10, label: 'Octubre' },
+        { num: 11, label: 'Noviembre' },
+        { num: 12, label: 'Diciembre' },
+    ]
 
     // Use filteredBookings to respect month filter in statistics cards
     const pendingBookings = filteredBookings.filter(b => b.status === 'pending')
@@ -1869,20 +1859,26 @@ const BookingsManagement = () => {
                                 size="small"
                             />
                         </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
+                        <Grid item xs={6} sm={3} md={1.5}>
                             <FormControl fullWidth size="small">
                                 <Select
-                                    value={selectedMonth}
-                                    label="Filtrar por mes"
-                                    displayEmpty
-                                    renderValue={(value) => value || 'Filtrar por mes'}
-                                    onChange={(e) => setSelectedMonth(e.target.value)}
+                                    value={selectedYear}
+                                    onChange={(e) => setSelectedYear(Number(e.target.value))}
                                 >
-                                    <MenuItem value="">Todos los meses</MenuItem>
-                                    {getMonthOptions().map(month => (
-                                        <MenuItem key={month.key} value={month.key}>
-                                            {month.label}
-                                        </MenuItem>
+                                    {getYearOptions().map(y => (
+                                        <MenuItem key={y} value={y}>{y}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={6} sm={3} md={1.5}>
+                            <FormControl fullWidth size="small">
+                                <Select
+                                    value={selectedMonthNum}
+                                    onChange={(e) => setSelectedMonthNum(Number(e.target.value))}
+                                >
+                                    {monthLabels.map(m => (
+                                        <MenuItem key={m.num} value={m.num}>{m.label}</MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
