@@ -230,10 +230,28 @@ const VacuumSalesManagement = () => {
     }
 
     const product = products.find(p => p.id === newItem.product_id)
+    const requestedQty = parseFloat(newItem.quantity)
+
+    if (requestedQty <= 0) {
+      toast.error('La cantidad debe ser mayor a 0')
+      return
+    }
+
+    // Account for units of the same product already added in this sale
+    const alreadyAdded = formData.items
+      .filter(i => i.product_id === newItem.product_id)
+      .reduce((sum, i) => sum + i.quantity, 0)
+    const availableStock = (product?.current_stock || 0) - alreadyAdded
+
+    if (requestedQty > availableStock) {
+      toast.error(`Stock insuficiente. Disponible: ${availableStock.toFixed(2)} ${product?.unit || 'unidades'}`)
+      return
+    }
+
     const item = {
       product_id: newItem.product_id,
       product_name: newItem.product_name || product?.name || '',
-      quantity: parseFloat(newItem.quantity),
+      quantity: requestedQty,
       unit_price: parseFloat(newItem.unit_price),
       cost_per_unit: product?.weighted_average_cost || product?.cost_per_unit || 0
     }
@@ -828,14 +846,28 @@ const VacuumSalesManagement = () => {
                   />
                 </Grid>
                 <Grid item xs={6} md={2}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    type="number"
-                    label="Cantidad"
-                    value={newItem.quantity}
-                    onChange={(e) => setNewItem(prev => ({ ...prev, quantity: e.target.value }))}
-                  />
+                  {(() => {
+                    const selectedProduct = products.find(p => p.id === newItem.product_id)
+                    const alreadyAdded = formData.items
+                      .filter(i => i.product_id === newItem.product_id)
+                      .reduce((sum, i) => sum + i.quantity, 0)
+                    const availableStock = selectedProduct
+                      ? Math.max(0, (selectedProduct.current_stock || 0) - alreadyAdded)
+                      : null
+                    return (
+                      <TextField
+                        fullWidth
+                        size="small"
+                        type="number"
+                        label="Cantidad"
+                        value={newItem.quantity}
+                        onChange={(e) => setNewItem(prev => ({ ...prev, quantity: e.target.value }))}
+                        inputProps={{ min: 0.01, max: availableStock ?? undefined, step: 0.01 }}
+                        helperText={availableStock !== null ? `Máx: ${availableStock.toFixed(2)} ${selectedProduct?.unit || ''}` : ''}
+                        error={newItem.quantity !== '' && availableStock !== null && parseFloat(newItem.quantity) > availableStock}
+                      />
+                    )
+                  })()}
                 </Grid>
                 <Grid item xs={6} md={3}>
                   <TextField
