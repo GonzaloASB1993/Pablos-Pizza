@@ -154,6 +154,66 @@ def get_customers():
         return jsonify({"error": str(e)}), 500
 
 
+@customers_bp.route('/search', methods=['GET'])
+def search_customers():
+    """Search customers by name, email, or phone (optimized for autocomplete)
+
+    Query Parameters:
+        - q (str): Search query
+        - limit (int): Max results (default: 20)
+
+    Returns:
+        200: List of matching customers
+        400: Missing query parameter
+        500: Internal server error
+    """
+    try:
+        query_string = request.args.get('q', '').strip()
+        if not query_string:
+            return jsonify({"error": "Query parameter 'q' is required"}), 400
+
+        limit = min(int(request.args.get('limit', 20)), 50)
+
+        db = get_db()
+        if not db:
+            return jsonify({"error": "Database connection failed"}), 500
+
+        # Fetch active customers only
+        query = db.collection("customers").where("is_active", "!=", False).limit(100)
+        all_customers = query.stream()
+
+        search_lower = query_string.lower()
+        results = []
+
+        for doc in all_customers:
+            customer = doc.to_dict()
+            customer['id'] = doc.id
+
+            # Search in name, email, and phone
+            if (search_lower in customer.get('name', '').lower() or
+                search_lower in customer.get('email', '').lower() or
+                search_lower in customer.get('phone', '').lower()):
+
+                # Return simplified result for autocomplete
+                results.append({
+                    "id": customer['id'],
+                    "name": customer.get('name'),
+                    "email": customer.get('email'),
+                    "phone": customer.get('phone'),
+                    "total_bookings": customer.get('total_bookings', 0),
+                    "last_booking_date": customer.get('last_booking_date')
+                })
+
+                if len(results) >= limit:
+                    break
+
+        return jsonify({"results": results, "count": len(results)}), 200
+
+    except Exception as e:
+        logger.error(f"❌ Error searching customers: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
 @customers_bp.route('/<customer_id>', methods=['GET'])
 def get_customer(customer_id):
     """Get a single customer by ID
@@ -294,66 +354,6 @@ def delete_customer(customer_id):
 
     except Exception as e:
         logger.error(f"❌ Error deleting customer {customer_id}: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
-
-
-@customers_bp.route('/search', methods=['GET'])
-def search_customers():
-    """Search customers by name, email, or phone (optimized for autocomplete)
-
-    Query Parameters:
-        - q (str): Search query
-        - limit (int): Max results (default: 20)
-
-    Returns:
-        200: List of matching customers
-        400: Missing query parameter
-        500: Internal server error
-    """
-    try:
-        query_string = request.args.get('q', '').strip()
-        if not query_string:
-            return jsonify({"error": "Query parameter 'q' is required"}), 400
-
-        limit = min(int(request.args.get('limit', 20)), 50)
-
-        db = get_db()
-        if not db:
-            return jsonify({"error": "Database connection failed"}), 500
-
-        # Fetch active customers only
-        query = db.collection("customers").where("is_active", "!=", False).limit(100)
-        all_customers = query.stream()
-
-        search_lower = query_string.lower()
-        results = []
-
-        for doc in all_customers:
-            customer = doc.to_dict()
-            customer['id'] = doc.id
-
-            # Search in name, email, and phone
-            if (search_lower in customer.get('name', '').lower() or
-                search_lower in customer.get('email', '').lower() or
-                search_lower in customer.get('phone', '').lower()):
-
-                # Return simplified result for autocomplete
-                results.append({
-                    "id": customer['id'],
-                    "name": customer.get('name'),
-                    "email": customer.get('email'),
-                    "phone": customer.get('phone'),
-                    "total_bookings": customer.get('total_bookings', 0),
-                    "last_booking_date": customer.get('last_booking_date')
-                })
-
-                if len(results) >= limit:
-                    break
-
-        return jsonify({"results": results, "count": len(results)}), 200
-
-    except Exception as e:
-        logger.error(f"❌ Error searching customers: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 
