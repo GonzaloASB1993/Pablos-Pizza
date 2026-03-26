@@ -133,7 +133,7 @@ const PublicNavbar = () => {
 
     return (
         <>
-            <AppBar position="sticky" elevation={2}>
+            <AppBar position="sticky" elevation={2} sx={{ overflow: 'visible' }}>
                 <Container maxWidth="lg">
                     <Toolbar sx={{ px: { xs: 0, sm: 2 } }}>
                         {/* Logo and Brand */}
@@ -142,7 +142,8 @@ const PublicNavbar = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 flexGrow: 1,
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                overflow: 'visible',
                             }}
                             onClick={() => navigate('/')}
                         >
@@ -151,11 +152,24 @@ const PublicNavbar = () => {
                                 src={logo}
                                 alt="Pablo's Pizza Logo"
                                 sx={{
-                                    width: 40,
-                                    height: 40,
+                                    width: { xs: 66, md: 84 },
+                                    height: { xs: 66, md: 84 },
                                     mr: 2,
+                                    flexShrink: 0,
                                     borderRadius: '50%',
-                                    objectFit: 'cover'
+                                    objectFit: 'cover',
+                                    border: '3px solid #FFD700',
+                                    boxShadow: '0 4px 20px rgba(255,215,0,0.4), 0 2px 8px rgba(0,0,0,0.5)',
+                                    backgroundColor: '#111',
+                                    // Overflow hacia abajo sin alterar altura del navbar
+                                    transform: 'translateY(16px)',
+                                    position: 'relative',
+                                    zIndex: 1,
+                                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                    '&:hover': {
+                                        boxShadow: '0 6px 28px rgba(255,215,0,0.6)',
+                                        transform: 'translateY(16px) scale(1.05)',
+                                    },
                                 }}
                             />
                             <Typography

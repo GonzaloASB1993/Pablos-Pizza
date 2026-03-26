@@ -877,7 +877,7 @@ export default function HomePage() {
         keywords="talleres pizza niños Santiago, pizza party cumpleaños, eventos infantiles Santiago, taller cocina niños, catering pizza, fiestas infantiles Chile, pizzeros en acción"
         url="/"
       />
-      {/* Hero Section Premium con Aurora Gradient */}
+      {/* Hero Section Premium con foto real */}
       <Box
         sx={{
           minHeight: { xs: 'auto', md: '100vh' },
@@ -885,8 +885,7 @@ export default function HomePage() {
           background: `
             radial-gradient(circle at 20% 20%, ${designTokens.colors.golden[500]}15 0%, transparent 50%),
             radial-gradient(circle at 80% 80%, ${designTokens.colors.golden[400]}10 0%, transparent 50%),
-            radial-gradient(circle at 40% 40%, ${designTokens.colors.golden[300]}08 0%, transparent 50%),
-            linear-gradient(135deg, #0F0F0F 0%, #1A1A1A 50%, #0F0F0F 100%)
+            linear-gradient(135deg, #0A0A0A 0%, #1A1A1A 50%, #0A0A0A 100%)
           `,
           color: 'white',
           position: 'relative',
@@ -895,6 +894,19 @@ export default function HomePage() {
           alignItems: 'center',
         }}
       >
+        {/* Foto de fondo sutil */}
+        <Box
+          aria-hidden="true"
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: `url('/images/talleres/evento-escolar.jpg')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center right',
+            opacity: 0.09,
+            filter: 'grayscale(20%)',
+          }}
+        />
         {/* Elementos decorativos flotantes */}
         <Box
           sx={{
@@ -929,7 +941,7 @@ export default function HomePage() {
             <Grid item xs={12} lg={6}>
               <Fade in={heroLoaded} timeout={800}>
                 <Box>
-                  {/* Badge de nuevo/destacado */}
+                  {/* Badge de servicio */}
                   <Slide direction="up" in={heroLoaded} timeout={1000}>
                     <Paper
                       sx={{
@@ -946,9 +958,9 @@ export default function HomePage() {
                         color: designTokens.colors.golden[300],
                       }}
                     >
-                      <AutoAwesome sx={{ fontSize: 20 }} />
+                      <LocationOn sx={{ fontSize: 18 }} />
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        ¡Experiencias Premium para Niños!
+                        Talleres a domicilio · Santiago, Chile
                       </Typography>
                     </Paper>
                   </Slide>
@@ -956,18 +968,16 @@ export default function HomePage() {
                   <Typography
                     variant="h1"
                     sx={{
-                      fontSize: { xs: '2rem', sm: '2.8rem', md: '4rem', lg: '4.5rem' },
+                      fontSize: { xs: '2rem', sm: '2.8rem', md: '3.8rem', lg: '4.2rem' },
                       fontWeight: 800,
-                      lineHeight: { xs: 1.1, sm: 1.2, md: 1.1 },
+                      lineHeight: { xs: 1.15, sm: 1.2, md: 1.1 },
                       mb: 3,
-                      background: `linear-gradient(135deg, #FFFFFF 0%, ${designTokens.colors.golden[300]} 100%)`,
-                      backgroundClip: 'text',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
+                      color: '#FFFFFF',
                     }}
                   >
-                    Talleres de Pizza que
+                    Tu fiesta se convierte
                     <br />
+                    en una{' '}
                     <Box
                       component="span"
                       sx={{
@@ -977,21 +987,22 @@ export default function HomePage() {
                         WebkitTextFillColor: 'transparent',
                       }}
                     >
-                      Crean Magia ✨
+                      pizzería de verdad
                     </Box>
                   </Typography>
 
                   <Typography
                     variant="h5"
                     sx={{
-                      color: 'rgba(255,255,255,0.9)',
+                      color: 'rgba(255,255,255,0.85)',
                       mb: 3,
                       fontWeight: 400,
-                      lineHeight: 1.4,
+                      lineHeight: 1.5,
+                      maxWidth: 540,
                     }}
                   >
-                    Experiencias gastronómicas educativas donde los niños aprenden,
-                    se divierten y crean recuerdos inolvidables
+                    Pizzeros en Acción y Pizza Party a domicilio.
+                    Tus invitados hacen su propia pizza artesanal — y tú solo disfrutas la fiesta.
                   </Typography>
 
                   {/* Estadísticas rápidas */}
@@ -1115,15 +1126,118 @@ export default function HomePage() {
               </Fade>
             </Grid>
 
-            {/* Logo 3D animado */}
+            {/* Foto principal del hero */}
             <Grid item xs={12} lg={6}>
-              <Box sx={{ textAlign: 'center', position: 'relative' }}>
-                <Fade in={heroLoaded} timeout={prefersReducedMotion ? 0 : 1200}>
-                  <Box>
-                    <Hero3DLogo prefersReducedMotion={prefersReducedMotion} animationsEnabled={animationsEnabled} />
+              <Fade in={heroLoaded} timeout={prefersReducedMotion ? 0 : 1200}>
+                <Box
+                  sx={{
+                    position: 'relative',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    mt: { xs: 4, lg: 0 },
+                  }}
+                >
+                  {/* Foto principal con rotación sutil */}
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      maxWidth: { xs: '100%', md: 480 },
+                      width: '100%',
+                      transform: 'rotate(-1.5deg)',
+                      transition: 'transform 0.4s ease',
+                      '&:hover': { transform: 'rotate(0deg) scale(1.02)' },
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src="/images/talleres/evento-escolar.jpg"
+                      alt="Niños haciendo pizza artesanal en Pablo's Pizza"
+                      loading="eager"
+                      sx={{
+                        width: '100%',
+                        borderRadius: 4,
+                        border: `4px solid ${designTokens.colors.golden[500]}`,
+                        boxShadow: `0 30px 70px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,215,0,0.15)`,
+                        display: 'block',
+                        aspectRatio: '4/3',
+                        objectFit: 'cover',
+                      }}
+                    />
+
+                    {/* Badge flotante superior izquierdo */}
+                    <Paper
+                      elevation={8}
+                      sx={{
+                        position: 'absolute',
+                        top: -18,
+                        left: { xs: 12, md: -24 },
+                        px: 2,
+                        py: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        backgroundColor: designTokens.colors.golden[500],
+                        borderRadius: 2,
+                        boxShadow: '0 6px 20px rgba(0,0,0,0.35)',
+                        transform: 'rotate(1.5deg)',
+                      }}
+                    >
+                      <School sx={{ fontSize: 18, color: '#000' }} />
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#000', whiteSpace: 'nowrap' }}>
+                        Pizzeros en Acción
+                      </Typography>
+                    </Paper>
+
+                    {/* Badge flotante inferior derecho */}
+                    <Paper
+                      elevation={8}
+                      sx={{
+                        position: 'absolute',
+                        bottom: -18,
+                        right: { xs: 12, md: -24 },
+                        px: 2,
+                        py: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        backgroundColor: '#25D366',
+                        borderRadius: 2,
+                        boxShadow: '0 6px 20px rgba(0,0,0,0.35)',
+                        transform: 'rotate(-1.5deg)',
+                      }}
+                    >
+                      <Celebration sx={{ fontSize: 18, color: '#fff' }} />
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#fff', whiteSpace: 'nowrap' }}>
+                        Pizza Party
+                      </Typography>
+                    </Paper>
                   </Box>
-                </Fade>
-              </Box>
+
+                  {/* Segunda foto pequeña flotante */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: { xs: -30, md: -40 },
+                      right: { xs: 8, md: -20 },
+                      width: { xs: 100, md: 130 },
+                      borderRadius: 3,
+                      overflow: 'hidden',
+                      border: `3px solid rgba(255,255,255,0.15)`,
+                      boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
+                      transform: 'rotate(3deg)',
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src="/images/talleres/pizza-party.jpg"
+                      alt="Pizza Party a domicilio"
+                      loading="lazy"
+                      sx={{ width: '100%', display: 'block', aspectRatio: '1', objectFit: 'cover' }}
+                    />
+                  </Box>
+                </Box>
+              </Fade>
             </Grid>
           </Grid>
         </Container>
