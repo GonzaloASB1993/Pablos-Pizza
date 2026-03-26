@@ -46,23 +46,52 @@ def create_sale():
             return jsonify({"error": "No data provided"}), 400
 
         # Validate required fields
-        required_fields = ['customer_id', 'items']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({"error": f"Missing required field: {field}"}), 400
-
-        if not data['items'] or len(data['items']) == 0:
+        if 'items' not in data or not data['items']:
             return jsonify({"error": "At least one item is required"}), 400
+
+        if not data.get('customer_id') and not data.get('client_name'):
+            return jsonify({"error": "Se requiere un cliente (customer_id o client_name)"}), 400
 
         db = get_db()
         sale_id = str(uuid.uuid4())
         now = datetime.now()
 
-        # Get customer info
+        # Resolve or create customer
+        customer_id = data.get('customer_id')
         customer_name = data.get('customer_name', '')
-        if not customer_name and data.get('customer_id'):
+
+        if not customer_id:
+            # Try to find existing customer by email, or create new one
+            client_email = data.get('client_email', '').strip().lower()
+            client_name = data.get('client_name', '').strip()
+            client_phone = data.get('client_phone', '').strip()
+
+            if client_email:
+                existing = db.collection('customers').where('email', '==', client_email).limit(1).get()
+                existing_docs = list(existing)
+                if existing_docs:
+                    customer_id = existing_docs[0].id
+                    customer_name = existing_docs[0].to_dict().get('name', client_name)
+                    print(f"🔗 Linking vacuum sale to existing customer: {customer_id}")
+
+            if not customer_id and client_name:
+                customer_id = str(uuid.uuid4())
+                customer_doc = {
+                    'id': customer_id,
+                    'name': client_name,
+                    'email': client_email,
+                    'phone': client_phone,
+                    'notes': None,
+                    'total_bookings': 0,
+                    'created_at': now,
+                    'updated_at': now
+                }
+                db.collection('customers').document(customer_id).set(customer_doc)
+                customer_name = client_name
+                print(f"✅ New customer created from vacuum sale: {customer_id}")
+        elif not customer_name:
             try:
-                customer_doc = db.collection('customers').document(data['customer_id']).get()
+                customer_doc = db.collection('customers').document(customer_id).get()
                 if customer_doc.exists:
                     customer_name = customer_doc.to_dict().get('name', '')
             except:
@@ -144,7 +173,7 @@ def create_sale():
         # Create sale document
         sale_data = {
             'id': sale_id,
-            'customer_id': data.get('customer_id'),
+            'customer_id': customer_id,
             'customer_name': customer_name,
             'items': processed_items,
             'subtotal': round(subtotal, 2),

@@ -49,11 +49,14 @@ import {
   Payment,
   Search,
   FilterList,
-  Refresh
+  Refresh,
+  PersonAdd
 } from '@mui/icons-material'
 import { vacuumSalesAPI, customersAPI, inventoryAPI } from '../../services/api'
 import { formatCurrency } from '../../utils/formatters'
 import toast from 'react-hot-toast'
+import CustomerAutocomplete from '../../components/forms/CustomerAutocomplete'
+import PhoneInput from '../../components/forms/PhoneInput'
 
 const VacuumSalesManagement = () => {
   // State
@@ -69,6 +72,10 @@ const VacuumSalesManagement = () => {
   const [paymentDialog, setPaymentDialog] = useState(false)
   const [selectedSale, setSelectedSale] = useState(null)
 
+  // Customer selection
+  const [selectedCustomer, setSelectedCustomer] = useState(null)
+  const [manualCustomerEntry, setManualCustomerEntry] = useState(false)
+
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
   const [paymentFilter, setPaymentFilter] = useState('all')
@@ -81,6 +88,9 @@ const VacuumSalesManagement = () => {
   const [formData, setFormData] = useState({
     customer_id: '',
     customer_name: '',
+    client_name: '',
+    client_email: '',
+    client_phone: '',
     items: [],
     discount: 0,
     discountType: 'amount', // 'amount' or 'percent'
@@ -178,14 +188,39 @@ const VacuumSalesManagement = () => {
     setFormData({
       customer_id: '',
       customer_name: '',
+      client_name: '',
+      client_email: '',
+      client_phone: '',
       items: [],
       discount: 0,
       discountType: 'amount',
       notes: '',
       sale_date: new Date().toISOString().split('T')[0]
     })
+    setSelectedCustomer(null)
+    setManualCustomerEntry(false)
     setNewItem({ product_id: '', product_name: '', quantity: '', unit_price: '' })
     setSaleDialog(true)
+  }
+
+  const handleCustomerSelect = (customer) => {
+    setSelectedCustomer(customer)
+    setFormData(prev => ({
+      ...prev,
+      customer_id: customer?.id || '',
+      customer_name: customer?.name || ''
+    }))
+  }
+
+  const handleCreateNewCustomer = (query) => {
+    setManualCustomerEntry(true)
+    setSelectedCustomer(null)
+    setFormData(prev => ({
+      ...prev,
+      customer_id: '',
+      customer_name: '',
+      client_name: query || ''
+    }))
   }
 
   const handleAddItem = () => {
@@ -219,8 +254,8 @@ const VacuumSalesManagement = () => {
   }
 
   const handleSubmitSale = async () => {
-    if (!formData.customer_id) {
-      toast.error('Selecciona un cliente')
+    if (!formData.customer_id && !formData.client_name) {
+      toast.error('Selecciona o ingresa un cliente')
       return
     }
     if (formData.items.length === 0) {
@@ -242,6 +277,8 @@ const VacuumSalesManagement = () => {
       await vacuumSalesAPI.create(saleData)
       toast.success('Venta registrada exitosamente')
       setSaleDialog(false)
+      setSelectedCustomer(null)
+      setManualCustomerEntry(false)
       loadData()
     } catch (error) {
       console.error('Error creating sale:', error)
@@ -693,23 +730,59 @@ const VacuumSalesManagement = () => {
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 0.5 }}>
             {/* Customer Selection */}
-            <Grid item xs={12} md={6}>
-              <Autocomplete
-                options={customers}
-                getOptionLabel={(option) => option.name || ''}
-                value={customers.find(c => c.id === formData.customer_id) || null}
-                onChange={(_, newValue) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    customer_id: newValue?.id || '',
-                    customer_name: newValue?.name || ''
-                  }))
-                }}
-                renderInput={(params) => (
-                  <TextField {...params} label="Cliente" required />
-                )}
-              />
-            </Grid>
+            {!manualCustomerEntry ? (
+              <Grid item xs={12} md={6}>
+                <CustomerAutocomplete
+                  value={selectedCustomer}
+                  onChange={handleCustomerSelect}
+                  onCreateNew={handleCreateNewCustomer}
+                  required
+                />
+              </Grid>
+            ) : (
+              <>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Nombre del Cliente"
+                    value={formData.client_name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, client_name: e.target.value }))}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    type="email"
+                    value={formData.client_email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, client_email: e.target.value }))}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <PhoneInput
+                    value={formData.client_phone}
+                    onChange={(value) => setFormData(prev => ({ ...prev, client_phone: value }))}
+                    label="Teléfono"
+                    helperText="Número de WhatsApp del cliente"
+                  />
+                </Grid>
+              </>
+            )}
+
+            {/* Show selected customer info */}
+            {selectedCustomer && !manualCustomerEntry && (
+              <Grid item xs={12} md={6}>
+                <Alert severity="info">
+                  <Typography variant="body2">
+                    <strong>{selectedCustomer.name}</strong>
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {selectedCustomer.email}{selectedCustomer.phone && ` • ${selectedCustomer.phone}`}
+                  </Typography>
+                </Alert>
+              </Grid>
+            )}
 
             <Grid item xs={12} md={6}>
               <TextField
