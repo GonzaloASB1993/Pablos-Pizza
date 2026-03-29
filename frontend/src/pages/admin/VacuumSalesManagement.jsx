@@ -1003,7 +1003,7 @@ const VacuumSalesManagement = () => {
           <Button
             variant="contained"
             onClick={handleSubmitSale}
-            disabled={!formData.customer_id || formData.items.length === 0}
+            disabled={(!formData.customer_id && !formData.client_name) || formData.items.length === 0}
             sx={{ bgcolor: '#FFD700', color: '#000', '&:hover': { bgcolor: '#FFC000' } }}
           >
             Registrar Venta
