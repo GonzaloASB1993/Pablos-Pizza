@@ -109,6 +109,13 @@ export default function ContactManagement() {
   const handleResponse = async () => {
     try {
       await contactAPI.respond(selectedContact.id, responseData)
+
+      if (responseData.response_method === 'whatsapp' && selectedContact?.phone) {
+        const phone = selectedContact.phone.replace(/\D/g, '')
+        const encodedMessage = encodeURIComponent(responseData.response_message)
+        window.open(`https://wa.me/${phone}?text=${encodedMessage}`, '_blank')
+      }
+
       toast.success(`Respuesta enviada por ${responseData.response_method}`)
       setResponseDialog(false)
       setResponseData({ response_message: '', response_method: 'whatsapp', notes: '' })
@@ -121,6 +128,10 @@ export default function ContactManagement() {
 
   const openResponseDialog = (contact) => {
     setSelectedContact(contact)
+    setResponseData(prev => ({
+      ...prev,
+      response_method: contact.phone ? 'whatsapp' : 'email'
+    }))
     setResponseDialog(true)
   }
 
@@ -190,6 +201,20 @@ export default function ContactManagement() {
               >
                 Responder
               </Button>
+              {contact.phone && (
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<WhatsApp />}
+                  sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1ebe57' } }}
+                  onClick={() => {
+                    const phone = contact.phone.replace(/\D/g, '')
+                    window.open(`https://wa.me/${phone}`, '_blank')
+                  }}
+                >
+                  WhatsApp
+                </Button>
+              )}
               {contact.status === 'pending' && (
                 <Button
                   size="small"
@@ -350,9 +375,9 @@ export default function ContactManagement() {
                   onChange={(e) => setResponseData({...responseData, response_method: e.target.value})}
                   label="Método de Respuesta"
                 >
-                  <MenuItem value="whatsapp">
+                  <MenuItem value="whatsapp" disabled={!selectedContact?.phone}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <WhatsApp /> WhatsApp
+                      <WhatsApp /> WhatsApp {!selectedContact?.phone && '(sin número de teléfono)'}
                     </Box>
                   </MenuItem>
                   <MenuItem value="email">
