@@ -217,6 +217,7 @@ const PublicNavbar = () => {
                                 <IconButton
                                     href={CONTACT_INFO.WHATSAPP_URL}
                                     target="_blank"
+                                    aria-label="Contactar por WhatsApp"
                                     sx={{
                                         ml: 1,
                                         color: theme.palette.primary.main

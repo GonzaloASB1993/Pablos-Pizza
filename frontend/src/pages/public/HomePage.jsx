@@ -46,7 +46,8 @@ import {
   CheckCircle,
   AutoAwesome,
   Close as CloseIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  ZoomIn
 } from '@mui/icons-material'
 import { useTheme } from '@mui/material/styles'
 import { Swiper, SwiperSlide } from 'swiper/react'
@@ -355,7 +356,7 @@ const FloatingCTA = ({ navigate, prefersReducedMotion }) => {
           borderRadius: designTokens.radius.xl,
           boxShadow: designTokens.shadows.glowHover,
           zIndex: 1000,
-          animation: prefersReducedMotion ? 'none' : 'bounce 2s infinite',
+          animation: prefersReducedMotion ? 'none' : 'bounce 2s ease 3',
           cursor: 'pointer',
           '&:focus-visible': {
             outline: '3px solid #000',
@@ -391,8 +392,8 @@ const AnimatedSection = ({ children, delay = 0 }) => {
 
   const { ref, inView } = useInView({
     threshold: 0.15,
-    triggerOnce: false,  // Anima cada vez que entra/sale del viewport
-    rootMargin: '50px'  // Comienza animación ligeramente antes del viewport
+    triggerOnce: true,
+    rootMargin: '50px'
   })
 
   return (
@@ -492,11 +493,11 @@ function TestimonialCard({ testimonial, sanitizeReviewText }) {
               sx={{
                 width: 48,
                 height: 48,
-                backgroundColor: '#FFD700',
+                backgroundColor: designTokens.colors.golden[500],
                 fontSize: '1.25rem',
                 fontWeight: 700,
-                color: '#000',
-                boxShadow: '0 2px 8px rgba(255, 215, 0, 0.3)'
+                color: designTokens.colors.charcoal[900],
+                boxShadow: `0 2px 8px ${designTokens.colors.golden[500]}4D`
               }}
             >
               {testimonial.name?.charAt(0)?.toUpperCase() || 'U'}
@@ -509,7 +510,7 @@ function TestimonialCard({ testimonial, sanitizeReviewText }) {
                 value={Number(testimonial.rating) || 0}
                 readOnly
                 size="small"
-                sx={{ color: '#FFD700' }}
+                sx={{ color: designTokens.colors.golden[500] }}
                 aria-label={`Calificación: ${testimonial.rating} de 5 estrellas`}
               />
             </Box>
@@ -524,7 +525,7 @@ function TestimonialCard({ testimonial, sanitizeReviewText }) {
                 left: -8,
                 top: -8,
                 fontSize: '2rem',
-                color: '#FFD700',
+                color: designTokens.colors.golden[500],
                 opacity: 0.3,
                 fontFamily: 'Georgia, serif',
                 lineHeight: 1,
@@ -616,9 +617,12 @@ function TestimonialCard({ testimonial, sanitizeReviewText }) {
                   transition: 'opacity 0.3s ease'
                 }}
               >
-                <Typography variant="caption" sx={{ color: '#FFD700', fontWeight: 700, fontSize: '0.75rem' }}>
-                  🔍 Ampliar
-                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                  <ZoomIn aria-hidden="true" sx={{ color: '#FFD700', fontSize: 24 }} />
+                  <Typography variant="caption" sx={{ color: '#FFD700', fontWeight: 700, fontSize: '0.75rem' }}>
+                    Ampliar
+                  </Typography>
+                </Box>
               </Box>
             </Box>
           )}
@@ -729,14 +733,14 @@ function TestimonialCard({ testimonial, sanitizeReviewText }) {
 
           {/* Image Caption */}
           <Box sx={{ mt: 2, textAlign: 'center' }}>
-            <Typography variant="subtitle1" sx={{ color: '#FFD700', fontWeight: 600 }}>
+            <Typography variant="subtitle1" sx={{ color: designTokens.colors.golden[500], fontWeight: 600 }}>
               Testimonio de {testimonial.name}
             </Typography>
             <Rating
               value={Number(testimonial.rating) || 0}
               readOnly
               size="small"
-              sx={{ color: '#FFD700', mt: 1 }}
+              sx={{ color: designTokens.colors.golden[500], mt: 1 }}
             />
           </Box>
         </DialogContent>
@@ -977,7 +981,8 @@ export default function HomePage() {
                         WebkitTextFillColor: 'transparent',
                       }}
                     >
-                      Crean Magia ✨
+                      Crean Magia{' '}
+                      <AutoAwesome aria-hidden="true" sx={{ fontSize: '0.75em', verticalAlign: 'middle', color: designTokens.colors.golden[400], WebkitTextFillColor: 'initial' }} />
                     </Box>
                   </Typography>
 

@@ -123,7 +123,7 @@ const theme = createTheme({
       color: '#666666',
     },
     body1: {
-      fontSize: '0.875rem',
+      fontSize: '1rem',
       color: '#333333',
     },
   },
