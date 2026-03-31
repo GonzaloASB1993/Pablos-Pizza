@@ -133,9 +133,9 @@ const PublicNavbar = () => {
 
     return (
         <>
-            <AppBar position="sticky" elevation={2}>
-                <Container maxWidth="lg">
-                    <Toolbar sx={{ px: { xs: 0, sm: 2 } }}>
+            <AppBar position="sticky" elevation={2} sx={{ overflow: 'visible' }}>
+                <Container maxWidth="lg" sx={{ overflow: 'visible' }}>
+                    <Toolbar sx={{ px: { xs: 0, sm: 2 }, overflow: 'visible' }}>
                         {/* Logo and Brand */}
                         <Box
                             sx={{
@@ -147,17 +147,30 @@ const PublicNavbar = () => {
                             onClick={() => navigate('/')}
                         >
                             <Box
-                                component="img"
-                                src={logo}
-                                alt="Pablo's Pizza Logo"
                                 sx={{
-                                    width: 40,
-                                    height: 40,
+                                    position: 'relative',
+                                    zIndex: 10,
                                     mr: 2,
-                                    borderRadius: '50%',
-                                    objectFit: 'cover'
+                                    flexShrink: 0
                                 }}
-                            />
+                            >
+                                <Box
+                                    component="img"
+                                    src={logo}
+                                    alt="Pablo's Pizza Logo"
+                                    sx={{
+                                        width: { xs: 60, md: 72 },
+                                        height: { xs: 60, md: 72 },
+                                        objectFit: 'contain',
+                                        transform: 'translateY(8px)',
+                                        filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.6)) drop-shadow(0 2px 8px rgba(0,0,0,0.8))',
+                                        transition: 'transform 0.3s ease',
+                                        '&:hover': {
+                                            transform: 'translateY(8px) scale(1.08) rotate(-3deg)'
+                                        }
+                                    }}
+                                />
+                            </Box>
                             <Typography
                                 variant="h5"
                                 sx={{

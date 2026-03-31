@@ -1,0 +1,13 @@
+# robots.txt for Pablo's Pizza
+# https://pablospizza.cl
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://pablospizza.cl/sitemap.xml
+
+# Crawl-delay (optional, for politeness)
+Crawl-delay: 1

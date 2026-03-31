@@ -1,0 +1,40 @@
+{
+  "name": "Pablo's Pizza - Talleres de Pizza para Niños",
+  "short_name": "Pablo's Pizza",
+  "description": "Talleres de pizza para niños y pizza parties en Santiago, Chile. Experiencias gastronómicas educativas y eventos únicos.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#FFD700",
+  "orientation": "portrait-primary",
+  "lang": "es-CL",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["food", "entertainment", "kids", "education"],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

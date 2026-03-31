@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Storage - Pablo's Pizza</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 50px;
+            background: linear-gradient(135deg, #FFD700, #CBA900);
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            margin: 0 auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        button {
+            background: #FF6B35;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #E55B2B;
+        }
+        .success {
+            color: green;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍕 Pablo's Pizza - Admin</h1>
+        <h2>Limpiar Datos Mock</h2>
+        <p>Esta herramienta limpiará todos los datos mock del localStorage para empezar fresh con los datos reales del backend.</p>
+
+        <button onclick="clearEvents()">Limpiar Solo Eventos Mock</button>
+        <button onclick="clearAll()">Limpiar Todos los Datos Mock</button>
+        <button onclick="clearEverything()">Limpiar Todo el LocalStorage</button>
+        <button onclick="clearCacheAndReload()" style="background: #28a745;">🔄 Limpiar Cache y Recargar</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function clearEvents() {
+            localStorage.removeItem('events');
+            localStorage.removeItem('gallery');
+            document.getElementById('result').innerHTML =
+                '<div class="success">✅ Eventos y galería mock eliminados. Ahora los datos vendrán del backend real.</div>';
+        }
+
+        function clearAll() {
+            // Remove all mock data specifically
+            localStorage.removeItem('events');
+            localStorage.removeItem('gallery');
+            localStorage.removeItem('inventory');
+            localStorage.removeItem('bookings');
+            localStorage.removeItem('reviews');
+            document.getElementById('result').innerHTML =
+                '<div class="success">✅ Todos los datos mock eliminados. Sistema completamente conectado al backend real.</div>';
+        }
+
+        function clearEverything() {
+            localStorage.clear();
+            document.getElementById('result').innerHTML =
+                '<div class="success">✅ Todo el localStorage limpiado. Sistema completamente reseteado.</div>';
+        }
+
+        function clearCacheAndReload() {
+            // Clear all storage
+            localStorage.clear();
+            sessionStorage.clear();
+
+            // Clear service worker cache if available
+            if ('serviceWorker' in navigator) {
+                caches.keys().then(cacheNames => {
+                    return Promise.all(
+                        cacheNames.map(cacheName => caches.delete(cacheName))
+                    );
+                });
+            }
+
+            document.getElementById('result').innerHTML =
+                '<div class="success">🔄 Cache limpiado. Recargando página...</div>';
+
+            // Force reload with no cache
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

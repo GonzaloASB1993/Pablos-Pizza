@@ -9,18 +9,14 @@ import {
   Grid,
   Card,
   CardContent,
-  CardMedia,
   Chip,
   Fade,
-  Slide,
   Paper,
   Stack,
   Avatar,
   Rating,
   IconButton,
-  Tooltip,
   useMediaQuery,
-  alpha,
   Dialog,
   DialogContent,
   Skeleton,
@@ -33,21 +29,13 @@ import {
   ArrowForward,
   School,
   Celebration,
-  Star,
-  PlayArrow,
-  LocalPhone,
-  AccessTime,
-  LocationOn,
-  People,
-  TrendingUp,
-  EmojiEvents,
-  Favorite,
-  Instagram,
   CheckCircle,
   AutoAwesome,
   Close as CloseIcon,
-  CheckCircle as CheckCircleIcon,
-  ZoomIn
+  ZoomIn,
+  EmojiEvents,
+  Favorite,
+  Star
 } from '@mui/icons-material'
 import { useTheme } from '@mui/material/styles'
 import { Swiper, SwiperSlide } from 'swiper/react'
@@ -57,277 +45,47 @@ import 'swiper/css'
 import 'swiper/css/pagination'
 import 'swiper/css/navigation'
 import { designTokens } from '../../utils/theme'
-import logo from '../../assets/logo.png'
 import { listenTestimonials } from '../../services/testimonialsService'
 import { listenGalleryPhotos, getGalleryImageUrls } from '../../services/galleryService'
 import BorderBeam from '../../components/common/BorderBeam'
 import RollingGallery from '../../components/common/RollingGallery'
 import LightRays from '../../components/common/LightRays'
 
+// ─────────────────────────────────────────────────────────────
+// DESIGN TOKENS (local shortcuts)
+// ─────────────────────────────────────────────────────────────
+const GOLD = '#FFD700'
+const GOLD_GRADIENT = 'linear-gradient(135deg, #FFD700 0%, #FF8A00 100%)'
 
-// Hero Logo 3D con efectos GSAP mejorados
-const Hero3DLogo = ({ prefersReducedMotion, animationsEnabled }) => {
-  const logoRef = useRef(null)
-  const glowRef = useRef(null)
-  const ringRef = useRef(null)
-  const containerRef = useRef(null)
-
-  useEffect(() => {
-    if (prefersReducedMotion || !animationsEnabled) return
-
-    const logo = logoRef.current
-    const glow = glowRef.current
-    const ring = ringRef.current
-    const container = containerRef.current
-
-    if (!logo || !glow || !ring) return
-
-    // ENTRADA ELASTIC - El logo entra con efecto de rebote suave
-    gsap.fromTo(
-      logo,
-      {
-        scale: 0,
-        opacity: 0,
-        rotation: -180,
-      },
-      {
-        scale: 1,
-        opacity: 1,
-        rotation: 0,
-        duration: 1.4,
-        ease: 'elastic.out(1, 0.6)',
-        delay: 0.3,
-      }
-    )
-
-    // GLOW PULSE - El resplandor pulsa sutilmente
-    gsap.to(glow, {
-      scale: 1.1,
-      opacity: 0.8,
-      duration: 2,
-      ease: 'sine.inOut',
-      repeat: -1,
-      yoyo: true,
-    })
-
-    // ORBITAL RING - Rotación continua suave
-    gsap.to(ring, {
-      rotation: 360,
-      duration: 20,
-      ease: 'none',
-      repeat: -1,
-    })
-
-    // HOVER EFFECT MEJORADO - Efecto magnético al pasar el mouse
-    const handleMouseMove = (e) => {
-      if (!container) return
-
-      const rect = container.getBoundingClientRect()
-      const centerX = rect.left + rect.width / 2
-      const centerY = rect.top + rect.height / 2
-
-      const deltaX = (e.clientX - centerX) / 20
-      const deltaY = (e.clientY - centerY) / 20
-
-      gsap.to(logo, {
-        x: deltaX,
-        y: deltaY,
-        rotationY: deltaX / 2,
-        rotationX: -deltaY / 2,
-        duration: 0.3,
-        ease: 'power2.out',
-      })
-    }
-
-    const handleMouseLeave = () => {
-      gsap.to(logo, {
-        x: 0,
-        y: 0,
-        rotationY: 0,
-        rotationX: 0,
-        duration: 0.5,
-        ease: 'elastic.out(1, 0.5)',
-      })
-    }
-
-    const handleTouchMove = (e) => {
-      if (!container || !e.touches[0]) return
-      const rect = container.getBoundingClientRect()
-      const centerX = rect.left + rect.width / 2
-      const centerY = rect.top + rect.height / 2
-      const deltaX = (e.touches[0].clientX - centerX) / 20
-      const deltaY = (e.touches[0].clientY - centerY) / 20
-      gsap.to(logo, {
-        x: deltaX,
-        y: deltaY,
-        rotationY: deltaX / 2,
-        rotationX: -deltaY / 2,
-        duration: 0.3,
-        ease: 'power2.out',
-      })
-    }
-
-    const handleTouchEnd = () => {
-      gsap.to(logo, {
-        x: 0,
-        y: 0,
-        rotationY: 0,
-        rotationX: 0,
-        duration: 0.5,
-        ease: 'elastic.out(1, 0.5)',
-      })
-    }
-
-    container.addEventListener('mousemove', handleMouseMove)
-    container.addEventListener('mouseleave', handleMouseLeave)
-    container.addEventListener('touchmove', handleTouchMove, { passive: true })
-    container.addEventListener('touchend', handleTouchEnd)
-
-    return () => {
-      container.removeEventListener('mousemove', handleMouseMove)
-      container.removeEventListener('mouseleave', handleMouseLeave)
-      container.removeEventListener('touchmove', handleTouchMove)
-      container.removeEventListener('touchend', handleTouchEnd)
-    }
-  }, [prefersReducedMotion, animationsEnabled])
-
-  return (
-    <Box
-      ref={containerRef}
-      sx={{
-        position: 'relative',
-        display: 'inline-block',
-        perspective: '1000px',
-      }}
-    >
-      {/* Resplandor de fondo */}
-      <Box
-        ref={glowRef}
-        sx={{
-          position: 'absolute',
-          inset: -40,
-          borderRadius: '50%',
-          background: `radial-gradient(circle, ${designTokens.colors.golden[400]} 0%, ${designTokens.colors.golden[200]}40 40%, transparent 70%)`,
-          filter: 'blur(20px)',
-          opacity: 0.8,
-          willChange: 'transform, opacity',
-        }}
-      />
-
-      {/* Anillo orbital animado */}
-      <Box
-        ref={ringRef}
-        sx={{
-          position: 'absolute',
-          inset: -15,
-          borderRadius: '50%',
-          border: `3px solid ${designTokens.colors.golden[400]}`,
-          borderTop: `3px solid ${designTokens.colors.golden[600]}`,
-          willChange: 'transform',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: -6,
-            right: 10,
-            width: 12,
-            height: 12,
-            borderRadius: '50%',
-            backgroundColor: designTokens.colors.golden[500],
-            boxShadow: `0 0 20px ${designTokens.colors.golden[300]}`,
-          }
-        }}
-      />
-
-      {/* Logo principal con glassmorphism */}
-      <Box
-        ref={logoRef}
-        component="img"
-        src={logo}
-        alt="Pablo's Pizza Logo"
-        sx={{
-          width: '100%',
-          maxWidth: { xs: 200, sm: 280, md: 380, lg: 420 },
-          aspectRatio: '1',
-          borderRadius: '50%',
-          objectFit: 'cover',
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          border: `4px solid rgba(255, 215, 0, 0.3)`,
-          boxShadow: `
-            0 25px 50px -12px rgba(0, 0, 0, 0.25),
-            0 0 0 1px rgba(255, 215, 0, 0.1),
-            inset 0 1px 0 rgba(255, 255, 255, 0.1)
-          `,
-          filter: 'drop-shadow(0 10px 30px rgba(255, 215, 0, 0.3))',
-          cursor: 'pointer',
-          willChange: 'transform',
-          transformStyle: 'preserve-3d',
-        }}
-      />
-    </Box>
-  )
+const BG = {
+  hero: 'transparent', // photo handles this
+  s1: '#0D0D0D',
+  s2: '#111111',
+  s3: '#0A0A0A',
+  s4: '#0F0F0F',
 }
 
-// Componente de estadísticas impactantes
-const StatsCard = ({ number, label, icon, color = 'golden' }) => (
-  <Fade in timeout={1000}>
-    <Paper
-      elevation={0}
-      sx={{
-        p: { xs: 1.5, sm: 2 },
-        textAlign: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        backdropFilter: 'blur(10px)',
-        border: `1px solid rgba(255, 215, 0, 0.2)`,
-        borderRadius: designTokens.radius.lg,
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        '&:hover': {
-          transform: 'translateY(-6px) scale(1.01)',
-          backgroundColor: 'rgba(255, 255, 255, 0.15)',
-          boxShadow: designTokens.shadows.glowHover,
-        }
-      }}
-    >
-      <Box sx={{ mb: { xs: 0.5, sm: 1 } }}>
-        {React.cloneElement(icon, {
-          sx: {
-            fontSize: { xs: 24, sm: 36 },
-            color: designTokens.colors.golden[400],
-            filter: 'drop-shadow(0 4px 8px rgba(255, 215, 0, 0.3))',
-          }
-        })}
-      </Box>
-      <Typography
-        variant="h4"
-        sx={{
-          fontWeight: 700,
-          fontSize: { xs: '1.25rem', sm: '2rem' },
-          background: designTokens.colors.aurora.golden,
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          mb: 0.5
-        }}
-      >
-        {number}
-      </Typography>
-      <Typography variant="body2" sx={{
-        color: 'rgba(255, 255, 255, 0.9)',
-        fontWeight: 500,
-        fontSize: { xs: '0.75rem', sm: '0.875rem' }
-      }}>
-        {label}
-      </Typography>
-    </Paper>
-  </Fade>
+// ─────────────────────────────────────────────────────────────
+// SECTION DIVIDER — thin golden gradient line
+// ─────────────────────────────────────────────────────────────
+const SectionDivider = () => (
+  <Box
+    aria-hidden="true"
+    sx={{
+      height: 1,
+      background: 'linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.15) 20%, rgba(255,215,0,0.45) 50%, rgba(255,215,0,0.15) 80%, transparent 100%)',
+    }}
+  />
 )
 
-// Componente de CTA flotante con urgencia
+// ─────────────────────────────────────────────────────────────
+// FLOATING CTA
+// ─────────────────────────────────────────────────────────────
 const FloatingCTA = ({ navigate, prefersReducedMotion }) => {
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), 2000)
+    const timer = setTimeout(() => setIsVisible(true), 2500)
     return () => clearTimeout(timer)
   }, [])
 
@@ -340,120 +98,93 @@ const FloatingCTA = ({ navigate, prefersReducedMotion }) => {
 
   return (
     <Fade in={isVisible}>
-      <Paper
-        elevation={8}
+      <Box
         role="button"
         tabIndex={0}
-        aria-label="Agendar evento ahora - 10% descuento este mes"
+        aria-label="Agendar evento ahora — 10% descuento este mes"
         onKeyDown={handleKeyDown}
+        onClick={() => navigate('/agendar')}
         sx={{
           position: 'fixed',
-          bottom: { xs: 16, sm: 24 },
+          bottom: { xs: 20, sm: 28 },
           right: { xs: 16, sm: 24 },
-          p: 2,
-          backgroundColor: designTokens.colors.golden[500],
-          color: designTokens.colors.charcoal[900],
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          px: 3,
+          py: 1.5,
+          background: GOLD_GRADIENT,
+          color: '#000',
           borderRadius: designTokens.radius.xl,
-          boxShadow: designTokens.shadows.glowHover,
+          boxShadow: '0 8px 32px rgba(255,215,0,0.4), 0 2px 8px rgba(0,0,0,0.3)',
           zIndex: 1000,
-          animation: prefersReducedMotion ? 'none' : 'bounce 2s ease 3',
           cursor: 'pointer',
-          '&:focus-visible': {
-            outline: '3px solid #000',
-            outlineOffset: '2px',
+          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+          animation: prefersReducedMotion ? 'none' : 'ctaPulse 3s ease-in-out 3',
+          '&:hover': {
+            transform: 'translateY(-3px)',
+            boxShadow: '0 12px 40px rgba(255,215,0,0.5)',
           },
-          '@keyframes bounce': {
-            '0%, 20%, 50%, 80%, 100%': { transform: 'translateY(0)' },
-            '40%': { transform: 'translateY(-8px)' },
-            '60%': { transform: 'translateY(-4px)' },
-          }
+          '&:focus-visible': {
+            outline: `3px solid ${GOLD}`,
+            outlineOffset: '3px',
+          },
+          '@keyframes ctaPulse': {
+            '0%, 100%': { transform: 'translateY(0)' },
+            '50%': { transform: 'translateY(-6px)' },
+          },
         }}
-        onClick={() => navigate('/agendar')}
       >
-        <Stack direction="row" alignItems="center" spacing={2}>
-          <Restaurant sx={{ fontSize: 24 }} />
-          <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1 }}>
-              ¡Agenda HOY!
-            </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.8 }}>
-              10% descuento este mes
-            </Typography>
-          </Box>
-        </Stack>
-      </Paper>
+        <Restaurant sx={{ fontSize: 20 }} />
+        <Box>
+          <Typography variant="caption" sx={{ fontWeight: 800, display: 'block', lineHeight: 1.1, fontSize: '0.8rem' }}>
+            ¡Agenda HOY!
+          </Typography>
+          <Typography variant="caption" sx={{ opacity: 0.75, fontSize: '0.7rem', lineHeight: 1 }}>
+            10% dcto este mes
+          </Typography>
+        </Box>
+      </Box>
     </Fade>
   )
 }
 
-// Componente AnimatedSection con animaciones de scroll (ida y vuelta)
+// ─────────────────────────────────────────────────────────────
+// ANIMATED SECTION — scroll reveal
+// ─────────────────────────────────────────────────────────────
 const AnimatedSection = ({ children, delay = 0 }) => {
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
-
-  const { ref, inView } = useInView({
-    threshold: 0.15,
-    triggerOnce: true,
-    rootMargin: '50px'
-  })
+  const { ref, inView } = useInView({ threshold: 0.08, triggerOnce: true, rootMargin: '0px' })
 
   return (
-    <Box
-      ref={ref}
-      sx={{
-        opacity: inView ? 1 : 0,
-        transform: inView ? 'translateY(0)' : 'translateY(30px)',
-        transition: prefersReducedMotion
-          ? 'none'
-          : `opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms, transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`,
-        willChange: inView ? 'auto' : 'opacity, transform'
-      }}
-    >
-      {children}
+    <Box ref={ref}>
+      <Box
+        sx={{
+          // Only animate translateY — opacity stays at 1 so backgrounds are always visible.
+          // This prevents body-color bleeding through transparent sections during scroll.
+          transform: (!prefersReducedMotion && !inView) ? 'translateY(28px)' : 'translateY(0)',
+          opacity: (!prefersReducedMotion && !inView) ? 0.85 : 1,
+          transition: prefersReducedMotion
+            ? 'none'
+            : `transform 0.55s cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms, opacity 0.4s ease ${delay}ms`,
+          willChange: inView ? 'auto' : 'transform',
+        }}
+      >
+        {children}
+      </Box>
     </Box>
   )
 }
 
-// Componente de carga progresiva de imágenes con blur-up
-const ProgressiveImage = ({ src, alt, loading = 'lazy', sx, ...props }) => {
-  const [loaded, setLoaded] = useState(false)
-  const [currentSrc, setCurrentSrc] = useState(`${src}?w=40&blur=20`)
-
-  useEffect(() => {
-    const img = new Image()
-    const optimizedSrc = `${src}?w=800&q=75&auto=format&fit=crop`
-    img.src = optimizedSrc
-    img.onload = () => {
-      setCurrentSrc(optimizedSrc)
-      setLoaded(true)
-    }
-  }, [src])
-
-  return (
-    <Box
-      component="img"
-      src={currentSrc}
-      alt={alt}
-      loading={loading}
-      sx={{
-        filter: loaded ? 'none' : 'blur(8px)',
-        transition: 'filter 0.3s ease-out',
-        ...sx
-      }}
-      {...props}
-    />
-  )
-}
-
-
-// Testimonial Card Component with Image Lightbox
+// ─────────────────────────────────────────────────────────────
+// TESTIMONIAL CARD — editorial dark (no glass, no grey)
+// ─────────────────────────────────────────────────────────────
 function TestimonialCard({ testimonial, sanitizeReviewText }) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
 
   const handleImageClick = () => {
-    if (testimonial.imageUrl) {
-      setLightboxOpen(true)
-    }
+    if (testimonial.imageUrl) setLightboxOpen(true)
   }
 
   const handleKeyDown = (e) => {
@@ -465,283 +196,196 @@ function TestimonialCard({ testimonial, sanitizeReviewText }) {
 
   return (
     <>
-      <Card
+      <Box
         sx={{
           position: 'relative',
           overflow: 'hidden',
-          backgroundColor: '#FFFFFF',
-          color: '#000',
-          minHeight: 'auto',
-          maxWidth: 650,
-          mx: 'auto',
-          p: { xs: 2.5, sm: 3 },
-          border: '2px solid rgba(255, 215, 0, 0.3)',
-          borderRadius: 2,
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          backgroundColor: '#141414',
+          borderLeft: `3px solid ${GOLD}`,
+          borderRadius: '0 12px 12px 0',
+          p: { xs: 3.5, sm: 5 },
+          mx: { xs: 1, sm: 0 },
+          transition: 'background-color 0.25s ease, box-shadow 0.25s ease',
           '&:hover': {
-            borderColor: '#FFD700',
-            transform: 'translateY(-2px)',
-            boxShadow: '0 8px 32px rgba(255, 215, 0, 0.2)'
-          }
+            backgroundColor: '#191919',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+          },
         }}
       >
-        <CardContent sx={{ p: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {/* Header: Avatar, Name, and Rating */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar
-              sx={{
-                width: 48,
-                height: 48,
-                backgroundColor: designTokens.colors.golden[500],
-                fontSize: '1.25rem',
-                fontWeight: 700,
-                color: designTokens.colors.charcoal[900],
-                boxShadow: `0 2px 8px ${designTokens.colors.golden[500]}4D`
-              }}
-            >
-              {testimonial.name?.charAt(0)?.toUpperCase() || 'U'}
-            </Avatar>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2, mb: 0.5, fontSize: '1rem' }}>
-                {testimonial.name || 'Cliente'}
-              </Typography>
-              <Rating
-                value={Number(testimonial.rating) || 0}
-                readOnly
-                size="small"
-                sx={{ color: designTokens.colors.golden[500] }}
-                aria-label={`Calificación: ${testimonial.rating} de 5 estrellas`}
-              />
-            </Box>
-          </Box>
+        {/* Decorative oversized quote mark — purely visual */}
+        <Box
+          aria-hidden="true"
+          sx={{
+            position: 'absolute',
+            top: -8,
+            right: 20,
+            fontSize: '9rem',
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            color: GOLD,
+            opacity: 0.055,
+            lineHeight: 1,
+            userSelect: 'none',
+            pointerEvents: 'none',
+            fontWeight: 700,
+          }}
+        >
+          "
+        </Box>
 
-          {/* Testimonial Text */}
-          <Box sx={{ position: 'relative', pl: 2 }}>
-            <Typography
-              component="span"
-              sx={{
-                position: 'absolute',
-                left: -8,
-                top: -8,
-                fontSize: '2rem',
-                color: designTokens.colors.golden[500],
-                opacity: 0.3,
-                fontFamily: 'Georgia, serif',
-                lineHeight: 1,
-                userSelect: 'none'
-              }}
-            >
-              "
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontStyle: 'italic',
-                lineHeight: 1.7,
-                color: '#333',
-                fontSize: { xs: '0.95rem', sm: '1rem' }
-              }}
-            >
-              {sanitizeReviewText(testimonial.comment || testimonial.text || '')}
-            </Typography>
-          </Box>
-
-          {/* Testimonial Image Thumbnail (if available) */}
-          {testimonial.imageUrl && (
-            <Box
-              onClick={handleImageClick}
-              onKeyDown={handleKeyDown}
-              tabIndex={0}
-              role="button"
-              aria-label="Click para ampliar imagen del testimonio"
-              sx={{
-                position: 'relative',
-                width: { xs: 120, sm: 150 },
-                height: { xs: 120, sm: 150 },
-                borderRadius: 2,
-                overflow: 'hidden',
-                cursor: 'pointer',
-                border: '2px solid rgba(255, 215, 0, 0.3)',
-                transition: 'all 0.3s ease',
-                alignSelf: 'flex-start',
-                mt: 1,
-                '&:hover': {
-                  borderColor: '#FFD700',
-                  transform: 'scale(1.05)',
-                  '& .zoom-overlay': {
-                    opacity: 1
-                  }
-                },
-                '&:focus-visible': {
-                  outline: '3px solid #FFD700',
-                  outlineOffset: '2px'
-                }
-              }}
-            >
-              {!imageLoaded && (
-                <Skeleton
-                  variant="rectangular"
-                  width="100%"
-                  height="100%"
-                  sx={{ position: 'absolute', top: 0, left: 0 }}
-                />
-              )}
-              <Box
-                component="img"
-                src={testimonial.imageUrl}
-                alt={`Imagen de testimonio de ${testimonial.name}`}
-                loading="lazy"
-                onLoad={() => setImageLoaded(true)}
-                sx={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  display: imageLoaded ? 'block' : 'none'
-                }}
-              />
-              {/* Zoom Overlay */}
-              <Box
-                className="zoom-overlay"
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: 0,
-                  transition: 'opacity 0.3s ease'
-                }}
-              >
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
-                  <ZoomIn aria-hidden="true" sx={{ color: '#FFD700', fontSize: 24 }} />
-                  <Typography variant="caption" sx={{ color: '#FFD700', fontWeight: 700, fontSize: '0.75rem' }}>
-                    Ampliar
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-          )}
-
-          {/* Date (if available) */}
-          {testimonial.createdAt && (() => {
-            try {
-              // Handle both Firestore Timestamp and regular date strings
-              let date;
-              if (testimonial.createdAt.toDate) {
-                // Firestore Timestamp
-                date = testimonial.createdAt.toDate();
-              } else if (testimonial.createdAt.seconds) {
-                // Firestore Timestamp object format
-                date = new Date(testimonial.createdAt.seconds * 1000);
-              } else {
-                // Regular date string or number
-                date = new Date(testimonial.createdAt);
-              }
-
-              // Check if date is valid
-              if (isNaN(date.getTime())) {
-                return null;
-              }
-
-              return (
-                <Typography variant="caption" sx={{ color: 'rgba(0,0,0,0.5)', textAlign: 'right', fontSize: '0.75rem' }}>
-                  {date.toLocaleDateString('es-CL', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </Typography>
-              );
-            } catch (e) {
-              return null;
-            }
-          })()}
-        </CardContent>
-
-        {/* Border Beam Effect */}
-        <BorderBeam
-          size={200}
-          duration={8}
-          borderWidth={1.5}
-          colorFrom="#FFD700"
-          colorTo="#FFA500"
+        {/* Stars — prominent, at top */}
+        <Rating
+          value={Number(testimonial.rating) || 0}
+          readOnly
+          size="medium"
+          sx={{
+            color: GOLD,
+            mb: 2.5,
+            '& .MuiRating-iconFilled': {
+              filter: 'drop-shadow(0 1px 4px rgba(255,215,0,0.45))',
+            },
+          }}
+          aria-label={`Calificación: ${testimonial.rating} de 5 estrellas`}
         />
-      </Card>
 
-      {/* Image Lightbox Modal */}
+        {/* Quote text — serif italic */}
+        <Typography
+          sx={{
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            fontStyle: 'italic',
+            lineHeight: 1.85,
+            color: 'rgba(255,255,255,0.84)',
+            fontSize: { xs: '1rem', sm: '1.1rem' },
+            mb: testimonial.imageUrl ? 3 : 3.5,
+            position: 'relative',
+            zIndex: 1,
+          }}
+        >
+          {sanitizeReviewText(testimonial.comment || testimonial.text || '')}
+        </Typography>
+
+        {/* Testimonial image thumbnail */}
+        {testimonial.imageUrl && (
+          <Box
+            onClick={handleImageClick}
+            onKeyDown={handleKeyDown}
+            tabIndex={0}
+            role="button"
+            aria-label="Ampliar imagen del testimonio"
+            sx={{
+              position: 'relative',
+              width: { xs: 96, sm: 112 },
+              height: { xs: 96, sm: 112 },
+              borderRadius: 1.5,
+              overflow: 'hidden',
+              cursor: 'pointer',
+              border: `1px solid rgba(255,215,0,0.2)`,
+              mb: 3.5,
+              transition: 'all 0.25s ease',
+              '&:hover': {
+                borderColor: GOLD,
+                transform: 'scale(1.05)',
+                '& .zoom-overlay': { opacity: 1 },
+              },
+              '&:focus-visible': { outline: `3px solid ${GOLD}`, outlineOffset: '2px' },
+            }}
+          >
+            {!imageLoaded && (
+              <Skeleton variant="rectangular" width="100%" height="100%"
+                sx={{ position: 'absolute', top: 0, left: 0, bgcolor: '#1e1e1e' }} />
+            )}
+            <Box
+              component="img"
+              src={testimonial.imageUrl}
+              alt={`Imagen de testimonio de ${testimonial.name}`}
+              loading="lazy"
+              onLoad={() => setImageLoaded(true)}
+              sx={{ width: '100%', height: '100%', objectFit: 'cover', display: imageLoaded ? 'block' : 'none' }}
+            />
+            <Box className="zoom-overlay" sx={{
+              position: 'absolute', inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.72)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              opacity: 0, transition: 'opacity 0.25s ease',
+            }}>
+              <ZoomIn sx={{ color: GOLD, fontSize: 22 }} />
+            </Box>
+          </Box>
+        )}
+
+        {/* Thin divider */}
+        <Box sx={{ height: 1, backgroundColor: 'rgba(255,255,255,0.07)', mb: 3 }} />
+
+        {/* Author */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Avatar
+            sx={{
+              width: 42,
+              height: 42,
+              background: GOLD_GRADIENT,
+              fontSize: '1rem',
+              fontWeight: 800,
+              color: '#000',
+              flexShrink: 0,
+            }}
+          >
+            {testimonial.name?.charAt(0)?.toUpperCase() || 'U'}
+          </Avatar>
+          <Box>
+            <Typography sx={{ fontWeight: 700, color: '#fff', fontSize: '0.92rem', lineHeight: 1.25 }}>
+              {testimonial.name || 'Cliente'}
+            </Typography>
+            {testimonial.createdAt && (() => {
+              try {
+                let date
+                if (testimonial.createdAt.toDate) date = testimonial.createdAt.toDate()
+                else if (testimonial.createdAt.seconds) date = new Date(testimonial.createdAt.seconds * 1000)
+                else date = new Date(testimonial.createdAt)
+                if (isNaN(date.getTime())) return null
+                return (
+                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.72rem' }}>
+                    {date.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}
+                  </Typography>
+                )
+              } catch { return null }
+            })()}
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Lightbox */}
       <Dialog
         open={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
         maxWidth="lg"
         fullWidth
-        PaperProps={{
-          sx: {
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
-            borderRadius: 2
-          }
-        }}
+        PaperProps={{ sx: { backgroundColor: 'rgba(0,0,0,0.97)', borderRadius: 2 } }}
         aria-labelledby="lightbox-title"
       >
         <DialogContent sx={{ p: 2, position: 'relative' }}>
-          {/* Close Button */}
           <IconButton
             onClick={() => setLightboxOpen(false)}
             aria-label="Cerrar imagen ampliada"
             sx={{
-              position: 'absolute',
-              top: 16,
-              right: 16,
-              backgroundColor: 'rgba(255, 215, 0, 0.9)',
-              color: '#000',
-              zIndex: 10,
-              '&:hover': {
-                backgroundColor: '#FFD700',
-                transform: 'scale(1.1)'
-              }
+              position: 'absolute', top: 16, right: 16,
+              backgroundColor: 'rgba(255,215,0,0.9)', color: '#000', zIndex: 10,
+              '&:hover': { backgroundColor: GOLD, transform: 'scale(1.1)' },
             }}
           >
             <CloseIcon />
           </IconButton>
-
-          {/* Full Size Image */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: { xs: 300, sm: 500 }
-            }}
-          >
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: { xs: 300, sm: 500 } }}>
             <Box
               component="img"
               src={testimonial.imageUrl}
               alt={`Imagen ampliada de testimonio de ${testimonial.name}`}
-              sx={{
-                maxWidth: '100%',
-                maxHeight: '80vh',
-                objectFit: 'contain',
-                borderRadius: 1
-              }}
+              sx={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: 1 }}
             />
           </Box>
-
-          {/* Image Caption */}
           <Box sx={{ mt: 2, textAlign: 'center' }}>
-            <Typography variant="subtitle1" sx={{ color: designTokens.colors.golden[500], fontWeight: 600 }}>
+            <Typography variant="subtitle1" sx={{ color: GOLD, fontWeight: 600 }}>
               Testimonio de {testimonial.name}
             </Typography>
-            <Rating
-              value={Number(testimonial.rating) || 0}
-              readOnly
-              size="small"
-              sx={{ color: designTokens.colors.golden[500], mt: 1 }}
-            />
+            <Rating value={Number(testimonial.rating) || 0} readOnly size="small" sx={{ color: GOLD, mt: 1 }} />
           </Box>
         </DialogContent>
       </Dialog>
@@ -749,43 +393,68 @@ function TestimonialCard({ testimonial, sanitizeReviewText }) {
   )
 }
 
-
+// ─────────────────────────────────────────────────────────────
+// HOMEPAGE
+// ─────────────────────────────────────────────────────────────
 export default function HomePage() {
   const navigate = useNavigate()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
+
   const [heroLoaded, setHeroLoaded] = useState(false)
+  const [animationsEnabled, setAnimationsEnabled] = useState(false)
   const [reviews, setReviews] = useState([])
   const [reviewsLoading, setReviewsLoading] = useState(true)
   const [reviewsError, setReviewsError] = useState(null)
-  const [animationsEnabled, setAnimationsEnabled] = useState(false)
   const [galleryPhotos, setGalleryPhotos] = useState([])
   const [galleryLoading, setGalleryLoading] = useState(true)
-  // Base para assets en carpeta public (compatible con subcarpetas de despliegue)
-  const publicBase = (import.meta.env.BASE_URL || '/')
 
+  const heroTitleRef = useRef(null)
+  const heroSubtitleRef = useRef(null)
+  const heroCtaRef = useRef(null)
+  const heroStatsRef = useRef(null)
+
+  const publicBase = import.meta.env.BASE_URL || '/'
+
+  // ── dark body background (public homepage only) ──────────────
+  useEffect(() => {
+    const prev = document.body.style.backgroundColor
+    document.body.style.backgroundColor = '#080808'
+    document.documentElement.style.backgroundColor = '#080808'
+    return () => {
+      document.body.style.backgroundColor = prev
+      document.documentElement.style.backgroundColor = ''
+    }
+  }, [])
+
+  // ── animations ──────────────────────────────────────────────
   useEffect(() => {
     setHeroLoaded(true)
-
-    // Progressive animation loading - only enable after page load
     if (!prefersReducedMotion) {
-      if (document.readyState === 'complete') {
-        setTimeout(() => setAnimationsEnabled(true), 500)
-      } else {
-        window.addEventListener('load', () => {
-          setTimeout(() => setAnimationsEnabled(true), 500)
-        })
-      }
+      const enable = () => setTimeout(() => setAnimationsEnabled(true), 300)
+      if (document.readyState === 'complete') enable()
+      else window.addEventListener('load', enable, { once: true })
     }
   }, [prefersReducedMotion])
 
-  // Suscribirse a reseñas aprobadas para la sección de Home
+  // GSAP hero text reveal
+  useEffect(() => {
+    if (!animationsEnabled || prefersReducedMotion) return
+    const els = [heroTitleRef, heroSubtitleRef, heroCtaRef, heroStatsRef].map(r => r.current).filter(Boolean)
+    gsap.fromTo(
+      els,
+      { y: 50, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.9, ease: 'power3.out', stagger: 0.12 }
+    )
+  }, [animationsEnabled, prefersReducedMotion])
+
+  // ── data ────────────────────────────────────────────────────
   useEffect(() => {
     setReviewsLoading(true)
     const unsub = listenTestimonials(
       (list) => {
-        const filtered = (Array.isArray(list) ? list : []).filter((t) => t.approved === true && t.isTest !== true)
+        const filtered = (Array.isArray(list) ? list : []).filter(t => t.approved === true && t.isTest !== true)
         setReviews(filtered)
         setReviewsLoading(false)
         setReviewsError(null)
@@ -795,13 +464,12 @@ export default function HomePage() {
         onError: (err) => {
           setReviewsError(err.message || 'Error al cargar testimonios')
           setReviewsLoading(false)
-        }
+        },
       }
     )
     return () => unsub && unsub()
   }, [])
 
-  // Suscribirse a fotos de la galería para el rolling gallery
   useEffect(() => {
     setGalleryLoading(true)
     const unsub = listenGalleryPhotos(
@@ -809,70 +477,33 @@ export default function HomePage() {
         setGalleryPhotos(photos)
         setGalleryLoading(false)
       },
-      {
-        onError: (err) => {
-          console.error('Error loading gallery photos:', err)
-          setGalleryLoading(false)
-        }
-      }
+      { onError: () => setGalleryLoading(false) }
     )
     return () => unsub && unsub()
   }, [])
 
-  // Estadísticas dinámicas de reseñas
   const reviewStats = useMemo(() => {
     const total = reviews.length
     if (total === 0) return { total: 0, avg: 0, roundedAvg: 0 }
     const sum = reviews.reduce((acc, r) => acc + (Number(r.rating) || 0), 0)
     const avg = sum / total
-    const roundedAvg = Math.round(avg)
-    return { total, avg, roundedAvg }
+    return { total, avg, roundedAvg: Math.round(avg) }
   }, [reviews])
 
-  // Sanea el comentario para evitar que se muestre "como código" si incluye backticks, bloques o etiquetas HTML
   const sanitizeReviewText = (s) => {
     if (!s) return ''
     let out = String(s)
-
-    // 1) Decodifica entidades HTML comunes primero (por si vienen como texto escapado)
-    const entities = {
-      '&lt;': '<',
-      '&gt;': '>',
-      '&amp;': '&',
-      '&quot;': '"',
-      '&#34;': '"',
-      '&#39;': "'",
-      '&#x27;': "'",
-      '&nbsp;': ' '
-    }
-    out = out.replace(/(&lt;|&gt;|&amp;|&quot;|&#34;|&#39;|&#x27;|&nbsp;)/g, (m) => entities[m] || m)
-
-    // 2) Remueve bloques de código tipo Markdown ```...``` (cerrados)
-    out = out.replace(/```[\s\S]*?```/g, '')
-    // 3) Si hay un fence sin cierre, elimina desde el fence al final
-    out = out.replace(/```[\s\S]*$/g, '')
-    // 4) Remueve backticks sueltos
-    out = out.replace(/`+/g, '')
-    // 5) Remueve etiquetas <code>, <pre> y cualquier HTML residual
-    out = out.replace(/<\/?(code|pre)[^>]*>/gi, '')
-    out = out.replace(/<[^>]*>/g, '')
-    // 6) Elimina líneas que parecen bloques de código indentados (4 espacios o tab)
-    out = out
-      .split('\n')
-      .filter((line) => !/^\s{4,}|^\t/.test(line))
-      .join(' ')
-
-    // 7) Elimina CSS inline y propiedades de estilo
-    out = out.replace(/;position:absolute[^}]*}/gi, '')
-    out = out.replace(/\{[^}]*position\s*:\s*absolute[^}]*\}/gi, '')
-    out = out.replace(/;[a-z-]+:[^;]*/gi, '')
-    out = out.replace(/[a-z-]+\s*:\s*[^;]+;/gi, '')
-
-    // 8) Normaliza espacios
-    out = out.replace(/\s+/g, ' ').trim()
-    return out
+    const entities = { '&lt;': '<', '&gt;': '>', '&amp;': '&', '&quot;': '"', '&#34;': '"', '&#39;': "'", '&#x27;': "'", '&nbsp;': ' ' }
+    out = out.replace(/(&lt;|&gt;|&amp;|&quot;|&#34;|&#39;|&#x27;|&nbsp;)/g, m => entities[m] || m)
+    out = out.replace(/```[\s\S]*?```/g, '').replace(/```[\s\S]*$/g, '').replace(/`+/g, '')
+    out = out.replace(/<\/?(code|pre)[^>]*>/gi, '').replace(/<[^>]*>/g, '')
+    out = out.split('\n').filter(line => !/^\s{4,}|^\t/.test(line)).join(' ')
+    out = out.replace(/;position:absolute[^}]*}/gi, '').replace(/\{[^}]*position\s*:\s*absolute[^}]*\}/gi, '')
+    out = out.replace(/;[a-z-]+:[^;]*/gi, '').replace(/[a-z-]+\s*:\s*[^;]+;/gi, '')
+    return out.replace(/\s+/g, ' ').trim()
   }
 
+  // ── render ───────────────────────────────────────────────────
   return (
     <>
       <SEO
@@ -881,427 +512,477 @@ export default function HomePage() {
         keywords="talleres pizza niños Santiago, pizza party cumpleaños, eventos infantiles Santiago, taller cocina niños, catering pizza, fiestas infantiles Chile, pizzeros en acción"
         url="/"
       />
-      {/* Hero Section Premium con Aurora Gradient */}
+
+      {/* ══════════════════════════════════════════════════
+          HERO — Cinematic full-screen photo
+      ══════════════════════════════════════════════════ */}
       <Box
+        component="section"
+        aria-label="Bienvenidos a Pablo's Pizza"
         sx={{
-          minHeight: { xs: 'auto', md: '100vh' },
-          py: { xs: 6, md: 8 },
-          background: `
-            radial-gradient(circle at 20% 20%, ${designTokens.colors.golden[500]}15 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, ${designTokens.colors.golden[400]}10 0%, transparent 50%),
-            radial-gradient(circle at 40% 40%, ${designTokens.colors.golden[300]}08 0%, transparent 50%),
-            linear-gradient(135deg, #0F0F0F 0%, #1A1A1A 50%, #0F0F0F 100%)
-          `,
-          color: 'white',
+          minHeight: '100vh',
           position: 'relative',
-          overflow: 'hidden',
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+          pb: { xs: 7, md: 10 },
+          overflow: 'hidden',
         }}
       >
-        {/* Elementos decorativos flotantes */}
+        {/* Background photo */}
         <Box
+          aria-hidden="true"
           sx={{
             position: 'absolute',
-            top: '10%',
-            left: '10%',
-            width: 100,
-            height: 100,
-            borderRadius: '50%',
-            backgroundColor: 'rgba(255, 215, 0, 0.05)',
-            filter: 'blur(40px)',
-            animation: (prefersReducedMotion || !animationsEnabled) ? 'none' : 'float 6s ease-in-out infinite',
+            inset: 0,
+            backgroundImage: `url(${publicBase}images/hero-bg.jpg)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center 30%',
+            transform: 'scale(1.04)',
+            willChange: 'transform',
           }}
         />
+
+        {/* Multi-layer gradient overlay */}
         <Box
+          aria-hidden="true"
           sx={{
             position: 'absolute',
-            bottom: '20%',
-            right: '15%',
-            width: 150,
-            height: 150,
+            inset: 0,
+            background: `
+              linear-gradient(to top,
+                rgba(0,0,0,0.97) 0%,
+                rgba(0,0,0,0.78) 35%,
+                rgba(0,0,0,0.45) 65%,
+                rgba(0,0,0,0.25) 100%
+              )
+            `,
+          }}
+        />
+
+        {/* Radial golden accent */}
+        <Box
+          aria-hidden="true"
+          sx={{
+            position: 'absolute',
+            top: '8%',
+            right: '8%',
+            width: { xs: 200, md: 400 },
+            height: { xs: 200, md: 400 },
             borderRadius: '50%',
-            backgroundColor: 'rgba(255, 215, 0, 0.03)',
+            background: 'radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 70%)',
             filter: 'blur(60px)',
-            animation: (prefersReducedMotion || !animationsEnabled) ? 'none' : 'float 8s ease-in-out infinite reverse',
           }}
         />
 
-        <Container maxWidth="xl">
-          <Grid container spacing={6} alignItems="center" sx={{ minHeight: '80vh' }}>
-            {/* Contenido textual */}
-            <Grid item xs={12} lg={6}>
-              <Fade in={heroLoaded} timeout={800}>
-                <Box>
-                  {/* Badge de nuevo/destacado */}
-                  <Slide direction="up" in={heroLoaded} timeout={1000}>
-                    <Paper
-                      sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        px: 3,
-                        py: 1,
-                        mb: 3,
-                        backgroundColor: 'rgba(255, 215, 0, 0.1)',
-                        backdropFilter: 'blur(10px)',
-                        border: `1px solid rgba(255, 215, 0, 0.3)`,
-                        borderRadius: designTokens.radius.full,
-                        color: designTokens.colors.golden[300],
-                      }}
-                    >
-                      <AutoAwesome sx={{ fontSize: 20 }} />
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        ¡Experiencias Premium para Niños!
-                      </Typography>
-                    </Paper>
-                  </Slide>
+        {/* Content */}
+        <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 2 }}>
+          {/* Location badge */}
+          <Fade in={heroLoaded} timeout={700}>
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 1.5,
+                mb: { xs: 3, md: 4 },
+                px: 2,
+                py: 0.75,
+                border: '1px solid rgba(255,215,0,0.35)',
+                borderRadius: designTokens.radius.full,
+                backdropFilter: 'blur(8px)',
+                backgroundColor: 'rgba(0,0,0,0.2)',
+              }}
+            >
+              <Box
+                sx={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
+                  backgroundColor: GOLD,
+                  animation: prefersReducedMotion ? 'none' : 'pingDot 2s ease-in-out infinite',
+                  '@keyframes pingDot': {
+                    '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                    '50%': { opacity: 0.6, transform: 'scale(1.4)' },
+                  },
+                }}
+              />
+              <Typography
+                variant="caption"
+                sx={{ color: 'rgba(255,255,255,0.85)', letterSpacing: 3, fontSize: '0.68rem', fontWeight: 700 }}
+              >
+                SANTIAGO · CHILE
+              </Typography>
+            </Box>
+          </Fade>
 
-                  <Typography
-                    variant="h1"
-                    sx={{
-                      fontSize: { xs: '2rem', sm: '2.8rem', md: '4rem', lg: '4.5rem' },
-                      fontWeight: 800,
-                      lineHeight: { xs: 1.1, sm: 1.2, md: 1.1 },
-                      mb: 3,
-                      background: `linear-gradient(135deg, #FFFFFF 0%, ${designTokens.colors.golden[300]} 100%)`,
-                      backgroundClip: 'text',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                    }}
-                  >
-                    Talleres de Pizza que
-                    <br />
-                    <Box
-                      component="span"
-                      sx={{
-                        background: designTokens.colors.aurora.golden,
-                        backgroundClip: 'text',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                      }}
-                    >
-                      Crean Magia{' '}
-                      <AutoAwesome aria-hidden="true" sx={{ fontSize: '0.75em', verticalAlign: 'middle', color: designTokens.colors.golden[400], WebkitTextFillColor: 'initial' }} />
-                    </Box>
-                  </Typography>
-
-                  <Typography
-                    variant="h5"
-                    sx={{
-                      color: 'rgba(255,255,255,0.9)',
-                      mb: 3,
-                      fontWeight: 400,
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    Experiencias gastronómicas educativas donde los niños aprenden,
-                    se divierten y crean recuerdos inolvidables
-                  </Typography>
-
-                  {/* Estadísticas rápidas */}
-                  <Grid container spacing={3} sx={{ mb: 4 }}>
-                    <Grid item xs={6} sm={4}>
-                      <StatsCard
-                        number="500+"
-                        label="Niños Felices"
-                        icon={<Favorite />}
-                      />
-                    </Grid>
-                    <Grid item xs={6} sm={4}>
-                      <StatsCard
-                        number="50+"
-                        label="Eventos Exitosos"
-                        icon={<EmojiEvents />}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={4}>
-                      <StatsCard
-                        number="5★"
-                        label="Calificación"
-                        icon={<Star />}
-                      />
-                    </Grid>
-                  </Grid>
-
-                  {/* CTAs principales */}
-                  <Stack
-                    direction={{ xs: 'column', sm: 'row' }}
-                    spacing={3}
-                    sx={{ mb: 4 }}
-                  >
-                    <Button
-                      variant="contained"
-                      size="large"
-                      onClick={() => navigate('/agendar')}
-                      endIcon={<ArrowForward />}
-                      sx={{
-                        px: 4,
-                        py: 2,
-                        fontSize: '1.125rem',
-                        fontWeight: 700,
-                        background: designTokens.colors.aurora.golden,
-                        color: designTokens.colors.charcoal[900],
-                        borderRadius: designTokens.radius.xl,
-                        boxShadow: designTokens.shadows.glowHover,
-                        '&:hover': {
-                          transform: 'translateY(-4px) scale(1.02)',
-                        },
-                      }}
-                    >
-                      Agendar Evento Ahora
-                    </Button>
-
-                    <Button
-                      variant="outlined"
-                      size="large"
-                      onClick={() => navigate('/servicios')}
-                      sx={{
-                        px: 4,
-                        py: 2,
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        borderWidth: 2,
-                        borderColor: 'rgba(255, 255, 255, 0.3)',
-                        color: 'rgba(255, 255, 255, 0.9)',
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        backdropFilter: 'blur(10px)',
-                        borderRadius: designTokens.radius.xl,
-                        '&:hover': {
-                          borderColor: designTokens.colors.golden[400],
-                          backgroundColor: 'rgba(255, 215, 0, 0.1)',
-                          color: designTokens.colors.golden[300],
-                          transform: 'translateY(-2px)',
-                        },
-                      }}
-                    >
-                      Ver Servicios
-                    </Button>
-                  </Stack>
-
-                  {/* Contacto rápido */}
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                      O contáctanos directo:
-                    </Typography>
-                    <Tooltip title="WhatsApp: +56 9 8942 4566">
-                      <IconButton
-                        href="https://wa.me/56989424566"
-                        target="_blank"
-                        sx={{
-                          backgroundColor: 'rgba(37, 211, 102, 0.2)',
-                          color: '#25D366',
-                          '&:hover': {
-                            backgroundColor: 'rgba(37, 211, 102, 0.3)',
-                            transform: 'scale(1.1)',
-                          },
-                        }}
-                      >
-                        <WhatsApp />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Llámanos: +56 9 8942 4566">
-                      <IconButton
-                        href="tel:+56989424566"
-                        sx={{
-                          backgroundColor: 'rgba(255, 215, 0, 0.2)',
-                          color: designTokens.colors.golden[400],
-                          '&:hover': {
-                            backgroundColor: 'rgba(255, 215, 0, 0.3)',
-                            transform: 'scale(1.1)',
-                          },
-                        }}
-                      >
-                        <LocalPhone />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
-                </Box>
-              </Fade>
-            </Grid>
-
-            {/* Logo 3D animado */}
-            <Grid item xs={12} lg={6}>
-              <Box sx={{ textAlign: 'center', position: 'relative' }}>
-                <Fade in={heroLoaded} timeout={prefersReducedMotion ? 0 : 1200}>
-                  <Box>
-                    <Hero3DLogo prefersReducedMotion={prefersReducedMotion} animationsEnabled={animationsEnabled} />
-                  </Box>
-                </Fade>
+          {/* Giant headline */}
+          <Box ref={heroTitleRef} sx={{ opacity: animationsEnabled ? undefined : 1 }}>
+            <Typography
+              component="h1"
+              sx={{
+                fontSize: { xs: '3.8rem', sm: '5.5rem', md: '8rem', lg: '10rem' },
+                fontWeight: 900,
+                lineHeight: 0.88,
+                letterSpacing: { xs: '-0.03em', md: '-0.05em' },
+                mb: { xs: 3, md: 4 },
+                color: '#fff',
+                textTransform: 'uppercase',
+              }}
+            >
+              CREAMOS
+              <br />
+              <Box
+                component="span"
+                sx={{
+                  background: GOLD_GRADIENT,
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 2,
+                }}
+              >
+                MAGIA
+                <AutoAwesome
+                  aria-hidden="true"
+                  sx={{
+                    fontSize: { xs: '1.5rem', md: '3rem' },
+                    color: GOLD,
+                    WebkitTextFillColor: 'initial',
+                    verticalAlign: 'middle',
+                    animation: prefersReducedMotion ? 'none' : 'sparkle 3s ease-in-out infinite',
+                    '@keyframes sparkle': {
+                      '0%, 100%': { opacity: 1, transform: 'rotate(0deg) scale(1)' },
+                      '50%': { opacity: 0.7, transform: 'rotate(20deg) scale(1.15)' },
+                    },
+                  }}
+                />
               </Box>
-            </Grid>
-          </Grid>
+            </Typography>
+          </Box>
+
+          {/* Subtitle */}
+          <Box ref={heroSubtitleRef} sx={{ opacity: animationsEnabled ? undefined : 1 }}>
+            <Typography
+              variant="h5"
+              sx={{
+                color: 'rgba(255,255,255,0.65)',
+                fontWeight: 400,
+                mb: { xs: 4, md: 5 },
+                maxWidth: { xs: '100%', md: 580 },
+                lineHeight: 1.55,
+                fontSize: { xs: '1rem', sm: '1.15rem', md: '1.25rem' },
+              }}
+            >
+              Talleres de pizza artesanal y pizza party para niños en Santiago.
+              Cada evento, un recuerdo imborrable.
+            </Typography>
+          </Box>
+
+          {/* CTAs */}
+          <Box ref={heroCtaRef} sx={{ opacity: animationsEnabled ? undefined : 1 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: { xs: 5, md: 6 } }}>
+              <Button
+                variant="contained"
+                size="large"
+                onClick={() => navigate('/agendar')}
+                endIcon={<ArrowForward />}
+                sx={{
+                  px: { xs: 4, md: 5 },
+                  py: 1.75,
+                  fontSize: '1rem',
+                  fontWeight: 800,
+                  background: GOLD_GRADIENT,
+                  color: '#000',
+                  borderRadius: designTokens.radius.xl,
+                  boxShadow: '0 8px 32px rgba(255,215,0,0.4)',
+                  letterSpacing: 0.3,
+                  '&:hover': {
+                    transform: 'translateY(-3px)',
+                    boxShadow: '0 14px 44px rgba(255,215,0,0.5)',
+                  },
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                }}
+              >
+                Agendar Evento
+              </Button>
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={() => navigate('/servicios')}
+                sx={{
+                  px: 4,
+                  py: 1.75,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  color: 'rgba(255,255,255,0.85)',
+                  borderColor: 'rgba(255,255,255,0.25)',
+                  borderRadius: designTokens.radius.xl,
+                  backdropFilter: 'blur(10px)',
+                  '&:hover': {
+                    borderColor: 'rgba(255,215,0,0.5)',
+                    color: GOLD,
+                    backgroundColor: 'rgba(255,215,0,0.06)',
+                  },
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                Ver Servicios
+              </Button>
+            </Stack>
+          </Box>
+
+          {/* Stats bar */}
+          <Box
+            ref={heroStatsRef}
+            sx={{ opacity: animationsEnabled ? undefined : 1 }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                gap: { xs: 4, md: 6 },
+                pt: 4,
+                borderTop: '1px solid rgba(255,255,255,0.1)',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
+              {[
+                { number: '500+', label: 'Niños felices', icon: <Favorite sx={{ fontSize: 16, color: GOLD }} /> },
+                { number: '50+', label: 'Eventos exitosos', icon: <EmojiEvents sx={{ fontSize: 16, color: GOLD }} /> },
+                { number: '★ 5.0', label: 'Calificación', icon: <Star sx={{ fontSize: 16, color: GOLD }} /> },
+              ].map(({ number, label, icon }) => (
+                <Box key={label} sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    {icon}
+                    <Typography
+                      sx={{
+                        fontSize: { xs: '1.4rem', md: '1.75rem' },
+                        fontWeight: 900,
+                        color: '#fff',
+                        lineHeight: 1,
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {number}
+                    </Typography>
+                  </Box>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: 'rgba(255,255,255,0.45)', letterSpacing: 1.5, fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase' }}
+                  >
+                    {label}
+                  </Typography>
+                </Box>
+              ))}
+
+              {/* WhatsApp link */}
+              <Box sx={{ ml: 'auto', display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1.5 }}>
+                <Box
+                  component="a"
+                  href="https://wa.me/56989424566"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Contactar por WhatsApp"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    px: 2.5,
+                    py: 1,
+                    borderRadius: designTokens.radius.full,
+                    border: '1px solid rgba(37,211,102,0.35)',
+                    color: '#25D366',
+                    textDecoration: 'none',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      backgroundColor: 'rgba(37,211,102,0.1)',
+                      borderColor: '#25D366',
+                    },
+                  }}
+                >
+                  <WhatsApp sx={{ fontSize: 18 }} />
+                  +56 9 8942 4566
+                </Box>
+              </Box>
+            </Box>
+          </Box>
         </Container>
 
-        {/* Indicador de scroll */}
+        {/* Fade into next section */}
         <Box
+          aria-hidden="true"
           sx={{
             position: 'absolute',
-            bottom: 32,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            animation: prefersReducedMotion ? 'none' : 'bounce 2s infinite',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 140,
+            background: `linear-gradient(to bottom, transparent 0%, ${BG.s1} 100%)`,
+            zIndex: 1,
           }}
-          aria-label="Desliza hacia abajo para ver más contenido"
-        >
-          <Box
-            sx={{
-              width: 2,
-              height: 40,
-              backgroundColor: 'rgba(255, 215, 0, 0.5)',
-              borderRadius: 1,
-              position: 'relative',
-              '&::after': {
-                content: '""',
-                position: 'absolute',
-                bottom: 0,
-                left: -4,
-                width: 10,
-                height: 10,
-                borderLeft: '2px solid rgba(255, 215, 0, 0.7)',
-                borderBottom: '2px solid rgba(255, 215, 0, 0.7)',
-                transform: 'rotate(-45deg)',
-              }
-            }}
-          />
-        </Box>
-
-        {/* Animaciones CSS adicionales */}
-        <style>{`
-          @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-          }
-          @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
-            40% { transform: translateX(-50%) translateY(-10px); }
-            60% { transform: translateX(-50%) translateY(-5px); }
-          }
-        `}</style>
+        />
       </Box>
 
-      {/* SECCIÓN 1: PIZZEROS EN ACCIÓN - Imagen Full con Gradiente */}
+      <SectionDivider />
+
+      {/* ══════════════════════════════════════════════════
+          SECCIÓN 1 — PIZZEROS EN ACCIÓN
+      ══════════════════════════════════════════════════ */}
       <AnimatedSection>
         <Box
           component="section"
+          aria-label="Talleres Pizzeros en Acción"
           sx={{
-            minHeight: '100vh',
+            minHeight: { xs: 'auto', md: '100vh' },
             width: '100%',
             display: 'flex',
             alignItems: 'center',
-            backgroundColor: '#FFFFFF',
+            backgroundColor: BG.s1,
             position: 'relative',
-            overflow: 'hidden'
+            overflow: 'hidden',
           }}
         >
-          {/* IMAGEN DE FONDO - Cubre lado derecho */}
+          {/* Background image — right side */}
           <Box
+            aria-hidden="true"
             sx={{
               position: 'absolute',
-              top: 0,
-              right: 0,
-              bottom: 0,
+              top: 0, right: 0, bottom: 0,
               width: { xs: '0%', md: '55%' },
               backgroundImage: `url(${publicBase}images/talleres/taller-corporativo.webp)`,
               backgroundSize: 'cover',
               backgroundPosition: 'center left',
               zIndex: 0,
-              display: { xs: 'none', md: 'block' }
+              display: { xs: 'none', md: 'block' },
             }}
           />
-
-          {/* GRADIENTE DE DIFUMINADO */}
+          {/* Gradient fade */}
           <Box
+            aria-hidden="true"
             sx={{
               position: 'absolute',
-              top: 0,
-              right: 0,
-              bottom: 0,
+              top: 0, right: 0, bottom: 0,
               width: { xs: '0%', md: '55%' },
-              background: 'linear-gradient(to right, rgba(255,255,255,1) 0%, rgba(255,255,255,0.4) 40%, rgba(255,255,255,0) 100%)',
+              background: `linear-gradient(to right, ${BG.s1} 0%, rgba(13,13,13,0.5) 45%, rgba(13,13,13,0) 100%)`,
               zIndex: 1,
-              display: { xs: 'none', md: 'block' }
+              display: { xs: 'none', md: 'block' },
             }}
           />
 
-          <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2, py: 8 }}>
+          <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2, py: { xs: 8, md: 10 } }}>
             <Grid container spacing={4} alignItems="center">
-              {/* Columna izquierda: Contenido de texto */}
               <Grid item xs={12} md={6}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                {/* Header */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, mb: 4 }}>
                   <Box
                     sx={{
-                      width: 80,
-                      height: 80,
+                      width: 72,
+                      height: 72,
                       borderRadius: '50%',
-                      backgroundColor: '#FFD700',
+                      background: GOLD_GRADIENT,
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      boxShadow: '0 8px 24px rgba(255,215,0,0.3)',
                     }}
                   >
-                    <School sx={{ fontSize: 42, color: '#000' }} />
+                    <School sx={{ fontSize: 38, color: '#000' }} />
                   </Box>
                   <Box>
-                    <Typography variant="h2" sx={{ color: '#000', fontWeight: 'bold', fontSize: { xs: '1.75rem', md: '2.25rem' } }}>
+                    <Typography
+                      variant="h2"
+                      sx={{
+                        color: '#fff',
+                        fontWeight: 800,
+                        fontSize: { xs: '1.75rem', md: '2.25rem' },
+                        lineHeight: 1.1,
+                        mb: 0.75,
+                      }}
+                    >
                       Pizzeros en Acción
                     </Typography>
-                    <Chip label="EXPERIENCIA EDUCATIVA" sx={{ backgroundColor: '#FFD700', color: '#000', fontWeight: 700, mt: 1 }} />
+                    <Chip
+                      label="EXPERIENCIA EDUCATIVA"
+                      size="small"
+                      sx={{
+                        background: GOLD_GRADIENT,
+                        color: '#000',
+                        fontWeight: 700,
+                        fontSize: '0.7rem',
+                        letterSpacing: 0.5,
+                      }}
+                    />
                   </Box>
                 </Box>
 
-                <Typography variant="body1" sx={{ color: '#000', mb: 3, lineHeight: 1.7, fontSize: { xs: '1rem', md: '1.1rem' } }}>
-                  <span style={{ color: '#FFD700', fontWeight: 700 }}>Talleres gastronómicos únicos</span> donde los niños se transforman en verdaderos chefs profesionales.
-                  Aprenden técnicas culinarias auténticas mientras crean pizzas artesanales con ingredientes de primera calidad.
+                <Typography
+                  variant="body1"
+                  sx={{ color: 'rgba(255,255,255,0.75)', mb: 3.5, lineHeight: 1.75, fontSize: { xs: '1rem', md: '1.05rem' } }}
+                >
+                  <Box component="span" sx={{ color: GOLD, fontWeight: 700 }}>Talleres gastronómicos únicos</Box>{' '}
+                  donde los niños se transforman en verdaderos chefs profesionales.
+                  Aprenden técnicas culinarias auténticas mientras crean pizzas artesanales
+                  con ingredientes de primera calidad.
                 </Typography>
 
-                <Box sx={{ mb: 4 }}>
-                  <Stack spacing={1.5}>
-                    {[
-                      '🎓 Educación culinaria profesional',
-                      '👨‍🍳 Chef experto guiando cada paso',
-                      '🎪 Interactivo y divertido para todas las edades',
-                      '🛡️ 100% seguro con protocolos de higiene'
-                    ].map((feature, idx) => (
-                      <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CheckCircle sx={{ color: '#4CAF50', fontSize: 24 }} />
-                        <Typography variant="body1" sx={{ color: '#000', fontWeight: 500 }}>
-                          {feature}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Stack>
-                </Box>
+                {/* Features */}
+                <Stack spacing={1.5} sx={{ mb: 4 }}>
+                  {[
+                    'Educación culinaria profesional',
+                    'Chef experto guiando cada paso',
+                    'Interactivo y divertido para todas las edades',
+                    '100% seguro con protocolos de higiene',
+                  ].map((feature) => (
+                    <Box key={feature} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <CheckCircle sx={{ color: '#4CAF50', fontSize: 20, flexShrink: 0 }} />
+                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.82)', fontWeight: 500, fontSize: '0.95rem' }}>
+                        {feature}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Stack>
 
+                {/* Price */}
                 <Box
                   sx={{
                     p: 3,
-                    background: 'rgba(255, 215, 0, 0.1)',
-                    border: '2px solid #FFD700',
+                    background: 'rgba(255,215,0,0.07)',
+                    border: `1px solid rgba(255,215,0,0.3)`,
                     borderRadius: 2,
-                    mb: 3
+                    mb: 4,
                   }}
                 >
-                  <Typography variant="h3" sx={{ color: '#FFD700', fontWeight: 900 }}>
-                    $13.500 <Typography component="span" variant="body1" sx={{ color: '#000' }}>por niño</Typography>
+                  <Typography variant="h3" sx={{ color: GOLD, fontWeight: 900, lineHeight: 1 }}>
+                    $13.500{' '}
+                    <Typography component="span" variant="body1" sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 400 }}>
+                      por niño
+                    </Typography>
                   </Typography>
-                  <Typography sx={{ color: '#000', fontWeight: 600, mt: 1 }}>
-                    ⭐ Descuentos: 10% +15 niños • 15% +25 niños
+                  <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontWeight: 500, mt: 1, fontSize: '0.9rem' }}>
+                    Descuentos: 10% para +15 niños · 15% para +25 niños
                   </Typography>
                 </Box>
 
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                {/* CTAs */}
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Button
                     variant="contained"
                     size="large"
                     onClick={() => navigate('/agendar')}
                     sx={{
-                      backgroundColor: '#FFD700',
+                      background: GOLD_GRADIENT,
                       color: '#000',
                       fontWeight: 700,
                       px: 4,
                       py: 1.5,
-                      '&:hover': { backgroundColor: '#FFC700' }
+                      borderRadius: designTokens.radius.xl,
+                      '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 8px 24px rgba(255,215,0,0.35)' },
+                      transition: 'all 0.2s ease',
                     }}
                   >
                     Cotizar Evento
@@ -1311,189 +992,206 @@ export default function HomePage() {
                     size="large"
                     onClick={() => navigate('/servicios')}
                     sx={{
-                      borderColor: '#000',
-                      color: '#000',
-                      borderWidth: 2,
+                      borderColor: 'rgba(255,255,255,0.25)',
+                      color: 'rgba(255,255,255,0.8)',
+                      borderRadius: designTokens.radius.xl,
                       px: 4,
                       py: 1.5,
-                      '&:hover': { borderColor: '#FFD700', color: '#FFD700', borderWidth: 2 }
+                      '&:hover': { borderColor: GOLD, color: GOLD, backgroundColor: 'rgba(255,215,0,0.06)' },
+                      transition: 'all 0.2s ease',
                     }}
                   >
                     Ver Menú
                   </Button>
-                </Box>
+                </Stack>
               </Grid>
 
-              {/* Columna derecha: Imagen (solo mobile) */}
+              {/* Mobile image */}
               <Grid item xs={12} md={6} sx={{ display: { xs: 'block', md: 'none' } }}>
                 <Box
                   component="img"
                   src={`${publicBase}images/talleres/taller-corporativo.webp`}
                   loading="lazy"
-                  alt="Niños participando en taller de pizza Pizzeros en Acción, aprendiendo técnicas culinarias"
+                  alt="Niños participando en taller de pizza Pizzeros en Acción"
                   sx={{
                     width: '100%',
-                    height: '280px',
+                    height: 280,
                     objectFit: 'cover',
                     borderRadius: 2,
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+                    border: '1px solid rgba(255,215,0,0.15)',
                   }}
                 />
               </Grid>
 
-              {/* Columna derecha: Espacio vacío (desktop - imagen está como fondo) */}
-              <Grid item xs={12} md={6} sx={{ display: { xs: 'none', md: 'block' } }}>
-                {/* Espacio reservado para la imagen de fondo con gradiente */}
-              </Grid>
+              <Grid item md={6} sx={{ display: { xs: 'none', md: 'block' } }} />
             </Grid>
           </Container>
         </Box>
       </AnimatedSection>
 
-      {/* SECCIÓN 2: PIZZA PARTY - Imagen Full con Gradiente */}
-      <AnimatedSection delay={100}>
+      <SectionDivider />
+
+      {/* ══════════════════════════════════════════════════
+          SECCIÓN 2 — PIZZA PARTY
+      ══════════════════════════════════════════════════ */}
+      <AnimatedSection delay={80}>
         <Box
           component="section"
+          aria-label="Pizza Party — Catering gourmet"
           sx={{
-            minHeight: '100vh',
+            minHeight: { xs: 'auto', md: '100vh' },
             width: '100%',
             display: 'flex',
             alignItems: 'center',
-            backgroundColor: '#000000',
+            backgroundColor: BG.s2,
             position: 'relative',
-            overflow: 'hidden'
+            overflow: 'hidden',
           }}
         >
-          {/* IMAGEN DE FONDO - Cubre lado izquierdo */}
+          {/* Background image — left side */}
           <Box
+            aria-hidden="true"
             sx={{
               position: 'absolute',
-              top: 0,
-              left: 0,
-              bottom: 0,
+              top: 0, left: 0, bottom: 0,
               width: { xs: '0%', md: '55%' },
               backgroundImage: `url(${publicBase}images/pizza-party.webp)`,
               backgroundSize: 'cover',
               backgroundPosition: 'center right',
               zIndex: 0,
-              display: { xs: 'none', md: 'block' }
+              display: { xs: 'none', md: 'block' },
             }}
           />
-
-          {/* GRADIENTE DE DIFUMINADO */}
+          {/* Gradient fade */}
           <Box
+            aria-hidden="true"
             sx={{
               position: 'absolute',
-              top: 0,
-              left: 0,
-              bottom: 0,
+              top: 0, left: 0, bottom: 0,
               width: { xs: '0%', md: '55%' },
-              background: 'linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0) 100%)',
+              background: `linear-gradient(to left, ${BG.s2} 0%, rgba(17,17,17,0.5) 45%, rgba(17,17,17,0) 100%)`,
               zIndex: 1,
-              display: { xs: 'none', md: 'block' }
+              display: { xs: 'none', md: 'block' },
             }}
           />
 
-          <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2, py: 8 }}>
+          <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2, py: { xs: 8, md: 10 } }}>
             <Grid container spacing={4} alignItems="center">
-              {/* Columna izquierda: Imagen (solo mobile) */}
+              {/* Mobile image */}
               <Grid item xs={12} md={6} sx={{ display: { xs: 'block', md: 'none' } }}>
                 <Box
                   component="img"
                   src={`${publicBase}images/pizza-party.webp`}
                   loading="lazy"
-                  alt="Pizza Party - Catering gourmet con pizzas artesanales en eventos"
+                  alt="Pizza Party — Catering gourmet con pizzas artesanales"
                   sx={{
                     width: '100%',
-                    height: '280px',
+                    height: 280,
                     objectFit: 'cover',
                     borderRadius: 2,
-                    boxShadow: '0 8px 32px rgba(255,215,0,0.3)'
+                    border: '1px solid rgba(255,215,0,0.15)',
                   }}
                 />
               </Grid>
 
-              {/* Columna izquierda: Espacio vacío (desktop - imagen está como fondo) */}
-              <Grid item xs={12} md={6} sx={{ display: { xs: 'none', md: 'block' } }}>
-                {/* Espacio reservado para la imagen de fondo con gradiente */}
-              </Grid>
+              <Grid item md={6} sx={{ display: { xs: 'none', md: 'block' } }} />
 
-              {/* Columna derecha: Contenido de texto */}
+              {/* Content */}
               <Grid item xs={12} md={6}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, mb: 4 }}>
                   <Box
                     sx={{
-                      width: 80,
-                      height: 80,
+                      width: 72,
+                      height: 72,
                       borderRadius: '50%',
-                      backgroundColor: '#FFD700',
+                      background: GOLD_GRADIENT,
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      boxShadow: '0 8px 24px rgba(255,215,0,0.3)',
                     }}
                   >
-                    <Celebration sx={{ fontSize: 42, color: '#000' }} />
+                    <Celebration sx={{ fontSize: 38, color: '#000' }} />
                   </Box>
                   <Box>
-                    <Typography variant="h2" sx={{ color: '#FFF', fontWeight: 'bold', fontSize: { xs: '1.75rem', md: '2.25rem' } }}>
+                    <Typography
+                      variant="h2"
+                      sx={{ color: '#fff', fontWeight: 800, fontSize: { xs: '1.75rem', md: '2.25rem' }, lineHeight: 1.1, mb: 0.75 }}
+                    >
                       Pizza Party
                     </Typography>
-                    <Chip label="CATERING GOURMET" sx={{ backgroundColor: '#FFD700', color: '#000', fontWeight: 700, mt: 1 }} />
+                    <Chip
+                      label="CATERING GOURMET"
+                      size="small"
+                      sx={{ background: GOLD_GRADIENT, color: '#000', fontWeight: 700, fontSize: '0.7rem', letterSpacing: 0.5 }}
+                    />
                   </Box>
                 </Box>
 
-                <Typography variant="body1" sx={{ color: '#FFF', mb: 3, lineHeight: 1.7, fontSize: { xs: '1rem', md: '1.1rem' } }}>
-                  <span style={{ color: '#FFD700', fontWeight: 700 }}>Catering gourmet especializado</span> en pizzas artesanales para eventos únicos y memorables.
-                  Servicio integral con preparación en vivo e ingredientes de primera calidad para hacer de tu celebración algo extraordinario.
+                <Typography
+                  variant="body1"
+                  sx={{ color: 'rgba(255,255,255,0.75)', mb: 3.5, lineHeight: 1.75, fontSize: { xs: '1rem', md: '1.05rem' } }}
+                >
+                  <Box component="span" sx={{ color: GOLD, fontWeight: 700 }}>Catering gourmet especializado</Box>{' '}
+                  en pizzas artesanales para eventos únicos y memorables.
+                  Servicio integral con preparación en vivo e ingredientes de primera calidad
+                  para hacer de tu celebración algo extraordinario.
                 </Typography>
 
+                {/* Price */}
                 <Box
                   sx={{
                     p: 3,
-                    background: 'rgba(255, 215, 0, 0.1)',
-                    border: '2px solid #FFD700',
+                    background: 'rgba(255,215,0,0.07)',
+                    border: `1px solid rgba(255,215,0,0.3)`,
                     borderRadius: 2,
-                    mb: 3
+                    mb: 3.5,
                   }}
                 >
-                  <Typography variant="h3" sx={{ color: '#FFD700', fontWeight: 900 }}>
-                    $11.990 <Typography component="span" variant="body1" sx={{ color: '#FFF' }}>por persona</Typography>
+                  <Typography variant="h3" sx={{ color: GOLD, fontWeight: 900, lineHeight: 1 }}>
+                    $11.990{' '}
+                    <Typography component="span" variant="body1" sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 400 }}>
+                      por persona
+                    </Typography>
                   </Typography>
-                  <Typography sx={{ color: '#FFF', fontWeight: 600, mt: 1 }}>
-                    ⭐ Mínimo 15 personas • Descuentos garantizados
+                  <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontWeight: 500, mt: 1, fontSize: '0.9rem' }}>
+                    Mínimo 15 personas · Descuentos garantizados
                   </Typography>
                 </Box>
 
-                <Box sx={{ mb: 4 }}>
-                  <Stack spacing={1.5}>
-                    {[
-                      '🎉 Catering premium todo incluido',
-                      '🍕 Preparación en vivo espectacular',
-                      '✨ Ingredientes gourmet importados',
-                      '🎊 Atención personalizada garantizada'
-                    ].map((feature, idx) => (
-                      <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CheckCircle sx={{ color: '#4CAF50', fontSize: 24 }} />
-                        <Typography variant="body1" sx={{ color: '#FFF', fontWeight: 500 }}>
-                          {feature}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Stack>
-                </Box>
+                {/* Features */}
+                <Stack spacing={1.5} sx={{ mb: 4 }}>
+                  {[
+                    'Catering premium todo incluido',
+                    'Preparación en vivo espectacular',
+                    'Ingredientes gourmet importados',
+                    'Atención personalizada garantizada',
+                  ].map((feature) => (
+                    <Box key={feature} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <CheckCircle sx={{ color: '#4CAF50', fontSize: 20, flexShrink: 0 }} />
+                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.82)', fontWeight: 500, fontSize: '0.95rem' }}>
+                        {feature}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Stack>
 
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                {/* CTAs */}
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                   <Button
                     variant="contained"
                     size="large"
                     onClick={() => navigate('/agendar')}
                     sx={{
-                      backgroundColor: '#FFD700',
+                      background: GOLD_GRADIENT,
                       color: '#000',
                       fontWeight: 700,
                       px: 4,
                       py: 1.5,
-                      '&:hover': { backgroundColor: '#FFC700' }
+                      borderRadius: designTokens.radius.xl,
+                      '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 8px 24px rgba(255,215,0,0.35)' },
+                      transition: 'all 0.2s ease',
                     }}
                   >
                     Cotizar Evento
@@ -1503,207 +1201,183 @@ export default function HomePage() {
                     size="large"
                     onClick={() => navigate('/servicios')}
                     sx={{
-                      borderColor: '#FFD700',
-                      color: '#FFD700',
-                      borderWidth: 2,
+                      borderColor: 'rgba(255,215,0,0.35)',
+                      color: GOLD,
+                      borderRadius: designTokens.radius.xl,
                       px: 4,
                       py: 1.5,
-                      '&:hover': { borderColor: '#FFC700', color: '#FFC700', borderWidth: 2 }
+                      '&:hover': { borderColor: GOLD, backgroundColor: 'rgba(255,215,0,0.08)' },
+                      transition: 'all 0.2s ease',
                     }}
                   >
                     Ver Menú
                   </Button>
-                </Box>
+                </Stack>
               </Grid>
             </Grid>
           </Container>
         </Box>
       </AnimatedSection>
 
-      {/* Testimonios Premium con Carousel */}
-      <AnimatedSection delay={0}>
+      <SectionDivider />
+
+      {/* ══════════════════════════════════════════════════
+          SECCIÓN 3 — TESTIMONIOS
+      ══════════════════════════════════════════════════ */}
+      <AnimatedSection>
         <Box
           component="section"
           aria-label="Testimonios de clientes"
           sx={{
-            minHeight: '100vh',
-            backgroundColor: '#FFFFFF',
-            py: 8,
-            display: 'flex',
-            alignItems: 'center'
+            py: { xs: 8, md: 12 },
+            backgroundColor: BG.s3,
           }}
         >
-          <Container maxWidth="lg">
-            <Box sx={{ textAlign: 'center', mb: 6 }}>
-              <Typography variant="h2" sx={{ color: '#FFD700', fontWeight: 900, mb: 3, fontSize: { xs: '2rem', md: '3rem' } }}>
-                Lo que Dicen Nuestros Clientes
-              </Typography>
-              <Stack direction="row" spacing={3} justifyContent="center" alignItems="center">
-                <Box sx={{ textAlign: 'center' }}>
-                  <Rating value={reviewStats.roundedAvg} readOnly sx={{ color: '#FFD700', mb: 1 }} aria-label={`Calificación promedio: ${reviewStats.avg.toFixed(1)} de 5 estrellas`} />
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#000' }}>
-                    {reviewStats.avg.toFixed(1)} / 5.0
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(0,0,0,0.6)' }}>
-                    Promedio de reseñas
-                  </Typography>
-                </Box>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#FFD700' }}>
-                    {reviewStats.total}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(0,0,0,0.6)' }}>
-                    Reseña{reviewStats.total === 1 ? '' : 's'} verificadas
-                  </Typography>
-                </Box>
-              </Stack>
+          <Container maxWidth="md">
+            {/* Header — editorial asymmetric layout */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'flex-end',
+                justifyContent: 'space-between',
+                mb: { xs: 5, md: 7 },
+                pb: 4,
+                borderBottom: '1px solid rgba(255,255,255,0.07)',
+                flexWrap: 'wrap',
+                gap: 3,
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="overline"
+                  sx={{ color: GOLD, letterSpacing: 5, fontWeight: 700, fontSize: '0.68rem', mb: 1.5, display: 'block' }}
+                >
+                  LO QUE DICEN
+                </Typography>
+                <Typography
+                  variant="h2"
+                  sx={{ color: '#fff', fontWeight: 900, fontSize: { xs: '2rem', md: '2.75rem' }, lineHeight: 1 }}
+                >
+                  Nuestros
+                  <br />
+                  Clientes
+                </Typography>
+              </Box>
+
+              {/* Big rating number — editorial accent */}
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography
+                  sx={{
+                    fontFamily: 'Georgia, "Times New Roman", serif',
+                    fontSize: { xs: '3.5rem', md: '5rem' },
+                    fontWeight: 700,
+                    color: GOLD,
+                    lineHeight: 1,
+                    letterSpacing: '-0.03em',
+                  }}
+                >
+                  {reviewStats.avg > 0 ? reviewStats.avg.toFixed(1) : '5.0'}
+                </Typography>
+                <Rating
+                  value={reviewStats.roundedAvg || 5}
+                  readOnly
+                  size="small"
+                  sx={{ color: GOLD, mt: 0.5 }}
+                  aria-label={`Calificación promedio: ${reviewStats.avg.toFixed(1)} de 5 estrellas`}
+                />
+                <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.4)', letterSpacing: 2, fontSize: '0.65rem', mt: 0.5 }}>
+                  {reviewStats.total > 0 ? `${reviewStats.total} RESEÑAS` : 'CALIFICACIÓN'}
+                </Typography>
+              </Box>
             </Box>
 
-            {/* Loading State */}
+            {/* Loading */}
             {reviewsLoading && (
-              <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-                <Skeleton
-                  variant="rectangular"
-                  height={450}
-                  sx={{
-                    borderRadius: 3,
-                    backgroundColor: 'rgba(0, 0, 0, 0.06)'
-                  }}
-                />
+              <Box sx={{ maxWidth: 700, mx: 'auto' }}>
+                <Skeleton variant="rectangular" height={320}
+                  sx={{ borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.05)' }} />
               </Box>
             )}
 
-            {/* Error State */}
+            {/* Error */}
             {reviewsError && !reviewsLoading && (
-              <Alert
-                severity="error"
-                sx={{
-                  backgroundColor: 'rgba(244, 67, 54, 0.1)',
-                  color: '#d32f2f',
-                  border: '1px solid rgba(244, 67, 54, 0.3)'
-                }}
-              >
+              <Alert severity="error" sx={{ backgroundColor: 'rgba(244,67,54,0.1)', color: '#ef9a9a', border: '1px solid rgba(244,67,54,0.25)' }}>
                 No pudimos cargar los testimonios. Por favor intenta más tarde.
               </Alert>
             )}
 
-            {/* Empty State */}
+            {/* Empty state */}
             {!reviewsLoading && !reviewsError && reviews.length === 0 && (
               <Box sx={{ textAlign: 'center', py: 8 }}>
-                <Typography variant="h6" sx={{ color: '#000', mb: 2 }}>
+                <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.6)', mb: 3 }}>
                   ¡Sé el primero en dejarnos tu opinión!
                 </Typography>
                 <Button
                   variant="outlined"
                   onClick={() => navigate('/testimonios')}
-                  sx={{
-                    borderColor: '#FFD700',
-                    color: '#FFD700',
-                    '&:hover': {
-                      borderColor: '#FFC700',
-                      backgroundColor: 'rgba(255, 215, 0, 0.1)'
-                    }
-                  }}
+                  sx={{ borderColor: 'rgba(255,215,0,0.4)', color: GOLD, '&:hover': { borderColor: GOLD, backgroundColor: 'rgba(255,215,0,0.08)' } }}
                 >
                   Dejar Testimonio
                 </Button>
               </Box>
             )}
 
-            {/* Reviews Carousel - ONE AT A TIME */}
+            {/* Carousel */}
             {!reviewsLoading && !reviewsError && reviews.length > 0 && (
               <>
-                <Box sx={{ maxWidth: 900, mx: 'auto', position: 'relative' }}>
+                <Box sx={{ maxWidth: 740, mx: 'auto', position: 'relative' }}>
                   <Swiper
                     modules={[Autoplay, Pagination, Navigation]}
                     spaceBetween={0}
                     slidesPerView={1}
-                    autoplay={{
-                      delay: 6000,
-                      disableOnInteraction: false,
-                      pauseOnMouseEnter: true
-                    }}
-                    pagination={{
-                      clickable: true,
-                      dynamicBullets: true
-                    }}
-                    navigation={{
-                      nextEl: '.testimonial-next',
-                      prevEl: '.testimonial-prev'
-                    }}
+                    autoplay={{ delay: 6500, disableOnInteraction: false, pauseOnMouseEnter: true }}
+                    pagination={{ clickable: true, dynamicBullets: true }}
+                    navigation={{ nextEl: '.testimonial-next', prevEl: '.testimonial-prev' }}
                     loop={reviews.length > 1}
-                    style={{ paddingBottom: '60px' }}
-                    keyboard={{
-                      enabled: true,
-                      onlyInViewport: true
-                    }}
+                    style={{ background: 'transparent', paddingBottom: '52px' }}
+                    keyboard={{ enabled: true, onlyInViewport: true }}
                     a11y={{
                       enabled: true,
                       prevSlideMessage: 'Testimonio anterior',
                       nextSlideMessage: 'Siguiente testimonio',
-                      firstSlideMessage: 'Este es el primer testimonio',
-                      lastSlideMessage: 'Este es el último testimonio'
                     }}
                   >
                     {reviews.map((t, index) => (
-                    <SwiperSlide key={t.id || `${t.name}-${index}`}>
-                      <TestimonialCard testimonial={t} sanitizeReviewText={sanitizeReviewText} />
-                    </SwiperSlide>
+                      <SwiperSlide key={t.id || `${t.name}-${index}`} style={{ background: 'transparent' }}>
+                        <TestimonialCard testimonial={t} sanitizeReviewText={sanitizeReviewText} />
+                      </SwiperSlide>
                     ))}
                   </Swiper>
 
-                  {/* Custom Navigation Buttons */}
-                  <IconButton
-                    className="testimonial-prev"
-                    aria-label="Ver testimonio anterior"
-                    sx={{
-                      position: 'absolute',
-                      left: { xs: -10, sm: -20 },
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      zIndex: 10,
-                      backgroundColor: '#FFFFFF',
-                      border: '2px solid #FFD700',
-                      color: '#FFD700',
-                      width: { xs: 40, sm: 50 },
-                      height: { xs: 40, sm: 50 },
-                      boxShadow: '0 4px 12px rgba(255, 215, 0, 0.2)',
-                      '&:hover': {
-                        backgroundColor: '#FFD700',
-                        color: '#000',
-                        transform: 'translateY(-50%) scale(1.1)',
-                      },
-                      transition: 'all 0.3s ease',
-                    }}
-                  >
-                    <ArrowForward sx={{ transform: 'rotate(180deg)', fontSize: { xs: 20, sm: 24 } }} />
-                  </IconButton>
-
-                  <IconButton
-                    className="testimonial-next"
-                    aria-label="Ver siguiente testimonio"
-                    sx={{
-                      position: 'absolute',
-                      right: { xs: -10, sm: -20 },
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      zIndex: 10,
-                      backgroundColor: '#FFFFFF',
-                      border: '2px solid #FFD700',
-                      color: '#FFD700',
-                      width: { xs: 40, sm: 50 },
-                      height: { xs: 40, sm: 50 },
-                      boxShadow: '0 4px 12px rgba(255, 215, 0, 0.2)',
-                      '&:hover': {
-                        backgroundColor: '#FFD700',
-                        color: '#000',
-                        transform: 'translateY(-50%) scale(1.1)',
-                      },
-                      transition: 'all 0.3s ease',
-                    }}
-                  >
-                    <ArrowForward sx={{ fontSize: { xs: 20, sm: 24 } }} />
-                  </IconButton>
+                  {/* Nav buttons — solid dark, no backdropFilter */}
+                  {['testimonial-prev', 'testimonial-next'].map((cls, i) => (
+                    <IconButton
+                      key={cls}
+                      className={cls}
+                      aria-label={i === 0 ? 'Ver testimonio anterior' : 'Ver siguiente testimonio'}
+                      sx={{
+                        position: 'absolute',
+                        [i === 0 ? 'left' : 'right']: { xs: -12, sm: -28 },
+                        top: '42%',
+                        transform: 'translateY(-50%)',
+                        zIndex: 10,
+                        backgroundColor: '#1a1a1a',
+                        border: `1px solid rgba(255,215,0,0.35)`,
+                        color: GOLD,
+                        width: { xs: 40, sm: 46 },
+                        height: { xs: 40, sm: 46 },
+                        '&:hover': {
+                          backgroundColor: GOLD,
+                          color: '#000',
+                          borderColor: GOLD,
+                          transform: 'translateY(-50%) scale(1.1)',
+                        },
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <ArrowForward sx={{ transform: i === 0 ? 'rotate(180deg)' : 'none', fontSize: { xs: 16, sm: 20 } }} />
+                    </IconButton>
+                  ))}
                 </Box>
 
                 <Box sx={{ textAlign: 'center', mt: 6 }}>
@@ -1713,18 +1387,14 @@ export default function HomePage() {
                     endIcon={<ArrowForward />}
                     size="large"
                     sx={{
-                      px: 4,
+                      px: 5,
                       py: 1.5,
-                      borderColor: '#FFD700',
-                      color: '#000',
+                      borderColor: 'rgba(255,215,0,0.35)',
+                      color: 'rgba(255,255,255,0.8)',
                       fontWeight: 600,
-                      borderWidth: 2,
-                      '&:hover': {
-                        borderColor: '#FFD700',
-                        backgroundColor: '#FFD700',
-                        color: '#000',
-                        borderWidth: 2
-                      }
+                      borderRadius: designTokens.radius.xl,
+                      '&:hover': { borderColor: GOLD, color: GOLD, backgroundColor: 'rgba(255,215,0,0.06)' },
+                      transition: 'all 0.2s ease',
                     }}
                   >
                     Ver Más Testimonios
@@ -1734,60 +1404,56 @@ export default function HomePage() {
             )}
           </Container>
 
-          {/* CSS para personalizar Swiper */}
+          {/* Swiper CSS — fully transparent, no grey anywhere */}
           <style>{`
-            .swiper-button-next,
-            .swiper-button-prev {
-              display: none !important;
+            .swiper-button-next, .swiper-button-prev { display: none !important; }
+            .swiper, .swiper-wrapper, .swiper-slide {
+              background: transparent !important;
+            }
+            .swiper-pagination {
+              background: transparent !important;
             }
             .swiper-pagination-bullet {
-              background: rgba(0, 0, 0, 0.3) !important;
+              background: rgba(255, 255, 255, 0.18) !important;
               opacity: 1 !important;
-              width: 10px !important;
-              height: 10px !important;
+              width: 7px !important;
+              height: 7px !important;
               transition: all 0.3s ease !important;
             }
             .swiper-pagination-bullet-active {
               background: #FFD700 !important;
-              width: 24px !important;
-              border-radius: 5px !important;
+              width: 22px !important;
+              border-radius: 4px !important;
             }
             .swiper-slide {
-              opacity: 0;
-              transition: opacity 0.5s ease-in-out;
+              opacity: 0 !important;
+              transition: opacity 0.4s ease-in-out !important;
             }
-            .swiper-slide-active {
-              opacity: 1;
-            }
+            .swiper-slide-active { opacity: 1 !important; }
           `}</style>
         </Box>
       </AnimatedSection>
 
-      {/* Rolling Gallery Section */}
-      <AnimatedSection delay={100}>
+      <SectionDivider />
+
+      {/* ══════════════════════════════════════════════════
+          SECCIÓN 4 — GALERÍA ROLLING
+      ══════════════════════════════════════════════════ */}
+      <AnimatedSection delay={80}>
         <Box
           component="section"
+          aria-label="Galería de momentos mágicos"
           sx={{
-            minHeight: '100vh',
-            py: 8,
-            backgroundColor: '#000000',
-            display: 'flex',
-            alignItems: 'center',
+            py: { xs: 8, md: 12 },
+            backgroundColor: BG.s4,
             position: 'relative',
-            overflow: 'hidden'
+            overflow: 'hidden',
           }}
         >
-          {/* LightRays Background */}
+          {/* LightRays */}
           <Box
-            sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 0,
-              opacity: 0.6
-            }}
+            aria-hidden="true"
+            sx={{ position: 'absolute', inset: 0, zIndex: 0, opacity: 0.5 }}
           >
             <LightRays
               raysOrigin="top-center"
@@ -1806,31 +1472,31 @@ export default function HomePage() {
           </Box>
 
           <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-            {/* Header */}
-            <Box
-              sx={{
-                textAlign: 'center',
-                mb: 6
-              }}
-            >
+            <Box sx={{ textAlign: 'center', mb: { xs: 5, md: 7 } }}>
+              <Typography
+                variant="overline"
+                sx={{ color: GOLD, letterSpacing: 4, fontWeight: 700, fontSize: '0.75rem', mb: 1.5, display: 'block' }}
+              >
+                NUESTROS EVENTOS
+              </Typography>
               <Typography
                 variant="h2"
-                sx={{
-                  fontWeight: 'bold',
-                  color: '#FFD700',
-                  mb: 2,
-                  fontSize: { xs: '2rem', md: '3rem' }
-                }}
+                sx={{ color: '#fff', fontWeight: 900, mb: 2, fontSize: { xs: '2rem', md: '3rem' }, lineHeight: 1.1 }}
               >
                 Momentos Mágicos
               </Typography>
-              <Typography variant="h6" sx={{ color: '#FFFFFF', mb: 4 }}>
+              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.5)', maxWidth: 500, mx: 'auto' }}>
                 Capturamos cada sonrisa, cada momento de aprendizaje y diversión
               </Typography>
             </Box>
 
-            {/* Rolling Gallery */}
-            {!galleryLoading && (
+            {galleryLoading ? (
+              <Box sx={{ textAlign: 'center', py: 6 }}>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)' }}>
+                  Cargando galería...
+                </Typography>
+              </Box>
+            ) : (
               <RollingGallery
                 autoplay={true}
                 pauseOnHover={true}
@@ -1838,16 +1504,6 @@ export default function HomePage() {
               />
             )}
 
-            {/* Loading State */}
-            {galleryLoading && (
-              <Box sx={{ textAlign: 'center', py: 8 }}>
-                <Typography variant="body1" sx={{ color: '#FFFFFF' }}>
-                  Cargando galería...
-                </Typography>
-              </Box>
-            )}
-
-            {/* Botón Ver Galería Completa */}
             <Box sx={{ textAlign: 'center', mt: 6 }}>
               <Button
                 variant="outlined"
@@ -1855,15 +1511,14 @@ export default function HomePage() {
                 endIcon={<ArrowForward />}
                 onClick={() => navigate('/galeria')}
                 sx={{
-                  borderColor: '#FFD700',
-                  color: '#FFD700',
-                  fontWeight: 'bold',
-                  px: 4,
+                  borderColor: 'rgba(255,215,0,0.4)',
+                  color: GOLD,
+                  fontWeight: 700,
+                  px: 5,
                   py: 1.5,
-                  '&:hover': {
-                    borderColor: '#FFD700',
-                    backgroundColor: 'rgba(255,215,0,0.1)'
-                  }
+                  borderRadius: designTokens.radius.xl,
+                  '&:hover': { borderColor: GOLD, backgroundColor: 'rgba(255,215,0,0.08)' },
+                  transition: 'all 0.2s ease',
                 }}
               >
                 Ver Galería Completa
@@ -1873,90 +1528,77 @@ export default function HomePage() {
         </Box>
       </AnimatedSection>
 
-      {/* CTA Final Premium */}
+      {/* ══════════════════════════════════════════════════
+          CTA FINAL — Golden
+      ══════════════════════════════════════════════════ */}
       <Box
+        component="section"
+        aria-label="Agenda tu evento"
         sx={{
-          background: designTokens.colors.aurora.golden,
-          color: designTokens.colors.charcoal[900],
-          py: { xs: 8, md: 12 },
+          background: GOLD_GRADIENT,
+          color: '#000',
+          py: { xs: 10, md: 14 },
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        {/* Elementos decorativos */}
+        {/* Decorative circles */}
+        <Box aria-hidden="true" sx={{ position: 'absolute', top: -60, right: -60, width: 280, height: 280, borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.06)', filter: 'blur(50px)' }} />
+        <Box aria-hidden="true" sx={{ position: 'absolute', bottom: -40, left: -40, width: 200, height: 200, borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.04)', filter: 'blur(40px)' }} />
+        {/* Subtle grid pattern */}
         <Box
+          aria-hidden="true"
           sx={{
             position: 'absolute',
-            top: -50,
-            right: -50,
-            width: 200,
-            height: 200,
-            borderRadius: '50%',
-            backgroundColor: 'rgba(0, 0, 0, 0.05)',
-            filter: 'blur(40px)',
-          }}
-        />
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: -30,
-            left: -30,
-            width: 150,
-            height: 150,
-            borderRadius: '50%',
-            backgroundColor: 'rgba(0, 0, 0, 0.03)',
-            filter: 'blur(30px)',
+            inset: 0,
+            backgroundImage: 'radial-gradient(rgba(0,0,0,0.08) 1px, transparent 1px)',
+            backgroundSize: '28px 28px',
+            opacity: 0.5,
           }}
         />
 
-        <Container maxWidth="lg" sx={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-          <Typography variant="h2" gutterBottom sx={{ fontWeight: 800, mb: 3 }}>
-            ¿Listo para Crear Recuerdos Mágicos? ✨
+        <Container maxWidth="md" sx={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <Typography
+            variant="overline"
+            sx={{ letterSpacing: 4, fontWeight: 800, fontSize: '0.75rem', opacity: 0.7, mb: 2, display: 'block' }}
+          >
+            EMPECEMOS
           </Typography>
-          <Typography variant="h5" sx={{ mb: 4, opacity: 0.9, maxWidth: 700, mx: 'auto' }}>
-            Agenda tu taller de pizza o pizza party hoy mismo. Nuestro equipo de chefs expertos
+          <Typography variant="h2" sx={{ fontWeight: 900, mb: 2.5, fontSize: { xs: '2rem', md: '3rem' }, lineHeight: 1.1 }}>
+            ¿Listo para Crear
+            <br />
+            Recuerdos Mágicos?
+          </Typography>
+          <Typography variant="h6" sx={{ mb: 6, opacity: 0.75, maxWidth: 580, mx: 'auto', fontWeight: 400, lineHeight: 1.6, fontSize: { xs: '1rem', md: '1.1rem' } }}>
+            Agenda tu taller o pizza party hoy mismo. Nuestro equipo de chefs expertos
             está listo para hacer de tu evento algo verdaderamente especial.
           </Typography>
 
-          {/* Stats rápidas */}
+          {/* Quick stats */}
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
-            spacing={4}
+            spacing={{ xs: 3, sm: 6 }}
             justifyContent="center"
             sx={{ mb: 6 }}
           >
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" sx={{ fontWeight: 800 }}>
-                24h
-              </Typography>
-              <Typography variant="body1" sx={{ opacity: 0.8 }}>
-                Respuesta garantizada
-              </Typography>
-            </Box>
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" sx={{ fontWeight: 800 }}>
-                100%
-              </Typography>
-              <Typography variant="body1" sx={{ opacity: 0.8 }}>
-                Satisfacción garantizada
-              </Typography>
-            </Box>
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" sx={{ fontWeight: 800 }}>
-                500+
-              </Typography>
-              <Typography variant="body1" sx={{ opacity: 0.8 }}>
-                Familias felices
-              </Typography>
-            </Box>
+            {[
+              { number: '24h', label: 'Respuesta garantizada' },
+              { number: '100%', label: 'Satisfacción garantizada' },
+              { number: '500+', label: 'Familias felices' },
+            ].map(({ number, label }) => (
+              <Box key={label} sx={{ textAlign: 'center' }}>
+                <Typography sx={{ fontSize: { xs: '2rem', md: '2.5rem' }, fontWeight: 900, lineHeight: 1 }}>
+                  {number}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.65, mt: 0.5 }}>
+                  {label}
+                </Typography>
+              </Box>
+            ))}
           </Stack>
 
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={3}
-            justifyContent="center"
-            sx={{ mb: 4 }}
-          >
+          {/* CTAs */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2.5} justifyContent="center" sx={{ mb: 5 }}>
             <Button
               variant="contained"
               size="large"
@@ -1964,49 +1606,46 @@ export default function HomePage() {
               endIcon={<Restaurant />}
               sx={{
                 px: 6,
-                py: 2.5,
-                fontSize: '1.2rem',
-                fontWeight: 700,
-                backgroundColor: designTokens.colors.charcoal[900],
-                color: 'white',
+                py: 2,
+                fontSize: '1.05rem',
+                fontWeight: 800,
+                backgroundColor: '#000',
+                color: '#fff',
                 borderRadius: designTokens.radius.xl,
-                boxShadow: designTokens.shadows.large,
-                '&:hover': {
-                  backgroundColor: designTokens.colors.charcoal[800],
-                  transform: 'translateY(-4px)',
-                },
+                boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+                '&:hover': { backgroundColor: '#111', transform: 'translateY(-3px)', boxShadow: '0 14px 40px rgba(0,0,0,0.35)' },
+                transition: 'all 0.2s ease',
               }}
             >
               Agendar Evento Ahora
             </Button>
-
             <Button
-              variant="outlined"
-              size="large"
+              component="a"
               href="https://wa.me/56989424566"
               target="_blank"
+              rel="noopener noreferrer"
+              variant="outlined"
+              size="large"
               startIcon={<WhatsApp />}
               sx={{
-                px: 6,
-                py: 2.5,
+                px: 5,
+                py: 2,
                 fontSize: '1rem',
-                fontWeight: 600,
+                fontWeight: 700,
                 borderWidth: 2,
-                borderColor: designTokens.colors.charcoal[700],
-                color: designTokens.colors.charcoal[900],
+                borderColor: 'rgba(0,0,0,0.3)',
+                color: '#000',
                 borderRadius: designTokens.radius.xl,
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                  transform: 'translateY(-2px)',
-                },
+                '&:hover': { backgroundColor: 'rgba(0,0,0,0.08)', borderColor: '#000' },
+                transition: 'all 0.2s ease',
               }}
             >
               Chat por WhatsApp
             </Button>
           </Stack>
 
-          <Typography variant="body2" sx={{ opacity: 0.7 }}>
-            📞 +56 9 8942 4566 | 🕒 Lun-Dom 9:00-20:00 | 📍 Santiago y alrededores
+          <Typography variant="body2" sx={{ opacity: 0.55, fontSize: '0.85rem' }}>
+            +56 9 8942 4566 &nbsp;·&nbsp; Lun–Dom 9:00–20:00 &nbsp;·&nbsp; Santiago y alrededores
           </Typography>
         </Container>
       </Box>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sin conexión - Pablo's Pizza</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      color: #FFD700;
+      font-family: 'Roboto', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 24px;
+    }
+    .logo { font-size: 4rem; margin-bottom: 16px; }
+    h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 12px; }
+    p { font-size: 1rem; color: rgba(255, 215, 0, 0.75); max-width: 360px; line-height: 1.6; }
+    .btn {
+      margin-top: 32px;
+      padding: 12px 32px;
+      background: #FFD700;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn:hover { background: #CCAC00; }
+  </style>
+</head>
+<body>
+  <div class="logo">🍕</div>
+  <h1>Pablo's Pizza</h1>
+  <p>Sin conexión. Intentalo de nuevo cuando tengas internet.</p>
+  <button class="btn" onclick="window.location.reload()">Reintentar</button>
+</body>
+</html>
