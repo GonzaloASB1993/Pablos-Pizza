@@ -162,6 +162,7 @@ const PublicNavbar = () => {
                                         width: { xs: 60, md: 72 },
                                         height: { xs: 60, md: 72 },
                                         objectFit: 'contain',
+                                        borderRadius: '50%',
                                         transform: 'translateY(8px)',
                                         filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.6)) drop-shadow(0 2px 8px rgba(0,0,0,0.8))',
                                         transition: 'transform 0.3s ease',
