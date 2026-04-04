@@ -276,7 +276,7 @@ export default function TestimonialsPage() {
                               key={url}
                               component="img"
                               src={url}
-                              alt="foto"
+                              alt={`Foto del evento de ${t.name}`}
                               loading="lazy"
                               onError={(e) => { e.currentTarget.style.display = 'none' }}
                               sx={{ width: 84, height: 84, objectFit: 'cover', borderRadius: 1, border: '1px solid #eee', backgroundColor: 'grey.100' }}
@@ -449,7 +449,7 @@ export default function TestimonialsPage() {
                           <Box
                             component="img"
                             src={url}
-                            alt={`Foto ${index + 1}`}
+                            alt={`Foto ${index + 1} del evento de ${selectedTestimonial.name}`}
                             loading="lazy"
                             onError={(e) => { e.currentTarget.style.display = 'none' }}
                             sx={{

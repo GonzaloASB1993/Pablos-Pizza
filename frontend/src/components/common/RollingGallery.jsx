@@ -166,7 +166,7 @@ const RollingGallery = ({ autoplay = true, pauseOnHover = true, images = [] }) =
               <Box
                 component="img"
                 src={url}
-                alt={`Gallery image ${i + 1}`}
+                alt={`Foto de taller de pizza para niños - Pablo's Pizza ${i + 1}`}
                 loading="lazy"
                 sx={{
                   pointerEvents: 'none',

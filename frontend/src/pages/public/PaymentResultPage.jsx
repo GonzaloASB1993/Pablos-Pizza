@@ -17,6 +17,7 @@ import {
   WhatsApp
 } from '@mui/icons-material'
 import { designTokens } from '../../utils/theme'
+import SEO from '../../components/common/SEO'
 
 const WHATSAPP_NUMBER = '56989424566'
 
@@ -93,10 +94,12 @@ export default function PaymentResultPage({ status }) {
   )}`
 
   return (
-    <Box
-      sx={{
-        minHeight: '70vh',
-        display: 'flex',
+    <>
+      <SEO noindex />
+      <Box
+        sx={{
+          minHeight: '70vh',
+          display: 'flex',
         alignItems: 'center',
         background: 'linear-gradient(180deg, #FAFAFA 0%, #F5F5F5 100%)',
         py: 6,
@@ -191,5 +194,6 @@ export default function PaymentResultPage({ status }) {
         </Paper>
       </Container>
     </Box>
+    </>
   )
 }

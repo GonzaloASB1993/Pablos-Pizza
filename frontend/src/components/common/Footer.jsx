@@ -61,6 +61,8 @@ const Footer = () => {
                             <IconButton
                                 href="https://instagram.com/pablospizza.cl"
                                 target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Visitar Instagram de Pablo's Pizza"
                                 sx={{
                                     color: theme.palette.primary.main,
                                     '&:hover': { color: theme.palette.primary.dark }
@@ -71,6 +73,8 @@ const Footer = () => {
                             <IconButton
                                 href={CONTACT_INFO.WHATSAPP_URL}
                                 target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Contactar por WhatsApp"
                                 sx={{
                                     color: theme.palette.primary.main,
                                     '&:hover': { color: theme.palette.primary.dark }
