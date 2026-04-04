@@ -12,7 +12,7 @@ const SEO = ({
   title,
   description,
   keywords,
-  image = '/images/og-image.jpg',
+  image = '/images/og-image.jpeg',
   url,
   type = 'website',
   noindex = false
