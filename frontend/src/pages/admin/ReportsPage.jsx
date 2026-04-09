@@ -33,7 +33,10 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Avatar,
+  Skeleton,
+  LinearProgress
 } from '@mui/material'
 import {
   TrendingUp,
@@ -50,12 +53,14 @@ import {
   CalendarToday,
   ShowChart,
   Warning,
-  Brightness4,
-  Brightness7,
   RemoveCircleOutline,
   AccountBalance,
   Add,
-  ExpandMore
+  ExpandMore,
+  Edit,
+  FilterList,
+  EmojiEvents,
+  Delete
 } from '@mui/icons-material'
 import {
   Chart as ChartJS,
@@ -88,67 +93,87 @@ ChartJS.register(
   Legend
 )
 
-// Enhanced KPI Card Component - Diseño consistente con Inventario
+// Enhanced KPI Card Component
 const KPICard = ({ title, value, subtitle, icon: Icon, trend, color = 'primary' }) => (
   <Card
     sx={{
       height: '100%',
       bgcolor: color + '.main',
       color: color + '.contrastText',
-      transition: 'transform 0.2s, box-shadow 0.2s',
+      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      borderRadius: 2.5,
+      position: 'relative',
+      overflow: 'hidden',
       '&:hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: 4
+        transform: 'translateY(-3px)',
+        boxShadow: 6
+      },
+      '&::after': {
+        content: '""',
+        position: 'absolute',
+        top: -20,
+        right: -20,
+        width: 80,
+        height: 80,
+        borderRadius: '50%',
+        bgcolor: 'rgba(255,255,255,0.08)',
+        pointerEvents: 'none'
       }
     }}
   >
-    <CardContent sx={{ p: 2.5 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+    <CardContent sx={{ p: 2.5, pb: '20px !important' }}>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
         <Box
           sx={{
-            bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)',
+            bgcolor: 'rgba(255, 255, 255, 0.2)',
             color: 'inherit',
-            p: 1.2,
+            p: 1,
             borderRadius: 2,
-            mr: 1.5,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}
         >
-          <Icon fontSize="medium" />
+          <Icon fontSize="small" />
         </Box>
-        <Typography variant="subtitle2" fontWeight="600">
-          {title}
-        </Typography>
-      </Box>
-      <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
-        {value}
-      </Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        {subtitle && (
-          <Typography variant="caption" sx={{ opacity: 0.9 }}>
-            {subtitle}
-          </Typography>
-        )}
         {trend !== undefined && trend !== null && (
-          <Box display="flex" alignItems="center">
+          <Box
+            display="flex"
+            alignItems="center"
+            sx={{
+              bgcolor: trend > 0 ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+              borderRadius: 4,
+              px: 0.8,
+              py: 0.3
+            }}
+          >
             {trend > 0 ? (
-              <TrendingUp fontSize="small" sx={{ opacity: 0.9 }} />
+              <TrendingUp sx={{ fontSize: 14, opacity: 0.95, mr: 0.3 }} />
             ) : (
-              <TrendingDown fontSize="small" sx={{ opacity: 0.9 }} />
+              <TrendingDown sx={{ fontSize: 14, opacity: 0.95, mr: 0.3 }} />
             )}
-            <Typography variant="caption" sx={{ opacity: 0.9 }} ml={0.3}>
+            <Typography variant="caption" sx={{ opacity: 0.95, fontWeight: 600, fontSize: '0.7rem' }}>
               {Math.abs(trend)}%
             </Typography>
           </Box>
         )}
       </Box>
+      <Typography variant="caption" sx={{ opacity: 0.85, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
+        {title}
+      </Typography>
+      <Typography variant="h6" fontWeight="700" sx={{ lineHeight: 1.2, mb: 0.5 }}>
+        {value}
+      </Typography>
+      {subtitle && (
+        <Typography variant="caption" sx={{ opacity: 0.75 }}>
+          {subtitle}
+        </Typography>
+      )}
     </CardContent>
   </Card>
 )
 
-// Alert Card Component - Diseño consistente con Inventario
+// Alert Card Component
 const AlertCard = ({ title, count, severity = 'warning', icon: Icon, onClick }) => (
   <Card
     sx={{
@@ -156,44 +181,90 @@ const AlertCard = ({ title, count, severity = 'warning', icon: Icon, onClick }) 
       bgcolor: severity + '.main',
       color: severity + '.contrastText',
       cursor: onClick ? 'pointer' : 'default',
-      transition: 'transform 0.2s, box-shadow 0.2s',
+      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      borderRadius: 2.5,
+      position: 'relative',
+      overflow: 'hidden',
       '&:hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: 4
+        transform: onClick ? 'translateY(-3px)' : 'none',
+        boxShadow: onClick ? 6 : 1
+      },
+      '&::after': {
+        content: '""',
+        position: 'absolute',
+        top: -20,
+        right: -20,
+        width: 80,
+        height: 80,
+        borderRadius: '50%',
+        bgcolor: 'rgba(255,255,255,0.08)',
+        pointerEvents: 'none'
       }
     }}
     onClick={onClick}
   >
-    <CardContent sx={{ p: 2.5 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+    <CardContent sx={{ p: 2.5, pb: '20px !important' }}>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
         <Box
           sx={{
-            bgcolor: (theme) => severity === 'warning'
-              ? (theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)')
-              : (theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)'),
+            bgcolor: 'rgba(255,255,255,0.2)',
             color: 'inherit',
-            p: 1.2,
+            p: 1,
             borderRadius: 2,
-            mr: 1.5,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}
         >
-          <Icon fontSize="medium" />
+          <Icon fontSize="small" />
         </Box>
-        <Typography variant="subtitle2" fontWeight="600">
-          {title}
-        </Typography>
+        <Chip
+          label="Atención"
+          size="small"
+          sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'inherit', fontWeight: 600, fontSize: '0.65rem', height: 20 }}
+        />
       </Box>
-      <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
+      <Typography variant="caption" sx={{ opacity: 0.85, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
+        {title}
+      </Typography>
+      <Typography variant="h6" fontWeight="700" sx={{ lineHeight: 1.2, mb: 0.5 }}>
         {count}
       </Typography>
-      <Typography variant="caption" sx={{ opacity: 0.9 }}>
+      <Typography variant="caption" sx={{ opacity: 0.75 }}>
         Requiere atención
       </Typography>
     </CardContent>
   </Card>
+)
+
+// Skeleton for initial loading
+const ReportsSkeleton = () => (
+  <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Skeleton variant="rectangular" width={280} height={40} sx={{ borderRadius: 1 }} />
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <Skeleton variant="rectangular" width={44} height={44} sx={{ borderRadius: 1 }} />
+        <Skeleton variant="rectangular" width={140} height={44} sx={{ borderRadius: 1 }} />
+      </Box>
+    </Box>
+    <Skeleton variant="rectangular" width="100%" height={56} sx={{ borderRadius: 2, mb: 3 }} />
+    <Grid container spacing={2} mb={4}>
+      {[...Array(6)].map((_, i) => (
+        <Grid item xs={6} sm={4} md={2} key={i}>
+          <Skeleton variant="rectangular" height={110} sx={{ borderRadius: 2.5 }} />
+        </Grid>
+      ))}
+    </Grid>
+    <Skeleton variant="rectangular" width="100%" height={48} sx={{ borderRadius: 1, mb: 3 }} />
+    <Grid container spacing={3}>
+      <Grid item xs={12} lg={8}>
+        <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2 }} />
+      </Grid>
+      <Grid item xs={12} lg={4}>
+        <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2 }} />
+      </Grid>
+    </Grid>
+  </Box>
 )
 
 export default function ReportsPage() {
@@ -446,17 +517,14 @@ export default function ReportsPage() {
   }, [variableExpenses])
 
   const ebitda = useMemo(() => {
-    // Include vacuum sales income and costs
-    const vacuumIncome = vacuumSalesData?.total_income || 0
-    const vacuumCost = vacuumSalesData?.total_cost || 0
+    // Vacuum sales are now included in monthlyData.total_income and total_expenses from backend
     return (
-      (monthlyData?.total_income || 0) + vacuumIncome -
-      (monthlyData?.total_expenses || 0) - vacuumCost -
-      (monthlyData?.waste_cost || 0) -
+      (monthlyData?.total_income || 0) -
+      (monthlyData?.total_expenses || 0) -
       totalFixedExpenses -
       totalVariableExpenses
     )
-  }, [monthlyData, vacuumSalesData, totalFixedExpenses, totalVariableExpenses])
+  }, [monthlyData, totalFixedExpenses, totalVariableExpenses])
 
   const netProfit = useMemo(() => {
     return ebitda - monthlyTax
@@ -664,22 +732,48 @@ export default function ReportsPage() {
 
   if (initialLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+      <Box sx={{ flexGrow: 1, p: 3 }}>
+        <ReportsSkeleton />
       </Box>
     )
   }
 
+  const periodLabel = new Date(selectedYear, selectedMonth - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+
   return (
-    <Box sx={{ flexGrow: 1, p: 3 }}>
+    <Box sx={{ flexGrow: 1, p: { xs: 2, sm: 3 } }}>
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" gutterBottom>
-          📊 Reportes Financieros
-        </Typography>
-        <Stack direction="row" spacing={2}>
+      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3} flexWrap="wrap" gap={2}>
+        <Box>
+          <Box display="flex" alignItems="center" gap={1.5} mb={0.5}>
+            <Box
+              sx={{
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                borderRadius: 2,
+                p: 0.8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Assessment fontSize="small" />
+            </Box>
+            <Typography variant="h5" fontWeight={700}>
+              Reportes Financieros
+            </Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ ml: 6 }}>
+            Panel de análisis y seguimiento financiero
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1} alignItems="center">
           <Tooltip title="Actualizar datos">
-            <IconButton onClick={() => { loadStaticData(); loadFilteredData(); }} aria-label="refresh data">
+            <IconButton
+              onClick={() => { loadStaticData(); loadFilteredData() }}
+              aria-label="Actualizar datos"
+              sx={{ border: 1, borderColor: 'divider' }}
+            >
               <Refresh />
             </IconButton>
           </Tooltip>
@@ -687,6 +781,7 @@ export default function ReportsPage() {
             variant="contained"
             startIcon={<FileDownload />}
             onClick={handleExportReport}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
           >
             Exportar Excel
           </Button>
@@ -694,32 +789,34 @@ export default function ReportsPage() {
       </Box>
 
       {/* Month/Year Filter */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', position: 'relative' }}>
-        {loading && (
-          <CircularProgress
-            size={20}
-            sx={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)' }}
-          />
-        )}
-        <FormControl size="small" sx={{ minWidth: 120 }}>
+      <Paper
+        variant="outlined"
+        sx={{
+          display: 'flex',
+          gap: 2,
+          mb: 3,
+          alignItems: 'center',
+          p: 1.5,
+          borderRadius: 2,
+          flexWrap: 'wrap',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+          <FilterList fontSize="small" />
+          <Typography variant="body2" fontWeight={500}>Período:</Typography>
+        </Box>
+        <FormControl size="small" sx={{ minWidth: 130 }}>
           <InputLabel>Mes</InputLabel>
           <Select
             value={selectedMonth}
             label="Mes"
             onChange={(e) => setSelectedMonth(e.target.value)}
           >
-            <MenuItem value={1}>Enero</MenuItem>
-            <MenuItem value={2}>Febrero</MenuItem>
-            <MenuItem value={3}>Marzo</MenuItem>
-            <MenuItem value={4}>Abril</MenuItem>
-            <MenuItem value={5}>Mayo</MenuItem>
-            <MenuItem value={6}>Junio</MenuItem>
-            <MenuItem value={7}>Julio</MenuItem>
-            <MenuItem value={8}>Agosto</MenuItem>
-            <MenuItem value={9}>Septiembre</MenuItem>
-            <MenuItem value={10}>Octubre</MenuItem>
-            <MenuItem value={11}>Noviembre</MenuItem>
-            <MenuItem value={12}>Diciembre</MenuItem>
+            {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'].map((m, i) => (
+              <MenuItem key={i + 1} value={i + 1}>{m}</MenuItem>
+            ))}
           </Select>
         </FormControl>
         <FormControl size="small" sx={{ minWidth: 100 }}>
@@ -730,16 +827,23 @@ export default function ReportsPage() {
             onChange={(e) => setSelectedYear(e.target.value)}
           >
             {[2024, 2025, 2026].map((year) => (
-              <MenuItem key={year} value={year}>
-                {year}
-              </MenuItem>
+              <MenuItem key={year} value={year}>{year}</MenuItem>
             ))}
           </Select>
         </FormControl>
-        <Typography variant="body2" color="text.secondary">
-          Mostrando datos de {new Date(selectedYear, selectedMonth - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
-        </Typography>
-      </Box>
+        <Chip
+          label={periodLabel}
+          size="small"
+          color="primary"
+          variant="outlined"
+          sx={{ fontWeight: 600, ml: 'auto' }}
+        />
+        {loading && (
+          <LinearProgress
+            sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2 }}
+          />
+        )}
+      </Paper>
 
       {/* KPI Cards & Alerts - All in one row */}
       <Grid container spacing={2} mb={4}>
@@ -860,13 +964,20 @@ export default function ReportsPage() {
         <Grid container spacing={3}>
           {/* Monthly Performance */}
           <Grid item xs={12} lg={8}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Tendencia Mensual - Ingresos vs Gastos
-                </Typography>
-                {monthlyTrendData && (
+            <Card sx={{ borderRadius: 2.5 }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box display="flex" alignItems="center" gap={1} mb={3}>
+                  <ShowChart fontSize="small" color="primary" />
+                  <Typography variant="h6" fontWeight={600}>
+                    Tendencia Anual — Ingresos vs Gastos
+                  </Typography>
+                </Box>
+                {monthlyTrendData ? (
                   <Line data={monthlyTrendData} options={chartOptions} />
+                ) : (
+                  <Box display="flex" justifyContent="center" alignItems="center" height={200}>
+                    <Typography variant="body2" color="text.secondary">Sin datos anuales disponibles</Typography>
+                  </Box>
                 )}
               </CardContent>
             </Card>
@@ -874,36 +985,37 @@ export default function ReportsPage() {
 
           {/* Service Distribution */}
           <Grid item xs={12} lg={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Distribución de Servicios - Ingresos por Categoría
-                </Typography>
-                {serviceDistributionData && (
+            <Card sx={{ borderRadius: 2.5 }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box display="flex" alignItems="center" gap={1} mb={3}>
+                  <Assessment fontSize="small" color="primary" />
+                  <Typography variant="h6" fontWeight={600}>
+                    Distribución por Servicio
+                  </Typography>
+                </Box>
+                {serviceDistributionData ? (
                   <Pie
                     data={serviceDistributionData}
                     options={{
                       responsive: true,
                       plugins: {
-                        legend: {
-                          position: 'bottom',
-                        },
+                        legend: { position: 'bottom' },
                         tooltip: {
                           callbacks: {
                             label: function(context) {
                               const label = context.label || ''
                               const value = context.parsed || 0
-                              return `${label}: ${new Intl.NumberFormat('es-CL', {
-                                style: 'currency',
-                                currency: 'CLP',
-                                minimumFractionDigits: 0
-                              }).format(value)}`
+                              return `${label}: ${new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(value)}`
                             }
                           }
                         }
                       }
                     }}
                   />
+                ) : (
+                  <Box display="flex" justifyContent="center" alignItems="center" height={200}>
+                    <Typography variant="body2" color="text.secondary">Sin datos de servicios este período</Typography>
+                  </Box>
                 )}
               </CardContent>
             </Card>
@@ -911,62 +1023,78 @@ export default function ReportsPage() {
 
           {/* Monthly Summary */}
           <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Resumen del Mes Actual
-                </Typography>
+            <Card sx={{ borderRadius: 2.5 }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box display="flex" alignItems="center" gap={1} mb={3}>
+                  <CalendarToday fontSize="small" color="primary" />
+                  <Typography variant="h6" fontWeight={600}>
+                    Resumen de {periodLabel}
+                  </Typography>
+                </Box>
                 {monthlyData && (
                   <Grid container spacing={2}>
-                    <Grid item xs={6} md={2}>
-                      <Typography variant="body2" color="textSecondary">
-                        Total Eventos
-                      </Typography>
-                      <Typography variant="h6">
-                        {monthlyData.total_events}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6} md={2}>
-                      <Typography variant="body2" color="textSecondary">
-                        Participantes Promedio
-                      </Typography>
-                      <Typography variant="h6">
-                        {monthlyData.avg_participants}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6} md={3}>
-                      <Typography variant="body2" color="textSecondary">
-                        Servicio Más Popular
-                      </Typography>
-                      <Typography variant="h6">
-                        {monthlyData.most_popular_service}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6} md={2}>
-                      <Typography variant="body2" color="textSecondary">
-                        Retención de Clientes
-                      </Typography>
-                      <Typography variant="h6">
-                        {monthlyData.client_retention_rate}%
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                      <Typography variant="body2" color="textSecondary">
-                        Margen de Utilidad
-                      </Typography>
-                      <Typography variant="h6" color={
-                        monthlyData.total_income > 0
-                          ? (monthlyData.total_profit / monthlyData.total_income * 100) > 20
-                            ? 'success.main'
-                            : 'warning.main'
-                          : 'error.main'
-                      }>
-                        {monthlyData.total_income > 0
+                    {[
+                      {
+                        label: 'Total Eventos',
+                        value: monthlyData.total_events,
+                        suffix: 'eventos',
+                        color: 'primary.main'
+                      },
+                      {
+                        label: 'Participantes Promedio',
+                        value: monthlyData.avg_participants,
+                        suffix: 'personas',
+                        color: 'info.main'
+                      },
+                      {
+                        label: 'Servicio Más Popular',
+                        value: monthlyData.most_popular_service || '—',
+                        suffix: '',
+                        color: 'secondary.main',
+                        isText: true
+                      },
+                      {
+                        label: 'Retención de Clientes',
+                        value: `${monthlyData.client_retention_rate}%`,
+                        suffix: '',
+                        color: 'success.main'
+                      },
+                      {
+                        label: 'Margen de Utilidad',
+                        value: monthlyData.total_income > 0
                           ? `${((monthlyData.total_profit / monthlyData.total_income) * 100).toFixed(1)}%`
-                          : '0%'
-                        }
-                      </Typography>
-                    </Grid>
+                          : '0%',
+                        suffix: '',
+                        color: monthlyData.total_income > 0
+                          ? (monthlyData.total_profit / monthlyData.total_income * 100) > 20
+                            ? 'success.main' : 'warning.main'
+                          : 'error.main'
+                      }
+                    ].map((stat) => (
+                      <Grid item xs={6} sm={4} md key={stat.label}>
+                        <Paper
+                          variant="outlined"
+                          sx={{ p: 2, borderRadius: 2, textAlign: 'center', height: '100%' }}
+                        >
+                          <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" mb={0.5}>
+                            {stat.label}
+                          </Typography>
+                          <Typography
+                            variant={stat.isText ? 'body1' : 'h6'}
+                            fontWeight={700}
+                            color={stat.color}
+                            sx={{ lineHeight: 1.2 }}
+                          >
+                            {stat.value}
+                          </Typography>
+                          {stat.suffix && (
+                            <Typography variant="caption" color="text.secondary">
+                              {stat.suffix}
+                            </Typography>
+                          )}
+                        </Paper>
+                      </Grid>
+                    ))}
                   </Grid>
                 )}
               </CardContent>
@@ -977,60 +1105,63 @@ export default function ReportsPage() {
 
       {tabValue === 1 && (
         <Grid container spacing={3}>
-          {/* Annual Financial Summary */}
+          {/* Annual KPI Cards */}
+          {annualData?.annual_totals && (
+            <>
+              {[
+                {
+                  label: 'Ingresos Totales',
+                  value: new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(annualData.annual_totals.total_income),
+                  color: 'success',
+                  icon: AttachMoney
+                },
+                {
+                  label: 'Gastos Totales',
+                  value: new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(annualData.annual_totals.total_expenses),
+                  color: 'error',
+                  icon: RemoveCircleOutline
+                },
+                {
+                  label: 'Utilidad Total',
+                  value: new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(annualData.annual_totals.total_profit),
+                  color: 'primary',
+                  icon: TrendingUp
+                },
+                {
+                  label: 'Total Eventos',
+                  value: annualData.annual_totals.total_events,
+                  color: 'info',
+                  icon: Event
+                }
+              ].map((item) => (
+                <Grid item xs={6} md={3} key={item.label}>
+                  <KPICard
+                    title={item.label}
+                    value={item.value}
+                    subtitle={`Año ${selectedYear}`}
+                    icon={item.icon}
+                    color={item.color}
+                  />
+                </Grid>
+              ))}
+            </>
+          )}
+          {/* Annual Chart */}
           <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Resumen Financiero Anual
-                </Typography>
-                {annualData?.annual_totals && (
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} md={3}>
-                      <Typography variant="body2" color="textSecondary">
-                        Ingresos Totales
-                      </Typography>
-                      <Typography variant="h5" color="success.main">
-                        {new Intl.NumberFormat('es-CL', {
-                          style: 'currency',
-                          currency: 'CLP',
-                          minimumFractionDigits: 0
-                        }).format(annualData.annual_totals.total_income)}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                      <Typography variant="body2" color="textSecondary">
-                        Gastos Totales
-                      </Typography>
-                      <Typography variant="h5" color="error.main">
-                        {new Intl.NumberFormat('es-CL', {
-                          style: 'currency',
-                          currency: 'CLP',
-                          minimumFractionDigits: 0
-                        }).format(annualData.annual_totals.total_expenses)}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                      <Typography variant="body2" color="textSecondary">
-                        Utilidad Total
-                      </Typography>
-                      <Typography variant="h5" color="primary.main">
-                        {new Intl.NumberFormat('es-CL', {
-                          style: 'currency',
-                          currency: 'CLP',
-                          minimumFractionDigits: 0
-                        }).format(annualData.annual_totals.total_profit)}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                      <Typography variant="body2" color="textSecondary">
-                        Total Eventos
-                      </Typography>
-                      <Typography variant="h5">
-                        {annualData.annual_totals.total_events}
-                      </Typography>
-                    </Grid>
-                  </Grid>
+            <Card sx={{ borderRadius: 2.5 }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box display="flex" alignItems="center" gap={1} mb={3}>
+                  <ShowChart fontSize="small" color="primary" />
+                  <Typography variant="h6" fontWeight={600}>
+                    Tendencia Mensual {selectedYear} — Ingresos vs Gastos
+                  </Typography>
+                </Box>
+                {monthlyTrendData ? (
+                  <Line data={monthlyTrendData} options={chartOptions} />
+                ) : (
+                  <Box display="flex" justifyContent="center" alignItems="center" height={200}>
+                    <Typography variant="body2" color="text.secondary">Sin datos para mostrar</Typography>
+                  </Box>
                 )}
               </CardContent>
             </Card>
@@ -1041,38 +1172,82 @@ export default function ReportsPage() {
       {tabValue === 2 && (
         <Grid container spacing={3}>
           <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Clientes Más Frecuentes
-                </Typography>
-                {topClients.map((client, index) => (
-                  <Box key={client.email} mb={2}>
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                      <Box>
-                        <Typography variant="subtitle1">
-                          {client.name}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {client.email}
-                        </Typography>
-                      </Box>
-                      <Box textAlign="right">
-                        <Typography variant="h6">
-                          {client.total_bookings} eventos
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {new Intl.NumberFormat('es-CL', {
-                            style: 'currency',
-                            currency: 'CLP',
-                            minimumFractionDigits: 0
-                          }).format(client.total_spent)}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    {index < topClients.length - 1 && <Divider sx={{ mt: 2 }} />}
-                  </Box>
-                ))}
+            <Card sx={{ borderRadius: 2.5 }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box display="flex" alignItems="center" gap={1} mb={3}>
+                  <EmojiEvents fontSize="small" sx={{ color: '#FFD700' }} />
+                  <Typography variant="h6" fontWeight={600}>
+                    Clientes Más Frecuentes
+                  </Typography>
+                  <Chip label={`Top ${topClients.length}`} size="small" sx={{ ml: 'auto', fontWeight: 600 }} />
+                </Box>
+                {topClients.length === 0 ? (
+                  <Alert severity="info">No hay datos de clientes para mostrar</Alert>
+                ) : (
+                  <Stack spacing={1.5}>
+                    {topClients.map((client, index) => {
+                      const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32']
+                      const isTop3 = index < 3
+                      return (
+                        <Paper
+                          key={client.email}
+                          variant="outlined"
+                          sx={{
+                            p: 2,
+                            borderRadius: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 2,
+                            transition: 'box-shadow 0.2s',
+                            borderColor: isTop3 ? rankColors[index] + '60' : 'divider',
+                            bgcolor: isTop3 ? rankColors[index] + '08' : 'transparent',
+                            '&:hover': { boxShadow: 2 }
+                          }}
+                        >
+                          <Typography
+                            variant="h6"
+                            fontWeight={700}
+                            sx={{ width: 28, color: isTop3 ? rankColors[index] : 'text.secondary', flexShrink: 0 }}
+                          >
+                            {index + 1}
+                          </Typography>
+                          <Avatar
+                            sx={{
+                              bgcolor: isTop3 ? rankColors[index] : 'primary.main',
+                              color: index === 0 ? '#000' : '#fff',
+                              width: 40,
+                              height: 40,
+                              fontWeight: 700,
+                              fontSize: '1rem',
+                              flexShrink: 0
+                            }}
+                          >
+                            {client.name?.charAt(0)?.toUpperCase() || '?'}
+                          </Avatar>
+                          <Box flexGrow={1} minWidth={0}>
+                            <Typography variant="subtitle2" fontWeight={600} noWrap>
+                              {client.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" noWrap display="block">
+                              {client.email}
+                            </Typography>
+                          </Box>
+                          <Box textAlign="right" flexShrink={0}>
+                            <Typography variant="subtitle2" fontWeight={700}>
+                              {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(client.total_spent)}
+                            </Typography>
+                            <Chip
+                              label={`${client.total_bookings} eventos`}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontSize: '0.7rem', height: 20 }}
+                            />
+                          </Box>
+                        </Paper>
+                      )
+                    })}
+                  </Stack>
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -1097,7 +1272,7 @@ export default function ReportsPage() {
                             <Typography variant="subtitle1">
                               {alert.name}
                             </Typography>
-                            <Typography variant="body2" color="textSecondary">
+                            <Typography variant="body2" color="text.secondary">
                               {alert.category} - {alert.unit}
                             </Typography>
                           </Box>
@@ -1158,7 +1333,7 @@ export default function ReportsPage() {
                   <Grid item xs={12} md={4}>
                     <Card variant="outlined">
                       <CardContent>
-                        <Typography color="textSecondary" gutterBottom variant="body2">
+                        <Typography color="text.secondary" gutterBottom variant="body2">
                           Costo Total de Mermas
                         </Typography>
                         <Typography variant="h4" color="error.main">
@@ -1168,7 +1343,7 @@ export default function ReportsPage() {
                             minimumFractionDigits: 0
                           }).format(monthlyData?.waste_cost || 0)}
                         </Typography>
-                        <Typography variant="body2" color="textSecondary">
+                        <Typography variant="body2" color="text.secondary">
                           {new Date(selectedYear, selectedMonth - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
                         </Typography>
                       </CardContent>
@@ -1178,13 +1353,13 @@ export default function ReportsPage() {
                   <Grid item xs={12} md={4}>
                     <Card variant="outlined">
                       <CardContent>
-                        <Typography color="textSecondary" gutterBottom variant="body2">
+                        <Typography color="text.secondary" gutterBottom variant="body2">
                           Items Mermados
                         </Typography>
                         <Typography variant="h4" color="warning.main">
                           {monthlyData?.waste_items_count || 0}
                         </Typography>
-                        <Typography variant="body2" color="textSecondary">
+                        <Typography variant="body2" color="text.secondary">
                           Registros en el período
                         </Typography>
                       </CardContent>
@@ -1194,7 +1369,7 @@ export default function ReportsPage() {
                   <Grid item xs={12} md={4}>
                     <Card variant="outlined">
                       <CardContent>
-                        <Typography color="textSecondary" gutterBottom variant="body2">
+                        <Typography color="text.secondary" gutterBottom variant="body2">
                           Tasa de Merma
                         </Typography>
                         <Typography variant="h4" color="info.main">
@@ -1203,7 +1378,7 @@ export default function ReportsPage() {
                             : '0%'
                           }
                         </Typography>
-                        <Typography variant="body2" color="textSecondary">
+                        <Typography variant="body2" color="text.secondary">
                           Del valor total de inventario
                         </Typography>
                       </CardContent>
@@ -1368,10 +1543,10 @@ export default function ReportsPage() {
                                   style: 'currency',
                                   currency: 'CLP',
                                   minimumFractionDigits: 0
-                                }).format(incomeStatementView === 'monthly' ? ((monthlyData?.total_income || 0) + (vacuumSalesData?.total_income || 0)) : getAnnualTotalIncome())}
+                                }).format(incomeStatementView === 'monthly' ? (monthlyData?.total_income || 0) : getAnnualTotalIncome())}
                               </Typography>
                             </AccordionSummary>
-                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2, bgcolor: mode === 'dark' ? '#1e1e1e' : '#ffffff' }}>
+                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2, bgcolor: 'background.paper' }}>
                               <Table size="small">
                                 <TableHead>
                                   <TableRow>
@@ -1436,7 +1611,7 @@ export default function ReportsPage() {
                                     <TableCell>Venta Pizzas al Vacío</TableCell>
                                     <TableCell align="center">
                                       {incomeStatementView === 'monthly'
-                                        ? (vacuumSalesData?.total_sales || 0)
+                                        ? (monthlyData?.vacuum_summary?.count || 0)
                                         : '-'}
                                     </TableCell>
                                     <TableCell align="right">
@@ -1445,7 +1620,7 @@ export default function ReportsPage() {
                                         currency: 'CLP',
                                         minimumFractionDigits: 0
                                       }).format(incomeStatementView === 'monthly'
-                                        ? (vacuumSalesData?.total_income || 0)
+                                        ? (monthlyData?.vacuum_summary?.total_income || 0)
                                         : 0)}
                                     </TableCell>
                                   </TableRow>
@@ -1494,12 +1669,12 @@ export default function ReportsPage() {
                                   minimumFractionDigits: 0
                                 }).format(
                                   incomeStatementView === 'monthly'
-                                    ? ((monthlyData?.total_expenses || 0) + (vacuumSalesData?.total_cost || 0))
+                                    ? (monthlyData?.total_expenses || 0)
                                     : getAnnualTotalExpenses()
                                 )}
                               </Typography>
                             </AccordionSummary>
-                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2, bgcolor: mode === 'dark' ? '#1e1e1e' : '#ffffff' }}>
+                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2, bgcolor: 'background.paper' }}>
                               <Table size="small">
                                 <TableBody>
                                   <TableRow>
@@ -1533,7 +1708,7 @@ export default function ReportsPage() {
                                         style: 'currency',
                                         currency: 'CLP',
                                         minimumFractionDigits: 0
-                                      }).format(incomeStatementView === 'monthly' ? (vacuumSalesData?.total_cost || 0) : 0)}
+                                      }).format(incomeStatementView === 'monthly' ? (monthlyData?.vacuum_summary?.total_cost || 0) : 0)}
                                     </TableCell>
                                   </TableRow>
                                 </TableBody>
@@ -1586,7 +1761,7 @@ export default function ReportsPage() {
                                 )}
                               </Typography>
                             </AccordionSummary>
-                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2, bgcolor: mode === 'dark' ? '#1e1e1e' : '#ffffff' }}>
+                            <AccordionDetails sx={{ pt: 0, pb: 2, px: 2, bgcolor: 'background.paper' }}>
                               {/* Gastos Fijos - Sub-acordeón */}
                               <Accordion
                                 elevation={0}
@@ -1650,19 +1825,25 @@ export default function ReportsPage() {
                                                 }).format(expense.amount)}
                                               </TableCell>
                                               <TableCell align="right">
+                                                <Tooltip title="Editar">
                                                 <IconButton
                                                   size="small"
+                                                  aria-label="Editar gasto fijo"
                                                   onClick={() => handleOpenExpenseDialog('fixed', expense)}
                                                 >
-                                                  <Assessment fontSize="small" />
+                                                  <Edit fontSize="small" />
                                                 </IconButton>
+                                              </Tooltip>
+                                              <Tooltip title="Eliminar">
                                                 <IconButton
                                                   size="small"
                                                   color="error"
+                                                  aria-label="Eliminar gasto fijo"
                                                   onClick={() => handleDeleteExpense('fixed', expense.id)}
                                                 >
-                                                  <RemoveCircleOutline fontSize="small" />
+                                                  <Delete fontSize="small" />
                                                 </IconButton>
+                                              </Tooltip>
                                               </TableCell>
                                             </TableRow>
                                           ))}
@@ -1746,19 +1927,25 @@ export default function ReportsPage() {
                                                 }).format(expense.amount)}
                                               </TableCell>
                                               <TableCell align="right">
+                                                <Tooltip title="Editar">
                                                 <IconButton
                                                   size="small"
+                                                  aria-label="Editar gasto variable"
                                                   onClick={() => handleOpenExpenseDialog('variable', expense)}
                                                 >
-                                                  <Assessment fontSize="small" />
+                                                  <Edit fontSize="small" />
                                                 </IconButton>
+                                              </Tooltip>
+                                              <Tooltip title="Eliminar">
                                                 <IconButton
                                                   size="small"
                                                   color="error"
+                                                  aria-label="Eliminar gasto variable"
                                                   onClick={() => handleDeleteExpense('variable', expense.id)}
                                                 >
-                                                  <RemoveCircleOutline fontSize="small" />
+                                                  <Delete fontSize="small" />
                                                 </IconButton>
+                                              </Tooltip>
                                               </TableCell>
                                             </TableRow>
                                           ))}

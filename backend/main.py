@@ -4829,6 +4829,35 @@ def get_monthly_report_data(year: int, month: int):
     # Agregar mermas a gastos totales
     total_expenses += waste_cost
 
+    # Incluir ventas al vacío en el reporte mensual
+    vacuum_summary = {"count": 0, "total_income": 0.0, "total_cost": 0.0}
+    try:
+        target_prefix = f"{year}-{month:02d}"
+        all_vacuum_docs = list(db.collection('vacuum_sales').stream())
+        vacuum_month_sales = [
+            doc.to_dict() for doc in all_vacuum_docs
+            if doc.to_dict().get('sale_date', '').startswith(target_prefix)
+        ]
+        vacuum_income = sum(float(s.get('total', 0)) for s in vacuum_month_sales)
+        vacuum_cost = sum(float(s.get('total_cost', 0)) for s in vacuum_month_sales)
+        vacuum_count = len(vacuum_month_sales)
+
+        total_income += vacuum_income
+        total_expenses += vacuum_cost
+
+        vacuum_summary = {
+            "count": vacuum_count,
+            "total_income": round(vacuum_income, 2),
+            "total_cost": round(vacuum_cost, 2)
+        }
+
+        if vacuum_count > 0:
+            service_counts['vacuum_sales'] = vacuum_count
+            service_incomes['vacuum_sales'] = vacuum_income
+            logger.info(f"Vacuum sales included in report: count={vacuum_count}, income={vacuum_income}, cost={vacuum_cost}")
+    except Exception as e:
+        logger.error(f"Error including vacuum sales in monthly report: {e}")
+
     total_profit = total_income - total_expenses
     avg_participants = total_participants / total_events if total_events > 0 else 0
 
@@ -4895,6 +4924,7 @@ def get_monthly_report_data(year: int, month: int):
         "waste_cost": round(waste_cost, 2),
         "waste_items_count": waste_items_count,
         "waste_details": waste_details,
+        "vacuum_summary": vacuum_summary,
         "payment_metrics": payment_metrics
     }
 
