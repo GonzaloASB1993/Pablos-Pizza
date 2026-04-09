@@ -92,6 +92,13 @@ const SOURCE_OPTIONS = [
     { value: 'other', label: 'Otro', icon: '❓' },
 ]
 
+const getSourceDisplay = (source, sourceOther) => {
+    const opt = SOURCE_OPTIONS.find(o => o.value === source)
+    if (!opt) return { label: 'Sin datos', icon: '❓' }
+    if (source === 'other' && sourceOther) return { label: sourceOther, icon: '❓' }
+    return opt
+}
+
 const BookingsManagement = () => {
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -123,6 +130,9 @@ const BookingsManagement = () => {
     const [editExpenseDialog, setEditExpenseDialog] = useState(false)
     const [selectedExpenseIndex, setSelectedExpenseIndex] = useState(null)
     const [selectedBooking, setSelectedBooking] = useState(null)
+    const [editingSource, setEditingSource] = useState(false)
+    const [editSourceValue, setEditSourceValue] = useState('')
+    const [editSourceOther, setEditSourceOther] = useState('')
 
     // MercadoPago link generation states
     const [mpLinkDialog, setMpLinkDialog] = useState(false)
@@ -1452,6 +1462,34 @@ const BookingsManagement = () => {
         } catch (error) {
             console.error('Error deleting booking:', error)
             toast.error('Error al eliminar agendamiento')
+        }
+    }
+
+    const handleSaveSource = async () => {
+        if (!editSourceValue) {
+            toast.error('Selecciona un origen')
+            return
+        }
+        if (editSourceValue === 'other' && !editSourceOther.trim()) {
+            toast.error('Especifica el origen')
+            return
+        }
+        try {
+            await bookingsAPI.update(selectedBooking.id, {
+                source: editSourceValue,
+                source_other: editSourceValue === 'other' ? editSourceOther : ''
+            })
+            toast.success('Origen actualizado')
+            setEditingSource(false)
+            loadBookings()
+            setSelectedBooking(prev => ({
+                ...prev,
+                source: editSourceValue,
+                source_other: editSourceValue === 'other' ? editSourceOther : ''
+            }))
+        } catch (error) {
+            console.error('Error saving source:', error)
+            toast.error('Error al guardar el origen')
         }
     }
 
@@ -4164,7 +4202,7 @@ const BookingsManagement = () => {
             </Dialog>
 
             {/* Ver Detalle (solo lectura) */}
-            <Dialog open={viewDialog} onClose={() => setViewDialog(false)} maxWidth="md" fullWidth fullScreen={isMobile}>
+            <Dialog open={viewDialog} onClose={() => { setViewDialog(false); setEditingSource(false) }} maxWidth="md" fullWidth fullScreen={isMobile}>
                 <DialogTitle>
                     Resumen del Evento
                     <IconButton onClick={() => setViewDialog(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>
@@ -4195,6 +4233,58 @@ const BookingsManagement = () => {
                                             <Grid item xs={12} sm={6}><Typography variant="body2"><strong>Teléfono:</strong> {selectedBooking.client_phone}</Typography></Grid>
                                             <Grid item xs={12} sm={6}><Typography variant="body2"><strong>Email:</strong> {selectedBooking.client_email}</Typography></Grid>
                                             <Grid item xs={12} sm={6}><Typography variant="body2"><strong>Ubicación:</strong> {selectedBooking.location || '-'}</Typography></Grid>
+                                            <Grid item xs={12}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                                    <Typography variant="body2"><strong>Origen:</strong></Typography>
+                                                    {!editingSource ? (
+                                                        <>
+                                                            <Chip
+                                                                size="small"
+                                                                label={`${getSourceDisplay(selectedBooking.source, selectedBooking.source_other).icon} ${getSourceDisplay(selectedBooking.source, selectedBooking.source_other).label}`}
+                                                                color={selectedBooking.source === 'unknown' || !selectedBooking.source ? 'default' : 'primary'}
+                                                                variant="outlined"
+                                                            />
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => {
+                                                                    setEditSourceValue(selectedBooking.source || '')
+                                                                    setEditSourceOther(selectedBooking.source_other || '')
+                                                                    setEditingSource(true)
+                                                                }}
+                                                            >
+                                                                <Edit fontSize="small" />
+                                                            </IconButton>
+                                                        </>
+                                                    ) : (
+                                                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                                                            <FormControl size="small" sx={{ minWidth: 180 }}>
+                                                                <Select
+                                                                    value={editSourceValue}
+                                                                    onChange={(e) => setEditSourceValue(e.target.value)}
+                                                                    displayEmpty
+                                                                >
+                                                                    {SOURCE_OPTIONS.map(opt => (
+                                                                        <MenuItem key={opt.value} value={opt.value}>
+                                                                            {opt.icon} {opt.label}
+                                                                        </MenuItem>
+                                                                    ))}
+                                                                </Select>
+                                                            </FormControl>
+                                                            {editSourceValue === 'other' && (
+                                                                <TextField
+                                                                    size="small"
+                                                                    label="Especificar"
+                                                                    value={editSourceOther}
+                                                                    onChange={(e) => setEditSourceOther(e.target.value)}
+                                                                    sx={{ width: 160 }}
+                                                                />
+                                                            )}
+                                                            <Button size="small" variant="contained" onClick={handleSaveSource}>Guardar</Button>
+                                                            <Button size="small" onClick={() => setEditingSource(false)}>Cancelar</Button>
+                                                        </Box>
+                                                    )}
+                                                </Box>
+                                            </Grid>
                                         </Grid>
                                     </AccordionDetails>
                                 </Accordion>
