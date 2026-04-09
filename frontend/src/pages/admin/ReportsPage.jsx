@@ -173,6 +173,46 @@ const KPICard = ({ title, value, subtitle, icon: Icon, trend, color = 'primary' 
   </Card>
 )
 
+// Secondary (white) Card for payment metrics
+const SecondaryCard = ({ title, value, subtitle, icon: Icon }) => (
+  <Card
+    variant="outlined"
+    sx={{
+      height: '100%',
+      borderRadius: 2.5,
+      transition: 'box-shadow 0.2s ease',
+      '&:hover': { boxShadow: 2 }
+    }}
+  >
+    <CardContent sx={{ p: 2, pb: '16px !important' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <Box
+          sx={{
+            bgcolor: 'action.hover',
+            p: 0.7,
+            borderRadius: 1.5,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'text.secondary'
+          }}
+        >
+          <Icon sx={{ fontSize: 16 }} />
+        </Box>
+        <Typography variant="caption" color="text.secondary" fontWeight={500} sx={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+          {title}
+        </Typography>
+      </Box>
+      <Typography variant="subtitle1" fontWeight={700} sx={{ lineHeight: 1.2, mb: 0.3 }}>
+        {value}
+      </Typography>
+      {subtitle && (
+        <Typography variant="caption" color="text.secondary">{subtitle}</Typography>
+      )}
+    </CardContent>
+  </Card>
+)
+
 // Alert Card Component
 const AlertCard = ({ title, count, severity = 'warning', icon: Icon, onClick }) => (
   <Card
@@ -845,104 +885,8 @@ export default function ReportsPage() {
         )}
       </Paper>
 
-      {/* KPI Cards & Alerts - All in one row */}
-      <Grid container spacing={2} mb={4}>
-        <Grid item xs={12} sm={6} md={2}>
-          <KPICard
-            title="Ingresos del Mes"
-            value={new Intl.NumberFormat('es-CL', {
-              style: 'currency',
-              currency: 'CLP',
-              minimumFractionDigits: 0
-            }).format(monthlyData?.total_income || 0)}
-            subtitle={new Date(selectedYear, selectedMonth - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
-            icon={AttachMoney}
-            color="success"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <KPICard
-            title="Total Pagado"
-            value={new Intl.NumberFormat('es-CL', {
-              style: 'currency',
-              currency: 'CLP',
-              minimumFractionDigits: 0
-            }).format(monthlyData?.payment_metrics?.total_paid || 0)}
-            subtitle="Pagos recibidos"
-            icon={AccountBalanceWallet}
-            color="success"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <KPICard
-            title="Saldo por Cobrar"
-            value={new Intl.NumberFormat('es-CL', {
-              style: 'currency',
-              currency: 'CLP',
-              minimumFractionDigits: 0
-            }).format(monthlyData?.payment_metrics?.total_pending || 0)}
-            subtitle="Pendiente de pago"
-            icon={AccountBalance}
-            color="warning"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <KPICard
-            title="Eventos Realizados"
-            value={monthlyData?.total_events || 0}
-            subtitle="Mes seleccionado"
-            icon={Event}
-            color="primary"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <KPICard
-            title="Utilidad del Mes"
-            value={new Intl.NumberFormat('es-CL', {
-              style: 'currency',
-              currency: 'CLP',
-              minimumFractionDigits: 0
-            }).format(monthlyData?.total_profit || 0)}
-            subtitle="Ganancia neta"
-            icon={TrendingUp}
-            color="info"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <KPICard
-            title="Próximos Eventos"
-            value={dashboardData?.upcoming_events || 0}
-            subtitle="Próximos 7 días"
-            icon={CalendarToday}
-            color="primary"
-          />
-        </Grid>
-
-        {/* Alert Cards integrated in the same row */}
-        {inventoryAlerts.length > 0 && (
-          <Grid item xs={12} sm={6} md={2}>
-            <AlertCard
-              title="Items con Stock Bajo"
-              count={inventoryAlerts.length}
-              severity="warning"
-              icon={Inventory}
-            />
-          </Grid>
-        )}
-        {dashboardData?.alerts?.pending_reviews > 0 && (
-          <Grid item xs={12} sm={6} md={2}>
-            <AlertCard
-              title="Reseñas Pendientes"
-              count={dashboardData.alerts.pending_reviews}
-              severity="info"
-              icon={Star}
-            />
-          </Grid>
-        )}
-      </Grid>
-
-      {/* Tabs */}
-      <Paper sx={{ mb: 3 }}>
+      {/* Tabs - arriba de todo el contenido */}
+      <Paper sx={{ mb: 3, borderRadius: 2 }}>
         <Tabs
           value={tabValue}
           onChange={(e, newValue) => setTabValue(newValue)}
@@ -950,41 +894,98 @@ export default function ReportsPage() {
           scrollButtons="auto"
           allowScrollButtonsMobile
         >
-          <Tab label="Resumen Ejecutivo" icon={<Assessment />} />
-          <Tab label="Análisis Financiero" icon={<ShowChart />} />
-          <Tab label="Clientes Top" icon={<People />} />
-          <Tab label="Operaciones" icon={<Inventory />} />
-          <Tab label="Resumen de Mermas" icon={<RemoveCircleOutline />} />
-          <Tab label="Estado de Resultados" icon={<AccountBalance />} />
+          <Tab label="Resumen Ejecutivo" icon={<Assessment />} iconPosition="start" />
+          <Tab label="Análisis Financiero" icon={<ShowChart />} iconPosition="start" />
+          <Tab label="Clientes Top" icon={<People />} iconPosition="start" />
+          <Tab label="Operaciones" icon={<Inventory />} iconPosition="start" />
+          <Tab label="Mermas" icon={<RemoveCircleOutline />} iconPosition="start" />
+          <Tab label="Estado de Resultados" icon={<AccountBalance />} iconPosition="start" />
         </Tabs>
       </Paper>
 
       {/* Tab Content */}
       {tabValue === 0 && (
         <Grid container spacing={3}>
-          {/* Monthly Performance */}
-          <Grid item xs={12} lg={8}>
-            <Card sx={{ borderRadius: 2.5 }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box display="flex" alignItems="center" gap={1} mb={3}>
-                  <ShowChart fontSize="small" color="primary" />
-                  <Typography variant="h6" fontWeight={600}>
-                    Tendencia Anual — Ingresos vs Gastos
-                  </Typography>
-                </Box>
-                {monthlyTrendData ? (
-                  <Line data={monthlyTrendData} options={chartOptions} />
-                ) : (
-                  <Box display="flex" justifyContent="center" alignItems="center" height={200}>
-                    <Typography variant="body2" color="text.secondary">Sin datos anuales disponibles</Typography>
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
+
+          {/* KPI Cards — solo en Resumen Ejecutivo */}
+          {/* Fila 1: 4 cards principales con colores únicos */}
+          <Grid item xs={6} sm={3} md={3}>
+            <KPICard
+              title="Total Eventos"
+              value={monthlyData?.total_events || 0}
+              subtitle={periodLabel}
+              icon={Event}
+              color="primary"
+            />
+          </Grid>
+          <Grid item xs={6} sm={3} md={3}>
+            <KPICard
+              title="Ingresos del Mes"
+              value={new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(monthlyData?.total_income || 0)}
+              subtitle="Ingresos totales"
+              icon={AttachMoney}
+              color="success"
+            />
+          </Grid>
+          <Grid item xs={6} sm={3} md={3}>
+            <KPICard
+              title="Total Costos"
+              value={new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(monthlyData?.total_expenses || 0)}
+              subtitle="Costos directos"
+              icon={RemoveCircleOutline}
+              color="error"
+            />
+          </Grid>
+          <Grid item xs={6} sm={3} md={3}>
+            <KPICard
+              title="Utilidad del Mes"
+              value={new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(monthlyData?.total_profit || 0)}
+              subtitle="Ganancia neta"
+              icon={TrendingUp}
+              color="info"
+            />
           </Grid>
 
+          {/* Fila 2: cards secundarias (fondo neutro, menos énfasis) + alertas */}
+          <Grid item xs={6} sm={3} md={3}>
+            <SecondaryCard
+              title="Total Pagado"
+              value={new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(monthlyData?.payment_metrics?.total_paid || 0)}
+              subtitle="Pagos recibidos"
+              icon={AccountBalanceWallet}
+            />
+          </Grid>
+          <Grid item xs={6} sm={3} md={3}>
+            <SecondaryCard
+              title="Por Cobrar"
+              value={new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(monthlyData?.payment_metrics?.total_pending || 0)}
+              subtitle="Saldo pendiente"
+              icon={AccountBalance}
+            />
+          </Grid>
+          {inventoryAlerts.length > 0 && (
+            <Grid item xs={6} sm={3} md={3}>
+              <AlertCard
+                title="Stock Bajo"
+                count={inventoryAlerts.length}
+                severity="warning"
+                icon={Inventory}
+              />
+            </Grid>
+          )}
+          {dashboardData?.alerts?.pending_reviews > 0 && (
+            <Grid item xs={6} sm={3} md={3}>
+              <AlertCard
+                title="Reseñas Pendientes"
+                count={dashboardData.alerts.pending_reviews}
+                severity="info"
+                icon={Star}
+              />
+            </Grid>
+          )}
+
           {/* Service Distribution */}
-          <Grid item xs={12} lg={4}>
+          <Grid item xs={12} lg={5}>
             <Card sx={{ borderRadius: 2.5 }}>
               <CardContent sx={{ p: 3 }}>
                 <Box display="flex" alignItems="center" gap={1} mb={3}>
@@ -1022,7 +1023,7 @@ export default function ReportsPage() {
           </Grid>
 
           {/* Monthly Summary */}
-          <Grid item xs={12}>
+          <Grid item xs={12} lg={7}>
             <Card sx={{ borderRadius: 2.5 }}>
               <CardContent sx={{ p: 3 }}>
                 <Box display="flex" alignItems="center" gap={1} mb={3}>
