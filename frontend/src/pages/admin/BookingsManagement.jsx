@@ -22,6 +22,7 @@ import {
     DialogActions,
     TextField,
     FormControl,
+    InputLabel,
     Select,
     MenuItem,
     Alert,
@@ -82,6 +83,14 @@ const localizer = dateFnsLocalizer({
     getDay,
     locales,
 })
+
+const SOURCE_OPTIONS = [
+    { value: 'website', label: 'Página Web', icon: '🌐' },
+    { value: 'instagram', label: 'Instagram', icon: '📸' },
+    { value: 'tiktok', label: 'TikTok', icon: '🎵' },
+    { value: 'word_of_mouth', label: 'Boca a Boca', icon: '🗣️' },
+    { value: 'other', label: 'Otro', icon: '❓' },
+]
 
 const BookingsManagement = () => {
     const theme = useTheme()
@@ -191,7 +200,9 @@ const BookingsManagement = () => {
         location: '',
         special_requests: '',
         initial_payment: '',
-        payment_method: 'transferencia'
+        payment_method: 'transferencia',
+        source: '',
+        source_other: ''
     })
     const [selectedCustomer, setSelectedCustomer] = useState(null)
     const [manualCustomerEntry, setManualCustomerEntry] = useState(false)
@@ -1365,6 +1376,14 @@ const BookingsManagement = () => {
     }, [newBookingData.service_type, newBookingData.pizzeros_participants, newBookingData.pizza_quantity, newBookingData.participants])
 
     const handleCreateBooking = async () => {
+        if (!newBookingData.source) {
+            toast.error('Debes indicar cómo nos encontró el cliente')
+            return
+        }
+        if (newBookingData.source === 'other' && !newBookingData.source_other.trim()) {
+            toast.error('Debes especificar el origen cuando seleccionas "Otro"')
+            return
+        }
         try {
             const bookingData = {
                 client_name: newBookingData.client_name,
@@ -1381,7 +1400,9 @@ const BookingsManagement = () => {
                 pizza_quantity: parseInt(newBookingData.pizza_quantity || 10, 10),
                 estimated_price: newEstimatedPrice,
                 location: newBookingData.location,
-                special_requests: newBookingData.special_requests || ''
+                special_requests: newBookingData.special_requests || '',
+                source: newBookingData.source,
+                source_other: newBookingData.source === 'other' ? newBookingData.source_other : ''
             }
 
             // Include customer_id if an existing customer was selected
@@ -1414,6 +1435,7 @@ const BookingsManagement = () => {
             setCreateDialog(false)
             setSelectedCustomer(null)
             setManualCustomerEntry(false)
+            setNewBookingData(prev => ({ ...prev, source: '', source_other: '' }))
             loadBookings()
         } catch (error) {
             console.error('Error creating booking:', error)
@@ -3113,6 +3135,37 @@ const BookingsManagement = () => {
                                 </ToggleButtonGroup>
                             </FormControl>
                         </Grid>
+
+                        {/* Source field */}
+                        <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth required>
+                                <InputLabel>¿Cómo nos encontró el cliente?</InputLabel>
+                                <Select
+                                    name="source"
+                                    value={newBookingData.source}
+                                    onChange={handleNewBookingChange}
+                                    label="¿Cómo nos encontró el cliente?"
+                                >
+                                    {SOURCE_OPTIONS.map(opt => (
+                                        <MenuItem key={opt.value} value={opt.value}>
+                                            {opt.icon} {opt.label}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        {newBookingData.source === 'other' && (
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    required
+                                    label="Especificar origen"
+                                    name="source_other"
+                                    value={newBookingData.source_other}
+                                    onChange={handleNewBookingChange}
+                                />
+                            </Grid>
+                        )}
                     </Grid>
                 </DialogContent>
                 <DialogActions>
