@@ -424,7 +424,8 @@ export default function BookingPage() {
       participantsByService: getParticipantsByService(),
       eventType: formData.eventType,
       selectedComuna: selectedComuna,
-      comunaLejanaExtra: comunaLejanaExtra
+      comunaLejanaExtra: comunaLejanaExtra,
+      source: 'website'
     }
   }
 
