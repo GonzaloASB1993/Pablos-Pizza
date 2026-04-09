@@ -41,8 +41,16 @@ def create_booking():
     try:
         data = request.get_json()
         if not data: return jsonify({"error": "No data"}), 400
-        for f in ['service_type','participants']:
-            if f not in data: return jsonify({"error": f"Missing {f}"}), 400
+        for f in ['service_type','participants','source']:
+            if not data.get(f): return jsonify({"error": f"Missing {f}"}), 400
+
+        valid_sources = {'website','instagram','tiktok','word_of_mouth','other'}
+        if data['source'] not in valid_sources:
+            return jsonify({"error": f"Invalid source. Must be one of: {', '.join(valid_sources)}"}), 400
+
+        # Clear source_other unless source is 'other'
+        if data.get('source') != 'other':
+            data['source_other'] = ''
 
         db = get_db()
         bid = str(uuid.uuid4())
@@ -485,4 +493,55 @@ def delete_payment(booking_id, payment_id):
 
     except Exception as e:
         print(f"❌ Error deleting payment: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@bookings_bp.route('/migrate-source', methods=['POST'])
+def migrate_source():
+    """One-time migration: auto-detect source for historical bookings.
+    Bookings with payment data -> 'website'. Others -> 'unknown'.
+    Safe to run multiple times (skips already-migrated bookings)."""
+    try:
+        db = get_db()
+        bookings_ref = db.collection("bookings")
+        all_bookings = bookings_ref.get()
+
+        migrated_website = 0
+        migrated_unknown = 0
+        skipped = 0
+
+        for doc in all_bookings:
+            booking = doc.to_dict()
+
+            # Skip bookings that already have a source
+            if booking.get('source'):
+                skipped += 1
+                continue
+
+            # Detect web origin via payment-related fields
+            has_payment = bool(
+                booking.get('payment_id') or
+                booking.get('preference_id') or
+                booking.get('payment_status') or
+                (isinstance(booking.get('payments'), list) and len(booking['payments']) > 0)
+            )
+
+            source = 'website' if has_payment else 'unknown'
+            bookings_ref.document(doc.id).update({
+                'source': source,
+                'source_other': ''
+            })
+
+            if has_payment:
+                migrated_website += 1
+            else:
+                migrated_unknown += 1
+
+        return jsonify({
+            "migrated_website": migrated_website,
+            "migrated_unknown": migrated_unknown,
+            "skipped_already_migrated": skipped,
+            "total": migrated_website + migrated_unknown + skipped
+        }), 200
+
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
