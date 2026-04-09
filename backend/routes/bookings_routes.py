@@ -521,20 +521,21 @@ def migrate_source():
             has_payment = bool(
                 booking.get('payment_id') or
                 booking.get('preference_id') or
-                booking.get('payment_status') or
                 (isinstance(booking.get('payments'), list) and len(booking['payments']) > 0)
             )
 
             source = 'website' if has_payment else 'unknown'
-            bookings_ref.document(doc.id).update({
-                'source': source,
-                'source_other': ''
-            })
-
-            if has_payment:
-                migrated_website += 1
-            else:
-                migrated_unknown += 1
+            try:
+                bookings_ref.document(doc.id).update({
+                    'source': source,
+                    'source_other': ''
+                })
+                if has_payment:
+                    migrated_website += 1
+                else:
+                    migrated_unknown += 1
+            except Exception as doc_err:
+                print(f"Warning: failed to migrate booking {doc.id}: {doc_err}")
 
         return jsonify({
             "migrated_website": migrated_website,
