@@ -85,6 +85,15 @@ const monthNames = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ]
 
+const SOURCE_LABELS = {
+  website: 'Página Web',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  word_of_mouth: 'Boca a Boca',
+  other: 'Otro',
+  unknown: 'Sin datos'
+}
+
 // --- Inline Components ---
 
 const StatCard = ({ title, value, icon, color = '#FFD700', trend, subtitle }) => (
@@ -197,6 +206,7 @@ const AdminDashboard = () => {
     completedEventsWithoutCost: 0
   })
   const [trends, setTrends] = useState({})
+  const [sourceRanking, setSourceRanking] = useState([])
 
   useEffect(() => {
     loadDashboardData()
@@ -286,6 +296,22 @@ const AdminDashboard = () => {
         }
 
         setAlerts({ pendingReviews, confirmedEvents, completedEventsWithoutCost })
+
+        // Source ranking for selected month
+        const monthBookings = bookings.filter(b => {
+          if (!b.event_date) return false
+          const [y, m] = b.event_date.split('-').map(Number)
+          return y === selectedYear && m === selectedMonth
+        })
+        const sourceCounts = monthBookings.reduce((acc, b) => {
+          const src = b.source || 'unknown'
+          acc[src] = (acc[src] || 0) + 1
+          return acc
+        }, {})
+        const ranking = Object.entries(sourceCounts)
+          .sort(([, a], [, b]) => b - a)
+          .map(([source, count]) => ({ source, count }))
+        setSourceRanking(ranking)
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error)
@@ -773,7 +799,7 @@ const AdminDashboard = () => {
         </Grid>
       </Grid>
 
-      {/* Bottom Row: Top Clients + Quick Actions */}
+      {/* Bottom Row: Top Clients + Source Ranking + Quick Actions */}
       <Grid container spacing={2}>
         {/* Top Clients */}
         <Grid item xs={12} md={6}>
@@ -817,6 +843,52 @@ const AdminDashboard = () => {
             ) : (
               <Box sx={{ textAlign: 'center', py: 3 }}>
                 <Typography color="text.secondary" variant="body2">Sin datos de clientes</Typography>
+              </Box>
+            )}
+          </SectionCard>
+        </Grid>
+
+        {/* Source Ranking */}
+        <Grid item xs={12} md={6}>
+          <SectionCard
+            title="Origen de Bookings"
+            icon={<ShowChart sx={{ color: '#FFD700' }} />}
+          >
+            {sourceRanking.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                No hay bookings con origen registrado este mes.
+              </Typography>
+            ) : (
+              <Box>
+                {(() => {
+                  const known = sourceRanking.filter(r => r.source !== 'unknown')
+                  const total = known.reduce((s, r) => s + r.count, 0)
+                  const unknown = sourceRanking.find(r => r.source === 'unknown')
+                  return (
+                    <>
+                      {known.map(({ source, count }) => (
+                        <Box key={source} sx={{ mb: 1.5 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                            <Typography variant="body2">{SOURCE_LABELS[source] || source}</Typography>
+                            <Typography variant="body2" fontWeight={600}>
+                              {count} ({total > 0 ? Math.round((count / total) * 100) : 0}%)
+                            </Typography>
+                          </Box>
+                          <LinearProgress
+                            variant="determinate"
+                            value={total > 0 ? (count / total) * 100 : 0}
+                            sx={{ height: 6, borderRadius: 3 }}
+                          />
+                        </Box>
+                      ))}
+                      {unknown && (
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                          Sin datos de origen: {unknown.count} booking(s)
+                        </Typography>
+                      )}
+                    </>
+                  )
+                })()}
               </Box>
             )}
           </SectionCard>
