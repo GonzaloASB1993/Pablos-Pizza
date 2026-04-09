@@ -75,7 +75,7 @@ import {
   ArcElement
 } from 'chart.js'
 import { Line, Bar, Pie } from 'react-chartjs-2'
-import { reportsAPI, inventoryAPI, expensesAPI, vacuumSalesAPI } from '../../services/api'
+import { reportsAPI, inventoryAPI, expensesAPI, vacuumSalesAPI, bookingsAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 import { useThemeMode } from '../../contexts/ThemeContext'
 import { useTheme } from '@mui/material/styles'
@@ -92,6 +92,24 @@ ChartJS.register(
   ChartTooltip,
   Legend
 )
+
+const SOURCE_LABELS = {
+  website: 'Página Web',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  word_of_mouth: 'Boca a Boca',
+  other: 'Otro',
+  unknown: 'Sin datos'
+}
+
+const SOURCE_COLORS = {
+  website: '#1976d2',
+  instagram: '#e91e8c',
+  tiktok: '#000000',
+  word_of_mouth: '#ff9800',
+  other: '#9e9e9e',
+  unknown: '#bdbdbd'
+}
 
 // Enhanced KPI Card Component
 const KPICard = ({ title, value, subtitle, icon: Icon, trend, color = 'primary' }) => (
@@ -323,6 +341,7 @@ export default function ReportsPage() {
   const [topClients, setTopClients] = useState([])
   const [inventoryTotalValue, setInventoryTotalValue] = useState(0)
   const [vacuumSalesData, setVacuumSalesData] = useState(null)
+  const [sourceChartData, setSourceChartData] = useState(null)
 
   // Expense management state
   const [fixedExpenses, setFixedExpenses] = useState([])
@@ -418,6 +437,40 @@ export default function ReportsPage() {
         loadExpensesData(),
         loadMonthlyTax()
       ])
+
+      // Load bookings source distribution
+      try {
+        const bookingsRes = await bookingsAPI.getAll({ limit: 500 })
+        const allBookings = bookingsRes.data?.items || bookingsRes.data || []
+
+        // Filter by selected year and month (month 0 = all months)
+        const filtered = allBookings.filter(b => {
+          if (!b.event_date) return false
+          const [y, m] = b.event_date.split('-').map(Number)
+          if (selectedYear && y !== selectedYear) return false
+          if (selectedMonth && selectedMonth !== 0 && m !== selectedMonth) return false
+          return true
+        })
+
+        const counts = filtered.reduce((acc, b) => {
+          const src = b.source || 'unknown'
+          acc[src] = (acc[src] || 0) + 1
+          return acc
+        }, {})
+
+        const sources = Object.keys(counts)
+        setSourceChartData(sources.length > 0 ? {
+          labels: sources.map(k => SOURCE_LABELS[k] || k),
+          datasets: [{
+            label: 'Bookings por canal',
+            data: sources.map(k => counts[k]),
+            backgroundColor: sources.map(k => SOURCE_COLORS[k] || '#9e9e9e'),
+            borderRadius: 4
+          }]
+        } : null)
+      } catch (e) {
+        console.error('Error loading source data:', e)
+      }
 
     } catch (error) {
       console.error('Error loading filtered data:', error)
@@ -1101,6 +1154,47 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
           </Grid>
+
+          {/* Source Acquisition Chart */}
+          {sourceChartData && (
+            <Grid item xs={12} md={6}>
+              <Card sx={{ borderRadius: 2.5 }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+                    Canales de Adquisición
+                  </Typography>
+                  <Bar
+                    data={sourceChartData}
+                    options={{
+                      indexAxis: 'y',
+                      responsive: true,
+                      plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                          callbacks: {
+                            label: (ctx) => {
+                              const total = ctx.dataset.data.reduce((a, b) => a + b, 0)
+                              const pct = total > 0 ? Math.round((ctx.raw / total) * 100) : 0
+                              return ` ${ctx.raw} bookings (${pct}%)`
+                            }
+                          }
+                        }
+                      },
+                      scales: {
+                        x: {
+                          beginAtZero: true,
+                          ticks: { precision: 0 },
+                          grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        y: { grid: { display: false } }
+                      }
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+
         </Grid>
       )}
 
