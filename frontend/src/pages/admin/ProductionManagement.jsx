@@ -721,7 +721,7 @@ const ProductionManagement = () => {
       const available = invItem ? parseFloat(invItem.current_stock || 0) : 0
       if (available < needed) {
         issues.push({
-          name: ingredient.item_name || ingredient.item_id,
+          name: ingredient.item_name || invItem?.name || ingredient.item_id,
           available,
           needed,
           unit: ingredient.unit || ''
