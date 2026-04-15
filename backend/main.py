@@ -3277,6 +3277,22 @@ def create_production_batch():
         total_cost = recipe_data['cost_per_batch'] * quantity_to_produce
         output_quantity = recipe_data['output_quantity'] * quantity_to_produce
 
+        # Validate ingredient stock before creating batch
+        for ingredient in recipe_data.get('ingredients', []):
+            item_id = ingredient.get('item_id')
+            needed = ingredient['quantity'] * quantity_to_produce
+            item_name = ingredient.get('item_name', item_id)
+            if not item_id:
+                continue
+            inv_doc = db.collection('inventory').document(item_id).get()
+            if not inv_doc.exists:
+                return jsonify({'error': f'Ingrediente "{item_name}" no encontrado en inventario'}), 400
+            current_stock = float(inv_doc.to_dict().get('current_stock', 0))
+            if current_stock < needed:
+                return jsonify({
+                    'error': f'Stock insuficiente de "{item_name}": disponible {current_stock}, necesario {needed}'
+                }), 400
+
         # Prepare ingredients list with quantities scaled
         ingredients_consumed = []
         for ingredient in recipe_data['ingredients']:

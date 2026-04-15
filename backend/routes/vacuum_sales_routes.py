@@ -83,6 +83,7 @@ def create_sale():
                     'phone': client_phone,
                     'notes': None,
                     'total_bookings': 0,
+                    'is_active': True,
                     'created_at': now,
                     'updated_at': now
                 }

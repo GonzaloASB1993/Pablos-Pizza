@@ -178,8 +178,8 @@ def search_customers():
         if not db:
             return jsonify({"error": "Database connection failed"}), 500
 
-        # Fetch active customers only
-        query = db.collection("customers").where("is_active", "!=", False).limit(100)
+        # Fetch all customers (is_active field may not exist on older docs)
+        query = db.collection("customers").limit(200)
         all_customers = query.stream()
 
         search_lower = query_string.lower()
@@ -188,6 +188,10 @@ def search_customers():
         for doc in all_customers:
             customer = doc.to_dict()
             customer['id'] = doc.id
+
+            # Skip explicitly deactivated customers only
+            if customer.get('is_active') is False:
+                continue
 
             # Search in name, email, and phone
             if (search_lower in customer.get('name', '').lower() or
