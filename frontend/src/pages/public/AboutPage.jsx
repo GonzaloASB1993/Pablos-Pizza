@@ -41,10 +41,12 @@ const TeamMemberCard = ({ name, role, story, image, delay = 0 }) => {
           height: '100%',
           borderRadius: 4,
           overflow: 'hidden',
+          background: '#1a1714',
+          border: '1px solid rgba(232,182,58,0.12)',
           transition: 'all 0.4s ease',
           '&:hover': {
             transform: 'translateY(-12px)',
-            boxShadow: '0 20px 40px rgba(255, 215, 0, 0.3)'
+            boxShadow: '0 20px 40px rgba(232, 182, 58, 0.25)'
           }
         }}
       >
@@ -81,7 +83,7 @@ const TeamMemberCard = ({ name, role, story, image, delay = 0 }) => {
               background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, transparent 100%)'
             }}
           >
-            <Typography variant="h4" sx={{ color: '#FFD700', fontWeight: 800, mb: 0.5 }}>
+            <Typography variant="h4" sx={{ color: '#e8b63a', fontWeight: 800, mb: 0.5 }}>
               {name}
             </Typography>
             <Typography variant="h6" sx={{ color: '#FFF', fontWeight: 500 }}>
@@ -96,7 +98,7 @@ const TeamMemberCard = ({ name, role, story, image, delay = 0 }) => {
             variant="body1"
             sx={{
               lineHeight: 1.8,
-              color: 'text.secondary'
+              color: 'rgba(255,255,255,0.65)'
             }}
           >
             {story}
@@ -112,13 +114,13 @@ const StatBox = ({ icon, number, label }) => (
   <Box sx={{ textAlign: 'center' }}>
     <Box sx={{ mb: 1 }}>
       {React.cloneElement(icon, {
-        sx: { fontSize: 48, color: '#FFD700' }
+        sx: { fontSize: 48, color: '#e8b63a' }
       })}
     </Box>
-    <Typography variant="h3" sx={{ fontWeight: 800, color: '#FFD700', mb: 0.5 }}>
+    <Typography variant="h3" sx={{ fontWeight: 800, color: '#e8b63a', mb: 0.5 }}>
       {number}
     </Typography>
-    <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600 }}>
+    <Typography variant="body1" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.65)' }}>
       {label}
     </Typography>
   </Box>
@@ -157,15 +159,16 @@ export default function AboutPage() {
   ]
 
   return (
-    <Box>
+    <Box sx={{ background: '#0d0d0d', minHeight: '100vh' }}>
       {/* Hero Section */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #FFD700 0%, #CBA900 50%, #B8860B 100%)',
-          color: '#000',
+          background: '#0d0d0d',
+          color: '#FFFFFF',
           py: { xs: 6, md: 10 },
           position: 'relative',
           overflow: 'hidden',
+          borderBottom: '1px solid rgba(232,182,58,0.15)',
           '&::before': {
             content: '""',
             position: 'absolute',
@@ -173,8 +176,8 @@ export default function AboutPage() {
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'radial-gradient(circle at 30% 50%, rgba(255, 255, 255, 0.2) 0%, transparent 50%)',
-            opacity: 0.5
+            background: 'radial-gradient(circle at 30% 50%, rgba(232,182,58,0.08) 0%, transparent 60%)',
+            opacity: 0.8
           }
         }}
       >
@@ -184,12 +187,13 @@ export default function AboutPage() {
               <Chip
                 label="Conoce al Equipo"
                 sx={{
-                  bgcolor: 'rgba(0, 0, 0, 0.2)',
-                  color: '#000',
+                  bgcolor: 'rgba(232,182,58,0.12)',
+                  color: '#e8b63a',
                   fontWeight: 700,
                   mb: 3,
                   fontSize: '1rem',
-                  px: 2
+                  px: 2,
+                  border: '1px solid rgba(232,182,58,0.3)'
                 }}
               />
               <Typography
@@ -198,7 +202,7 @@ export default function AboutPage() {
                   fontWeight: 900,
                   fontSize: { xs: '2.5rem', md: '4rem' },
                   mb: 3,
-                  textShadow: '2px 2px 4px rgba(0, 0, 0, 0.1)'
+                  color: '#FFFFFF'
                 }}
               >
                 Nosotros
@@ -209,7 +213,7 @@ export default function AboutPage() {
                   maxWidth: 800,
                   mx: 'auto',
                   fontWeight: 500,
-                  opacity: 0.9,
+                  color: 'rgba(255,255,255,0.65)',
                   lineHeight: 1.6
                 }}
               >
@@ -229,8 +233,8 @@ export default function AboutPage() {
             p: 6,
             mb: 10,
             borderRadius: 4,
-            background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 255, 255, 1) 100%)',
-            border: '2px solid rgba(255, 215, 0, 0.2)'
+            background: '#1a1714',
+            border: '1px solid rgba(232,182,58,0.15)'
           }}
         >
           <Grid container spacing={4}>
@@ -259,19 +263,18 @@ export default function AboutPage() {
         </Paper>
 
         {/* Team Section */}
-        <Box sx={{ mb: 10 }}>
+        <Box sx={{ mb: 10, background: '#141414', borderRadius: 4, p: { xs: 3, md: 6 } }}>
           <Typography
             variant="h2"
             align="center"
-            sx={{ fontWeight: 800, mb: 2, color: '#000' }}
+            sx={{ fontWeight: 800, mb: 2, color: '#FFFFFF' }}
           >
             Nuestro Equipo
           </Typography>
           <Typography
             variant="h6"
             align="center"
-            color="text.secondary"
-            sx={{ mb: 6, maxWidth: 700, mx: 'auto' }}
+            sx={{ mb: 6, maxWidth: 700, mx: 'auto', color: 'rgba(255,255,255,0.65)' }}
           >
             Tres profesionales dedicados que combinan talento culinario,
             experiencia educativa y pasión por hacer felices a los niños
@@ -295,21 +298,22 @@ export default function AboutPage() {
             mb: 10,
             p: 6,
             borderRadius: 4,
-            background: 'linear-gradient(135deg, #000 0%, #1a1a1a 100%)',
+            background: '#0d0d0d',
+            border: '1px solid rgba(232,182,58,0.15)',
             color: '#FFF'
           }}
         >
           <Typography
             variant="h2"
             align="center"
-            sx={{ fontWeight: 800, mb: 2, color: '#FFD700' }}
+            sx={{ fontWeight: 800, mb: 2, color: '#e8b63a' }}
           >
             Lo que Nos Define
           </Typography>
           <Typography
             variant="h6"
             align="center"
-            sx={{ mb: 6, maxWidth: 600, mx: 'auto', opacity: 0.9 }}
+            sx={{ mb: 6, maxWidth: 600, mx: 'auto', color: 'rgba(255,255,255,0.65)' }}
           >
             Los valores que guían cada evento y experiencia
           </Typography>
@@ -318,14 +322,14 @@ export default function AboutPage() {
             <Grid item xs={12} md={6}>
               <Box sx={{ mb: 4 }}>
                 <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: '#FFD700', color: '#000', width: 56, height: 56 }}>
+                  <Avatar sx={{ bgcolor: 'rgba(232,182,58,0.15)', color: '#e8b63a', width: 56, height: 56, border: '1px solid rgba(232,182,58,0.3)' }}>
                     <Restaurant sx={{ fontSize: 28 }} />
                   </Avatar>
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#FFFFFF' }}>
                     Pasión por la Gastronomía
                   </Typography>
                 </Stack>
-                <Typography variant="body1" sx={{ opacity: 0.9, lineHeight: 1.8, pl: 9 }}>
+                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, pl: 9 }}>
                   Amamos lo que hacemos. Cada taller es una oportunidad para compartir
                   nuestra pasión culinaria con los más pequeños y ver sus rostros iluminarse
                   cuando crean algo delicioso con sus propias manos.
@@ -336,14 +340,14 @@ export default function AboutPage() {
             <Grid item xs={12} md={6}>
               <Box sx={{ mb: 4 }}>
                 <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: '#FFD700', color: '#000', width: 56, height: 56 }}>
+                  <Avatar sx={{ bgcolor: 'rgba(232,182,58,0.15)', color: '#e8b63a', width: 56, height: 56, border: '1px solid rgba(232,182,58,0.3)' }}>
                     <Favorite sx={{ fontSize: 28 }} />
                   </Avatar>
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#FFFFFF' }}>
                     Compromiso Total
                   </Typography>
                 </Stack>
-                <Typography variant="body1" sx={{ opacity: 0.9, lineHeight: 1.8, pl: 9 }}>
+                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, pl: 9 }}>
                   Nos comprometemos al 100% con la calidad y seguridad de cada evento.
                   Desde los ingredientes que usamos hasta el trato con cada niño,
                   todo recibe nuestra máxima atención y dedicación.
@@ -354,14 +358,14 @@ export default function AboutPage() {
             <Grid item xs={12} md={6}>
               <Box sx={{ mb: 4 }}>
                 <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: '#FFD700', color: '#000', width: 56, height: 56 }}>
+                  <Avatar sx={{ bgcolor: 'rgba(232,182,58,0.15)', color: '#e8b63a', width: 56, height: 56, border: '1px solid rgba(232,182,58,0.3)' }}>
                     <EmojiEvents sx={{ fontSize: 28 }} />
                   </Avatar>
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#FFFFFF' }}>
                     Trabajo en Equipo
                   </Typography>
                 </Stack>
-                <Typography variant="body1" sx={{ opacity: 0.9, lineHeight: 1.8, pl: 9 }}>
+                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, pl: 9 }}>
                   Somos más que colegas, somos un equipo coordinado que trabaja en perfecta
                   sincronía. Esta química se refleja en cada evento y hace que todo fluya
                   sin problemas, incluso en los momentos más caóticos.
@@ -372,14 +376,14 @@ export default function AboutPage() {
             <Grid item xs={12} md={6}>
               <Box sx={{ mb: 4 }}>
                 <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: '#FFD700', color: '#000', width: 56, height: 56 }}>
+                  <Avatar sx={{ bgcolor: 'rgba(232,182,58,0.15)', color: '#e8b63a', width: 56, height: 56, border: '1px solid rgba(232,182,58,0.3)' }}>
                     <Star sx={{ fontSize: 28 }} />
                   </Avatar>
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#FFFFFF' }}>
                     Excelencia Constante
                   </Typography>
                 </Stack>
-                <Typography variant="body1" sx={{ opacity: 0.9, lineHeight: 1.8, pl: 9 }}>
+                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, pl: 9 }}>
                   Nunca dejamos de mejorar. Después de cada evento analizamos qué funcionó
                   bien y qué podemos perfeccionar, siempre buscando superar las expectativas
                   de nuestros clientes.
@@ -395,14 +399,14 @@ export default function AboutPage() {
             p: 6,
             borderRadius: 4,
             textAlign: 'center',
-            background: 'linear-gradient(135deg, #FFD700 0%, #CBA900 100%)',
-            color: '#000'
+            background: '#1a1714',
+            border: '1px solid rgba(232,182,58,0.15)'
           }}
         >
-          <Typography variant="h3" sx={{ fontWeight: 900, mb: 2 }}>
+          <Typography variant="h3" sx={{ fontWeight: 900, mb: 2, color: '#FFFFFF' }}>
             ¿Listo para Conocernos en Persona?
           </Typography>
-          <Typography variant="h6" sx={{ mb: 4, opacity: 0.9, maxWidth: 600, mx: 'auto' }}>
+          <Typography variant="h6" sx={{ mb: 4, color: 'rgba(255,255,255,0.65)', maxWidth: 600, mx: 'auto' }}>
             Agenda tu taller o pizza party y conoce al equipo que hará de tu
             evento una experiencia inolvidable.
           </Typography>
@@ -414,14 +418,14 @@ export default function AboutPage() {
               onClick={() => navigate('/agendar')}
               endIcon={<ArrowForward />}
               sx={{
-                bgcolor: '#000',
-                color: '#FFD700',
+                bgcolor: '#e8b63a',
+                color: '#0d0d0d',
                 px: 4,
                 py: 2,
                 fontSize: '1.1rem',
                 fontWeight: 700,
                 '&:hover': {
-                  bgcolor: '#333',
+                  bgcolor: '#d4a030',
                   transform: 'translateY(-2px)'
                 }
               }}
@@ -435,15 +439,16 @@ export default function AboutPage() {
               target="_blank"
               startIcon={<WhatsApp />}
               sx={{
-                borderColor: '#000',
-                color: '#000',
+                borderColor: 'rgba(232,182,58,0.5)',
+                color: '#e8b63a',
                 px: 4,
                 py: 2,
                 fontSize: '1.1rem',
                 fontWeight: 700,
                 borderWidth: 2,
                 '&:hover': {
-                  bgcolor: 'rgba(0, 0, 0, 0.1)',
+                  bgcolor: 'rgba(232,182,58,0.08)',
+                  borderColor: '#e8b63a',
                   borderWidth: 2,
                   transform: 'translateY(-2px)'
                 }
