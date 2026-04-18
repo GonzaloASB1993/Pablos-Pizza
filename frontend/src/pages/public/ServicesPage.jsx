@@ -82,15 +82,15 @@ const FeatureBullet = ({ children, delay = 0 }) => {
         borderRadius: 2,
         transition: 'all 0.3s ease',
         '&:hover': {
-          bgcolor: 'rgba(255, 215, 0, 0.05)',
+          bgcolor: 'rgba(232, 182, 58, 0.05)',
           transform: 'translateX(8px)'
         }
       }}>
         <CheckCircle sx={{
-          color: '#FFD700',
+          color: '#e8b63a',
           fontSize: 20,
           mt: 0.2,
-          filter: 'drop-shadow(0 2px 4px rgba(255, 215, 0, 0.3))'
+          filter: 'drop-shadow(0 2px 4px rgba(232, 182, 58, 0.3))'
         }} />
         <Typography variant="body1" sx={{ fontWeight: 500, lineHeight: 1.6, color: 'rgba(255,255,255,0.85)' }}>
           {children}
@@ -101,7 +101,7 @@ const FeatureBullet = ({ children, delay = 0 }) => {
 }
 
 // Service stats component
-const ServiceStats = ({ icon, label, value, color = '#FFD700' }) => (
+const ServiceStats = ({ icon, label, value, color = '#e8b63a' }) => (
   <Box sx={{
     textAlign: 'center',
     p: 2,
@@ -157,10 +157,10 @@ const PricingCard = ({ title, prices, description, isPopular = false, children, 
           size="small"
           icon={<TrendingUp />}
           sx={{
-            bgcolor: '#FFD700',
+            bgcolor: '#e8b63a',
             color: '#000',
             fontWeight: 800,
-            boxShadow: '0 4px 15px rgba(255, 215, 0, 0.4)'
+            boxShadow: '0 4px 15px rgba(232, 182, 58, 0.4)'
           }}
         />
       </Box>
@@ -214,7 +214,7 @@ const TestimonialCard = ({ review }) => (
     }
   }}>
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-      <Avatar sx={{ bgcolor: '#FFD700', color: '#000', fontWeight: 700 }}>
+      <Avatar sx={{ bgcolor: '#e8b63a', color: '#000', fontWeight: 700 }}>
         {review.name ? review.name.charAt(0).toUpperCase() : '?'}
       </Avatar>
       <Box sx={{ flexGrow: 1 }}>
@@ -223,7 +223,7 @@ const TestimonialCard = ({ review }) => (
         </Typography>
         <Rating value={review.rating || 0} readOnly size="small" />
       </Box>
-      <Verified sx={{ color: '#FFD700', fontSize: 20 }} />
+      <Verified sx={{ color: '#e8b63a', fontSize: 20 }} />
     </Box>
     <Typography variant="body2" sx={{
       fontStyle: 'italic',
@@ -381,7 +381,7 @@ export default function ServicesPage() {
         </Container>
       </Box>
 
-      <Container maxWidth="xl" sx={{ pb: 8, background: '#0d0d0d' }}>
+      <Container maxWidth="xl" sx={{ pb: 8 }}>
         {/* Services Section with Bento Grid Layout */}
         <Box sx={{ mb: 10 }}>
           <Typography
@@ -426,18 +426,18 @@ export default function ServicesPage() {
                         color="secondary"
                         sx={{
                           '& .MuiBadge-badge': {
-                            bgcolor: '#FFD700',
+                            bgcolor: '#e8b63a',
                             color: '#000',
                             fontWeight: 700
                           }
                         }}
                       >
                         <Avatar sx={{
-                          bgcolor: '#FFD700',
+                          bgcolor: '#e8b63a',
                           color: '#000',
                           width: 56,
                           height: 56,
-                          boxShadow: '0 8px 20px rgba(255,215,0,0.3)'
+                          boxShadow: '0 8px 20px rgba(232,182,58,0.3)'
                         }}>
                           <School sx={{ fontSize: 28 }} />
                         </Avatar>
@@ -457,7 +457,7 @@ export default function ServicesPage() {
                     </Typography>
 
                     {/* Features List */}
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#FFD700' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#e8b63a' }}>
                       Lo que incluye:
                     </Typography>
                     <FeatureBullet delay={0}>Técnicas básicas de panadería y amasado</FeatureBullet>
@@ -484,7 +484,7 @@ export default function ServicesPage() {
                       <Grid container spacing={2}>
                         <Grid item xs={6} sm={4}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Groups sx={{ color: '#FFD700', fontSize: 20 }} />
+                            <Groups sx={{ color: '#e8b63a', fontSize: 20 }} />
                             <Box>
                               <Typography variant="caption" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, color: 'rgba(255,255,255,0.5)' }}>
                                 Grupo ideal
@@ -497,7 +497,7 @@ export default function ServicesPage() {
                         </Grid>
                         <Grid item xs={6} sm={4}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <AccessTime sx={{ color: '#FFD700', fontSize: 20 }} />
+                            <AccessTime sx={{ color: '#e8b63a', fontSize: 20 }} />
                             <Box>
                               <Typography variant="caption" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, color: 'rgba(255,255,255,0.5)' }}>
                                 Duración
@@ -510,7 +510,7 @@ export default function ServicesPage() {
                         </Grid>
                         <Grid item xs={12} sm={4}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Place sx={{ color: '#FFD700', fontSize: 20 }} />
+                            <Place sx={{ color: '#e8b63a', fontSize: 20 }} />
                             <Box>
                               <Typography variant="caption" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, color: 'rgba(255,255,255,0.5)' }}>
                                 Ubicación
@@ -546,11 +546,11 @@ export default function ServicesPage() {
                         onClick={() => handleServiceExpand('pizzeros')}
                         endIcon={expandedService === 'pizzeros' ? <ExpandLess /> : <ExpandMore />}
                         sx={{
-                          borderColor: '#FFD700',
-                          color: '#FFD700',
+                          borderColor: '#e8b63a',
+                          color: '#e8b63a',
                           fontWeight: 600,
                           py: 1.5,
-                          '&:hover': { bgcolor: 'rgba(255,215,0,0.1)' }
+                          '&:hover': { bgcolor: 'rgba(232,182,58,0.1)' }
                         }}
                       >
                         {expandedService === 'pizzeros' ? 'Menos detalles' : 'Ver detalles'}
@@ -565,7 +565,7 @@ export default function ServicesPage() {
                           <Typography variant="body2" sx={{ mb: 2, color: 'rgba(255,255,255,0.65)' }}>
                             <strong>Proceso paso a paso:</strong>
                           </Typography>
-                          <Box sx={{ pl: 2, borderLeft: '3px solid #FFD700' }}>
+                          <Box sx={{ pl: 2, borderLeft: '3px solid #e8b63a' }}>
                             <Typography variant="body2" sx={{ mb: 1, color: 'rgba(255,255,255,0.65)' }}>
                               • Bienvenida y explicación del proceso (15 min)
                             </Typography>
@@ -620,14 +620,14 @@ export default function ServicesPage() {
                         sx={{
                           '& .MuiBadge-badge': {
                             bgcolor: '#000',
-                            color: '#FFD700',
+                            color: '#e8b63a',
                             fontWeight: 700
                           }
                         }}
                       >
                         <Avatar sx={{
                           bgcolor: '#000',
-                          color: '#FFD700',
+                          color: '#e8b63a',
                           width: 56,
                           height: 56,
                           boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
@@ -831,7 +831,7 @@ export default function ServicesPage() {
                         transition: 'all 0.3s ease',
                         '&:hover': {
                           transform: 'translateX(8px)',
-                          boxShadow: '0 4px 15px rgba(255,215,0,0.2)'
+                          boxShadow: '0 4px 15px rgba(232,182,58,0.2)'
                         }
                       }}
                     >
@@ -839,7 +839,7 @@ export default function ServicesPage() {
                         {tier.range}
                       </Typography>
                       <Box sx={{ textAlign: 'right' }}>
-                        <Typography variant="h5" sx={{ fontWeight: 800, color: '#FFD700' }}>
+                        <Typography variant="h5" sx={{ fontWeight: 800, color: '#e8b63a' }}>
                           {tier.price}
                         </Typography>
                         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
