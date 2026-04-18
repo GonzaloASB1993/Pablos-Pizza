@@ -92,7 +92,7 @@ const FeatureBullet = ({ children, delay = 0 }) => {
           mt: 0.2,
           filter: 'drop-shadow(0 2px 4px rgba(255, 215, 0, 0.3))'
         }} />
-        <Typography variant="body1" sx={{ fontWeight: 500, lineHeight: 1.6 }}>
+        <Typography variant="body1" sx={{ fontWeight: 500, lineHeight: 1.6, color: 'rgba(255,255,255,0.85)' }}>
           {children}
         </Typography>
       </Box>
@@ -120,7 +120,7 @@ const ServiceStats = ({ icon, label, value, color = '#FFD700' }) => (
     <Typography variant="h4" sx={{ fontWeight: 800, color, mb: 0.5 }}>
       {value}
     </Typography>
-    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+    <Typography variant="body2" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.65)' }}>
       {label}
     </Typography>
   </Box>
@@ -131,16 +131,16 @@ const PricingCard = ({ title, prices, description, isPopular = false, children, 
   <Card sx={{
     height: '100%',
     position: 'relative',
-    border: isPopular ? '3px solid #FFD700' : '1px solid',
-    borderColor: isPopular ? '#FFD700' : 'divider',
+    background: '#1a1714',
+    border: isPopular ? '2px solid #e8b63a' : '1px solid rgba(232,182,58,0.15)',
     borderRadius: 4,
     overflow: 'visible',
     transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
     '&:hover': {
       transform: 'translateY(-8px) scale(1.02)',
       boxShadow: isPopular
-        ? '0 20px 40px rgba(255, 215, 0, 0.3)'
-        : '0 20px 40px rgba(0, 0, 0, 0.1)'
+        ? '0 20px 40px rgba(232,182,58,0.25)'
+        : '0 20px 40px rgba(232,182,58,0.12)'
     }
   }}>
     {isPopular && (
@@ -167,18 +167,18 @@ const PricingCard = ({ title, prices, description, isPopular = false, children, 
     )}
 
     <CardContent sx={{ p: 4, height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Typography variant="h4" sx={{ fontWeight: 800, mb: 2, textAlign: 'center' }}>
+      <Typography variant="h4" sx={{ fontWeight: 800, mb: 2, textAlign: 'center', color: '#FFFFFF' }}>
         {title}
       </Typography>
 
       {children}
 
-      <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center', flexGrow: 1 }}>
+      <Typography variant="body2" sx={{ mt: 2, textAlign: 'center', flexGrow: 1, color: 'rgba(255,255,255,0.65)' }}>
         {description}
       </Typography>
 
       <Button
-        variant={isPopular ? "contained" : "outlined"}
+        variant="contained"
         fullWidth
         size="large"
         onClick={onSelect}
@@ -188,11 +188,9 @@ const PricingCard = ({ title, prices, description, isPopular = false, children, 
           borderRadius: 3,
           fontWeight: 700,
           fontSize: '1.1rem',
-          ...(isPopular && {
-            bgcolor: '#FFD700',
-            color: '#000',
-            '&:hover': { bgcolor: '#CBA900' }
-          })
+          bgcolor: '#e8b63a',
+          color: '#000',
+          '&:hover': { bgcolor: '#d4a32e' }
         }}
       >
         Seleccionar Plan
@@ -207,13 +205,12 @@ const TestimonialCard = ({ review }) => (
     p: 3,
     borderRadius: 4,
     height: '100%',
-    bgcolor: 'rgba(255, 255, 255, 0.9)',
-    backdropFilter: 'blur(10px)',
-    border: '1px solid rgba(255, 215, 0, 0.2)',
+    bgcolor: '#1a1714',
+    border: '1px solid rgba(232,182,58,0.15)',
     transition: 'all 0.3s ease',
     '&:hover': {
       transform: 'translateY(-4px)',
-      boxShadow: '0 12px 30px rgba(255, 215, 0, 0.15)'
+      boxShadow: '0 12px 30px rgba(232,182,58,0.15)'
     }
   }}>
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
@@ -221,7 +218,7 @@ const TestimonialCard = ({ review }) => (
         {review.name ? review.name.charAt(0).toUpperCase() : '?'}
       </Avatar>
       <Box sx={{ flexGrow: 1 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#FFFFFF' }}>
           {review.name || 'Cliente Anónimo'}
         </Typography>
         <Rating value={review.rating || 0} readOnly size="small" />
@@ -231,7 +228,7 @@ const TestimonialCard = ({ review }) => (
     <Typography variant="body2" sx={{
       fontStyle: 'italic',
       lineHeight: 1.6,
-      color: 'text.secondary'
+      color: 'rgba(255,255,255,0.65)'
     }}>
       "{review.comment || 'Excelente experiencia'}"
     </Typography>
@@ -277,7 +274,7 @@ export default function ServicesPage() {
   }
 
   return (
-    <Box>
+    <Box sx={{ background: '#0d0d0d', minHeight: '100vh' }}>
       <SEO
         title="Servicios - Talleres y Pizza Parties"
         description="Conoce nuestros servicios: Pizzeros en Acción (talleres educativos para niños) y Pizza Parties (catering gourmet). Precios desde $9.000 por niño. Santiago, Chile."
@@ -287,8 +284,8 @@ export default function ServicesPage() {
       {/* Enhanced Hero Section with Glass Morphism */}
       <Box sx={{
         position: 'relative',
-        background: 'linear-gradient(135deg, #FFD700 0%, #CBA900 50%, #B8860B 100%)',
-        color: '#000',
+        background: '#0d0d0d',
+        color: '#FFFFFF',
         py: { xs: 4, md: 6 },
         mb: 6,
         overflow: 'hidden',
@@ -299,7 +296,7 @@ export default function ServicesPage() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'url("data:image/svg+xml,%3Csvg width="20" height="20" xmlns="http://www.w3.org/2000/svg"%3E%3Cdefs%3E%3Cpattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"%3E%3Cpath d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(0,0,0,0.05)" stroke-width="1"/%3E%3C/pattern%3E%3C/defs%3E%3Crect width="100%25" height="100%25" fill="url(%23grid)" /%3E%3C/svg%3E")',
+          background: 'url("data:image/svg+xml,%3Csvg width="20" height="20" xmlns="http://www.w3.org/2000/svg"%3E%3Cdefs%3E%3Cpattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"%3E%3Cpath d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(232,182,58,0.05)" stroke-width="1"/%3E%3C/pattern%3E%3C/defs%3E%3Crect width="100%25" height="100%25" fill="url(%23grid)" /%3E%3C/svg%3E")',
           opacity: 0.3
         }
       }}>
@@ -312,11 +309,7 @@ export default function ServicesPage() {
                   fontWeight: 900,
                   mb: 3,
                   fontSize: { xs: '2.5rem', md: '4rem' },
-                  textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
-                  background: 'linear-gradient(45deg, #000, #333)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent'
+                  color: '#FFFFFF'
                 }}
               >
                 Experiencias Únicas
@@ -326,7 +319,7 @@ export default function ServicesPage() {
                 sx={{
                   mb: 4,
                   fontWeight: 600,
-                  color: 'rgba(0,0,0,0.8)',
+                  color: 'rgba(255,255,255,0.65)',
                   lineHeight: 1.4
                 }}
               >
@@ -342,18 +335,18 @@ export default function ServicesPage() {
                   onClick={() => navigate('/agendar')}
                   endIcon={<ArrowForward />}
                   sx={{
-                    bgcolor: '#000',
-                    color: '#FFD700',
+                    bgcolor: '#e8b63a',
+                    color: '#000',
                     px: 4,
                     py: 1.5,
                     borderRadius: 3,
                     fontWeight: 700,
                     fontSize: '1.1rem',
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
+                    boxShadow: '0 8px 25px rgba(232,182,58,0.3)',
                     '&:hover': {
-                      bgcolor: '#333',
+                      bgcolor: '#d4a32e',
                       transform: 'translateY(-2px)',
-                      boxShadow: '0 12px 35px rgba(0,0,0,0.4)'
+                      boxShadow: '0 12px 35px rgba(232,182,58,0.4)'
                     }
                   }}
                 >
@@ -365,8 +358,8 @@ export default function ServicesPage() {
                   onClick={() => handleQuickContact('whatsapp')}
                   startIcon={<WhatsApp />}
                   sx={{
-                    borderColor: '#000',
-                    color: '#000',
+                    borderColor: '#e8b63a',
+                    color: '#e8b63a',
                     px: 4,
                     py: 1.5,
                     borderRadius: 3,
@@ -374,7 +367,7 @@ export default function ServicesPage() {
                     fontSize: '1.1rem',
                     borderWidth: 2,
                     '&:hover': {
-                      bgcolor: 'rgba(0,0,0,0.1)',
+                      bgcolor: 'rgba(232,182,58,0.1)',
                       borderWidth: 2,
                       transform: 'translateY(-2px)'
                     }
@@ -388,21 +381,20 @@ export default function ServicesPage() {
         </Container>
       </Box>
 
-      <Container maxWidth="xl" sx={{ pb: 8 }}>
+      <Container maxWidth="xl" sx={{ pb: 8, background: '#0d0d0d' }}>
         {/* Services Section with Bento Grid Layout */}
         <Box sx={{ mb: 10 }}>
           <Typography
             variant="h2"
             align="center"
-            sx={{ fontWeight: 800, mb: 2, color: '#333' }}
+            sx={{ fontWeight: 800, mb: 2, color: '#FFFFFF' }}
           >
             Nuestros Servicios
           </Typography>
           <Typography
             variant="h6"
             align="center"
-            color="text.secondary"
-            sx={{ mb: 6, maxWidth: '600px', mx: 'auto' }}
+            sx={{ mb: 6, maxWidth: '600px', mx: 'auto', color: 'rgba(255,255,255,0.65)' }}
           >
             Selecciona la experiencia perfecta para tu celebración especial
           </Typography>
@@ -417,14 +409,13 @@ export default function ServicesPage() {
                   borderRadius: 6,
                   overflow: 'visible',
                   position: 'relative',
-                  background: 'linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,255,255,1) 100%)',
-                  border: '2px solid transparent',
-                  backgroundClip: 'padding-box',
+                  background: '#1a1714',
+                  border: '1px solid rgba(232,182,58,0.15)',
                   transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                   '&:hover': {
                     transform: 'translateY(-8px) scale(1.02)',
-                    boxShadow: '0 25px 50px rgba(255, 215, 0, 0.2)',
-                    border: '2px solid rgba(255,215,0,0.3)'
+                    boxShadow: '0 25px 50px rgba(232,182,58,0.15)',
+                    border: '1px solid rgba(232,182,58,0.35)'
                   }
                 }}>
                   <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
@@ -452,16 +443,16 @@ export default function ServicesPage() {
                         </Avatar>
                       </Badge>
                       <Box>
-                        <Typography variant="h3" sx={{ fontWeight: 800, color: '#333' }}>
+                        <Typography variant="h3" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
                           Pizzeros en Acción
                         </Typography>
-                        <Typography variant="subtitle1" color="text.secondary">
+                        <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.65)' }}>
                           Experiencia educativa interactiva
                         </Typography>
                       </Box>
                     </Box>
 
-                    <Typography variant="body1" sx={{ mb: 3, lineHeight: 1.7, fontSize: '1.1rem' }}>
+                    <Typography variant="body1" sx={{ mb: 3, lineHeight: 1.7, fontSize: '1.1rem', color: 'rgba(255,255,255,0.65)' }}>
                       Los niños se convierten en verdaderos chefs por un día. Aprenden técnicas culinarias básicas mientras se divierten creando sus propias pizzas únicas.
                     </Typography>
 
@@ -487,18 +478,18 @@ export default function ServicesPage() {
                     <Paper sx={{
                       p: 2,
                       borderRadius: 3,
-                      bgcolor: 'rgba(255,215,0,0.1)',
-                      border: '1px solid rgba(255,215,0,0.2)'
+                      bgcolor: 'rgba(232,182,58,0.08)',
+                      border: '1px solid rgba(232,182,58,0.2)'
                     }}>
                       <Grid container spacing={2}>
                         <Grid item xs={6} sm={4}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Groups sx={{ color: '#FFD700', fontSize: 20 }} />
                             <Box>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                              <Typography variant="caption" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, color: 'rgba(255,255,255,0.5)' }}>
                                 Grupo ideal
                               </Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.875rem' }, color: '#FFFFFF' }}>
                                 5-15 niños
                               </Typography>
                             </Box>
@@ -508,10 +499,10 @@ export default function ServicesPage() {
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <AccessTime sx={{ color: '#FFD700', fontSize: 20 }} />
                             <Box>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                              <Typography variant="caption" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, color: 'rgba(255,255,255,0.5)' }}>
                                 Duración
                               </Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.875rem' }, color: '#FFFFFF' }}>
                                 2-3 horas
                               </Typography>
                             </Box>
@@ -521,10 +512,10 @@ export default function ServicesPage() {
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Place sx={{ color: '#FFD700', fontSize: 20 }} />
                             <Box>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                              <Typography variant="caption" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' }, color: 'rgba(255,255,255,0.5)' }}>
                                 Ubicación
                               </Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.875rem' }, color: '#FFFFFF' }}>
                                 Tu espacio
                               </Typography>
                             </Box>
@@ -540,11 +531,11 @@ export default function ServicesPage() {
                         fullWidth
                         onClick={() => navigate('/agendar?service=pizzeros')}
                         sx={{
-                          bgcolor: '#FFD700',
+                          bgcolor: '#e8b63a',
                           color: '#000',
                           fontWeight: 700,
                           py: 1.5,
-                          '&:hover': { bgcolor: '#CBA900' }
+                          '&:hover': { bgcolor: '#d4a32e' }
                         }}
                       >
                         Ver Precios
@@ -571,26 +562,26 @@ export default function ServicesPage() {
 
                       <Collapse in={expandedService === 'pizzeros'}>
                         <Box sx={{ pt: 2 }}>
-                          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                          <Typography variant="body2" sx={{ mb: 2, color: 'rgba(255,255,255,0.65)' }}>
                             <strong>Proceso paso a paso:</strong>
                           </Typography>
                           <Box sx={{ pl: 2, borderLeft: '3px solid #FFD700' }}>
-                            <Typography variant="body2" sx={{ mb: 1 }}>
+                            <Typography variant="body2" sx={{ mb: 1, color: 'rgba(255,255,255,0.65)' }}>
                               • Bienvenida y explicación del proceso (15 min)
                             </Typography>
-                            <Typography variant="body2" sx={{ mb: 1 }}>
+                            <Typography variant="body2" sx={{ mb: 1, color: 'rgba(255,255,255,0.65)' }}>
                               • Preparación de la masa y amasado (30 min)
                             </Typography>
-                            <Typography variant="body2" sx={{ mb: 1 }}>
+                            <Typography variant="body2" sx={{ mb: 1, color: 'rgba(255,255,255,0.65)' }}>
                               • Estiramiento y formado de la pizza (20 min)
                             </Typography>
-                            <Typography variant="body2" sx={{ mb: 1 }}>
+                            <Typography variant="body2" sx={{ mb: 1, color: 'rgba(255,255,255,0.65)' }}>
                               • Selección y aplicación de ingredientes (15 min)
                             </Typography>
-                            <Typography variant="body2" sx={{ mb: 1 }}>
+                            <Typography variant="body2" sx={{ mb: 1, color: 'rgba(255,255,255,0.65)' }}>
                               • Horneado y degustación (45 min)
                             </Typography>
-                            <Typography variant="body2">
+                            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>
                               • Entrega de certificados y despedida (15 min)
                             </Typography>
                           </Box>
@@ -611,14 +602,13 @@ export default function ServicesPage() {
                   borderRadius: 6,
                   overflow: 'visible',
                   position: 'relative',
-                  background: 'linear-gradient(135deg, rgba(0,0,0,0.05) 0%, rgba(255,255,255,1) 100%)',
-                  border: '2px solid transparent',
-                  backgroundClip: 'padding-box',
+                  background: '#1a1714',
+                  border: '1px solid rgba(232,182,58,0.15)',
                   transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                   '&:hover': {
                     transform: 'translateY(-8px) scale(1.02)',
-                    boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15)',
-                    border: '2px solid rgba(0,0,0,0.1)'
+                    boxShadow: '0 25px 50px rgba(232,182,58,0.15)',
+                    border: '1px solid rgba(232,182,58,0.35)'
                   }
                 }}>
                   <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
@@ -646,21 +636,21 @@ export default function ServicesPage() {
                         </Avatar>
                       </Badge>
                       <Box>
-                        <Typography variant="h3" sx={{ fontWeight: 800, color: '#333' }}>
+                        <Typography variant="h3" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
                           Pizza Parties
                         </Typography>
-                        <Typography variant="subtitle1" color="text.secondary">
+                        <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.65)' }}>
                           Catering completo y profesional
                         </Typography>
                       </Box>
                     </Box>
 
-                    <Typography variant="body1" sx={{ mb: 3, lineHeight: 1.7, fontSize: '1.1rem' }}>
+                    <Typography variant="body1" sx={{ mb: 3, lineHeight: 1.7, fontSize: '1.1rem', color: 'rgba(255,255,255,0.65)' }}>
                       Servicio completo de catering con pizzas artesanales frescas. Llevamos toda la experiencia gastronómica directamente a tu evento.
                     </Typography>
 
                     {/* Features List */}
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#000' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#e8b63a' }}>
                       Lo que incluye:
                     </Typography>
                     <FeatureBullet delay={0}>Pizzas artesanales hechas al momento</FeatureBullet>
@@ -681,18 +671,18 @@ export default function ServicesPage() {
                     <Paper sx={{
                       p: 2,
                       borderRadius: 3,
-                      bgcolor: 'rgba(0,0,0,0.05)',
-                      border: '1px solid rgba(0,0,0,0.1)'
+                      bgcolor: 'rgba(232,182,58,0.08)',
+                      border: '1px solid rgba(232,182,58,0.2)'
                     }}>
                       <Grid container spacing={2}>
                         <Grid item xs={12} sm={4}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Groups sx={{ color: '#000', fontSize: 20 }} />
+                            <Groups sx={{ color: '#e8b63a', fontSize: 20 }} />
                             <Box>
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
                                 Grupo ideal
                               </Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: '#FFFFFF' }}>
                                 10-50+ personas
                               </Typography>
                             </Box>
@@ -700,12 +690,12 @@ export default function ServicesPage() {
                         </Grid>
                         <Grid item xs={12} sm={4}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <AccessTime sx={{ color: '#000', fontSize: 20 }} />
+                            <AccessTime sx={{ color: '#e8b63a', fontSize: 20 }} />
                             <Box>
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
                                 Duración
                               </Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: '#FFFFFF' }}>
                                 Flexible
                               </Typography>
                             </Box>
@@ -713,12 +703,12 @@ export default function ServicesPage() {
                         </Grid>
                         <Grid item xs={12} sm={4}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Place sx={{ color: '#000', fontSize: 20 }} />
+                            <Place sx={{ color: '#e8b63a', fontSize: 20 }} />
                             <Box>
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
                                 Ubicación
                               </Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: '#FFFFFF' }}>
                                 A elección
                               </Typography>
                             </Box>
@@ -734,11 +724,11 @@ export default function ServicesPage() {
                         fullWidth
                         onClick={() => navigate('/agendar?service=parties')}
                         sx={{
-                          bgcolor: '#000',
-                          color: '#FFD700',
+                          bgcolor: '#e8b63a',
+                          color: '#000',
                           fontWeight: 700,
                           py: 1.5,
-                          '&:hover': { bgcolor: '#333' }
+                          '&:hover': { bgcolor: '#d4a32e' }
                         }}
                       >
                         Ver Precios
@@ -749,11 +739,11 @@ export default function ServicesPage() {
                         onClick={() => handleServiceExpand('parties')}
                         endIcon={expandedService === 'parties' ? <ExpandLess /> : <ExpandMore />}
                         sx={{
-                          borderColor: '#000',
-                          color: '#000',
+                          borderColor: '#e8b63a',
+                          color: '#e8b63a',
                           fontWeight: 600,
                           py: 1.5,
-                          '&:hover': { bgcolor: 'rgba(0,0,0,0.05)' }
+                          '&:hover': { bgcolor: 'rgba(232,182,58,0.1)' }
                         }}
                       >
                         {expandedService === 'parties' ? 'Menos detalles' : 'Ver detalles'}
@@ -765,23 +755,23 @@ export default function ServicesPage() {
 
                       <Collapse in={expandedService === 'parties'}>
                         <Box sx={{ pt: 2 }}>
-                          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                          <Typography variant="body2" sx={{ mb: 2, color: 'rgba(255,255,255,0.65)' }}>
                             <strong>Sabores disponibles:</strong>
                           </Typography>
-                          <Box sx={{ pl: 2, borderLeft: '3px solid #000' }}>
-                            <Typography variant="body2" sx={{ mb: 1 }}>
+                          <Box sx={{ pl: 2, borderLeft: '3px solid #e8b63a' }}>
+                            <Typography variant="body2" sx={{ mb: 1, color: 'rgba(255,255,255,0.65)' }}>
                               • Margherita clásica con albahaca fresca
                             </Typography>
-                            <Typography variant="body2" sx={{ mb: 1 }}>
+                            <Typography variant="body2" sx={{ mb: 1, color: 'rgba(255,255,255,0.65)' }}>
                               • Pepperoni premium con queso mozarella
                             </Typography>
-                            <Typography variant="body2" sx={{ mb: 1 }}>
+                            <Typography variant="body2" sx={{ mb: 1, color: 'rgba(255,255,255,0.65)' }}>
                               • Vegetariana con verduras de temporada
                             </Typography>
-                            <Typography variant="body2" sx={{ mb: 1 }}>
+                            <Typography variant="body2" sx={{ mb: 1, color: 'rgba(255,255,255,0.65)' }}>
                               • Hawaiana con jamón y piña natural
                             </Typography>
-                            <Typography variant="body2">
+                            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>
                               • Opciones personalizadas según preferencias
                             </Typography>
                           </Box>
@@ -800,15 +790,14 @@ export default function ServicesPage() {
           <Typography
             variant="h2"
             align="center"
-            sx={{ fontWeight: 800, mb: 2, color: '#333' }}
+            sx={{ fontWeight: 800, mb: 2, color: '#FFFFFF' }}
           >
             Planes y Precios
           </Typography>
           <Typography
             variant="h6"
             align="center"
-            color="text.secondary"
-            sx={{ mb: 6, maxWidth: '600px', mx: 'auto' }}
+            sx={{ mb: 6, maxWidth: '600px', mx: 'auto', color: 'rgba(255,255,255,0.65)' }}
           >
             Precios transparentes sin sorpresas. Todos incluyen materiales y servicio completo.
           </Typography>
@@ -834,8 +823,8 @@ export default function ServicesPage() {
                         p: 2,
                         mb: 2,
                         borderRadius: 3,
-                        bgcolor: tier.highlight ? 'rgba(255,215,0,0.1)' : 'rgba(0,0,0,0.02)',
-                        border: tier.highlight ? '2px solid rgba(255,215,0,0.3)' : '1px solid rgba(0,0,0,0.1)',
+                        bgcolor: tier.highlight ? 'rgba(232,182,58,0.12)' : 'rgba(255,255,255,0.04)',
+                        border: tier.highlight ? '2px solid rgba(232,182,58,0.35)' : '1px solid rgba(255,255,255,0.08)',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
@@ -846,17 +835,17 @@ export default function ServicesPage() {
                         }
                       }}
                     >
-                      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                      <Typography variant="body1" sx={{ fontWeight: 600, color: '#FFFFFF' }}>
                         {tier.range}
                       </Typography>
                       <Box sx={{ textAlign: 'right' }}>
                         <Typography variant="h5" sx={{ fontWeight: 800, color: '#FFD700' }}>
                           {tier.price}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
                           {tier.unit}
                         </Typography>
-                        <Typography variant="caption" sx={{ display: 'block', color: tier.highlight ? '#4CAF50' : 'text.secondary', fontWeight: 600 }}>
+                        <Typography variant="caption" sx={{ display: 'block', color: tier.highlight ? '#4CAF50' : 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
                           {tier.desc}
                         </Typography>
                       </Box>
@@ -875,13 +864,12 @@ export default function ServicesPage() {
                 <Box sx={{ textAlign: 'center', mb: 4 }}>
                   <Typography variant="h2" sx={{
                     fontWeight: 900,
-                    color: '#000',
-                    mb: 1,
-                    textShadow: '2px 2px 4px rgba(0,0,0,0.1)'
+                    color: '#FFFFFF',
+                    mb: 1
                   }}>
                     $11.990
                   </Typography>
-                  <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.65)' }}>
                     CLP por pizza
                   </Typography>
 
@@ -895,7 +883,7 @@ export default function ServicesPage() {
                     <Typography variant="body2" sx={{ fontWeight: 600, color: '#4CAF50' }}>
                       ¡Descuento especial!
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>
                       10% OFF en pedidos de 20+ pizzas
                     </Typography>
                   </Paper>
@@ -909,14 +897,14 @@ export default function ServicesPage() {
             mt: 4,
             p: 3,
             borderRadius: 4,
-            bgcolor: 'rgba(255, 193, 7, 0.1)',
-            border: '1px solid rgba(255, 193, 7, 0.3)',
+            bgcolor: 'rgba(232,182,58,0.08)',
+            border: '1px solid rgba(232,182,58,0.2)',
             textAlign: 'center'
           }}>
-            <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
+            <Typography variant="body1" sx={{ fontWeight: 600, mb: 1, color: '#FFFFFF' }}>
               Información importante sobre precios
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>
               * Comunas como Chicureo, Colina o Talagante tienen un adicional de $20.000 por concepto de traslado.
               Todos los precios incluyen IVA y no tienen costos adicionales ocultos.
             </Typography>
@@ -929,15 +917,14 @@ export default function ServicesPage() {
             <Typography
               variant="h2"
               align="center"
-              sx={{ fontWeight: 800, mb: 2, color: '#333' }}
+              sx={{ fontWeight: 800, mb: 2, color: '#FFFFFF' }}
             >
               Lo que dicen nuestros clientes
             </Typography>
             <Typography
               variant="h6"
               align="center"
-              color="text.secondary"
-              sx={{ mb: 6, maxWidth: '600px', mx: 'auto' }}
+              sx={{ mb: 6, maxWidth: '600px', mx: 'auto', color: 'rgba(255,255,255,0.65)' }}
             >
               Más de 500 familias felices han confiado en nosotros para sus celebraciones especiales
             </Typography>
@@ -961,26 +948,16 @@ export default function ServicesPage() {
           p: 6,
           borderRadius: 6,
           textAlign: 'center',
-          background: 'linear-gradient(135deg, #FFD700 0%, #CBA900 100%)',
-          color: '#000',
+          background: '#141414',
+          border: '1px solid rgba(232,182,58,0.25)',
           position: 'relative',
-          overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'url("data:image/svg+xml,%3Csvg width="40" height="40" xmlns="http://www.w3.org/2000/svg"%3E%3Cdefs%3E%3Cpattern id="dots" width="40" height="40" patternUnits="userSpaceOnUse"%3E%3Ccircle cx="20" cy="20" r="2" fill="rgba(0,0,0,0.1)"/%3E%3C/pattern%3E%3C/defs%3E%3Crect width="100%25" height="100%25" fill="url(%23dots)" /%3E%3C/svg%3E")',
-            opacity: 0.3
-          }
+          overflow: 'hidden'
         }}>
           <Box sx={{ position: 'relative', zIndex: 1 }}>
-            <Typography variant="h3" sx={{ fontWeight: 900, mb: 2 }}>
+            <Typography variant="h3" sx={{ fontWeight: 900, mb: 2, color: '#FFFFFF' }}>
               ¿Listo para crear recuerdos inolvidables?
             </Typography>
-            <Typography variant="h6" sx={{ mb: 4, opacity: 0.8, maxWidth: '600px', mx: 'auto' }}>
+            <Typography variant="h6" sx={{ mb: 4, color: 'rgba(255,255,255,0.65)', maxWidth: '600px', mx: 'auto' }}>
               Contáctanos ahora y obtén una cotización personalizada. Te garantizamos una experiencia única que toda la familia recordará para siempre.
             </Typography>
 
@@ -997,19 +974,19 @@ export default function ServicesPage() {
                 onClick={() => navigate('/agendar')}
                 endIcon={<ArrowForward />}
                 sx={{
-                  bgcolor: '#000',
-                  color: '#FFD700',
+                  bgcolor: '#e8b63a',
+                  color: '#000',
                   px: 4,
                   py: 2,
                   borderRadius: 3,
                   fontWeight: 800,
                   fontSize: '1.2rem',
                   minWidth: '200px',
-                  boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
+                  boxShadow: '0 8px 25px rgba(232,182,58,0.3)',
                   '&:hover': {
-                    bgcolor: '#333',
+                    bgcolor: '#d4a32e',
                     transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 35px rgba(0,0,0,0.4)'
+                    boxShadow: '0 12px 35px rgba(232,182,58,0.4)'
                   }
                 }}
               >
@@ -1022,8 +999,8 @@ export default function ServicesPage() {
                 onClick={() => handleQuickContact('whatsapp')}
                 startIcon={<WhatsApp />}
                 sx={{
-                  borderColor: '#000',
-                  color: '#000',
+                  borderColor: '#e8b63a',
+                  color: '#e8b63a',
                   px: 4,
                   py: 2,
                   borderRadius: 3,
@@ -1032,7 +1009,7 @@ export default function ServicesPage() {
                   minWidth: '180px',
                   borderWidth: 2,
                   '&:hover': {
-                    bgcolor: 'rgba(0,0,0,0.1)',
+                    bgcolor: 'rgba(232,182,58,0.1)',
                     borderWidth: 2,
                     transform: 'translateY(-4px)'
                   }
@@ -1048,7 +1025,7 @@ export default function ServicesPage() {
               gap: 4,
               justifyContent: 'center',
               flexWrap: 'wrap',
-              opacity: 0.8
+              color: 'rgba(255,255,255,0.65)'
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Phone sx={{ fontSize: 20 }} />
