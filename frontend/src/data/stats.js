@@ -8,3 +8,7 @@ export const STATS = {
   yearsActive: '3',
   rating: '5.0',
 }
+
+// A/B test config — 'floating' = CTA flotante actual, 'bottombar' = variante barra fija
+// Cambiar a 'bottombar' para activar la variante y medir conversión a /agendar
+export const CTA_VARIANT = 'floating'
