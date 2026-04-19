@@ -79,7 +79,7 @@ const TeamMemberCard = ({ name, role, story, initials, delay = 0 }) => {
           >
             {initials}
           </Avatar>
-          <Typography variant="h4" sx={{ color: '#e8b63a', fontWeight: 800, mb: 0.5, textAlign: 'center' }}>
+          <Typography variant="h4" component="h3" sx={{ color: '#e8b63a', fontWeight: 800, mb: 0.5, textAlign: 'center' }}>
             {name}
           </Typography>
           <Typography variant="h6" sx={{ color: '#FFF', fontWeight: 500, textAlign: 'center' }}>
@@ -112,7 +112,7 @@ const StatBox = ({ icon, number, label }) => (
         sx: { fontSize: 48, color: '#e8b63a' }
       })}
     </Box>
-    <Typography variant="h3" sx={{ fontWeight: 800, color: '#e8b63a', mb: 0.5 }}>
+    <Typography variant="h3" component="p" sx={{ fontWeight: 800, color: '#e8b63a', mb: 0.5 }}>
       {number}
     </Typography>
     <Typography variant="body1" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.65)' }}>
@@ -261,6 +261,7 @@ export default function AboutPage() {
         <Box sx={{ mb: 10, background: '#141414', borderRadius: 4, p: { xs: 3, md: 6 } }}>
           <Typography
             variant="h2"
+            component="h2"
             align="center"
             sx={{ fontWeight: 800, mb: 2, color: '#FFFFFF' }}
           >
@@ -300,6 +301,7 @@ export default function AboutPage() {
         >
           <Typography
             variant="h2"
+            component="h2"
             align="center"
             sx={{ fontWeight: 800, mb: 2, color: '#e8b63a' }}
           >
@@ -398,7 +400,7 @@ export default function AboutPage() {
             border: '1px solid rgba(232,182,58,0.15)'
           }}
         >
-          <Typography variant="h3" sx={{ fontWeight: 900, mb: 2, color: '#FFFFFF' }}>
+          <Typography variant="h3" component="h3" sx={{ fontWeight: 900, mb: 2, color: '#FFFFFF' }}>
             ¿Listo para Conocernos en Persona?
           </Typography>
           <Typography variant="h6" sx={{ mb: 4, color: 'rgba(255,255,255,0.65)', maxWidth: 600, mx: 'auto' }}>

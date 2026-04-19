@@ -94,7 +94,7 @@ const ServiceStats = ({ icon, label, value, color = '#e8b63a' }) => (
     {React.cloneElement(icon, {
       sx: { fontSize: 32, color, mb: 1 }
     })}
-    <Typography variant="h4" sx={{ fontWeight: 800, color, mb: 0.5 }}>
+    <Typography variant="h4" component="p" sx={{ fontWeight: 800, color, mb: 0.5 }}>
       {value}
     </Typography>
     <Typography variant="body2" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.65)' }}>
@@ -141,7 +141,7 @@ const PricingCard = ({ title, prices, description, isPopular = false, children, 
     )}
 
     <CardContent sx={{ p: 4, height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Typography variant="h4" sx={{ fontWeight: 800, mb: 2, textAlign: 'center', color: '#FFFFFF' }}>
+      <Typography variant="h4" component="h3" sx={{ fontWeight: 800, mb: 2, textAlign: 'center', color: '#FFFFFF' }}>
         {title}
       </Typography>
 
@@ -431,7 +431,7 @@ export default function ServicesPage() {
                           <School sx={{ fontSize: 28 }} />
                         </Avatar>
                       <Box>
-                        <Typography variant="h3" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
+                        <Typography variant="h3" component="h3" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
                           Pizzeros en Acción
                         </Typography>
                         <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.65)' }}>
@@ -611,7 +611,7 @@ export default function ServicesPage() {
                           <Celebration sx={{ fontSize: 28 }} />
                         </Avatar>
                       <Box>
-                        <Typography variant="h3" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
+                        <Typography variant="h3" component="h3" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
                           Pizza Parties
                         </Typography>
                         <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.65)' }}>
@@ -826,7 +826,7 @@ export default function ServicesPage() {
                 onSelect={() => navigate('/agendar?service=parties')}
               >
                 <Box sx={{ textAlign: 'center', mb: 4 }}>
-                  <Typography variant="h2" sx={{
+                  <Typography variant="h2" component="p" sx={{
                     fontWeight: 900,
                     color: '#FFFFFF',
                     mb: 1
@@ -920,7 +920,7 @@ export default function ServicesPage() {
           overflow: 'hidden'
         }}>
           <Box sx={{ position: 'relative', zIndex: 1 }}>
-            <Typography variant="h3" sx={{ fontWeight: 900, mb: 2, color: '#FFFFFF' }}>
+            <Typography variant="h3" component="h3" sx={{ fontWeight: 900, mb: 2, color: '#FFFFFF' }}>
               ¿Listo para crear recuerdos inolvidables?
             </Typography>
             <Typography variant="h6" sx={{ mb: 4, color: 'rgba(255,255,255,0.65)', maxWidth: '600px', mx: 'auto' }}>
