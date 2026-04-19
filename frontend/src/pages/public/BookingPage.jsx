@@ -60,7 +60,10 @@ import {
   LocalPizza,
   Group,
   CreditCard,
-  Lock
+  Lock,
+  Cake,
+  School,
+  Business
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { designTokens } from '../../utils/theme'
@@ -128,113 +131,36 @@ const menuProps = {
   },
 }
 
-// Componente Hero Section Premium
+// Componente Hero Section Minimo
 const HeroSection = () => {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-
   return (
     <Box
       sx={{
-        position: 'relative',
-        background: designTokens.colors.aurora.sunset,
-        // Reducimos altura del banner para ocupar menos espacio en la página
-        minHeight: isMobile ? '28vh' : '32vh',
-        display: 'flex',
-        alignItems: 'center',
-        overflow: 'hidden',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.3)',
-          zIndex: 1,
-        },
-        '&::after': {
-          content: '""',
-          position: 'absolute',
-          bottom: -50,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '120%',
-          height: 100,
-          background: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: '50%',
-          backdropFilter: 'blur(20px)',
-          zIndex: 2,
-        }
+        background: '#0d0d0d',
+        py: { xs: 4, md: 5 },
+        px: 2,
+        textAlign: 'center',
+        borderBottom: '1px solid rgba(232,182,58,0.2)',
       }}
     >
-      {/* Elementos decorativos flotantes */}
-      {!isMobile && (
-        <>
-          <Box
-            sx={{
-              position: 'absolute',
-              top: '20%',
-              left: '10%',
-              width: 80,
-              height: 80,
-              borderRadius: '50%',
-              background: designTokens.colors.aurora.glassMorph,
-              backdropFilter: 'blur(10px)',
-              animation: 'float 6s ease-in-out infinite',
-              '@keyframes float': {
-                '0%, 100%': { transform: 'translateY(0px)' },
-                '50%': { transform: 'translateY(-20px)' }
-              }
-            }}
-          />
-          <Box
-            sx={{
-              position: 'absolute',
-              top: '60%',
-              right: '15%',
-              width: 60,
-              height: 60,
-              borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.15)',
-              backdropFilter: 'blur(15px)',
-              animation: 'float 4s ease-in-out infinite 2s',
-            }}
-          />
-        </>
-      )}
-
-      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 3 }}>
-        <Fade in timeout={1000}>
-          <Box sx={{ textAlign: 'center', color: 'white' }}>
-            <Typography
-              variant="h1"
-              sx={{
-                mb: 3,
-                background: 'linear-gradient(45deg, #FFFFFF 30%, #FFD700 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                textShadow: '0 4px 8px rgba(0,0,0,0.3)'
-              }}
-            >
-              Reserva tu Evento Especial
-            </Typography>
-            <Typography
-              variant="h5"
-              sx={{
-                mb: 0,
-                opacity: 0.9,
-                maxWidth: '700px',
-                margin: '0 auto',
-                textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-              }}
-            >
-              Crea momentos inolvidables con nuestros pizzeros profesionales.
-            </Typography>
-          </Box>
-        </Fade>
-      </Container>
+      <Typography
+        variant="h1"
+        component="h1"
+        sx={{
+          fontSize: { xs: '1.8rem', md: '2.5rem' },
+          fontWeight: 700,
+          color: '#FFFFFF',
+          mb: 1,
+        }}
+      >
+        Reserva tu Evento
+      </Typography>
+      <Typography
+        variant="body1"
+        sx={{ color: 'rgba(255,255,255,0.65)', maxWidth: 480, mx: 'auto' }}
+      >
+        Completá el formulario y te contactamos en menos de 24 horas.
+      </Typography>
     </Box>
   )
 }
@@ -496,42 +422,17 @@ export default function BookingPage() {
       <HeroSection />
 
       {/* Botón de navegación flotante */}
-      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 10, mt: -8, pb: 8 }}>
-        <Fade in timeout={800}>
-          <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Button
-              startIcon={<ArrowBack />}
-              onClick={() => navigate(-1)}
-              sx={{
-                borderRadius: designTokens.radius.full,
-                background: 'rgba(255, 255, 255, 0.9)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 215, 0, 0.2)',
-                px: 3,
-                py: 1.5,
-                '&:hover': {
-                  background: 'rgba(255, 255, 255, 0.95)',
-                  transform: 'translateY(-2px)',
-                }
-              }}
-            >
-              Volver
-            </Button>
-
-            {/* Indicador de progreso */}
-            <Chip
-              icon={<AutoAwesome />}
-              label={`Paso ${activeStep + 1} de ${steps.length}`}
-              sx={{
-                background: designTokens.colors.aurora.golden,
-                color: designTokens.colors.charcoal[900],
-                fontWeight: 600,
-                px: 2,
-                py: 1
-              }}
-            />
-          </Box>
-        </Fade>
+      <Container maxWidth="lg" sx={{ pb: 8 }}>
+        <Box sx={{ mb: 3, pt: 3 }}>
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBack />}
+            onClick={() => navigate(-1)}
+            size="small"
+          >
+            Volver
+          </Button>
+        </Box>
 
         <Grid container spacing={4}>
           {/* Formulario Principal */}
@@ -700,9 +601,10 @@ export default function BookingPage() {
                                         />
                                       }
                                       label={
-                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <LocalPizza sx={{ fontSize: 18, color: '#e8b63a' }} />
                                           <Typography sx={{ fontWeight: 500 }}>
-                                            🍕 Pizzeros en Acción
+                                            Pizzeros en Acción
                                           </Typography>
                                         </Box>
                                       }
@@ -721,9 +623,10 @@ export default function BookingPage() {
                                         />
                                       }
                                       label={
-                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <Celebration sx={{ fontSize: 18, color: '#e8b63a' }} />
                                           <Typography sx={{ fontWeight: 500 }}>
-                                            🎉 Pizza Party
+                                            Pizza Party
                                           </Typography>
                                         </Box>
                                       }
