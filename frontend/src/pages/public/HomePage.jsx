@@ -50,6 +50,7 @@ import { listenGalleryPhotos, getGalleryImageUrls } from '../../services/gallery
 import BorderBeam from '../../components/common/BorderBeam'
 import RollingGallery from '../../components/common/RollingGallery'
 import LightRays from '../../components/common/LightRays'
+import { ACTIVE_PROMO, PIZZEROS_TIERS } from '../../data/pricing'
 
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS (local shortcuts)
@@ -101,7 +102,7 @@ const FloatingCTA = ({ navigate, prefersReducedMotion }) => {
       <Box
         role="button"
         tabIndex={0}
-        aria-label="Agendar evento ahora — 10% descuento este mes"
+        aria-label="Agendar evento ahora"
         onKeyDown={handleKeyDown}
         onClick={() => navigate('/agendar')}
         sx={{
@@ -140,9 +141,11 @@ const FloatingCTA = ({ navigate, prefersReducedMotion }) => {
           <Typography variant="caption" sx={{ fontWeight: 800, display: 'block', lineHeight: 1.1, fontSize: '0.8rem' }}>
             ¡Agenda HOY!
           </Typography>
-          <Typography variant="caption" sx={{ opacity: 0.75, fontSize: '0.7rem', lineHeight: 1 }}>
-            10% dcto este mes
-          </Typography>
+          {ACTIVE_PROMO ? (
+            <Typography variant="caption" sx={{ opacity: 0.75, fontSize: '0.7rem', lineHeight: 1 }}>
+              {ACTIVE_PROMO.label}
+            </Typography>
+          ) : null}
         </Box>
       </Box>
     </Fade>
@@ -964,7 +967,7 @@ export default function HomePage() {
                     </Typography>
                   </Typography>
                   <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontWeight: 500, mt: 1, fontSize: '0.9rem' }}>
-                    Descuentos: 10% para +15 niños · 15% para +25 niños
+                    Desde ${PIZZEROS_TIERS[PIZZEROS_TIERS.length - 1].price.toLocaleString('es-CL')} con grupos de 20+ niños
                   </Typography>
                 </Box>
 

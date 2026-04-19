@@ -41,6 +41,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { listenTestimonials } from '../../services/testimonialsService'
 import { CONTACT_INFO } from '../../config/constants'
+import { PIZZEROS_TIERS } from '../../data/pricing'
 
 // Enhanced interactive tag component
 const ModernTag = ({ children, color = 'primary', variant = 'filled', icon, size = 'medium' }) => (
@@ -811,12 +812,7 @@ export default function ServicesPage() {
                 onSelect={() => navigate('/agendar?service=pizzeros')}
               >
                 <Box sx={{ mb: 3 }}>
-                  {[
-                    { range: 'Hasta 10 niños', price: '$13.500', unit: 'por niño', desc: 'Mínimo $135.000' },
-                    { range: '11 - 14 niños', price: '$10.500', unit: 'por niño', desc: 'Precio estándar' },
-                    { range: '15 - 19 niños', price: '$9.500', unit: 'por niño', desc: 'Precio preferencial' },
-                    { range: '20+ niños', price: '$9.000', unit: 'por niño', desc: 'Mejor precio', highlight: true }
-                  ].map((tier, index) => (
+                  {PIZZEROS_TIERS.map((tier, index) => (
                     <Paper
                       key={index}
                       sx={{
@@ -840,13 +836,10 @@ export default function ServicesPage() {
                       </Typography>
                       <Box sx={{ textAlign: 'right' }}>
                         <Typography variant="h5" sx={{ fontWeight: 800, color: '#e8b63a' }}>
-                          {tier.price}
+                          ${tier.price.toLocaleString('es-CL')}
                         </Typography>
                         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
                           {tier.unit}
-                        </Typography>
-                        <Typography variant="caption" sx={{ display: 'block', color: tier.highlight ? '#4CAF50' : 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
-                          {tier.desc}
                         </Typography>
                       </Box>
                     </Paper>

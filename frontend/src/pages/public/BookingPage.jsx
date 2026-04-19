@@ -66,6 +66,7 @@ import { useNavigate } from 'react-router-dom'
 import { designTokens } from '../../utils/theme'
 import { createBooking, createPaymentPreference } from '../../services/bookingService'
 import { santiagoComunas, isComunaLejana, CARGO_COMUNA_LEJANA, comunasLejanas } from '../../data/chileanRegions'
+import { getPizzerosPrice } from '../../data/pricing'
 
 // Constantes de pricing (sincronizadas con backend)
 const PRICING_CONSTANTS = {
@@ -94,11 +95,6 @@ const TIME_OPTIONS = Array.from({ length: 27 }, (_, i) => {
 })
 
 // Helper functions para pricing
-const getPizzerosPrice = (participants) => {
-  const tier = PRICING_CONSTANTS.PIZZEROS_TIERS.find(t => participants >= t.min && participants <= t.max)
-  return tier ? tier.price : PRICING_CONSTANTS.PIZZEROS_TIERS[PRICING_CONSTANTS.PIZZEROS_TIERS.length - 1].price
-}
-
 const getPizzaPartyPrice = (pizzas) => {
   if (pizzas >= PRICING_CONSTANTS.PIZZA_PARTY_DISCOUNT_THRESHOLD) {
     return Math.round(PRICING_CONSTANTS.PIZZA_PARTY_BASE_PRICE * (1 - PRICING_CONSTANTS.PIZZA_PARTY_DISCOUNT))
