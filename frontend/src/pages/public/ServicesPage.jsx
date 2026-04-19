@@ -128,7 +128,6 @@ const PricingCard = ({ title, prices, description, isPopular = false, children, 
       }}>
         <Chip
           label="MÁS POPULAR"
-          color="primary"
           size="small"
           icon={<TrendingUp />}
           sx={{
