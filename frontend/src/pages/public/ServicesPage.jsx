@@ -11,7 +11,6 @@ import {
   Paper,
   Avatar,
   Rating,
-  Badge,
   IconButton,
   Collapse,
   Fade,
@@ -423,18 +422,7 @@ export default function ServicesPage() {
                   <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                     {/* Service Header */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                      <Badge
-                        badgeContent="NUEVO"
-                        color="secondary"
-                        sx={{
-                          '& .MuiBadge-badge': {
-                            bgcolor: '#e8b63a',
-                            color: '#000',
-                            fontWeight: 700
-                          }
-                        }}
-                      >
-                        <Avatar sx={{
+                      <Avatar sx={{
                           bgcolor: '#e8b63a',
                           color: '#000',
                           width: 56,
@@ -443,7 +431,6 @@ export default function ServicesPage() {
                         }}>
                           <School sx={{ fontSize: 28 }} />
                         </Avatar>
-                      </Badge>
                       <Box>
                         <Typography variant="h3" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
                           Pizzeros en Acción
@@ -616,18 +603,7 @@ export default function ServicesPage() {
                   <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                     {/* Service Header */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                      <Badge
-                        badgeContent="PREMIUM"
-                        color="primary"
-                        sx={{
-                          '& .MuiBadge-badge': {
-                            bgcolor: '#000',
-                            color: '#e8b63a',
-                            fontWeight: 700
-                          }
-                        }}
-                      >
-                        <Avatar sx={{
+                      <Avatar sx={{
                           bgcolor: '#000',
                           color: '#e8b63a',
                           width: 56,
@@ -636,7 +612,6 @@ export default function ServicesPage() {
                         }}>
                           <Celebration sx={{ fontSize: 28 }} />
                         </Avatar>
-                      </Badge>
                       <Box>
                         <Typography variant="h3" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
                           Pizza Parties
