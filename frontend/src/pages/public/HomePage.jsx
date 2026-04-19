@@ -51,6 +51,7 @@ import BorderBeam from '../../components/common/BorderBeam'
 import RollingGallery from '../../components/common/RollingGallery'
 import LightRays from '../../components/common/LightRays'
 import { ACTIVE_PROMO, PIZZEROS_TIERS } from '../../data/pricing'
+import { STATS } from '../../data/stats'
 
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS (local shortcuts)
@@ -752,7 +753,7 @@ export default function HomePage() {
               }}
             >
               {[
-                { number: '500+', label: 'Niños felices', icon: <Favorite sx={{ fontSize: 16, color: GOLD }} /> },
+                { number: STATS.kidsServed, label: 'Niños felices', icon: <Favorite sx={{ fontSize: 16, color: GOLD }} /> },
                 { number: '50+', label: 'Eventos exitosos', icon: <EmojiEvents sx={{ fontSize: 16, color: GOLD }} /> },
                 { number: '★ 5.0', label: 'Calificación', icon: <Star sx={{ fontSize: 16, color: GOLD }} /> },
               ].map(({ number, label, icon }) => (
@@ -1587,7 +1588,7 @@ export default function HomePage() {
             {[
               { number: '24h', label: 'Respuesta garantizada' },
               { number: '100%', label: 'Satisfacción garantizada' },
-              { number: '500+', label: 'Familias felices' },
+              { number: STATS.kidsServed, label: 'Familias felices' },
             ].map(({ number, label }) => (
               <Box key={label} sx={{ textAlign: 'center' }}>
                 <Typography sx={{ fontSize: { xs: '2rem', md: '2.5rem' }, fontWeight: 900, lineHeight: 1 }}>

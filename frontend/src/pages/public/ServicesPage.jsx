@@ -42,6 +42,7 @@ import { useNavigate } from 'react-router-dom'
 import { listenTestimonials } from '../../services/testimonialsService'
 import { CONTACT_INFO } from '../../config/constants'
 import { PIZZEROS_TIERS } from '../../data/pricing'
+import { STATS } from '../../data/stats'
 
 // Enhanced interactive tag component
 const ModernTag = ({ children, color = 'primary', variant = 'filled', icon, size = 'medium' }) => (
@@ -919,7 +920,7 @@ export default function ServicesPage() {
               align="center"
               sx={{ mb: 6, maxWidth: '600px', mx: 'auto', color: 'rgba(255,255,255,0.65)' }}
             >
-              Más de 500 familias felices han confiado en nosotros para sus celebraciones especiales
+              Más de {STATS.kidsServed} familias felices han confiado en nosotros para sus celebraciones especiales
             </Typography>
 
             <Grid container spacing={3}>

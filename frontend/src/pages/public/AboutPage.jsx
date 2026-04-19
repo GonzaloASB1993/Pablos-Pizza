@@ -24,6 +24,7 @@ import {
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@mui/material/styles'
+import { STATS } from '../../data/stats'
 
 // Team Member Card Component
 const TeamMemberCard = ({ name, role, story, image, delay = 0 }) => {
@@ -241,7 +242,7 @@ export default function AboutPage() {
             <Grid item xs={12} md={4}>
               <StatBox
                 icon={<Favorite />}
-                number="500+"
+                number={STATS.kidsServed}
                 label="Niños Felices"
               />
             </Grid>
