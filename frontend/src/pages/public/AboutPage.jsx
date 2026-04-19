@@ -27,7 +27,7 @@ import { useTheme } from '@mui/material/styles'
 import { STATS } from '../../data/stats'
 
 // Team Member Card Component
-const TeamMemberCard = ({ name, role, story, image, delay = 0 }) => {
+const TeamMemberCard = ({ name, role, story, initials, delay = 0 }) => {
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
@@ -51,46 +51,40 @@ const TeamMemberCard = ({ name, role, story, image, delay = 0 }) => {
           }
         }}
       >
-        {/* Imagen del miembro del equipo */}
+        {/* Avatar con iniciales del miembro del equipo */}
         <Box
           sx={{
-            position: 'relative',
-            height: 320,
-            overflow: 'hidden'
+            pt: 4,
+            pb: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            background: 'linear-gradient(180deg, rgba(232,182,58,0.06) 0%, transparent 100%)',
+            borderBottom: '1px solid rgba(232,182,58,0.1)'
           }}
         >
-          <Box
-            component="img"
-            src={image}
-            alt={`${name} - ${role}`}
+          <Avatar
             sx={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              transition: 'transform 0.4s ease',
-              '&:hover': {
-                transform: 'scale(1.05)'
-              }
-            }}
-          />
-          {/* Overlay con gradiente */}
-          <Box
-            sx={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              p: 3,
-              background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, transparent 100%)'
+              width: 120,
+              height: 120,
+              bgcolor: '#1a1714',
+              color: '#e8b63a',
+              fontSize: '2rem',
+              fontFamily: '"Fraunces", serif',
+              fontWeight: 700,
+              border: '3px solid #e8b63a',
+              mx: 'auto',
+              mb: 2,
             }}
           >
-            <Typography variant="h4" sx={{ color: '#e8b63a', fontWeight: 800, mb: 0.5 }}>
-              {name}
-            </Typography>
-            <Typography variant="h6" sx={{ color: '#FFF', fontWeight: 500 }}>
-              {role}
-            </Typography>
-          </Box>
+            {initials}
+          </Avatar>
+          <Typography variant="h4" sx={{ color: '#e8b63a', fontWeight: 800, mb: 0.5, textAlign: 'center' }}>
+            {name}
+          </Typography>
+          <Typography variant="h6" sx={{ color: '#FFF', fontWeight: 500, textAlign: 'center' }}>
+            {role}
+          </Typography>
         </Box>
 
         {/* Historia del miembro */}
@@ -143,19 +137,19 @@ export default function AboutPage() {
       name: 'Juan Pablo',
       role: 'Chef Principal',
       story: 'Con más de 10 años de experiencia en gastronomía profesional, Juan Pablo es el corazón de Pablo\'s Pizza. Su pasión por enseñar a los niños técnicas culinarias auténticas, combinada con su energía contagiosa, hace que cada taller sea una experiencia única. Se especializa en adaptar recetas complejas para que los más pequeños las comprendan y disfruten.',
-      image: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=800&q=80'
+      initials: 'JP',
     },
     {
       name: 'Nicole',
       role: 'Segunda a Bordo',
       story: 'Nicole es la mano derecha de Juan Pablo y experta en logística de eventos. Con su ojo para los detalles y su capacidad para conectar con los niños, se asegura de que cada taller fluya perfectamente. Su experiencia en educación infantil la convierte en la persona ideal para mantener a todos los pequeños chefs seguros, motivados y felices durante toda la experiencia.',
-      image: 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=800&q=80'
+      initials: 'N',
     },
     {
       name: 'Mauro',
       role: 'Ayudante',
       story: 'Mauro es el músculo del equipo, encargándose de todo el montaje y desmontaje del equipamiento. Su actitud positiva y disposición para ayudar en cada detalle hacen que los eventos se desarrollen sin contratiempos. Además, su habilidad para hacer reír a los niños y mantener el ambiente divertido lo convierte en un favorito de todos los pequeños participantes.',
-      image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=80'
+      initials: 'M',
     }
   ]
 
