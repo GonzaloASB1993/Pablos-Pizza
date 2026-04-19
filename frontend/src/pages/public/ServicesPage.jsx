@@ -45,21 +45,21 @@ import { PIZZEROS_TIERS } from '../../data/pricing'
 import { STATS } from '../../data/stats'
 
 // Enhanced interactive tag component
-const ModernTag = ({ children, color = 'primary', variant = 'filled', icon, size = 'medium' }) => (
+const ModernTag = ({ icon, children, variant = 'filled' }) => (
   <Chip
+    icon={icon ? React.cloneElement(icon, { style: { fontSize: 14, color: variant === 'filled' ? '#0d0d0d' : '#e8b63a' } }) : undefined}
     label={children}
-    color={color}
-    variant={variant === 'outlined' ? 'outlined' : 'filled'}
-    icon={icon}
-    size={size}
+    size="small"
     sx={{
       mr: 1,
       mb: 1,
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: theme => `0 4px 20px ${theme.palette[color].main}40`
-      }
+      bgcolor: variant === 'filled' ? '#e8b63a' : 'transparent',
+      color: variant === 'filled' ? '#0d0d0d' : '#e8b63a',
+      border: variant === 'outlined' ? '1px solid #e8b63a' : 'none',
+      fontWeight: 600,
+      fontSize: '0.7rem',
+      letterSpacing: '0.03em',
+      '& .MuiChip-icon': { color: 'inherit' },
     }}
   />
 )
@@ -471,9 +471,9 @@ export default function ServicesPage() {
                     {/* Tags */}
                     <Box sx={{ mt: 3, mb: 3 }}>
                       <ModernTag icon={<School />}>Educativo</ModernTag>
-                      <ModernTag color="secondary" icon={<Celebration />}>Divertido</ModernTag>
-                      <ModernTag color="success" icon={<Verified />}>Seguro</ModernTag>
-                      <ModernTag color="info" icon={<Groups />}>Interactivo</ModernTag>
+                      <ModernTag icon={<Celebration />}>Divertido</ModernTag>
+                      <ModernTag icon={<Verified />}>Seguro</ModernTag>
+                      <ModernTag icon={<Groups />}>Interactivo</ModernTag>
                     </Box>
 
                     {/* Service Details */}
@@ -663,10 +663,10 @@ export default function ServicesPage() {
 
                     {/* Tags */}
                     <Box sx={{ mt: 3, mb: 3 }}>
-                      <ModernTag color="secondary" icon={<Restaurant />}>A domicilio</ModernTag>
-                      <ModernTag color="success" icon={<LocalOffer />}>Pizzas frescas</ModernTag>
-                      <ModernTag color="info" icon={<Verified />}>Servicio completo</ModernTag>
-                      <ModernTag color="warning" icon={<Star />}>Personalizable</ModernTag>
+                      <ModernTag icon={<Restaurant />}>A domicilio</ModernTag>
+                      <ModernTag icon={<LocalOffer />}>Pizzas frescas</ModernTag>
+                      <ModernTag icon={<Verified />}>Servicio completo</ModernTag>
+                      <ModernTag icon={<Star />}>Personalizable</ModernTag>
                     </Box>
 
                     {/* Service Details */}
