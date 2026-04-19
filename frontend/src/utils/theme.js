@@ -88,11 +88,13 @@ const theme = createTheme({
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
+      fontFamily: '"Fraunces", serif',
       fontWeight: 700,
       fontSize: '2.5rem',
       color: '#000000',
     },
     h2: {
+      fontFamily: '"Fraunces", serif',
       fontWeight: 600,
       fontSize: '2rem',
       color: '#000000',
