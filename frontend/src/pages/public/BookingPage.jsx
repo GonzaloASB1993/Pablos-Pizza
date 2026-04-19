@@ -657,10 +657,16 @@ export default function BookingPage() {
                                   }}
                                 >
                                   <MenuItem value="" sx={menuItemStyles}>Tipo de evento...</MenuItem>
-                                  <MenuItem value="cumple" sx={menuItemStyles}>🎂 Cumpleaños</MenuItem>
-                                  <MenuItem value="escolar" sx={menuItemStyles}>🏫 Escolar</MenuItem>
-                                  <MenuItem value="corporativo" sx={menuItemStyles}>🏢 Corporativo</MenuItem>
-                                  <MenuItem value="otro" sx={menuItemStyles}>✨ Otro</MenuItem>
+                                  <MenuItem value="cumple" sx={{ ...menuItemStyles, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Cake sx={{ fontSize: 18, color: '#e8b63a' }} /> Cumpleaños
+                                  </MenuItem>
+                                  <MenuItem value="escolar" sx={{ ...menuItemStyles, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <School sx={{ fontSize: 18, color: '#e8b63a' }} /> Escolar
+                                  </MenuItem>
+                                  <MenuItem value="corporativo" sx={{ ...menuItemStyles, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Business sx={{ fontSize: 18, color: '#e8b63a' }} /> Corporativo
+                                  </MenuItem>
+                                  <MenuItem value="otro" sx={menuItemStyles}>Otro</MenuItem>
                                 </TextField>
                               </Grid>
                               {/* Campos de participantes dinámicos */}
