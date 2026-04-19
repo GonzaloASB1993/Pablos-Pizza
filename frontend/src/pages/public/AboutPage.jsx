@@ -20,7 +20,11 @@ import {
   ArrowForward,
   Star,
   Favorite,
-  EmojiEvents
+  EmojiEvents,
+  LocalPizza,
+  Groups,
+  AccessTime,
+  HealthAndSafety
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@mui/material/styles'
@@ -312,82 +316,118 @@ export default function AboutPage() {
             align="center"
             sx={{ mb: 6, maxWidth: 600, mx: 'auto', color: 'rgba(255,255,255,0.65)' }}
           >
-            Los valores que guían cada evento y experiencia
+            Compromisos concretos, no palabras genéricas
           </Typography>
 
           <Grid container spacing={4}>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 4 }}>
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: 'rgba(232,182,58,0.15)', color: '#e8b63a', width: 56, height: 56, border: '1px solid rgba(232,182,58,0.3)' }}>
-                    <Restaurant sx={{ fontSize: 28 }} />
-                  </Avatar>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#FFFFFF' }}>
-                    Pasión por la Gastronomía
+            {[
+              {
+                title: 'Harina 00 Italiana Caputo',
+                description: 'Usamos siempre harina 00 Caputo importada. No hay atajos en la masa.',
+                icon: <LocalPizza sx={{ fontSize: 28 }} />,
+              },
+              {
+                title: 'Máx. 15 niños por chef',
+                description: 'Nunca más de 15 participantes por taller. Cada niño amasa su propia pizza.',
+                icon: <Groups sx={{ fontSize: 28 }} />,
+              },
+              {
+                title: 'Llegamos 45 min antes',
+                description: 'Montaje completo antes de que lleguen los invitados. Sin estrés para los papás.',
+                icon: <AccessTime sx={{ fontSize: 28 }} />,
+              },
+              {
+                title: 'Sin frutos secos ni sésamo',
+                description: 'Por defecto, todos los talleres son libres de frutos secos y sésamo.',
+                icon: <HealthAndSafety sx={{ fontSize: 28 }} />,
+              },
+            ].map((value, index) => (
+              <Grid item xs={12} md={6} key={index}>
+                <Box sx={{ mb: 4 }}>
+                  <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                    <Avatar sx={{ bgcolor: 'rgba(232,182,58,0.15)', color: '#e8b63a', width: 56, height: 56, border: '1px solid rgba(232,182,58,0.3)' }}>
+                      {value.icon}
+                    </Avatar>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#FFFFFF' }}>
+                      {value.title}
+                    </Typography>
+                  </Stack>
+                  <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, pl: 9 }}>
+                    {value.description}
                   </Typography>
-                </Stack>
-                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, pl: 9 }}>
-                  Amamos lo que hacemos. Cada taller es una oportunidad para compartir
-                  nuestra pasión culinaria con los más pequeños y ver sus rostros iluminarse
-                  cuando crean algo delicioso con sus propias manos.
-                </Typography>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 4 }}>
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: 'rgba(232,182,58,0.15)', color: '#e8b63a', width: 56, height: 56, border: '1px solid rgba(232,182,58,0.3)' }}>
-                    <Favorite sx={{ fontSize: 28 }} />
-                  </Avatar>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#FFFFFF' }}>
-                    Compromiso Total
-                  </Typography>
-                </Stack>
-                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, pl: 9 }}>
-                  Nos comprometemos al 100% con la calidad y seguridad de cada evento.
-                  Desde los ingredientes que usamos hasta el trato con cada niño,
-                  todo recibe nuestra máxima atención y dedicación.
-                </Typography>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 4 }}>
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: 'rgba(232,182,58,0.15)', color: '#e8b63a', width: 56, height: 56, border: '1px solid rgba(232,182,58,0.3)' }}>
-                    <EmojiEvents sx={{ fontSize: 28 }} />
-                  </Avatar>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#FFFFFF' }}>
-                    Trabajo en Equipo
-                  </Typography>
-                </Stack>
-                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, pl: 9 }}>
-                  Somos más que colegas, somos un equipo coordinado que trabaja en
-                  coordinación total. Esta química se refleja en cada evento y hace que todo fluya
-                  sin problemas, incluso en los momentos más caóticos.
-                </Typography>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 4 }}>
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: 'rgba(232,182,58,0.15)', color: '#e8b63a', width: 56, height: 56, border: '1px solid rgba(232,182,58,0.3)' }}>
-                    <Star sx={{ fontSize: 28 }} />
-                  </Avatar>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#FFFFFF' }}>
-                    Excelencia Constante
-                  </Typography>
-                </Stack>
-                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, pl: 9 }}>
-                  Nunca dejamos de mejorar. Después de cada evento analizamos qué funcionó
-                  bien y qué podemos perfeccionar, siempre buscando superar las expectativas
-                  de nuestros clientes.
-                </Typography>
-              </Box>
-            </Grid>
+                </Box>
+              </Grid>
+            ))}
           </Grid>
+        </Box>
+
+        {/* Timeline del proceso de evento */}
+        <Box sx={{ background: '#141414', borderRadius: 4, py: { xs: 6, md: 10 }, px: { xs: 3, md: 6 }, mb: 10 }}>
+          <Container maxWidth="md">
+            <Typography
+              variant="h2"
+              component="h2"
+              data-reveal
+              sx={{ color: '#FFFFFF', textAlign: 'center', mb: 6, fontWeight: 700 }}
+            >
+              Cómo funciona
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {[
+                {
+                  step: '01',
+                  title: 'Reservá online',
+                  desc: 'Completás el formulario con fecha, cantidad de niños y tipo de evento. Te confirmamos en menos de 24 hs.',
+                },
+                {
+                  step: '02',
+                  title: 'Llegamos 45 min antes',
+                  desc: 'El equipo llega con todo el equipamiento, harina 00 italiana y los ingredientes. Vos no preparás nada.',
+                },
+                {
+                  step: '03',
+                  title: '90 min de taller',
+                  desc: 'Cada niño amasa, estira y arma su propia pizza con técnicas reales de pizzaiolo. Máximo 15 participantes por chef.',
+                },
+                {
+                  step: '04',
+                  title: 'Pizza + certificado',
+                  desc: 'Los niños comen la pizza que hicieron y reciben su certificado de pizzaiolo. El equipo limpia y se va.',
+                },
+              ].map((item, index) => (
+                <Box
+                  key={index}
+                  sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', pb: 4 }}
+                >
+                  <Box
+                    sx={{
+                      minWidth: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      border: '2px solid #e8b63a',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#e8b63a',
+                      fontWeight: 700,
+                      fontSize: '0.9rem',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {item.step}
+                  </Box>
+                  <Box sx={{ pt: 0.5 }}>
+                    <Typography variant="h6" component="h3" sx={{ color: '#FFFFFF', fontWeight: 600, mb: 0.5 }}>
+                      {item.title}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.6 }}>
+                      {item.desc}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Container>
         </Box>
 
         {/* CTA Section */}
