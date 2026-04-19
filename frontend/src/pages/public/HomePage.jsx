@@ -51,7 +51,8 @@ import BorderBeam from '../../components/common/BorderBeam'
 import RollingGallery from '../../components/common/RollingGallery'
 import LightRays from '../../components/common/LightRays'
 import { ACTIVE_PROMO, PIZZEROS_TIERS } from '../../data/pricing'
-import { STATS } from '../../data/stats'
+import { CTA_VARIANT } from '../../data/stats'
+import { useStats } from '../../hooks/useStats'
 
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS (local shortcuts)
@@ -414,6 +415,8 @@ export default function HomePage() {
   const [galleryPhotos, setGalleryPhotos] = useState([])
   const [galleryLoading, setGalleryLoading] = useState(true)
 
+  const { stats } = useStats()
+
   const heroTitleRef = useRef(null)
   const heroSubtitleRef = useRef(null)
   const heroCtaRef = useRef(null)
@@ -753,7 +756,7 @@ export default function HomePage() {
               }}
             >
               {[
-                { number: STATS.kidsServed, label: 'Niños felices', icon: <Favorite sx={{ fontSize: 16, color: GOLD }} /> },
+                { number: stats.kidsServed, label: 'Niños felices', icon: <Favorite sx={{ fontSize: 16, color: GOLD }} /> },
                 { number: '50+', label: 'Eventos exitosos', icon: <EmojiEvents sx={{ fontSize: 16, color: GOLD }} /> },
                 { number: '★ 5.0', label: 'Calificación', icon: <Star sx={{ fontSize: 16, color: GOLD }} /> },
               ].map(({ number, label, icon }) => (
@@ -1588,7 +1591,7 @@ export default function HomePage() {
             {[
               { number: '24h', label: 'Respuesta garantizada' },
               { number: '100%', label: 'Satisfacción garantizada' },
-              { number: STATS.kidsServed, label: 'Familias felices' },
+              { number: stats.kidsServed, label: 'Familias felices' },
             ].map(({ number, label }) => (
               <Box key={label} sx={{ textAlign: 'center' }}>
                 <Typography sx={{ fontSize: { xs: '2rem', md: '2.5rem' }, fontWeight: 900, lineHeight: 1 }}>
@@ -1655,7 +1658,46 @@ export default function HomePage() {
       </Box>
 
       {/* Floating CTA */}
-      <FloatingCTA navigate={navigate} prefersReducedMotion={prefersReducedMotion} />
+      {CTA_VARIANT === 'floating' && <FloatingCTA navigate={navigate} prefersReducedMotion={prefersReducedMotion} />}
+
+      {/* Bottom-bar sticky CTA — variante A/B */}
+      {CTA_VARIANT === 'bottombar' && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1200,
+            background: '#0d0d0d',
+            borderTop: '1px solid rgba(232,182,58,0.3)',
+            py: 1.5,
+            px: { xs: 2, md: 4 },
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
+          }}
+        >
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', flexShrink: 0 }}>
+            Desde $9.000 por niño
+          </Typography>
+          <Button
+            variant="contained"
+            href="/agendar"
+            sx={{
+              bgcolor: '#e8b63a',
+              color: '#0d0d0d',
+              fontWeight: 700,
+              px: 3,
+              borderRadius: 1,
+              '&:hover': { bgcolor: '#FFD700' },
+            }}
+          >
+            Reservar fecha
+          </Button>
+        </Box>
+      )}
     </>
   )
 }
