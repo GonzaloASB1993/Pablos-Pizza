@@ -69,21 +69,15 @@ import { useNavigate } from 'react-router-dom'
 import { designTokens } from '../../utils/theme'
 import { createBooking, createPaymentPreference } from '../../services/bookingService'
 import { santiagoComunas, isComunaLejana, CARGO_COMUNA_LEJANA, comunasLejanas } from '../../data/chileanRegions'
-import { getPizzerosPrice } from '../../data/pricing'
+import { getPizzerosPrice, PIZZEROS_TIERS } from '../../data/pricing'
 
 // Constantes de pricing (sincronizadas con backend)
+// PIZZEROS_TIERS y PIZZEROS_BASE_PRICE vienen del import de pricing.js
 const PRICING_CONSTANTS = {
   SLICES_PER_PERSON: 5,
   SLICES_PER_PIZZA: 8,
   MIN_PIZZAS: 10,
-  PIZZEROS_BASE_PRICE: 13500,
-  PIZZEROS_MINIMUM: 135000,
-  PIZZEROS_TIERS: [
-    { min: 0, max: 10, price: 13500 },
-    { min: 11, max: 14, price: 10500 },
-    { min: 15, max: 19, price: 9500 },
-    { min: 20, max: Infinity, price: 9000 }
-  ],
+  PIZZEROS_MINIMUM: PIZZEROS_TIERS[0].price * 10, // derivado, no hardcodeado
   PIZZA_PARTY_BASE_PRICE: 11990,
   PIZZA_PARTY_DISCOUNT_THRESHOLD: 20,
   PIZZA_PARTY_DISCOUNT: 0.10,
@@ -411,7 +405,7 @@ export default function BookingPage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(180deg, #FAFAFA 0%, #F5F5F5 100%)' }}>
+    <Box sx={{ minHeight: '100vh', background: '#0d0d0d' }}>
       <SEO
         title="Reserva tu Taller de Pizza o Pizza Party"
         description="Agenda tu taller de pizza para niños o pizza party en Santiago. Cotiza online, elige fecha y servicios. Respuesta en 24 horas. Precios desde $9.000 por niño."
@@ -1578,11 +1572,11 @@ export default function BookingPage() {
         {/* BOTONES FIJOS - Siempre visibles */}
         <DialogActions
           sx={{
-            backgroundColor: '#F5F5F5',
+            background: '#1a1714',
             p: 2,
             position: 'sticky',
             bottom: 0,
-            borderTop: '1px solid #E0E0E0',
+            borderTop: '1px solid rgba(232,182,58,0.15)',
             gap: 2,
             justifyContent: 'center'
           }}
@@ -1681,7 +1675,7 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
         serviceParticipants = pizzerosParticipants
         if (serviceParticipants === 0) return
 
-        unitBase = PRICING_CONSTANTS.PIZZEROS_BASE_PRICE
+        unitBase = PIZZEROS_TIERS[0].price
         unitFinal = getPizzerosPrice(serviceParticipants)
         label = 'Pizzeros en Acción'
 

@@ -757,8 +757,8 @@ export default function HomePage() {
             >
               {[
                 { number: stats.kidsServed, label: 'Niños felices', icon: <Favorite sx={{ fontSize: 16, color: GOLD }} /> },
-                { number: '50+', label: 'Eventos exitosos', icon: <EmojiEvents sx={{ fontSize: 16, color: GOLD }} /> },
-                { number: '★ 5.0', label: 'Calificación', icon: <Star sx={{ fontSize: 16, color: GOLD }} /> },
+                { number: stats.eventsCount, label: 'Eventos exitosos', icon: <EmojiEvents sx={{ fontSize: 16, color: GOLD }} /> },
+                { number: `★ ${stats.rating}`, label: 'Calificación', icon: <Star sx={{ fontSize: 16, color: GOLD }} /> },
               ].map(({ number, label, icon }) => (
                 <Box key={label} sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -1680,7 +1680,7 @@ export default function HomePage() {
           }}
         >
           <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', flexShrink: 0 }}>
-            Desde $9.000 por niño
+            {`Desde $${PIZZEROS_TIERS[PIZZEROS_TIERS.length - 1].price.toLocaleString('es-CL')} por niño`}
           </Typography>
           <Button
             variant="contained"

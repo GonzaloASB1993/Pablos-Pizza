@@ -50,8 +50,9 @@ const TeamMemberCard = ({ name, role, story, initials, delay = 0 }) => {
           border: '1px solid rgba(232,182,58,0.12)',
           transition: 'all 0.4s ease',
           '&:hover': {
-            transform: 'translateY(-12px)',
-            boxShadow: '0 20px 40px rgba(232, 182, 58, 0.25)'
+            transform: 'translateY(-4px)',
+            boxShadow: '0 12px 32px rgba(232,182,58,0.15)',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
           }
         }}
       >
@@ -135,6 +136,29 @@ export default function AboutPage() {
     setHeroLoaded(true)
   }, [])
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.style.opacity = '1'
+            entry.target.style.transform = 'translateY(0)'
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.2 }
+    )
+    const titles = document.querySelectorAll('#about-page [data-reveal]')
+    titles.forEach((el) => {
+      el.style.opacity = '0'
+      el.style.transform = 'translateY(24px)'
+      el.style.transition = 'opacity 0.6s ease, transform 0.6s ease'
+      observer.observe(el)
+    })
+    return () => observer.disconnect()
+  }, [])
+
   // Datos del equipo
   const teamMembers = [
     {
@@ -158,7 +182,7 @@ export default function AboutPage() {
   ]
 
   return (
-    <Box sx={{ background: '#0d0d0d', minHeight: '100vh' }}>
+    <Box id="about-page" sx={{ background: '#0d0d0d', minHeight: '100vh' }}>
       {/* Hero Section */}
       <Box
         sx={{
@@ -247,7 +271,7 @@ export default function AboutPage() {
             <Grid item xs={12} md={4}>
               <StatBox
                 icon={<EmojiEvents />}
-                number="50+"
+                number={STATS.eventsCount}
                 label="Eventos Realizados"
               />
             </Grid>
