@@ -928,10 +928,10 @@ export default function HomePage() {
                   variant="body1"
                   sx={{ color: 'rgba(255,255,255,0.75)', mb: 3.5, lineHeight: 1.75, fontSize: { xs: '1rem', md: '1.05rem' } }}
                 >
-                  <Box component="span" sx={{ color: GOLD, fontWeight: 700 }}>Talleres gastronómicos únicos</Box>{' '}
+                  <Box component="span" sx={{ color: GOLD, fontWeight: 700 }}>Talleres gastronómicos a domicilio</Box>{' '}
                   donde los niños se transforman en verdaderos chefs profesionales.
-                  Aprenden técnicas culinarias auténticas mientras crean pizzas artesanales
-                  con ingredientes de primera calidad.
+                  90 minutos de amasado real con harina 00 italiana Caputo,
+                  guiados por un chef con 10 años de experiencia.
                 </Typography>
 
                 {/* Features */}
@@ -1138,9 +1138,9 @@ export default function HomePage() {
                   sx={{ color: 'rgba(255,255,255,0.75)', mb: 3.5, lineHeight: 1.75, fontSize: { xs: '1rem', md: '1.05rem' } }}
                 >
                   <Box component="span" sx={{ color: GOLD, fontWeight: 700 }}>Catering gourmet especializado</Box>{' '}
-                  en pizzas artesanales para eventos únicos y memorables.
-                  Servicio integral con preparación en vivo e ingredientes de primera calidad
-                  para hacer de tu celebración algo extraordinario.
+                  en pizzas artesanales para eventos con preparación en vivo.
+                  Servicio integral a domicilio — los padres no cocinan ni limpian,
+                  el equipo llega 45 min antes y lo deja todo listo.
                 </Typography>
 
                 {/* Price */}
@@ -1446,7 +1446,7 @@ export default function HomePage() {
       <AnimatedSection delay={80}>
         <Box
           component="section"
-          aria-label="Galería de momentos mágicos"
+          aria-label="Galería de eventos"
           sx={{
             py: { xs: 8, md: 12 },
             backgroundColor: BG.s4,
@@ -1487,7 +1487,7 @@ export default function HomePage() {
                 variant="h2"
                 sx={{ color: '#fff', fontWeight: 900, mb: 2, fontSize: { xs: '2rem', md: '3rem' }, lineHeight: 1.1 }}
               >
-                Momentos Mágicos
+                Así son nuestros eventos
               </Typography>
               <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.5)', maxWidth: 500, mx: 'auto' }}>
                 Capturamos cada sonrisa, cada momento de aprendizaje y diversión
@@ -1569,13 +1569,13 @@ export default function HomePage() {
             EMPECEMOS
           </Typography>
           <Typography variant="h2" sx={{ fontWeight: 900, mb: 2.5, fontSize: { xs: '2rem', md: '3rem' }, lineHeight: 1.1 }}>
-            ¿Listo para Crear
+            ¿Listo para Agendar
             <br />
-            Recuerdos Mágicos?
+            Tu Evento?
           </Typography>
           <Typography variant="h6" sx={{ mb: 6, opacity: 0.75, maxWidth: 580, mx: 'auto', fontWeight: 400, lineHeight: 1.6, fontSize: { xs: '1rem', md: '1.1rem' } }}>
-            Agenda tu taller o pizza party hoy mismo. Nuestro equipo de chefs expertos
-            está listo para hacer de tu evento algo verdaderamente especial.
+            Agenda tu taller o pizza party hoy mismo. Máximo 15 niños por chef —
+            atención real, no caos — y el equipo llega 45 min antes a preparar todo.
           </Typography>
 
           {/* Quick stats */}

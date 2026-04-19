@@ -142,7 +142,7 @@ export default function AboutPage() {
     {
       name: 'Nicole',
       role: 'Segunda a Bordo',
-      story: 'Nicole es la mano derecha de Juan Pablo y experta en logística de eventos. Con su ojo para los detalles y su capacidad para conectar con los niños, se asegura de que cada taller fluya perfectamente. Su experiencia en educación infantil la convierte en la persona ideal para mantener a todos los pequeños chefs seguros, motivados y felices durante toda la experiencia.',
+      story: 'Nicole es la mano derecha de Juan Pablo y experta en logística de eventos. Con su ojo para los detalles y su capacidad para conectar con los niños, se asegura de que cada taller fluya sin contratiempos. Su experiencia en educación infantil la convierte en la persona ideal para mantener a todos los pequeños chefs seguros, motivados y felices durante todo el taller.',
       initials: 'N',
     },
     {
@@ -213,7 +213,7 @@ export default function AboutPage() {
                 }}
               >
                 Las personas apasionadas que hacen realidad cada experiencia
-                gastronómica inolvidable.
+                gastronómica que los niños recuerdan.
               </Typography>
             </Box>
           </Fade>
@@ -363,8 +363,8 @@ export default function AboutPage() {
                   </Typography>
                 </Stack>
                 <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, pl: 9 }}>
-                  Somos más que colegas, somos un equipo coordinado que trabaja en perfecta
-                  sincronía. Esta química se refleja en cada evento y hace que todo fluya
+                  Somos más que colegas, somos un equipo coordinado que trabaja en
+                  coordinación total. Esta química se refleja en cada evento y hace que todo fluya
                   sin problemas, incluso en los momentos más caóticos.
                 </Typography>
               </Box>
@@ -405,7 +405,7 @@ export default function AboutPage() {
           </Typography>
           <Typography variant="h6" sx={{ mb: 4, color: 'rgba(255,255,255,0.65)', maxWidth: 600, mx: 'auto' }}>
             Agenda tu taller o pizza party y conoce al equipo que hará de tu
-            evento una experiencia inolvidable.
+            evento un taller de 90 min a domicilio que los niños llevarán puesto.
           </Typography>
 
           <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'wrap' }}>

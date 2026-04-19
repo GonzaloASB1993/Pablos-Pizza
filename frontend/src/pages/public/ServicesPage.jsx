@@ -311,7 +311,7 @@ export default function ServicesPage() {
                   color: '#FFFFFF'
                 }}
               >
-                Experiencias Únicas
+                Talleres de Pizza Artesanal
               </Typography>
               <Typography
                 variant="h4"
@@ -322,7 +322,7 @@ export default function ServicesPage() {
                   lineHeight: 1.4
                 }}
               >
-                Que combinan diversión, aprendizaje y sabores inolvidables
+                Que combinan diversión, aprendizaje y harina 00 italiana Caputo
               </Typography>
 
 
@@ -397,7 +397,7 @@ export default function ServicesPage() {
             align="center"
             sx={{ mb: 6, maxWidth: '600px', mx: 'auto', color: 'rgba(255,255,255,0.65)' }}
           >
-            Selecciona la experiencia perfecta para tu celebración especial
+            Selecciona el taller ideal para tu celebración — todo incluido y a domicilio
           </Typography>
 
           <Grid container spacing={4}>
@@ -441,7 +441,7 @@ export default function ServicesPage() {
                     </Box>
 
                     <Typography variant="body1" sx={{ mb: 3, lineHeight: 1.7, fontSize: '1.1rem', color: 'rgba(255,255,255,0.65)' }}>
-                      Los niños se convierten en verdaderos chefs por un día. Aprenden técnicas culinarias básicas mientras se divierten creando sus propias pizzas únicas.
+                      Los niños se convierten en verdaderos chefs por un día. Aprenden a amasar con harina 00 italiana Caputo y se van con la pizza que ellos mismos hicieron.
                     </Typography>
 
                     {/* Features List */}
@@ -921,10 +921,10 @@ export default function ServicesPage() {
         }}>
           <Box sx={{ position: 'relative', zIndex: 1 }}>
             <Typography variant="h3" component="h3" sx={{ fontWeight: 900, mb: 2, color: '#FFFFFF' }}>
-              ¿Listo para crear recuerdos inolvidables?
+              ¿Listo para agendar el taller?
             </Typography>
             <Typography variant="h6" sx={{ mb: 4, color: 'rgba(255,255,255,0.65)', maxWidth: '600px', mx: 'auto' }}>
-              Contáctanos ahora y obtén una cotización personalizada. Te garantizamos una experiencia única que toda la familia recordará para siempre.
+              Contáctanos ahora y obtén una cotización personalizada. El equipo llega 45 min antes; los padres no cocinan ni limpian.
             </Typography>
 
             <Box sx={{
