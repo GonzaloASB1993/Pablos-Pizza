@@ -11,7 +11,6 @@ import {
   Paper,
   Avatar,
   Rating,
-  IconButton,
   Collapse,
   Fade,
   Zoom
@@ -20,7 +19,6 @@ import SEO from '../../components/common/SEO'
 import {
   School,
   Celebration,
-  CheckCircle,
   Groups,
   AccessTime,
   Place,
@@ -63,43 +61,21 @@ const ModernTag = ({ icon, children, variant = 'filled' }) => (
   />
 )
 
-// Enhanced bullet point with animations
-const FeatureBullet = ({ children, delay = 0 }) => {
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), delay * 100)
-    return () => clearTimeout(timer)
-  }, [delay])
-
-  return (
-    <Fade in={isVisible} timeout={800}>
-      <Box sx={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 1.5,
-        mb: 2,
-        p: 1,
-        borderRadius: 2,
-        transition: 'all 0.3s ease',
-        '&:hover': {
-          bgcolor: 'rgba(232, 182, 58, 0.05)',
-          transform: 'translateX(8px)'
-        }
-      }}>
-        <CheckCircle sx={{
-          color: '#e8b63a',
-          fontSize: 20,
-          mt: 0.2,
-          filter: 'drop-shadow(0 2px 4px rgba(232, 182, 58, 0.3))'
-        }} />
-        <Typography variant="body1" sx={{ fontWeight: 500, lineHeight: 1.6, color: 'rgba(255,255,255,0.85)' }}>
-          {children}
-        </Typography>
-      </Box>
-    </Fade>
-  )
-}
+// Flat bullet point — no hover, no animation
+const FeatureBullet = ({ children }) => (
+  <Box sx={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: 1,
+    py: 0.5,
+    color: 'rgba(255,255,255,0.75)',
+  }}>
+    <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: '#e8b63a', flexShrink: 0 }} />
+    <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.6, color: 'rgba(255,255,255,0.75)' }}>
+      {children}
+    </Typography>
+  </Box>
+)
 
 // Service stats component
 const ServiceStats = ({ icon, label, value, color = '#e8b63a' }) => (
@@ -136,12 +112,10 @@ const PricingCard = ({ title, prices, description, isPopular = false, children, 
     border: isPopular ? '2px solid #e8b63a' : '1px solid rgba(232,182,58,0.15)',
     borderRadius: 4,
     overflow: 'visible',
-    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
     '&:hover': {
-      transform: 'translateY(-8px) scale(1.02)',
-      boxShadow: isPopular
-        ? '0 20px 40px rgba(232,182,58,0.25)'
-        : '0 20px 40px rgba(232,182,58,0.12)'
+      transform: 'translateY(-4px)',
+      boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
     }
   }}>
     {isPopular && (
@@ -252,6 +226,31 @@ export default function ServicesPage() {
     }, { approvedOnly: true })
 
     return () => unsubscribe && unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.style.opacity = '1'
+            entry.target.style.transform = 'translateY(0)'
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.2 }
+    )
+
+    const titles = document.querySelectorAll('[data-reveal]')
+    titles.forEach((el) => {
+      el.style.opacity = '0'
+      el.style.transform = 'translateY(24px)'
+      el.style.transition = 'opacity 0.6s ease, transform 0.6s ease'
+      observer.observe(el)
+    })
+
+    return () => observer.disconnect()
   }, [])
 
   const handleServiceExpand = (service) => {
@@ -387,7 +386,9 @@ export default function ServicesPage() {
         <Box sx={{ mb: 10 }}>
           <Typography
             variant="h2"
+            component="h2"
             align="center"
+            data-reveal
             sx={{ fontWeight: 800, mb: 2, color: '#FFFFFF' }}
           >
             Nuestros Servicios
@@ -412,11 +413,10 @@ export default function ServicesPage() {
                   position: 'relative',
                   background: '#1a1714',
                   border: '1px solid rgba(232,182,58,0.15)',
-                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                   '&:hover': {
-                    transform: 'translateY(-8px) scale(1.02)',
-                    boxShadow: '0 25px 50px rgba(232,182,58,0.15)',
-                    border: '1px solid rgba(232,182,58,0.35)'
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
                   }
                 }}>
                   <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
@@ -593,11 +593,10 @@ export default function ServicesPage() {
                   position: 'relative',
                   background: '#1a1714',
                   border: '1px solid rgba(232,182,58,0.15)',
-                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                   '&:hover': {
-                    transform: 'translateY(-8px) scale(1.02)',
-                    boxShadow: '0 25px 50px rgba(232,182,58,0.15)',
-                    border: '1px solid rgba(232,182,58,0.35)'
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
                   }
                 }}>
                   <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
@@ -766,7 +765,9 @@ export default function ServicesPage() {
         <Box sx={{ mb: 10 }}>
           <Typography
             variant="h2"
+            component="h2"
             align="center"
+            data-reveal
             sx={{ fontWeight: 800, mb: 2, color: '#FFFFFF' }}
           >
             Planes y Precios
@@ -800,11 +801,6 @@ export default function ServicesPage() {
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          transform: 'translateX(8px)',
-                          boxShadow: '0 4px 15px rgba(232,182,58,0.2)'
-                        }
                       }}
                     >
                       <Typography variant="body1" sx={{ fontWeight: 600, color: '#FFFFFF' }}>
@@ -885,7 +881,9 @@ export default function ServicesPage() {
           <Box sx={{ mb: 10 }}>
             <Typography
               variant="h2"
+              component="h2"
               align="center"
+              data-reveal
               sx={{ fontWeight: 800, mb: 2, color: '#FFFFFF' }}
             >
               Lo que dicen nuestros clientes
