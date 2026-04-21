@@ -125,36 +125,67 @@ const menuProps = {
   },
 }
 
-// Componente Hero Section Minimo
+// Hero Section — alineada con ServicesPage
 const HeroSection = () => {
   return (
     <Box
       sx={{
+        position: 'relative',
         background: '#0d0d0d',
-        py: { xs: 4, md: 5 },
-        px: 2,
-        textAlign: 'center',
-        borderBottom: '1px solid rgba(232,182,58,0.2)',
+        color: '#FFFFFF',
+        py: { xs: 6, md: 8 },
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'grid\' width=\'20\' height=\'20\' patternUnits=\'userSpaceOnUse\'%3E%3Cpath d=\'M 20 0 L 0 0 0 20\' fill=\'none\' stroke=\'rgba(232,182,58,0.05)\' stroke-width=\'1\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\'100%25\' height=\'100%25\' fill=\'url(%23grid)\' /%3E%3C/svg%3E")',
+          opacity: 0.3,
+        },
       }}
     >
-      <Typography
-        variant="h1"
-        component="h1"
-        sx={{
-          fontSize: { xs: '1.8rem', md: '2.5rem' },
-          fontWeight: 700,
-          color: '#FFFFFF',
-          mb: 1,
-        }}
-      >
-        Reserva tu Evento
-      </Typography>
-      <Typography
-        variant="body1"
-        sx={{ color: 'rgba(255,255,255,0.65)', maxWidth: 480, mx: 'auto' }}
-      >
-        Completá el formulario y te contactamos en menos de 24 horas.
-      </Typography>
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+        <Box sx={{ textAlign: 'center', maxWidth: 680, mx: 'auto' }}>
+          <Chip
+            label="Respuesta en 24 horas"
+            size="small"
+            icon={<AccessTime sx={{ fontSize: '14px !important', color: '#0d0d0d !important' }} />}
+            sx={{
+              mb: 3,
+              bgcolor: '#e8b63a',
+              color: '#0d0d0d',
+              fontWeight: 700,
+              fontSize: '0.72rem',
+              letterSpacing: '0.06em',
+            }}
+          />
+          <Typography
+            variant="h1"
+            component="h1"
+            sx={{
+              fontSize: { xs: '2.4rem', md: '3.5rem' },
+              fontWeight: 900,
+              color: '#FFFFFF',
+              mb: 2,
+              lineHeight: 1.1,
+            }}
+          >
+            Reserva tu Evento
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{
+              color: 'rgba(255,255,255,0.65)',
+              maxWidth: 460,
+              mx: 'auto',
+              fontSize: { xs: '1rem', md: '1.1rem' },
+              lineHeight: 1.6,
+            }}
+          >
+            Completá el formulario y te contactamos en menos de 24 horas para coordinar todos los detalles.
+          </Typography>
+        </Box>
+      </Container>
     </Box>
   )
 }
@@ -173,15 +204,15 @@ const FormStepper = ({ activeStep, steps }) => {
           p: 2,
           mb: 3,
           borderRadius: designTokens.radius.lg,
-          background: 'rgba(255, 215, 0, 0.05)',
-          border: '1px solid rgba(255, 215, 0, 0.2)',
+          background: '#1a1714',
+          border: '1px solid rgba(232,182,58,0.2)',
         }}
       >
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-          <Typography variant="body2" sx={{ fontWeight: 600, color: designTokens.colors.golden[500] }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, color: '#e8b63a' }}>
             Paso {activeStep + 1} de {steps.length}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>
             {steps[activeStep]}
           </Typography>
         </Box>
@@ -191,8 +222,8 @@ const FormStepper = ({ activeStep, steps }) => {
           sx={{
             height: 6,
             borderRadius: 3,
-            backgroundColor: 'rgba(255, 215, 0, 0.15)',
-            '& .MuiLinearProgress-bar': { backgroundColor: designTokens.colors.golden[500], borderRadius: 3 }
+            backgroundColor: 'rgba(232,182,58,0.15)',
+            '& .MuiLinearProgress-bar': { backgroundColor: '#e8b63a', borderRadius: 3 }
           }}
         />
       </Paper>
@@ -206,8 +237,8 @@ const FormStepper = ({ activeStep, steps }) => {
         p: 2.5,
         mb: 3,
         borderRadius: designTokens.radius.lg,
-        background: 'rgba(255, 215, 0, 0.05)',
-        border: '1px solid rgba(255, 215, 0, 0.2)',
+        background: '#1a1714',
+        border: '1px solid rgba(232,182,58,0.2)',
       }}
     >
       <Stepper activeStep={activeStep} alternativeLabel>
@@ -216,11 +247,11 @@ const FormStepper = ({ activeStep, steps }) => {
             <StepLabel
               StepIconProps={{
                 style: {
-                  color: index <= activeStep ? designTokens.colors.golden[500] : designTokens.colors.charcoal[300]
+                  color: index <= activeStep ? '#e8b63a' : 'rgba(255,255,255,0.25)'
                 }
               }}
             >
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              <Typography variant="body2" sx={{ fontWeight: 500, color: index <= activeStep ? '#e8b63a' : 'rgba(255,255,255,0.45)' }}>
                 {label}
               </Typography>
             </StepLabel>
@@ -441,11 +472,30 @@ export default function BookingPage() {
                 <Card
                   sx={{
                     borderRadius: designTokens.radius.lg,
-                    background: 'rgba(255, 255, 255, 0.95)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid rgba(255, 215, 0, 0.1)',
-                    boxShadow: designTokens.shadows.medium,
+                    background: '#1a1714',
+                    border: '1px solid rgba(232,182,58,0.15)',
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
                     overflow: 'visible',
+                    // Cascade: dark form fields
+                    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' },
+                    '& .MuiInputLabel-root.Mui-focused': { color: '#e8b63a' },
+                    '& .MuiOutlinedInput-root': {
+                      color: '#FFFFFF',
+                      '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' },
+                      '&:hover fieldset': { borderColor: 'rgba(232,182,58,0.4)' },
+                      '&.Mui-focused fieldset': { borderColor: '#e8b63a' },
+                    },
+                    '& .MuiFormHelperText-root': { color: 'rgba(255,255,255,0.4)' },
+                    '& .MuiSelect-icon': { color: 'rgba(255,255,255,0.4)' },
+                    '& .MuiAutocomplete-popupIndicator': { color: 'rgba(255,255,255,0.4)' },
+                    '& .MuiAutocomplete-clearIndicator': { color: 'rgba(255,255,255,0.4)' },
+                    '& .MuiCheckbox-root': { color: 'rgba(255,255,255,0.3)' },
+                    '& .MuiCheckbox-root.Mui-checked': { color: '#e8b63a' },
+                    '& .MuiFormLabel-root': { color: 'rgba(255,255,255,0.5)' },
+                    '& .MuiFormControlLabel-label': { color: '#FFFFFF' },
+                    '& .MuiInputAdornment-root': { color: 'rgba(255,255,255,0.4)' },
+                    '& .MuiInputAdornment-root .MuiTypography-root': { color: 'rgba(255,255,255,0.7)' },
+                    '& .MuiInputAdornment-root .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.4)' },
                   }}
                 >
                   <CardContent sx={{ p: 3 }}>
@@ -460,16 +510,17 @@ export default function BookingPage() {
                                   width: 60,
                                   height: 60,
                                   margin: '0 auto 12px',
-                                  background: designTokens.colors.aurora.golden,
-                                  color: designTokens.colors.charcoal[900]
+                                  bgcolor: '#e8b63a',
+                                  color: '#0d0d0d',
+                                  boxShadow: '0 8px 20px rgba(232,182,58,0.3)',
                                 }}
                               >
                                 <People sx={{ fontSize: 32 }} />
                               </Avatar>
-                              <Typography variant="h5" sx={{ mb: 1.5, fontWeight: 700 }}>
+                              <Typography variant="h5" sx={{ mb: 1.5, fontWeight: 700, color: '#FFFFFF' }}>
                                 Información Personal
                               </Typography>
-                              <Typography variant="body1" color="text.secondary">
+                              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.65)' }}>
                                 Necesitamos tus datos para coordinar tu evento perfecto
                               </Typography>
                             </Box>
@@ -484,7 +535,7 @@ export default function BookingPage() {
                                   onChange={(e) => handleInputChange('name', e.target.value)}
                                   InputProps={{
                                     startAdornment: (
-                                      <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                                      <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)' }}>
                                         <People />
                                       </Box>
                                     ),
@@ -501,7 +552,7 @@ export default function BookingPage() {
                                   onChange={(e) => handleInputChange('email', e.target.value)}
                                   InputProps={{
                                     startAdornment: (
-                                      <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                                      <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)' }}>
                                         <Email />
                                       </Box>
                                     ),
@@ -549,16 +600,17 @@ export default function BookingPage() {
                                   width: 60,
                                   height: 60,
                                   margin: '0 auto 12px',
-                                  background: designTokens.colors.aurora.golden,
-                                  color: designTokens.colors.charcoal[900]
+                                  bgcolor: '#e8b63a',
+                                  color: '#0d0d0d',
+                                  boxShadow: '0 8px 20px rgba(232,182,58,0.3)',
                                 }}
                               >
                                 <Celebration sx={{ fontSize: 32 }} />
                               </Avatar>
-                              <Typography variant="h5" sx={{ mb: 1.5, fontWeight: 700 }}>
+                              <Typography variant="h5" sx={{ mb: 1.5, fontWeight: 700, color: '#FFFFFF' }}>
                                 Detalles del Evento
                               </Typography>
-                              <Typography variant="body1" color="text.secondary">
+                              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.65)' }}>
                                 Cuéntanos sobre tu evento para crear la experiencia perfecta
                               </Typography>
                             </Box>
@@ -570,13 +622,13 @@ export default function BookingPage() {
                                   sx={{
                                     p: 2.5,
                                     borderRadius: 2,
-                                    border: '1px solid rgba(255, 215, 0, 0.2)',
-                                    background: 'rgba(255, 215, 0, 0.05)'
+                                    border: '1px solid rgba(232,182,58,0.2)',
+                                    background: 'rgba(232,182,58,0.05)'
                                   }}
                                 >
                                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                    <Restaurant sx={{ mr: 1, color: 'text.secondary' }} />
-                                    <FormLabel component="legend" sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                                    <Restaurant sx={{ mr: 1, color: 'rgba(255,255,255,0.4)' }} />
+                                    <FormLabel component="legend" sx={{ fontWeight: 600, fontSize: '1rem', color: '#FFFFFF' }}>
                                       Tipos de Servicio (puedes elegir ambos)
                                     </FormLabel>
                                   </Box>
@@ -587,9 +639,9 @@ export default function BookingPage() {
                                           checked={services.includes('pizzeros')}
                                           onChange={() => handleServiceToggle('pizzeros')}
                                           sx={{
-                                            color: '#FFD700',
+                                            color: 'rgba(255,255,255,0.3)',
                                             '&.Mui-checked': {
-                                              color: '#FFD700',
+                                              color: '#e8b63a',
                                             },
                                           }}
                                         />
@@ -609,9 +661,9 @@ export default function BookingPage() {
                                           checked={services.includes('party')}
                                           onChange={() => handleServiceToggle('party')}
                                           sx={{
-                                            color: '#FFD700',
+                                            color: 'rgba(255,255,255,0.3)',
                                             '&.Mui-checked': {
-                                              color: '#FFD700',
+                                              color: '#e8b63a',
                                             },
                                           }}
                                         />
@@ -626,7 +678,7 @@ export default function BookingPage() {
                                       }
                                     />
                                   </FormGroup>
-                                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                  <Typography variant="body2" sx={{ mt: 1, color: 'rgba(255,255,255,0.5)' }}>
                                     Los clientes pueden combinar ambos servicios para una experiencia completa
                                   </Typography>
                                 </Paper>
@@ -644,7 +696,7 @@ export default function BookingPage() {
                                   }}
                                   InputProps={{
                                     startAdornment: (
-                                      <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                                      <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)' }}>
                                         <EmojiEvents />
                                       </Box>
                                     ),
@@ -677,7 +729,7 @@ export default function BookingPage() {
                                       inputProps={{ min: 1, max: 200 }}
                                       InputProps={{
                                         startAdornment: (
-                                          <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                                          <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)' }}>
                                             <People />
                                           </Box>
                                         ),
@@ -702,7 +754,7 @@ export default function BookingPage() {
                                       inputProps={{ min: 1, max: 500 }}
                                       InputProps={{
                                         startAdornment: (
-                                          <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                                          <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)' }}>
                                             <People />
                                           </Box>
                                         ),
@@ -724,7 +776,7 @@ export default function BookingPage() {
                                       inputProps={{ min: 10, max: 200 }}
                                       InputProps={{
                                         startAdornment: (
-                                          <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                                          <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)' }}>
                                             <Restaurant />
                                           </Box>
                                         ),
@@ -746,7 +798,7 @@ export default function BookingPage() {
                                     inputProps={{ min: 1, max: 200 }}
                                     InputProps={{
                                       startAdornment: (
-                                        <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                                        <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)' }}>
                                           <People />
                                         </Box>
                                       ),
@@ -776,7 +828,7 @@ export default function BookingPage() {
                                       inputProps={{ min: 1, max: 200 }}
                                       InputProps={{
                                         startAdornment: (
-                                          <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                                          <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)' }}>
                                             <People />
                                           </Box>
                                         ),
@@ -798,7 +850,7 @@ export default function BookingPage() {
                                       inputProps={{ min: 10, max: 200 }}
                                       InputProps={{
                                         startAdornment: (
-                                          <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                                          <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)' }}>
                                             <Restaurant />
                                           </Box>
                                         ),
@@ -819,7 +871,7 @@ export default function BookingPage() {
                                   InputLabelProps={{ shrink: true }}
                                   InputProps={{
                                     startAdornment: (
-                                      <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                                      <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)' }}>
                                         <CalendarToday />
                                       </Box>
                                     ),
@@ -839,7 +891,7 @@ export default function BookingPage() {
                                   }}
                                   InputProps={{
                                     startAdornment: (
-                                      <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                                      <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)' }}>
                                         <Schedule />
                                       </Box>
                                     ),
@@ -890,7 +942,7 @@ export default function BookingPage() {
                                       InputProps={{
                                         ...params.InputProps,
                                         startAdornment: (
-                                          <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                                          <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)' }}>
                                             <LocationOn />
                                           </Box>
                                         ),
@@ -977,16 +1029,17 @@ export default function BookingPage() {
                                   width: 60,
                                   height: 60,
                                   margin: '0 auto 12px',
-                                  background: designTokens.colors.semantic.success,
-                                  color: 'white'
+                                  bgcolor: '#e8b63a',
+                                  color: '#0d0d0d',
+                                  boxShadow: '0 8px 20px rgba(232,182,58,0.3)',
                                 }}
                               >
                                 <CheckCircle sx={{ fontSize: 32 }} />
                               </Avatar>
-                              <Typography variant="h5" sx={{ mb: 1.5, fontWeight: 700 }}>
+                              <Typography variant="h5" sx={{ mb: 1.5, fontWeight: 700, color: '#FFFFFF' }}>
                                 Confirmar Reserva
                               </Typography>
-                              <Typography variant="body1" color="text.secondary">
+                              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.65)' }}>
                                 Revisa los detalles de tu evento antes de enviar
                               </Typography>
                             </Box>
@@ -998,39 +1051,39 @@ export default function BookingPage() {
                                 p: 3,
                                 mb: 3,
                                 borderRadius: designTokens.radius.lg,
-                                background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 255, 255, 0.9) 100%)',
-                                border: '1px solid rgba(255, 215, 0, 0.2)',
+                                background: 'rgba(232,182,58,0.06)',
+                                border: '1px solid rgba(232,182,58,0.2)',
                               }}
                             >
-                              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#e8b63a' }}>
                                 Resumen de tu Evento
                               </Typography>
 
                               <Grid container spacing={2}>
                                 <Grid item xs={12} sm={6}>
-                                  <Typography variant="body2" color="text.secondary">Contacto:</Typography>
-                                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{formData.name}</Typography>
-                                  <Typography variant="body2">{formData.email}</Typography>
-                                  <Typography variant="body2">{formData.phone}</Typography>
+                                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mb: 0.5 }}>Contacto:</Typography>
+                                  <Typography variant="body1" sx={{ fontWeight: 600, color: '#FFFFFF' }}>{formData.name}</Typography>
+                                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>{formData.email}</Typography>
+                                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>{formData.phone}</Typography>
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
-                                  <Typography variant="body2" color="text.secondary">Evento:</Typography>
-                                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mb: 0.5 }}>Evento:</Typography>
+                                  <Typography variant="body1" sx={{ fontWeight: 600, color: '#FFFFFF' }}>
                                     {services.map(s => s === 'pizzeros' ? 'Pizzeros en Acción' : 'Pizza Party').join(' + ')}
                                   </Typography>
-                                  <Typography variant="body2">{formData.eventType}</Typography>
+                                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>{formData.eventType}</Typography>
                                   {services.includes('pizzeros') && services.includes('party') ? (
                                     <>
-                                      <Typography variant="body2">Pizzeros en Acción: {pizzerosParticipants} niños</Typography>
-                                      <Typography variant="body2">Pizza Party: {pizzaQuantity} pizzas</Typography>
+                                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>Pizzeros en Acción: {pizzerosParticipants} niños</Typography>
+                                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>Pizza Party: {pizzaQuantity} pizzas</Typography>
                                     </>
                                   ) : services.includes('pizzeros') ? (
-                                    <Typography variant="body2">Pizzeros en Acción: {pizzerosParticipants} niños</Typography>
+                                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>Pizzeros en Acción: {pizzerosParticipants} niños</Typography>
                                   ) : services.includes('party') ? (
-                                    <Typography variant="body2">Pizza Party: {pizzaQuantity} pizzas</Typography>
+                                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>Pizza Party: {pizzaQuantity} pizzas</Typography>
                                   ) : null}
-                                  <Typography variant="body2">{formData.date} a las {formData.time}</Typography>
-                                  <Typography variant="body2">{formData.location}</Typography>
+                                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>{formData.date} a las {formData.time}</Typography>
+                                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>{formData.location}</Typography>
                                 </Grid>
                               </Grid>
                             </Paper>
@@ -1043,39 +1096,39 @@ export default function BookingPage() {
                                   p: 3,
                                   mb: 3,
                                   borderRadius: designTokens.radius.lg,
-                                  background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.08) 0%, rgba(255, 255, 255, 0.95) 100%)',
-                                  border: '1px solid rgba(33, 150, 243, 0.25)',
+                                  background: 'rgba(33,150,243,0.07)',
+                                  border: '1px solid rgba(33,150,243,0.2)',
                                 }}
                               >
                                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                  <CreditCard sx={{ mr: 1, color: 'primary.main' }} />
-                                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                  <CreditCard sx={{ mr: 1, color: '#64b5f6' }} />
+                                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#FFFFFF' }}>
                                     Abono para confirmar tu reserva
                                   </Typography>
                                 </Box>
                                 <Grid container spacing={0.5} sx={{ mb: 2 }}>
                                   <Grid item xs={7}>
-                                    <Typography variant="body2" color="text.secondary">Precio estimado:</Typography>
+                                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>Precio estimado:</Typography>
                                   </Grid>
                                   <Grid item xs={5} sx={{ textAlign: 'right' }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}>
                                       ${calculateEstimatedPrice().toLocaleString('es-CL')} CLP
                                     </Typography>
                                   </Grid>
                                   <Grid item xs={7}>
-                                    <Typography variant="body2" color="text.secondary">Abono online (15%):</Typography>
+                                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>Abono online (15%):</Typography>
                                   </Grid>
                                   <Grid item xs={5} sx={{ textAlign: 'right' }}>
-                                    <Typography variant="body1" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                                    <Typography variant="body1" sx={{ fontWeight: 700, color: '#64b5f6' }}>
                                       ${Math.round(calculateEstimatedPrice() * 0.15).toLocaleString('es-CL')} CLP
                                     </Typography>
                                   </Grid>
                                 </Grid>
-                                <Divider sx={{ my: 2 }} />
+                                <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.1)' }} />
 
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                                  <Lock sx={{ fontSize: 14, color: 'text.secondary' }} />
-                                  <Typography variant="caption" color="text.secondary">
+                                  <Lock sx={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }} />
+                                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
                                     Pago seguro vía
                                   </Typography>
                                   <Box
@@ -1225,15 +1278,12 @@ export default function BookingPage() {
                     sx={{
                       mb: 3,
                       borderRadius: designTokens.radius.lg,
-                      background: showPriceAnimation
-                        ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 255, 255, 0.98) 100%)'
-                        : 'rgba(255, 255, 255, 0.98)',
-                      backdropFilter: 'blur(20px)',
+                      background: '#1a1714',
                       border: '1px solid',
-                      borderColor: showPriceAnimation ? designTokens.colors.golden[500] : 'rgba(255, 215, 0, 0.15)',
+                      borderColor: showPriceAnimation ? '#e8b63a' : 'rgba(232,182,58,0.15)',
                       boxShadow: showPriceAnimation
-                        ? '0 8px 32px rgba(255, 215, 0, 0.25), 0 4px 16px rgba(0,0,0,0.1)'
-                        : '0 4px 20px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)',
+                        ? '0 8px 32px rgba(232,182,58,0.2), 0 4px 16px rgba(0,0,0,0.3)'
+                        : '0 4px 20px rgba(0,0,0,0.25)',
                       transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                       transform: showPriceAnimation ? 'scale(1.01)' : 'scale(1)',
                       overflow: 'hidden',
@@ -1245,7 +1295,7 @@ export default function BookingPage() {
                         left: 0,
                         right: 0,
                         height: '3px',
-                        background: 'linear-gradient(90deg, transparent, #FFD700, transparent)',
+                        background: 'linear-gradient(90deg, transparent, #e8b63a, transparent)',
                         animation: 'shimmer 2s ease-in-out infinite',
                       } : {},
                     }}
@@ -1257,13 +1307,13 @@ export default function BookingPage() {
                             width: 40,
                             height: 40,
                             mr: 2,
-                            background: designTokens.colors.aurora.golden,
-                            color: designTokens.colors.charcoal[900]
+                            bgcolor: '#e8b63a',
+                            color: '#0d0d0d',
                           }}
                         >
                           <Calculate />
                         </Avatar>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#FFFFFF' }}>
                           Precio Estimado
                         </Typography>
                       </Box>
@@ -1283,17 +1333,17 @@ export default function BookingPage() {
                               variant="determinate"
                               value={100}
                               sx={{
-                                height: 8,
+                                height: 6,
                                 borderRadius: designTokens.radius.full,
-                                backgroundColor: designTokens.colors.golden[100],
+                                backgroundColor: 'rgba(232,182,58,0.15)',
                                 '& .MuiLinearProgress-bar': {
-                                  background: designTokens.colors.aurora.golden,
+                                  background: '#e8b63a',
                                   borderRadius: designTokens.radius.full,
                                 }
                               }}
                             />
-                            <Typography variant="body2" sx={{ mt: 1, textAlign: 'center', fontWeight: 500 }}>
-                              ✨ Precio calculado automáticamente
+                            <Typography variant="body2" sx={{ mt: 1, textAlign: 'center', fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>
+                              Precio calculado automáticamente
                             </Typography>
                           </Box>
                         </Zoom>
@@ -1306,9 +1356,8 @@ export default function BookingPage() {
                   <Card
                     sx={{
                       borderRadius: designTokens.radius.lg,
-                      background: 'linear-gradient(135deg, rgba(37, 211, 102, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%)',
-                      backdropFilter: 'blur(20px)',
-                      border: '1px solid rgba(37, 211, 102, 0.2)',
+                      background: '#1a1714',
+                      border: '1px solid rgba(37,211,102,0.25)',
                     }}
                   >
                     <CardContent sx={{ p: 3, textAlign: 'center' }}>
@@ -1316,18 +1365,19 @@ export default function BookingPage() {
                         sx={{
                           width: 50,
                           height: 50,
-                          margin: '0 auto 12px',
-                          background: '#25D366',
-                          color: 'white'
+                          margin: '0 auto 16px',
+                          bgcolor: '#25D366',
+                          color: 'white',
+                          boxShadow: '0 8px 20px rgba(37,211,102,0.25)',
                         }}
                       >
-                        <WhatsApp sx={{ fontSize: 24 }} />
+                        <WhatsApp sx={{ fontSize: 26 }} />
                       </Avatar>
 
-                      <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+                      <Typography variant="h6" sx={{ mb: 1, fontWeight: 700, color: '#FFFFFF' }}>
                         ¿Tienes preguntas?
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                      <Typography variant="body2" sx={{ mb: 3, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
                         Chatea con nosotros por WhatsApp y resuelve tus dudas al instante
                       </Typography>
 
@@ -1343,28 +1393,31 @@ export default function BookingPage() {
                           py: 1.5,
                           minHeight: 48,
                           borderRadius: designTokens.radius.lg,
-                          fontWeight: 600,
+                          fontWeight: 700,
+                          fontSize: '0.95rem',
+                          boxShadow: '0 4px 15px rgba(37,211,102,0.3)',
                           '&:hover': {
                             background: '#22C55E',
                             transform: 'translateY(-2px)',
+                            boxShadow: '0 8px 25px rgba(37,211,102,0.4)',
                           }
                         }}
                       >
                         Chatear Ahora
                       </Button>
 
-                      <Stack direction="row" spacing={1} sx={{ mt: 2, justifyContent: 'center' }}>
+                      <Stack direction="row" spacing={1} sx={{ mt: 2.5, justifyContent: 'center' }}>
                         <Chip
-                          icon={<AccessTime />}
+                          icon={<AccessTime sx={{ fontSize: '14px !important', color: '#0d0d0d !important' }} />}
                           label="Respuesta 24h"
                           size="small"
-                          sx={{ backgroundColor: designTokens.colors.golden[100] }}
+                          sx={{ bgcolor: '#e8b63a', color: '#0d0d0d', fontWeight: 600, fontSize: '0.7rem' }}
                         />
                         <Chip
-                          icon={<CheckCircle />}
+                          icon={<CheckCircle sx={{ fontSize: '14px !important', color: 'white !important' }} />}
                           label="100% Confiable"
                           size="small"
-                          sx={{ backgroundColor: designTokens.colors.semantic.success, color: 'white' }}
+                          sx={{ bgcolor: '#25D366', color: 'white', fontWeight: 600, fontSize: '0.7rem' }}
                         />
                       </Stack>
                     </CardContent>
@@ -1735,11 +1788,11 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
   if (!services || services.length === 0 || (pizzerosParticipants === 0 && pizzaQuantity === 0)) {
     return (
       <Box sx={{ textAlign: 'center', py: 3 }}>
-        <MonetizationOn sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
+        <MonetizationOn sx={{ fontSize: 48, color: 'rgba(232,182,58,0.4)', mb: 2 }} />
+        <Typography variant="body1" sx={{ mb: 1, color: 'rgba(255,255,255,0.5)' }}>
           Selecciona servicios y participantes
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.35)' }}>
           para ver tu precio estimado en tiempo real
         </Typography>
       </Box>
@@ -1754,13 +1807,13 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
           variant="h3"
           sx={{
             fontWeight: 900,
-            color: '#FFD700',
+            color: '#e8b63a',
             mb: 1,
           }}
         >
           ${clp(totalConCargo)}
         </Typography>
-        <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+        <Typography variant="body1" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>
           {breakdown.map(b => `${b.label} (${b.serviceParticipants} ${b.service === 'pizzeros' ? 'niños' : 'pizzas'})`).join(' + ')}
         </Typography>
         {cargoLejana > 0 && (
@@ -1774,20 +1827,20 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
       <Box sx={{
         p: 2,
         borderRadius: 3,
-        backgroundColor: '#FFF9E6',
-        border: '2px solid #FFD700'
+        backgroundColor: 'rgba(232,182,58,0.06)',
+        border: '1px solid rgba(232,182,58,0.2)',
       }}>
         {breakdown.map((item, index) => (
           <Box key={item.service} sx={{ mb: index < breakdown.length - 1 ? 2 : 0 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: '#e8b63a' }}>
               {item.label}
             </Typography>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-              <Typography variant="body2">
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>
                 {item.isMinimum ? 'Tarifa mínima:' : 'Precio base:'}
               </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>
                 {item.isMinimum
                   ? `$${clp(item.total)} (hasta 10 niños)`
                   : `$${clp(item.unitBase)} x ${item.serviceParticipants}`
@@ -1797,32 +1850,29 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
 
             {item.discountPct > 0 && !item.isMinimum && (
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography variant="body2" color="success.main">
+                <Typography variant="body2" sx={{ color: '#4CAF50' }}>
                   Descuento {item.discountPct}%:
                 </Typography>
-                <Typography variant="body2" color="success.main" sx={{ fontWeight: 600 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: '#4CAF50' }}>
                   -${clp((item.unitBase - item.unitFinal) * item.serviceParticipants)}
                 </Typography>
               </Box>
             )}
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.65)' }}>
                 Subtotal {item.label}:
               </Typography>
-              <Typography variant="body1" sx={{
-                fontWeight: 700,
-                color: designTokens.colors.golden[700]
-              }}>
+              <Typography variant="body1" sx={{ fontWeight: 700, color: '#e8b63a' }}>
                 ${clp(item.total)}
               </Typography>
             </Box>
 
-            {index < breakdown.length - 1 && <Divider sx={{ mt: 1 }} />}
+            {index < breakdown.length - 1 && <Divider sx={{ mt: 1, borderColor: 'rgba(255,255,255,0.08)' }} />}
           </Box>
         ))}
 
-        <Divider sx={{ my: 2 }} />
+        <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.08)' }} />
 
         {/* Cargo por comuna lejana */}
         {cargoLejana > 0 && (
@@ -1830,19 +1880,19 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
             mb: 2,
             p: 1.5,
             borderRadius: 2,
-            backgroundColor: 'rgba(255, 152, 0, 0.1)',
-            border: '1px solid rgba(255, 152, 0, 0.3)'
+            backgroundColor: 'rgba(255,152,0,0.08)',
+            border: '1px solid rgba(255,152,0,0.25)'
           }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: 'warning.dark' }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: '#FFB74D' }}>
                   🚗 Cargo comuna lejana
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)' }}>
                   {selectedComuna} - Fuera de zona central
                 </Typography>
               </Box>
-              <Typography variant="body1" sx={{ fontWeight: 700, color: 'warning.dark' }}>
+              <Typography variant="body1" sx={{ fontWeight: 700, color: '#FFB74D' }}>
                 +${clp(cargoLejana)}
               </Typography>
             </Box>
@@ -1850,13 +1900,10 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
         )}
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
             Total Final:
           </Typography>
-          <Typography variant="h5" sx={{
-            fontWeight: 800,
-            color: designTokens.colors.golden[700]
-          }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#e8b63a' }}>
             ${clp(totalConCargo)}
           </Typography>
         </Box>
@@ -1866,13 +1913,12 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
       {breakdown.some(item => item.discountPct > 0) && (
         <Box sx={{ mt: 2, textAlign: 'center' }}>
           <Chip
-            icon={<TrendingUp />}
+            icon={<TrendingUp sx={{ color: 'white !important' }} />}
             label="¡Descuentos aplicados!"
             sx={{
-              background: designTokens.colors.semantic.success,
+              bgcolor: '#4CAF50',
               color: 'white',
               fontWeight: 700,
-              '& .MuiChip-icon': { color: 'white' }
             }}
           />
         </Box>
@@ -1880,8 +1926,8 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
 
       {/* Información adicional */}
       <Box sx={{ mt: 2, textAlign: 'center' }}>
-        <Typography variant="body2" color="text.secondary">
-          💡 Precio incluye pizzeros profesionales, ingredientes premium y show completo
+        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)' }}>
+          Precio incluye pizzeros profesionales, ingredientes premium y show completo
         </Typography>
       </Box>
 
