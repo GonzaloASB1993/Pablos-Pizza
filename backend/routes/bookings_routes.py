@@ -41,7 +41,7 @@ def create_booking():
     try:
         data = request.get_json()
         if not data: return jsonify({"error": "No data"}), 400
-        for f in ['service_type','participants','source']:
+        for f in ['service_type','source']:
             if not data.get(f): return jsonify({"error": f"Missing {f}"}), 400
 
         valid_sources = {'website','instagram','tiktok','word_of_mouth','other'}
