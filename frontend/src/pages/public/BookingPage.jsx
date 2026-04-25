@@ -570,6 +570,7 @@ export default function BookingPage() {
 
                             <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
                               <Button
+                                type="button"
                                 variant="contained"
                                 onClick={handleNext}
                                 disabled={!formData.name || !formData.email || !formData.phone}
@@ -985,6 +986,7 @@ export default function BookingPage() {
 
                             <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
                               <Button
+                                type="button"
                                 onClick={handleBack}
                                 startIcon={<ArrowBack />}
                                 size="large"
@@ -999,6 +1001,7 @@ export default function BookingPage() {
                                 Anterior
                               </Button>
                               <Button
+                                type="button"
                                 variant="contained"
                                 onClick={handleNext}
                                 disabled={services.length === 0 || getTotalParticipants() === 0 || !formData.eventType || !formData.date || !formData.time || !selectedComuna || !formData.location}
@@ -1186,6 +1189,7 @@ export default function BookingPage() {
 
                             <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
                               <Button
+                                type="button"
                                 onClick={handleBack}
                                 startIcon={<ArrowBack />}
                                 size="large"
