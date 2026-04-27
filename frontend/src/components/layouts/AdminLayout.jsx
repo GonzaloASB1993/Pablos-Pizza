@@ -76,8 +76,8 @@ const AdminLayoutContent = () => {
     { label: 'Ventas Vacío', path: '/admin/ventas-vacio', icon: <LocalPizza />, category: 'business' },
     { label: 'Contactos', path: '/admin/contactos', icon: <ContactMail />, category: 'business' },
     { label: 'Testimonios', path: '/admin/testimonios', icon: <Star />, category: 'business' },
-    { label: 'Inventario', path: '/admin/inventario', icon: <Inventory />, category: 'analytics' },
-    { label: 'Producción', path: '/admin/produccion', icon: <Factory />, category: 'analytics' },
+    { label: 'Inventario', path: '/admin/inventario', icon: <Inventory />, category: 'business' },
+    { label: 'Producción', path: '/admin/produccion', icon: <Factory />, category: 'business' },
     { label: 'Reportes', path: '/admin/reportes', icon: <Assessment />, category: 'analytics' },
   ]
 
@@ -269,7 +269,7 @@ const AdminLayoutContent = () => {
               <ListItemIcon>
                 <Analytics />
               </ListItemIcon>
-              <ListItemText primary="Analytics & Reportes" />
+              <ListItemText primary="Reportes" />
               {analyticsOpen ? <ExpandLess /> : <ExpandMore />}
             </ListItem>
           </ListSubheader>
@@ -433,7 +433,7 @@ const AdminLayoutContent = () => {
 
         {/* Analytics Section - Always expanded on mobile */}
         <ListSubheader sx={{ backgroundColor: 'transparent', fontWeight: 'bold', color: '#FFD700' }}>
-          Analytics & Reportes
+          Reportes
         </ListSubheader>
 
         <List component="div" disablePadding>

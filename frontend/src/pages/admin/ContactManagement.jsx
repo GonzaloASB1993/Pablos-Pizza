@@ -42,6 +42,7 @@ import {
   FilterList,
   Refresh
 } from '@mui/icons-material'
+import { alpha } from '@mui/material/styles'
 import { contactAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -229,10 +230,10 @@ export default function ContactManagement() {
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={3}>
-          <Card sx={{ bgcolor: '#fff3e0' }}>
+          <Card sx={{ bgcolor: (theme) => alpha(theme.palette.warning.main, 0.12) }}>
             <CardContent sx={{ textAlign: 'center' }}>
-              <PendingActions sx={{ fontSize: 40, color: '#ff9800', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, color: '#ff9800' }}>
+              <PendingActions sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'warning.main' }}>
                 {pendingContacts.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -242,10 +243,10 @@ export default function ContactManagement() {
           </Card>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Card sx={{ bgcolor: '#e3f2fd' }}>
+          <Card sx={{ bgcolor: (theme) => alpha(theme.palette.info.main, 0.12) }}>
             <CardContent sx={{ textAlign: 'center' }}>
-              <PriorityHigh sx={{ fontSize: 40, color: '#2196f3', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, color: '#2196f3' }}>
+              <PriorityHigh sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'info.main' }}>
                 {inProgressContacts.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -255,10 +256,10 @@ export default function ContactManagement() {
           </Card>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Card sx={{ bgcolor: '#e8f5e8' }}>
+          <Card sx={{ bgcolor: (theme) => alpha(theme.palette.success.main, 0.12) }}>
             <CardContent sx={{ textAlign: 'center' }}>
-              <CheckCircle sx={{ fontSize: 40, color: '#4caf50', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, color: '#4caf50' }}>
+              <CheckCircle sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main' }}>
                 {resolvedContacts.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -268,10 +269,10 @@ export default function ContactManagement() {
           </Card>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Card sx={{ bgcolor: '#fce4ec' }}>
+          <Card sx={{ bgcolor: (theme) => alpha(theme.palette.secondary.main, 0.12) }}>
             <CardContent sx={{ textAlign: 'center' }}>
-              <Message sx={{ fontSize: 40, color: '#e91e63', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, color: '#e91e63' }}>
+              <Message sx={{ fontSize: 40, color: 'secondary.main', mb: 1 }} />
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'secondary.main' }}>
                 {contacts.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">

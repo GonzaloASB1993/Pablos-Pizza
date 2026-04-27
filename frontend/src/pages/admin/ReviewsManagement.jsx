@@ -39,6 +39,7 @@ import {
   ViewList,
   Assignment
 } from '@mui/icons-material'
+import { alpha } from '@mui/material/styles'
 import { listenTestimonials, updateReview, deleteReview } from '../../services/testimonialsService'
 import toast from 'react-hot-toast'
 
@@ -179,7 +180,8 @@ const ReviewsManagement = () => {
                   height: 60,
                   objectFit: 'cover',
                   borderRadius: 1,
-                  border: '1px solid #eee'
+                  border: '1px solid',
+                  borderColor: 'divider'
                 }}
               />
             ))}
@@ -190,9 +192,10 @@ const ReviewsManagement = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                bgcolor: 'grey.100',
+                bgcolor: 'action.hover',
                 borderRadius: 1,
-                border: '1px solid #eee'
+                border: '1px solid',
+                borderColor: 'divider'
               }}>
                 <Typography variant="caption">+{review.photos.length - 3}</Typography>
               </Box>
@@ -274,10 +277,10 @@ const ReviewsManagement = () => {
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={3}>
-          <Card sx={{ bgcolor: '#fff3e0' }}>
+          <Card sx={{ bgcolor: (theme) => alpha(theme.palette.warning.main, 0.12) }}>
             <CardContent sx={{ textAlign: 'center' }}>
-              <PendingActions sx={{ fontSize: 40, color: '#ff9800', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, color: '#ff9800' }}>
+              <PendingActions sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'warning.main' }}>
                 {pendingReviews.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -287,10 +290,10 @@ const ReviewsManagement = () => {
           </Card>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Card sx={{ bgcolor: '#e8f5e8' }}>
+          <Card sx={{ bgcolor: (theme) => alpha(theme.palette.success.main, 0.12) }}>
             <CardContent sx={{ textAlign: 'center' }}>
-              <CheckCircle sx={{ fontSize: 40, color: '#4caf50', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, color: '#4caf50' }}>
+              <CheckCircle sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main' }}>
                 {approvedReviews.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -300,10 +303,10 @@ const ReviewsManagement = () => {
           </Card>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Card sx={{ bgcolor: '#ffebee' }}>
+          <Card sx={{ bgcolor: (theme) => alpha(theme.palette.error.main, 0.12) }}>
             <CardContent sx={{ textAlign: 'center' }}>
-              <ThumbDown sx={{ fontSize: 40, color: '#f44336', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, color: '#f44336' }}>
+              <ThumbDown sx={{ fontSize: 40, color: 'error.main', mb: 1 }} />
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'error.main' }}>
                 {rejectedReviews.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -313,10 +316,10 @@ const ReviewsManagement = () => {
           </Card>
         </Grid>
         <Grid item xs={12} md={3}>
-          <Card sx={{ bgcolor: '#e3f2fd' }}>
+          <Card sx={{ bgcolor: (theme) => alpha(theme.palette.info.main, 0.12) }}>
             <CardContent sx={{ textAlign: 'center' }}>
-              <Star sx={{ fontSize: 40, color: '#2196f3', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700, color: '#2196f3' }}>
+              <Star sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'info.main' }}>
                 {calculateAverageRating()}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -516,7 +519,7 @@ const ReviewsManagement = () => {
                 </Grid>
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" color="text.secondary">Comentario:</Typography>
-                  <Typography variant="body1" sx={{ mt: 1, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Typography variant="body1" sx={{ mt: 1, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
                     {selectedReview.comment || 'Sin comentario'}
                   </Typography>
                 </Grid>
@@ -525,7 +528,8 @@ const ReviewsManagement = () => {
                     <Typography variant="subtitle2" color="text.secondary">Fotos:</Typography>
                     <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                       {selectedReview.photos.map((url) => (
-                        <Box key={url} component="img" src={url} alt="foto reseña" sx={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 1, border: '1px solid #eee' }} />
+                        <Box key={url} component="img" src={url} alt="foto reseña" sx={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 1, border: '1px solid',
+                  borderColor: 'divider' }} />
                       ))}
                     </Box>
                   </Grid>

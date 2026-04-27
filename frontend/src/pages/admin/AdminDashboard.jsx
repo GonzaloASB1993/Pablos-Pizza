@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Box,
   Container,
@@ -187,7 +187,9 @@ const SkeletonCard = () => (
 
 const AdminDashboard = () => {
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
+  // Separate loading states: static data (mount-only) vs period data (month/year changes)
+  const [loadingStatic, setLoadingStatic] = useState(true)
+  const [loadingPeriod, setLoadingPeriod] = useState(true)
 
   const currentDate = new Date()
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1)
@@ -208,13 +210,156 @@ const AdminDashboard = () => {
   const [trends, setTrends] = useState({})
   const [sourceRanking, setSourceRanking] = useState([])
 
+  // Cache bookings and annual report to avoid re-fetching on period changes
+  const bookingsCache = useRef(null)
+  const annualCache = useRef({ year: null, data: null })
+
+  const parseLocalDate = (dateStr) => {
+    if (!dateStr) return new Date(0)
+    const [y, m, d] = dateStr.split('-').map(Number)
+    return new Date(y, m - 1, d)
+  }
+
+  const computeBookingsDerivedState = (bookings, year, month) => {
+    const now = new Date()
+    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+    const upcoming = bookings
+      .filter(b => {
+        if (b.status !== 'confirmed') return false
+        const eventDate = parseLocalDate(b.event_date)
+        return eventDate >= todayStart && eventDate <= in7Days
+      })
+      .sort((a, b) => parseLocalDate(a.event_date) - parseLocalDate(b.event_date))
+      .slice(0, 5)
+    setUpcomingEvents(upcoming)
+
+    const confirmedEvents = bookings.filter(b => b.status === 'confirmed').length
+    const completedEventsWithoutCost = bookings.filter(b =>
+      b.status === 'completed' && (b.event_cost === undefined || b.event_cost === null)
+    ).length
+    setAlerts(prev => ({ ...prev, confirmedEvents, completedEventsWithoutCost }))
+
+    const monthBookings = bookings.filter(b => {
+      if (!b.event_date) return false
+      const [y, m] = b.event_date.split('-').map(Number)
+      return y === year && m === month
+    })
+    const sourceCounts = monthBookings.reduce((acc, b) => {
+      const src = b.source || 'unknown'
+      acc[src] = (acc[src] || 0) + 1
+      return acc
+    }, {})
+    const ranking = Object.entries(sourceCounts)
+      .sort(([, a], [, b]) => b - a)
+      .map(([source, count]) => ({ source, count }))
+    setSourceRanking(ranking)
+  }
+
+  // Load static data once on mount: dashboard stats, top clients, inventory, bookings, reviews
   useEffect(() => {
-    loadDashboardData()
+    const loadStaticData = async () => {
+      try {
+        setLoadingStatic(true)
+        const results = await Promise.allSettled([
+          reportsAPI.getDashboard(),
+          reportsAPI.getTopClients({ limit: 5 }),
+          inventoryAPI.getAlerts(),
+          bookingsAPI.getAll(),
+          reviewsAPI.getAll()
+        ])
+
+        if (results[0].status === 'fulfilled') {
+          setDashboardData(results[0].value.data)
+        }
+        if (results[1].status === 'fulfilled') {
+          const clientsData = results[1].value.data
+          setTopClients(Array.isArray(clientsData) ? clientsData : clientsData.clients || [])
+        }
+        if (results[2].status === 'fulfilled') {
+          const alertsData = results[2].value.data
+          setInventoryAlerts(Array.isArray(alertsData) ? alertsData : alertsData.alerts || [])
+        }
+        if (results[3].status === 'fulfilled') {
+          const bookingsData = results[3].value.data
+          const bookings = bookingsData.items || bookingsData || []
+          bookingsCache.current = bookings
+          computeBookingsDerivedState(bookings, selectedMonth, selectedYear)
+        }
+        if (results[4].status === 'fulfilled') {
+          const reviewsData = results[4].value.data
+          const reviews = reviewsData.items || reviewsData || []
+          const pendingReviews = reviews.filter(r => !r.approved).length
+          setAlerts(prev => ({ ...prev, pendingReviews }))
+        }
+      } catch (error) {
+        console.error('Error loading static dashboard data:', error)
+      } finally {
+        setLoadingStatic(false)
+      }
+    }
+    loadStaticData()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load period data whenever month or year changes
+  useEffect(() => {
+    const loadPeriodData = async () => {
+      try {
+        setLoadingPeriod(true)
+
+        // Only re-fetch annual report if the year changed (use cache otherwise)
+        const needsAnnual = annualCache.current.year !== selectedYear
+        const requests = [reportsAPI.getMonthly(selectedYear, selectedMonth)]
+        if (needsAnnual) requests.push(reportsAPI.getAnnual(selectedYear))
+
+        const results = await Promise.allSettled(requests)
+
+        if (results[0].status === 'fulfilled') {
+          setMonthlyReport(results[0].value.data)
+        }
+
+        let annual = annualCache.current.data
+        if (needsAnnual && results[1]?.status === 'fulfilled') {
+          annual = results[1].value.data
+          annualCache.current = { year: selectedYear, data: annual }
+          setAnnualReport(annual)
+        }
+        if (annual) calculateTrends(annual, selectedMonth)
+
+        // Recompute source ranking from cached bookings (no extra fetch)
+        if (bookingsCache.current) {
+          const monthBookings = bookingsCache.current.filter(b => {
+            if (!b.event_date) return false
+            const [y, m] = b.event_date.split('-').map(Number)
+            return y === selectedYear && m === selectedMonth
+          })
+          const sourceCounts = monthBookings.reduce((acc, b) => {
+            const src = b.source || 'unknown'
+            acc[src] = (acc[src] || 0) + 1
+            return acc
+          }, {})
+          const ranking = Object.entries(sourceCounts)
+            .sort(([, a], [, b]) => b - a)
+            .map(([source, count]) => ({ source, count }))
+          setSourceRanking(ranking)
+        }
+      } catch (error) {
+        console.error('Error loading period dashboard data:', error)
+      } finally {
+        setLoadingPeriod(false)
+      }
+    }
+    loadPeriodData()
   }, [selectedMonth, selectedYear])
 
   const loadDashboardData = async () => {
+    // Manual refresh: reload everything
     try {
-      setLoading(true)
+      setLoadingStatic(true)
+      setLoadingPeriod(true)
+      bookingsCache.current = null
+      annualCache.current = { year: null, data: null }
 
       const results = await Promise.allSettled([
         reportsAPI.getMonthly(selectedYear, selectedMonth),
@@ -226,97 +371,39 @@ const AdminDashboard = () => {
         reviewsAPI.getAll()
       ])
 
-      // Monthly report
-      if (results[0].status === 'fulfilled') {
-        setMonthlyReport(results[0].value.data)
-      }
-
-      // Annual report + trend calculation
+      if (results[0].status === 'fulfilled') setMonthlyReport(results[0].value.data)
       if (results[1].status === 'fulfilled') {
         const annual = results[1].value.data
+        annualCache.current = { year: selectedYear, data: annual }
         setAnnualReport(annual)
         calculateTrends(annual, selectedMonth)
       }
-
-      // Dashboard stats
-      if (results[2].status === 'fulfilled') {
-        setDashboardData(results[2].value.data)
-      }
-
-      // Top clients
+      if (results[2].status === 'fulfilled') setDashboardData(results[2].value.data)
       if (results[3].status === 'fulfilled') {
         const clientsData = results[3].value.data
         setTopClients(Array.isArray(clientsData) ? clientsData : clientsData.clients || [])
       }
-
-      // Inventory alerts
       if (results[4].status === 'fulfilled') {
         const alertsData = results[4].value.data
         setInventoryAlerts(Array.isArray(alertsData) ? alertsData : alertsData.alerts || [])
       }
-
-      // Bookings -> upcoming events + alerts
       if (results[5].status === 'fulfilled') {
         const bookingsData = results[5].value.data
         const bookings = bookingsData.items || bookingsData || []
-
-        // Upcoming confirmed events (next 7 days)
-        const now = new Date()
-        const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-        // Parse date as local (not UTC) to avoid timezone offset
-        const parseLocalDate = (dateStr) => {
-          if (!dateStr) return new Date(0)
-          const [y, m, d] = dateStr.split('-').map(Number)
-          return new Date(y, m - 1, d)
-        }
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-
-        const upcoming = bookings
-          .filter(b => {
-            if (b.status !== 'confirmed') return false
-            const eventDate = parseLocalDate(b.event_date)
-            return eventDate >= todayStart && eventDate <= in7Days
-          })
-          .sort((a, b) => parseLocalDate(a.event_date) - parseLocalDate(b.event_date))
-          .slice(0, 5)
-        setUpcomingEvents(upcoming)
-
-        // Alerts
-        const confirmedEvents = bookings.filter(b => b.status === 'confirmed').length
-        const completedEventsWithoutCost = bookings.filter(b =>
-          b.status === 'completed' && (b.event_cost === undefined || b.event_cost === null)
-        ).length
-
-        // Reviews
-        let pendingReviews = 0
-        if (results[6].status === 'fulfilled') {
-          const reviewsData = results[6].value.data
-          const reviews = reviewsData.items || reviewsData || []
-          pendingReviews = reviews.filter(r => !r.approved).length
-        }
-
-        setAlerts({ pendingReviews, confirmedEvents, completedEventsWithoutCost })
-
-        // Source ranking for selected month
-        const monthBookings = bookings.filter(b => {
-          if (!b.event_date) return false
-          const [y, m] = b.event_date.split('-').map(Number)
-          return y === selectedYear && m === selectedMonth
-        })
-        const sourceCounts = monthBookings.reduce((acc, b) => {
-          const src = b.source || 'unknown'
-          acc[src] = (acc[src] || 0) + 1
-          return acc
-        }, {})
-        const ranking = Object.entries(sourceCounts)
-          .sort(([, a], [, b]) => b - a)
-          .map(([source, count]) => ({ source, count }))
-        setSourceRanking(ranking)
+        bookingsCache.current = bookings
+        computeBookingsDerivedState(bookings, selectedMonth, selectedYear)
+      }
+      if (results[6].status === 'fulfilled') {
+        const reviewsData = results[6].value.data
+        const reviews = reviewsData.items || reviewsData || []
+        const pendingReviews = reviews.filter(r => !r.approved).length
+        setAlerts(prev => ({ ...prev, pendingReviews }))
       }
     } catch (error) {
-      console.error('Error loading dashboard data:', error)
+      console.error('Error refreshing dashboard data:', error)
     } finally {
-      setLoading(false)
+      setLoadingStatic(false)
+      setLoadingPeriod(false)
     }
   }
 
@@ -499,15 +586,15 @@ const AdminDashboard = () => {
               ))}
             </Select>
           </FormControl>
-          <IconButton onClick={() => loadDashboardData()} disabled={loading} color="primary" size="small">
-            {loading ? <CircularProgress size={20} /> : <Refresh />}
+          <IconButton onClick={() => loadDashboardData()} disabled={loadingStatic || loadingPeriod} color="primary" size="small">
+            {loadingStatic || loadingPeriod ? <CircularProgress size={20} /> : <Refresh />}
           </IconButton>
         </Box>
       </Box>
 
       {/* Stat Cards Row */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        {loading ? (
+        {loadingPeriod ? (
           Array.from({ length: 5 }).map((_, i) => (
             <Grid item xs={6} sm={4} md key={i}><SkeletonCard /></Grid>
           ))
@@ -569,7 +656,7 @@ const AdminDashboard = () => {
             icon={<Assessment sx={{ color: 'text.secondary' }} />}
             minHeight={360}
           >
-            {loading ? (
+            {loadingPeriod ? (
               <Skeleton variant="rectangular" height={280} sx={{ borderRadius: 1 }} />
             ) : revenueTrendData() ? (
               <Box sx={{ height: { xs: 220, md: 280 } }}>
@@ -588,7 +675,7 @@ const AdminDashboard = () => {
             icon={<Kitchen sx={{ color: 'text.secondary' }} />}
             minHeight={360}
           >
-            {loading ? (
+            {loadingPeriod ? (
               <Skeleton variant="circular" width={200} height={200} sx={{ mx: 'auto', mt: 4 }} />
             ) : servicePieData() ? (
               <Box sx={{ height: { xs: 220, md: 280 } }}>
@@ -612,7 +699,7 @@ const AdminDashboard = () => {
             icon={<PointOfSale sx={{ color: 'text.secondary' }} />}
             minHeight={240}
           >
-            {loading ? (
+            {loadingPeriod ? (
               <Box><Skeleton height={30} /><Skeleton height={30} /><Skeleton height={30} /></Box>
             ) : paymentStats() ? (
               <Box>
@@ -692,7 +779,7 @@ const AdminDashboard = () => {
               />
             }
           >
-            {loading ? (
+            {loadingStatic ? (
               <Box>{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={50} />)}</Box>
             ) : upcomingEvents.length > 0 ? (
               <List dense disablePadding>
@@ -745,7 +832,7 @@ const AdminDashboard = () => {
             icon={<Warning sx={{ color: 'text.secondary' }} />}
             minHeight={240}
           >
-            {loading ? (
+            {loadingStatic ? (
               <Box>{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={40} />)}</Box>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -807,7 +894,7 @@ const AdminDashboard = () => {
             title="Top Clientes"
             icon={<People sx={{ color: 'text.secondary' }} />}
           >
-            {loading ? (
+            {loadingStatic ? (
               <Box>{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={40} />)}</Box>
             ) : topClients.length > 0 ? (
               <TableContainer>

@@ -2,12 +2,12 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 
 
-// API Configuration - simplified for production
+// API Configuration
 const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
 const BASE_URL = isDevelopment
   ? 'http://localhost:8000/api'  // Development - Flask runs on port 8000
-  : 'https://main-446811667554.us-central1.run.app/api'  // Production Cloud Run
+  : '/api'  // Production - Firebase Hosting rewrites /api/** to the function (same-origin, no CORS)
 
 
 // Create axios instance

@@ -3373,15 +3373,20 @@ def complete_production_batch(batch_id):
                 })
 
         # 2. Create or update intermediate product in inventory
-        output_product_name = f"{recipe_data['name']} (Producido)"
-
-        # Check if intermediate product already exists
-        existing_products = db.collection('inventory').where('name', '==', output_product_name).where('product_type', '==', recipe_data['output_product_type']).stream()
-
+        # First try exact recipe name match (no suffix) so production feeds the correct SKU
         existing_product = None
-        for doc in existing_products:
+        for doc in db.collection('inventory').where('name', '==', recipe_data['name']).stream():
             existing_product = doc
             break
+
+        # Fallback: legacy items created with "(Producido)" suffix
+        if not existing_product:
+            legacy_name = f"{recipe_data['name']} (Producido)"
+            for doc in db.collection('inventory').where('name', '==', legacy_name).stream():
+                existing_product = doc
+                break
+
+        output_product_name = recipe_data['name']
 
         if existing_product:
             # Update existing product
