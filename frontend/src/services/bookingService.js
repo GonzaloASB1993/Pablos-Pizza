@@ -77,7 +77,8 @@ export const createBooking = async (bookingData) => {
         services_selected: Array.isArray(bookingData.services) ? bookingData.services : [bookingData.service],
         // Cargo adicional por comuna lejana (Quilicura, Lampa, Colina, Huechuraba)
         comuna_lejana_extra: bookingData.comunaLejanaExtra || 0,
-        selected_comuna: bookingData.selectedComuna || ''
+        selected_comuna: bookingData.selectedComuna || '',
+        source: bookingData.source || 'website'
       })
     })
 
@@ -105,7 +106,7 @@ export const createBooking = async (bookingData) => {
             .join(' | ')
           throw new Error(msg || 'Error de validación (422)')
         }
-        throw new Error(errorData.detail || `Error ${response.status}: ${response.statusText}`)
+        throw new Error(errorData.detail || errorData.error || `Error ${response.status}: ${response.statusText}`)
       } catch (parseError) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
