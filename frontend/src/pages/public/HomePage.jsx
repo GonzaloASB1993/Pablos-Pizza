@@ -55,6 +55,32 @@ import { CTA_VARIANT } from '../../data/stats'
 import { useStats } from '../../hooks/useStats'
 
 // ─────────────────────────────────────────────────────────────
+// FAQ — visible content + FAQPage schema (rich results / leads)
+// ─────────────────────────────────────────────────────────────
+const FAQS = [
+  {
+    question: '¿Cuánto cuesta un taller de pizza para niños en Santiago?',
+    answer: 'Nuestros talleres "Pizzeros en Acción" parten desde $9.000 por niño y el "Pizza Party" desde $11.990 por persona (mínimo 15 personas). El precio final depende de la cantidad de participantes y el servicio elegido. Cotiza gratis en menos de 24 horas.',
+  },
+  {
+    question: '¿Para qué edades son los talleres de pizza?',
+    answer: 'Están diseñados para niños desde los 4 años en adelante, adaptando la dificultad a cada grupo. También realizamos pizza parties para adolescentes, eventos familiares y corporativos.',
+  },
+  {
+    question: '¿En qué comunas de Santiago tienen cobertura?',
+    answer: 'Ofrecemos servicio a domicilio en toda la Región Metropolitana. El equipo llega 45 minutos antes para preparar todo, así los anfitriones no cocinan ni limpian.',
+  },
+  {
+    question: '¿Qué incluye el servicio de Pizza Party a domicilio?',
+    answer: 'Incluye todos los ingredientes artesanales, masa preparada, montaje, preparación en vivo y limpieza. Es un servicio integral todo incluido: ustedes solo disfrutan del evento.',
+  },
+  {
+    question: '¿Con cuánta anticipación debo reservar mi evento?',
+    answer: 'Recomendamos reservar con al menos 1 a 2 semanas de anticipación para asegurar la fecha, especialmente en fines de semana. Respondemos toda cotización en menos de 24 horas por WhatsApp.',
+  },
+]
+
+// ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS (local shortcuts)
 // ─────────────────────────────────────────────────────────────
 const GOLD = '#FFD700'
@@ -518,6 +544,7 @@ export default function HomePage() {
         description="Talleres de pizza para niños y pizza parties en Santiago. Experiencias gastronómicas educativas donde los niños aprenden a hacer pizzas artesanales. Servicio a domicilio para cumpleaños."
         keywords="talleres pizza niños Santiago, pizza party cumpleaños, eventos infantiles Santiago, taller cocina niños, catering pizza, fiestas infantiles Chile, pizzeros en acción"
         url="/"
+        faqs={FAQS}
       />
 
       {/* ══════════════════════════════════════════════════
@@ -1529,6 +1556,108 @@ export default function HomePage() {
                 }}
               >
                 Ver Galería Completa
+              </Button>
+            </Box>
+          </Container>
+        </Box>
+      </AnimatedSection>
+
+      <SectionDivider />
+
+      {/* ══════════════════════════════════════════════════
+          SECCIÓN 5 — PREGUNTAS FRECUENTES (SEO / leads)
+      ══════════════════════════════════════════════════ */}
+      <AnimatedSection>
+        <Box
+          component="section"
+          aria-label="Preguntas frecuentes"
+          sx={{ py: { xs: 8, md: 12 }, backgroundColor: BG.s3 }}
+        >
+          <Container maxWidth="md">
+            <Box sx={{ textAlign: 'center', mb: { xs: 5, md: 7 } }}>
+              <Typography
+                variant="overline"
+                sx={{ color: GOLD, letterSpacing: 4, fontWeight: 700, fontSize: '0.75rem', mb: 1.5, display: 'block' }}
+              >
+                ¿TIENES DUDAS?
+              </Typography>
+              <Typography
+                variant="h2"
+                sx={{ color: '#fff', fontWeight: 900, fontSize: { xs: '2rem', md: '3rem' }, lineHeight: 1.1 }}
+              >
+                Preguntas Frecuentes
+              </Typography>
+            </Box>
+
+            <Box sx={{ maxWidth: 760, mx: 'auto' }}>
+              {FAQS.map((faq) => (
+                <Box
+                  key={faq.question}
+                  component="details"
+                  sx={{
+                    mb: 2,
+                    borderRadius: 2,
+                    border: '1px solid rgba(255,215,0,0.18)',
+                    background: 'rgba(255,255,255,0.03)',
+                    overflow: 'hidden',
+                    '&[open]': { borderColor: 'rgba(255,215,0,0.4)' },
+                    '& summary': {
+                      listStyle: 'none',
+                      cursor: 'pointer',
+                      px: 3,
+                      py: 2.25,
+                      color: '#fff',
+                      fontWeight: 600,
+                      fontSize: { xs: '1rem', md: '1.05rem' },
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      transition: 'color 0.2s ease',
+                    },
+                    '& summary:hover': { color: GOLD },
+                    '& summary::-webkit-details-marker': { display: 'none' },
+                  }}
+                >
+                  <Box component="summary">
+                    <CheckCircle sx={{ color: GOLD, fontSize: 20, flexShrink: 0 }} />
+                    {faq.question}
+                  </Box>
+                  <Typography
+                    sx={{
+                      px: 3,
+                      pb: 2.5,
+                      pt: 0,
+                      color: 'rgba(255,255,255,0.72)',
+                      lineHeight: 1.7,
+                      fontSize: { xs: '0.95rem', md: '1rem' },
+                    }}
+                  >
+                    {faq.answer}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+
+            <Box sx={{ textAlign: 'center', mt: 5 }}>
+              <Button
+                variant="outlined"
+                size="large"
+                endIcon={<WhatsApp />}
+                href="https://wa.me/56989424566?text=Hola!%20Tengo%20una%20consulta%20sobre%20los%20talleres%20de%20pizza"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  px: 5,
+                  py: 1.5,
+                  borderColor: 'rgba(255,215,0,0.4)',
+                  color: GOLD,
+                  fontWeight: 700,
+                  borderRadius: designTokens.radius.xl,
+                  '&:hover': { borderColor: GOLD, backgroundColor: 'rgba(255,215,0,0.08)' },
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                Hacer otra pregunta
               </Button>
             </Box>
           </Container>

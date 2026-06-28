@@ -68,7 +68,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { designTokens } from '../../utils/theme'
 import { createBooking, createPaymentPreference } from '../../services/bookingService'
-import { santiagoComunas, isComunaLejana, CARGO_COMUNA_LEJANA, comunasLejanas } from '../../data/chileanRegions'
+import { santiagoComunas, isComunaLejana, DEFAULT_CARGO_COMUNA_LEJANA, DEFAULT_COMUNAS_LEJANAS } from '../../data/chileanRegions'
 import { getPizzerosPrice, PIZZEROS_TIERS } from '../../data/pricing'
 
 // Constantes de pricing (sincronizadas con backend)
@@ -77,11 +77,22 @@ const PRICING_CONSTANTS = {
   SLICES_PER_PERSON: 5,
   SLICES_PER_PIZZA: 8,
   MIN_PIZZAS: 10,
-  PIZZEROS_MINIMUM: PIZZEROS_TIERS[0].price * 10, // derivado, no hardcodeado
+  PIZZEROS_MINIMUM: PIZZEROS_TIERS[0].price * 10,
   PIZZA_PARTY_BASE_PRICE: 11990,
   PIZZA_PARTY_DISCOUNT_THRESHOLD: 20,
   PIZZA_PARTY_DISCOUNT: 0.10,
-  CARGO_COMUNA_LEJANA: CARGO_COMUNA_LEJANA
+}
+
+const fetchComunasLejanas = async () => {
+  try {
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    const base = isDev ? '/api' : 'https://us-central1-pablospizza-d84bf.cloudfunctions.net/main/api'
+    const res = await fetch(`${base}/settings/comunas-lejanas`)
+    if (!res.ok) throw new Error('API error')
+    return await res.json()
+  } catch {
+    return { comunas: DEFAULT_COMUNAS_LEJANAS, cargo: DEFAULT_CARGO_COMUNA_LEJANA }
+  }
 }
 
 // Opciones de horario generadas dinámicamente
@@ -291,8 +302,16 @@ export default function BookingPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [bookingResult, setBookingResult] = useState(null)
   const [submitError, setSubmitError] = useState('')
+  const [comunasLejanasConfig, setComunasLejanasConfig] = useState({
+    comunas: DEFAULT_COMUNAS_LEJANAS,
+    cargo: DEFAULT_CARGO_COMUNA_LEJANA
+  })
 
   const steps = ['Información Personal', 'Detalles del Evento', 'Confirmación']
+
+  useEffect(() => {
+    fetchComunasLejanas().then(setComunasLejanasConfig)
+  }, [])
 
   // Efecto para mostrar animación de precio
   useEffect(() => {
@@ -350,7 +369,7 @@ export default function BookingPage() {
         total += pizzaQuantity * getPizzaPartyPrice(pizzaQuantity)
       }
     })
-    if (isComunaLejana(selectedComuna)) total += PRICING_CONSTANTS.CARGO_COMUNA_LEJANA
+    if (isComunaLejana(selectedComuna, comunasLejanasConfig.comunas)) total += comunasLejanasConfig.cargo
     return Math.round(total)
   }
 
@@ -363,7 +382,7 @@ export default function BookingPage() {
   }
 
   const buildBookingData = () => {
-    const comunaLejanaExtra = isComunaLejana(selectedComuna) ? CARGO_COMUNA_LEJANA : 0
+    const comunaLejanaExtra = isComunaLejana(selectedComuna, comunasLejanasConfig.comunas) ? comunasLejanasConfig.cargo : 0
     return {
       ...formData,
       services,
@@ -920,9 +939,9 @@ export default function BookingPage() {
                                   renderOption={(props, option) => (
                                     <Box component="li" {...props}>
                                       {option}
-                                      {isComunaLejana(option) && (
+                                      {isComunaLejana(option, comunasLejanasConfig.comunas) && (
                                         <Chip
-                                          label="+$20.000"
+                                          label={`+$${comunasLejanasConfig.cargo.toLocaleString('es-CL')}`}
                                           size="small"
                                           sx={{
                                             ml: 1,
@@ -949,12 +968,12 @@ export default function BookingPage() {
                                         ),
                                       }}
                                       helperText={
-                                        isComunaLejana(selectedComuna)
-                                          ? `⚠️ ${selectedComuna} tiene cargo adicional de $20.000`
+                                        isComunaLejana(selectedComuna, comunasLejanasConfig.comunas)
+                                          ? `⚠️ ${selectedComuna} tiene cargo adicional de $${comunasLejanasConfig.cargo.toLocaleString('es-CL')}`
                                           : "Selecciona la comuna donde se realizará el evento"
                                       }
                                       FormHelperTextProps={{
-                                        sx: isComunaLejana(selectedComuna) ? { color: 'warning.main', fontWeight: 500 } : {}
+                                        sx: isComunaLejana(selectedComuna, comunasLejanasConfig.comunas) ? { color: 'warning.main', fontWeight: 500 } : {}
                                       }}
                                     />
                                   )}
@@ -1328,6 +1347,7 @@ export default function BookingPage() {
                     pizzaQuantity={pizzaQuantity}
                     participants={getTotalParticipants()}
                     selectedComuna={selectedComuna}
+                    comunasLejanasConfig={comunasLejanasConfig}
                   />
 
                       {services.length > 0 && getTotalParticipants() > 0 && (
@@ -1712,7 +1732,7 @@ export default function BookingPage() {
 }
 
 // Componente de precio estimado premium con animaciones
-function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, pizzaQuantity, selectedComuna }) {
+function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, pizzaQuantity, selectedComuna, comunasLejanasConfig = {} }) {
   const { totals, grandTotal, breakdown, cargoLejana, totalConCargo } = useMemo(() => {
     if (!services || services.length === 0) {
       return { totals: {}, grandTotal: 0, breakdown: [], cargoLejana: 0, totalConCargo: 0 }
@@ -1781,11 +1801,11 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
     })
 
     // Calcular cargo por comuna lejana
-    const cargoLejana = isComunaLejana(selectedComuna) ? PRICING_CONSTANTS.CARGO_COMUNA_LEJANA : 0
+    const cargoLejana = isComunaLejana(selectedComuna, comunasLejanasConfig.comunas) ? (comunasLejanasConfig.cargo || DEFAULT_CARGO_COMUNA_LEJANA) : 0
     const totalConCargo = grandTotal + cargoLejana
 
     return { totals: calculatedTotals, grandTotal, breakdown: calculatedBreakdown, cargoLejana, totalConCargo }
-  }, [services, pizzerosParticipants, pizzaQuantity, selectedComuna])
+  }, [services, pizzerosParticipants, pizzaQuantity, selectedComuna, comunasLejanasConfig])
 
   const clp = (n) => n.toLocaleString('es-CL')
 

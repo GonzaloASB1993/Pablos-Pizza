@@ -24,6 +24,7 @@ const ProductionManagement = lazy(() => import('./pages/admin/ProductionManageme
 const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'))
 const ContactManagement = lazy(() => import('./pages/admin/ContactManagement'))
 const VacuumSalesManagement = lazy(() => import('./pages/admin/VacuumSalesManagement'))
+const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'))
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
 
 // Layouts
@@ -153,6 +154,11 @@ function App() {
           <Route path="ventas-vacio" element={
             <Suspense fallback={<LoadingSpinner />}>
               <VacuumSalesManagement />
+            </Suspense>
+          } />
+          <Route path="configuracion" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <SettingsPage />
             </Suspense>
           } />
         </Route>

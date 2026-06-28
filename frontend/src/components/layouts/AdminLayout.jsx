@@ -79,6 +79,7 @@ const AdminLayoutContent = () => {
     { label: 'Inventario', path: '/admin/inventario', icon: <Inventory />, category: 'business' },
     { label: 'Producción', path: '/admin/produccion', icon: <Factory />, category: 'business' },
     { label: 'Reportes', path: '/admin/reportes', icon: <Assessment />, category: 'analytics' },
+    { label: 'Configuración', path: '/admin/configuracion', icon: <Settings />, category: 'settings' },
   ]
 
   const handleDrawerToggle = () => {
@@ -300,6 +301,31 @@ const AdminLayoutContent = () => {
               ))}
             </List>
           </Collapse>
+
+          <Divider sx={{ my: 1 }} />
+
+          {menuItems.filter(item => item.category === 'settings').map((item) => (
+            <ListItem
+              button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              selected={location.pathname === item.path}
+              sx={{
+                mb: 1,
+                borderRadius: 1,
+                mx: 1,
+                '&.Mui-selected': {
+                  backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                  borderLeft: '4px solid #FFD700'
+                }
+              }}
+            >
+              <ListItemIcon sx={{ color: location.pathname === item.path ? '#FFD700' : 'inherit' }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItem>
+          ))}
         </List>
       )}
 
@@ -443,7 +469,7 @@ const AdminLayoutContent = () => {
               key={item.path}
               onClick={() => {
                 navigate(item.path)
-                setMobileOpen(false) // Close drawer after navigation
+                setMobileOpen(false)
               }}
               selected={location.pathname === item.path}
               sx={{
@@ -463,6 +489,34 @@ const AdminLayoutContent = () => {
             </ListItem>
           ))}
         </List>
+
+        <Divider sx={{ my: 1 }} />
+
+        {menuItems.filter(item => item.category === 'settings').map((item) => (
+          <ListItem
+            button
+            key={item.path}
+            onClick={() => {
+              navigate(item.path)
+              setMobileOpen(false)
+            }}
+            selected={location.pathname === item.path}
+            sx={{
+              mb: 1,
+              borderRadius: 1,
+              mx: 1,
+              '&.Mui-selected': {
+                backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                borderLeft: '4px solid #FFD700'
+              }
+            }}
+          >
+            <ListItemIcon sx={{ color: location.pathname === item.path ? '#FFD700' : 'inherit' }}>
+              {item.icon}
+            </ListItemIcon>
+            <ListItemText primary={item.label} />
+          </ListItem>
+        ))}
       </List>
 
       <Box sx={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>

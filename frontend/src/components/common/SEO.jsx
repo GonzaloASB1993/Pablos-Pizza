@@ -15,7 +15,8 @@ const SEO = ({
   image = '/images/og-image.jpeg',
   url,
   type = 'website',
-  noindex = false
+  noindex = false,
+  faqs = null
 }) => {
   const siteUrl = 'https://pablospizza.cl'
   const defaultTitle = "Pablo's Pizza - Talleres de Pizza para Niños en Santiago"
@@ -37,6 +38,18 @@ const SEO = ({
           { '@type': 'ListItem', position: 1, name: 'Inicio', item: siteUrl },
           { '@type': 'ListItem', position: 2, name: breadcrumbLabel, item: `${siteUrl}${url}` },
         ],
+      })
+    : null
+
+  const faqJson = faqs && faqs.length
+    ? JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((f) => ({
+          '@type': 'Question',
+          name: f.question,
+          acceptedAnswer: { '@type': 'Answer', text: f.answer },
+        })),
       })
     : null
 
@@ -86,6 +99,11 @@ const SEO = ({
       {/* BreadcrumbList JSON-LD for inner pages */}
       {breadcrumbJson && (
         <script type="application/ld+json">{breadcrumbJson}</script>
+      )}
+
+      {/* FAQPage JSON-LD for rich results */}
+      {faqJson && (
+        <script type="application/ld+json">{faqJson}</script>
       )}
     </Helmet>
   )
