@@ -4613,11 +4613,15 @@ def get_consumption_status(booking_id):
 
 # ==================== REPORTS API ROUTES ====================
 
-def calculate_client_retention_rate(year: int, month: int) -> float:
-    """Calcular tasa de retención de clientes para el mes"""
+def calculate_client_retention_rate(year: int, month: int, ctx: dict = None) -> float:
+    """Calcular tasa de retención de clientes para el mes
+
+    ctx (opcional): contexto con todos los bookings pre-cargados (all_bookings)
+    para evitar consultas adicionales a Firestore en reportes de año completo.
+    """
     try:
         db = get_db()
-        if not db:
+        if not db and ctx is None:
             logger.warning("Database unavailable for retention rate calculation")
             return 0.0
 
@@ -4628,36 +4632,46 @@ def calculate_client_retention_rate(year: int, month: int) -> float:
         else:
             end_date = f"{year}-{month + 1:02d}-01"
 
-        all_current_bookings = list(db.collection("bookings").where(
-            "event_date", ">=", start_date
-        ).where(
-            "event_date", "<", end_date
-        ).stream())
+        # Bookings del mes actual y de meses anteriores (como dicts)
+        if ctx is not None:
+            current_dicts = [
+                b for b in ctx['all_bookings']
+                if start_date <= (b.get('event_date') or '') < end_date
+            ]
+            previous_dicts = [
+                b for b in ctx['all_bookings']
+                if (b.get('event_date') or '') < start_date
+            ]
+        else:
+            # Solo necesitamos status y client_email para la retención: proyectamos
+            # esos campos para reducir el volumen transferido (sobre todo el
+            # historial completo de "previous", que puede ser grande).
+            current_dicts = [doc.to_dict() for doc in db.collection("bookings").where(
+                "event_date", ">=", start_date
+            ).where(
+                "event_date", "<", end_date
+            ).select(["status", "client_email"]).stream()]
+            previous_dicts = [doc.to_dict() for doc in db.collection("bookings").where(
+                "event_date", "<", start_date
+            ).select(["status", "client_email"]).stream()]
 
         # Filtrar solo confirmados/completados
-        current_bookings = [b for b in all_current_bookings if b.to_dict().get("status") in ["confirmed", "completed"]]
+        current_bookings = [b for b in current_dicts if b.get("status") in ["confirmed", "completed"]]
 
         if not current_bookings:
             return 0.0
 
         current_clients = set()
-        for booking_doc in current_bookings:
-            booking_data = booking_doc.to_dict()
+        for booking_data in current_bookings:
             client_email = booking_data.get("client_email")
             if client_email:
                 current_clients.add(client_email)
 
-        # Obtener clientes de meses anteriores
-        all_previous_bookings = list(db.collection("bookings").where(
-            "event_date", "<", start_date
-        ).stream())
-
-        # Filtrar solo confirmados/completados
-        previous_bookings = [b for b in all_previous_bookings if b.to_dict().get("status") in ["confirmed", "completed"]]
+        # Clientes de meses anteriores
+        previous_bookings = [b for b in previous_dicts if b.get("status") in ["confirmed", "completed"]]
 
         previous_clients = set()
-        for booking_doc in previous_bookings:
-            booking_data = booking_doc.to_dict()
+        for booking_data in previous_bookings:
             client_email = booking_data.get("client_email")
             if client_email:
                 previous_clients.add(client_email)
@@ -4671,10 +4685,16 @@ def calculate_client_retention_rate(year: int, month: int) -> float:
     except:
         return 0.0
 
-def get_monthly_report_data(year: int, month: int):
-    """Generar datos de reporte mensual (función auxiliar)"""
+def get_monthly_report_data(year: int, month: int, ctx: dict = None):
+    """Generar datos de reporte mensual (función auxiliar)
+
+    ctx (opcional): contexto con colecciones pre-cargadas (all_bookings,
+    waste_movements, vacuum_sales) para reportes de año completo, evitando
+    re-escanear Firestore una vez por mes. Si es None se consulta Firestore
+    directamente (comportamiento original para reporte mensual y dashboard).
+    """
     db = get_db()
-    if not db:
+    if not db and ctx is None:
         logger.error("Database connection failed in get_monthly_report_data")
         raise Exception("Database connection unavailable")
 
@@ -4685,16 +4705,22 @@ def get_monthly_report_data(year: int, month: int):
     else:
         end_date = f"{year}-{month + 1:02d}-01"
 
-    # Obtener agendamientos del mes (confirmed y completed)
-    bookings_query = db.collection("bookings").where(
-        "event_date", ">=", start_date
-    ).where(
-        "event_date", "<", end_date
-    )
+    # Obtener agendamientos del mes (como lista de dicts)
+    if ctx is not None:
+        all_bookings = [
+            b for b in ctx['all_bookings']
+            if start_date <= (b.get('event_date') or '') < end_date
+        ]
+    else:
+        bookings_query = db.collection("bookings").where(
+            "event_date", ">=", start_date
+        ).where(
+            "event_date", "<", end_date
+        )
+        all_bookings = [doc.to_dict() for doc in bookings_query.stream()]
 
-    all_bookings = list(bookings_query.stream())
     # Filtrar solo agendamientos confirmados o completados
-    bookings = [b for b in all_bookings if b.to_dict().get("status") in ["confirmed", "completed"]]
+    bookings = [b for b in all_bookings if b.get("status") in ["confirmed", "completed"]]
     total_events = len(bookings)
 
     if total_events == 0:
@@ -4750,9 +4776,7 @@ def get_monthly_report_data(year: int, month: int):
     service_counts = {}
     service_incomes = {}  # Agregar income por servicio
 
-    for booking_doc in bookings:
-        booking_data = booking_doc.to_dict()
-
+    for booking_data in bookings:
         # Ingresos: precio estimado o final
         estimated_price = booking_data.get("estimated_price", 0.0)
         final_price = booking_data.get("final_price", estimated_price)
@@ -4779,10 +4803,15 @@ def get_monthly_report_data(year: int, month: int):
     try:
         from datetime import timezone
 
-        # Obtener TODAS las mermas (sin filtro de fecha primero para debugging)
-        all_waste_movements = list(db.collection('inventory_movements')\
-            .where('movement_type', '==', 'waste')\
-            .stream())
+        # Obtener TODAS las mermas (pre-cargadas si hay ctx, si no consultar Firestore)
+        if ctx is not None:
+            all_waste_movements = ctx['waste_movements']
+        else:
+            all_waste_movements = [
+                doc.to_dict() for doc in db.collection('inventory_movements')
+                .where('movement_type', '==', 'waste')
+                .stream()
+            ]
 
         logger.info(f"Found {len(all_waste_movements)} total waste movements in database")
 
@@ -4794,8 +4823,7 @@ def get_monthly_report_data(year: int, month: int):
         else:
             end_dt = datetime(year, month + 1, 1, tzinfo=timezone.utc)
 
-        for waste_doc in all_waste_movements:
-            waste_data = waste_doc.to_dict()
+        for waste_data in all_waste_movements:
             created_at = waste_data.get('created_at')
 
             # Convertir created_at a datetime si es necesario
@@ -4857,10 +4885,16 @@ def get_monthly_report_data(year: int, month: int):
     vacuum_summary = {"count": 0, "total_income": 0.0, "total_cost": 0.0}
     try:
         target_prefix = f"{year}-{month:02d}"
-        all_vacuum_docs = list(db.collection('vacuum_sales').stream())
+        if ctx is not None:
+            all_vacuum_sales = ctx['vacuum_sales']
+        else:
+            all_vacuum_sales = [
+                doc.to_dict() for doc in db.collection('vacuum_sales')
+                .select(["total", "total_cost", "sale_date"]).stream()
+            ]
         vacuum_month_sales = [
-            doc.to_dict() for doc in all_vacuum_docs
-            if doc.to_dict().get('sale_date', '').startswith(target_prefix)
+            s for s in all_vacuum_sales
+            if s.get('sale_date', '').startswith(target_prefix)
         ]
         vacuum_income = sum(float(s.get('total', 0)) for s in vacuum_month_sales)
         vacuum_cost = sum(float(s.get('total_cost', 0)) for s in vacuum_month_sales)
@@ -4889,7 +4923,7 @@ def get_monthly_report_data(year: int, month: int):
     most_popular_service = max(service_counts.items(), key=lambda x: x[1])[0] if service_counts else "N/A"
 
     # Calcular tasa de retención (clientes que volvieron)
-    client_retention_rate = calculate_client_retention_rate(year, month)
+    client_retention_rate = calculate_client_retention_rate(year, month, ctx=ctx)
 
     # Construir events_by_service para el frontend
     events_by_service = {}
@@ -4906,8 +4940,7 @@ def get_monthly_report_data(year: int, month: int):
     partial_count = 0
     unpaid_count = 0
 
-    for booking_doc in bookings:
-        booking_data = booking_doc.to_dict()
+    for booking_data in bookings:
         payments = booking_data.get('payments', [])
         estimated_price = float(booking_data.get('estimated_price', 0))
 
@@ -4967,10 +5000,30 @@ def get_annual_summary(year: int):
     try:
         monthly_reports = []
 
+        # Pre-cargar las colecciones UNA sola vez para todo el año, en lugar de
+        # re-escanear Firestore en cada uno de los 12 meses. Si falla, se usa
+        # ctx=None y cada mes consulta directamente (comportamiento original).
+        ctx = None
+        db = get_db()
+        if db:
+            try:
+                ctx = {
+                    'all_bookings': [doc.to_dict() for doc in db.collection("bookings").stream()],
+                    'waste_movements': [
+                        doc.to_dict() for doc in db.collection('inventory_movements')
+                        .where('movement_type', '==', 'waste')
+                        .stream()
+                    ],
+                    'vacuum_sales': [doc.to_dict() for doc in db.collection('vacuum_sales').stream()],
+                }
+            except Exception as e:
+                logger.error(f"Error pre-cargando contexto anual, se consultará por mes: {e}")
+                ctx = None
+
         for month in range(1, 13):
             try:
                 # Llamar a la función auxiliar get_monthly_report_data
-                report_data = get_monthly_report_data(year, month)
+                report_data = get_monthly_report_data(year, month, ctx=ctx)
                 monthly_reports.append(report_data)
             except:
                 # Si hay error en un mes, usar valores por defecto
@@ -5017,48 +5070,59 @@ def get_dashboard_stats():
         current_month = now.month
         current_year = now.year
 
-        # Estadísticas de hoy
         today_start = datetime.combine(today, datetime.min.time())
         today_end = datetime.combine(today, datetime.max.time())
-
-        today_bookings = len(list(db.collection("bookings").where(
-            "created_at", ">=", today_start
-        ).where(
-            "created_at", "<=", today_end
-        ).stream()))
-
-        # Estadísticas del mes actual - usar misma lógica de costos que en reportes
-        try:
-            monthly_report = get_monthly_report_data(current_year, current_month)
-        except:
-            monthly_report = {
-                "total_events": 0,
-                "total_income": 0.0,
-                "total_profit": 0.0
-            }
-
-        # Próximos eventos (próximos 7 días) - usar strings para comparar
         today_str = today.strftime('%Y-%m-%d')
-        next_week = today + timedelta(days=7)
-        next_week_str = next_week.strftime('%Y-%m-%d')
+        next_week_str = (today + timedelta(days=7)).strftime('%Y-%m-%d')
 
-        upcoming_events = list(db.collection("bookings").where(
-            "event_date", ">=", today_str
-        ).where(
-            "event_date", "<=", next_week_str
-        ).where(
-            "status", "==", "confirmed"
-        ).stream())
+        # Estas consultas son independientes entre sí; las ejecutamos en paralelo
+        # porque en dev cada round trip a Firestore domina el tiempo total.
+        # (El cliente de Firestore es thread-safe.)
+        def _today_bookings():
+            return len(list(db.collection("bookings").where(
+                "created_at", ">=", today_start
+            ).where(
+                "created_at", "<=", today_end
+            ).stream()))
 
-        # Estadísticas de inventario
-        low_stock_items = len(list(db.collection("inventory").where(
-            "needs_restock", "==", True
-        ).stream()))
+        def _monthly_report():
+            try:
+                return get_monthly_report_data(current_year, current_month)
+            except Exception:
+                return {"total_events": 0, "total_income": 0.0, "total_profit": 0.0}
 
-        # Reseñas pendientes
-        pending_reviews = len(list(db.collection("reviews").where(
-            "is_approved", "==", False
-        ).stream()))
+        def _upcoming_events():
+            return len(list(db.collection("bookings").where(
+                "event_date", ">=", today_str
+            ).where(
+                "event_date", "<=", next_week_str
+            ).where(
+                "status", "==", "confirmed"
+            ).stream()))
+
+        def _low_stock_items():
+            return len(list(db.collection("inventory").where(
+                "needs_restock", "==", True
+            ).stream()))
+
+        def _pending_reviews():
+            return len(list(db.collection("reviews").where(
+                "is_approved", "==", False
+            ).stream()))
+
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            f_today = executor.submit(_today_bookings)
+            f_monthly = executor.submit(_monthly_report)
+            f_upcoming = executor.submit(_upcoming_events)
+            f_low_stock = executor.submit(_low_stock_items)
+            f_pending = executor.submit(_pending_reviews)
+
+            today_bookings = f_today.result()
+            monthly_report = f_monthly.result()
+            upcoming_count = f_upcoming.result()
+            low_stock_items = f_low_stock.result()
+            pending_reviews = f_pending.result()
 
         return jsonify({
             "today": {
@@ -5071,7 +5135,7 @@ def get_dashboard_stats():
                 "income": monthly_report["total_income"],
                 "profit": monthly_report["total_profit"]
             },
-            "upcoming_events": len(upcoming_events),
+            "upcoming_events": upcoming_count,
             "alerts": {
                 "low_stock_items": low_stock_items,
                 "pending_reviews": pending_reviews

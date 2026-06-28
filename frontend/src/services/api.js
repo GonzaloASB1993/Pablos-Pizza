@@ -11,9 +11,12 @@ const BASE_URL = isDevelopment
 
 
 // Create axios instance
+// Dev runs Flask locally against cloud Firestore, so each request is much slower
+// than in production (Cloud Run is co-located with Firestore). Use a longer timeout
+// in dev to avoid aborting slow-but-valid requests (e.g. annual reports).
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000,
+  timeout: isDevelopment ? 120000 : 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -309,9 +312,16 @@ api.interceptors.response.use(
         default:
           toast.error(data.detail || 'Error en la petición')
       }
+    } else if (error.code === 'ECONNABORTED' || /timeout/i.test(error.message || '')) {
+      // Request timed out: the server responded too slowly, not a connectivity problem
+      toast.error('El servidor está tardando demasiado en responder. Intenta nuevamente.')
     } else if (error.request) {
-      // Network error
-      toast.error('Error de conexión. Verifica tu internet.')
+      // Truly no response: distinguish offline from server unreachable
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        toast.error('Sin conexión a internet. Verifica tu red.')
+      } else {
+        toast.error('No se pudo conectar con el servidor. Verifica que esté en ejecución.')
+      }
     } else {
       // Other error
       toast.error('Error inesperado')
@@ -504,6 +514,11 @@ export const vacuumSalesAPI = {
 export const paymentsAPI = {
   createPreference: (data) => api.post('/payments/create-preference', data),
   getStatus: (bookingId) => api.get(`/payments/status/${bookingId}`),
+}
+
+export const settingsAPI = {
+  getComunasLejanas: () => api.get('/settings/comunas-lejanas'),
+  updateComunasLejanas: (data) => api.put('/settings/comunas-lejanas', data),
 }
 
 export default api
