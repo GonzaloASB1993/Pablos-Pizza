@@ -50,6 +50,9 @@ def create_fixed_expense():
             'category': data.get('category', 'general'),
             'notes': data.get('notes', ''),
             'is_active': data.get('is_active', True),
+            # Optional effective date range (YYYY-MM). None means "no limit" on that side.
+            'effective_from': data.get('effective_from') or None,
+            'effective_to': data.get('effective_to') or None,
             'created_at': datetime.now(),
             'updated_at': datetime.now()
         }
@@ -88,6 +91,10 @@ def update_fixed_expense(expense_id):
             update_data['notes'] = data['notes']
         if 'is_active' in data:
             update_data['is_active'] = data['is_active']
+        if 'effective_from' in data:
+            update_data['effective_from'] = data['effective_from'] or None
+        if 'effective_to' in data:
+            update_data['effective_to'] = data['effective_to'] or None
 
         doc_ref.update(update_data)
 

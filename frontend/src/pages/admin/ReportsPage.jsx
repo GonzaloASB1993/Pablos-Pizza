@@ -353,7 +353,9 @@ export default function ReportsPage() {
     description: '',
     amount: '',
     category: 'general',
-    notes: ''
+    notes: '',
+    effective_from: '',
+    effective_to: ''
   })
   const [incomeStatementView, setIncomeStatementView] = useState('monthly') // 'monthly' or 'annual'
   const [monthlyTax, setMonthlyTax] = useState(0)
@@ -518,14 +520,18 @@ export default function ReportsPage() {
         description: expense.description || '',
         amount: expense.amount || '',
         category: expense.category || 'general',
-        notes: expense.notes || ''
+        notes: expense.notes || '',
+        effective_from: expense.effective_from || '',
+        effective_to: expense.effective_to || ''
       })
     } else {
       setExpenseFormData({
         description: '',
         amount: '',
         category: 'general',
-        notes: ''
+        notes: '',
+        effective_from: '',
+        effective_to: ''
       })
     }
     setExpenseDialogOpen(true)
@@ -538,7 +544,9 @@ export default function ReportsPage() {
       description: '',
       amount: '',
       category: 'general',
-      notes: ''
+      notes: '',
+      effective_from: '',
+      effective_to: ''
     })
   }
 
@@ -549,8 +557,10 @@ export default function ReportsPage() {
         amount: parseFloat(expenseFormData.amount)
       }
 
-      // Add year/month for variable expenses
+      // Add year/month for variable expenses (effective range only applies to fixed)
       if (expenseDialogType === 'variable') {
+        delete expenseData.effective_from
+        delete expenseData.effective_to
         expenseData.year = selectedYear
         expenseData.month = selectedMonth
       }
@@ -598,12 +608,28 @@ export default function ReportsPage() {
     }
   }
 
+  // A fixed expense counts toward a (year, month) only if that period falls
+  // within its optional effective_from / effective_to range (YYYY-MM, inclusive).
+  const isFixedExpenseActiveInPeriod = (exp, year, month) => {
+    if (!exp.is_active) return false
+    const period = year * 100 + month // e.g. 202606
+    if (exp.effective_from) {
+      const [fy, fm] = exp.effective_from.split('-').map(Number)
+      if (period < fy * 100 + fm) return false
+    }
+    if (exp.effective_to) {
+      const [ty, tm] = exp.effective_to.split('-').map(Number)
+      if (period > ty * 100 + tm) return false
+    }
+    return true
+  }
+
   // Memoized calculations for better performance
   const totalFixedExpenses = useMemo(() => {
     return fixedExpenses
-      .filter(exp => exp.is_active)
+      .filter(exp => isFixedExpenseActiveInPeriod(exp, selectedYear, selectedMonth))
       .reduce((sum, exp) => sum + (exp.amount || 0), 0)
-  }, [fixedExpenses])
+  }, [fixedExpenses, selectedYear, selectedMonth])
 
   const totalVariableExpenses = useMemo(() => {
     return variableExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0)
@@ -638,8 +664,15 @@ export default function ReportsPage() {
   }, [annualData])
 
   const annualFixedExpenses = useMemo(() => {
-    return totalFixedExpenses * 12
-  }, [totalFixedExpenses])
+    // Sum each month's applicable fixed expenses so partial-year ranges are respected
+    let total = 0
+    for (let m = 1; m <= 12; m++) {
+      total += fixedExpenses
+        .filter(exp => isFixedExpenseActiveInPeriod(exp, selectedYear, m))
+        .reduce((sum, exp) => sum + (exp.amount || 0), 0)
+    }
+    return total
+  }, [fixedExpenses, selectedYear])
 
   const annualVariableExpenses = useMemo(() => {
     // Would need to load all variable expenses for the year
@@ -1883,7 +1916,7 @@ export default function ReportsPage() {
                                 >
                                   <Box display="flex" alignItems="center" gap={1}>
                                     <Typography sx={{ fontWeight: 500 }}>
-                                      Gastos Fijos {incomeStatementView === 'annual' && '(x12 meses)'}
+                                      Gastos Fijos {incomeStatementView === 'annual' && `(año ${selectedYear})`}
                                     </Typography>
                                   </Box>
                                   <Typography sx={{ fontWeight: 500 }}>
@@ -1908,9 +1941,21 @@ export default function ReportsPage() {
                                     {fixedExpenses.filter(exp => exp.is_active).length > 0 ? (
                                       <Table size="small">
                                         <TableBody>
-                                          {fixedExpenses.filter(exp => exp.is_active).map((expense) => (
-                                            <TableRow key={expense.id}>
-                                              <TableCell>{expense.description}</TableCell>
+                                          {fixedExpenses.filter(exp => exp.is_active).map((expense) => {
+                                            const appliesNow = incomeStatementView === 'annual'
+                                              ? Array.from({ length: 12 }, (_, i) => i + 1).some(m => isFixedExpenseActiveInPeriod(expense, selectedYear, m))
+                                              : isFixedExpenseActiveInPeriod(expense, selectedYear, selectedMonth)
+                                            const rangeLabel = (expense.effective_from || expense.effective_to)
+                                              ? `${expense.effective_from || '—'} → ${expense.effective_to || 'sin fin'}`
+                                              : 'Siempre'
+                                            return (
+                                            <TableRow key={expense.id} sx={{ opacity: appliesNow ? 1 : 0.45 }}>
+                                              <TableCell>
+                                                {expense.description}
+                                                <Typography variant="caption" display="block" color="text.secondary">
+                                                  {rangeLabel}{!appliesNow && ' · no aplica al período'}
+                                                </Typography>
+                                              </TableCell>
                                               <TableCell>{expense.category}</TableCell>
                                               <TableCell align="right">
                                                 {new Intl.NumberFormat('es-CL', {
@@ -1941,7 +1986,8 @@ export default function ReportsPage() {
                                               </Tooltip>
                                               </TableCell>
                                             </TableRow>
-                                          ))}
+                                            )
+                                          })}
                                         </TableBody>
                                       </Table>
                                     ) : (
@@ -2217,6 +2263,31 @@ export default function ReportsPage() {
               value={expenseFormData.notes}
               onChange={(e) => setExpenseFormData({ ...expenseFormData, notes: e.target.value })}
             />
+            {expenseDialogType === 'fixed' && (
+              <>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <TextField
+                    label="Vigente desde"
+                    type="month"
+                    fullWidth
+                    value={expenseFormData.effective_from}
+                    onChange={(e) => setExpenseFormData({ ...expenseFormData, effective_from: e.target.value })}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                  <TextField
+                    label="Vigente hasta"
+                    type="month"
+                    fullWidth
+                    value={expenseFormData.effective_to}
+                    onChange={(e) => setExpenseFormData({ ...expenseFormData, effective_to: e.target.value })}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Box>
+                <Alert severity="info">
+                  Deja las fechas vacías para que el gasto aplique a todos los períodos. Si defines un rango, solo se descontará en los meses dentro de ese rango (no afecta resultados anteriores).
+                </Alert>
+              </>
+            )}
             {expenseDialogType === 'variable' && (
               <Alert severity="info">
                 Este gasto se registrará para {new Date(selectedYear, selectedMonth - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
