@@ -401,7 +401,7 @@ def health():
 @app.route('/api/scheduler/check-overdue-events', methods=['POST', 'GET'])
 def scheduler_check_overdue_events():
     """
-    Check for overdue events and send WhatsApp reminders
+    Auto-close overdue events with the configured profit margin
     Called by Google Cloud Scheduler daily at 11:00 AM
 
     Security: Should be called with proper authentication token in production
