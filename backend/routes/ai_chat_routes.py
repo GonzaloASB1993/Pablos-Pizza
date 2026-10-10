@@ -993,6 +993,169 @@ def execute_tool(tool_name, tool_input):
 
 # ==================== MAIN ENDPOINT ====================
 
+class ChatInputError(ValueError):
+    """The conversation sent by a channel is invalid (HTTP 400 on the web endpoint)"""
+
+
+def run_chat(raw_messages, user=None):
+    """Core of the assistant, shared by the web endpoint and the WhatsApp channel.
+
+    Needs a Flask context (it keeps per-request state in `g`); `user` is {'uid', 'email'}.
+    Returns the response dict; raises ChatInputError for an invalid conversation.
+    """
+    if user is not None:
+        g.current_user = user
+    # The history comes from the browser: never trust it as-is
+    try:
+        messages = sanitize_messages(raw_messages)
+    except InvalidMessages as e:
+        raise ChatInputError(str(e))
+
+    # Keep the originals of attached images (private storage) as evidence for proposals
+    g.ai_attachments = []
+    g.ai_pending_actions = []
+    g.ai_choice = None
+    # Everything the USER wrote or tapped (never model output): proposals about a specific
+    # event are only accepted for ids that appear here, so the agent cannot pick one on its own
+    g.ai_user_text = "\n".join(
+        block['text'] for m in messages if m['role'] == 'user' for block in m['content'] if block['type'] == 'text')
+    try:
+        images = extract_images(messages)
+    except InvalidImage as e:
+        raise ChatInputError(str(e))
+    if images:
+        try:
+            g.ai_attachments = store_images(get_storage_bucket(), g.current_user['uid'], images)
+        except Exception as e:
+            logger.error(f"Could not store chat images: {e}", exc_info=True)
+
+    # Prepare system prompt with current date and time context
+    now = datetime.now()
+    current_date = now.strftime("%Y-%m-%d")
+    current_year = str(now.year)
+    last_year = str(now.year - 1)
+    current_month = str(now.month)
+
+    # Month names in Spanish
+    month_names = {
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+        5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+        9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+    }
+    current_month_name = month_names[now.month]
+
+    # Day names in Spanish (0=Monday, 6=Sunday)
+    day_names = {
+        0: "Lunes", 1: "Martes", 2: "Miércoles", 3: "Jueves",
+        4: "Viernes", 5: "Sábado", 6: "Domingo"
+    }
+    current_day_name = day_names[now.weekday()]
+
+    # Last month
+    last_month = now.month - 1 if now.month > 1 else 12
+    last_month_name = month_names[last_month]
+
+    # Replace all placeholders (must replace "current_year - 1" before "current_year")
+    system_prompt = SYSTEM_PROMPT.replace("{current_year - 1}", last_year)
+    system_prompt = system_prompt.replace("{current_date}", current_date)
+    system_prompt = system_prompt.replace("{current_day_name}", current_day_name)
+    system_prompt = system_prompt.replace("{current_year}", current_year)
+    system_prompt = system_prompt.replace("{current_month}", current_month)
+    system_prompt = system_prompt.replace("{current_month_name}", current_month_name)
+    system_prompt = system_prompt.replace("{last_month_name}", last_month_name)
+
+    # Initial API call with tools
+    logger.info(f"Sending request to Claude API with {len(messages)} messages and {len(TOOLS)} tools")
+
+    response = create_ai_message(system_prompt, messages)
+
+    # Track total usage
+    total_input_tokens = response.usage.input_tokens
+    total_output_tokens = response.usage.output_tokens
+    tools_used = []
+
+    # Handle tool use loop (bounded)
+    iterations = 0
+    stop_reason = response.stop_reason
+    while response.stop_reason == "tool_use":
+        if iterations >= MAX_TOOL_ITERATIONS:
+            logger.warning(f"Tool loop stopped after {MAX_TOOL_ITERATIONS} iterations")
+            stop_reason = "max_iterations"
+            break
+        iterations += 1
+        # Extract tool uses
+        tool_results = []
+
+        for content_block in response.content:
+            if content_block.type == "tool_use":
+                tool_name = content_block.name
+                tool_input = content_block.input
+                tool_use_id = content_block.id
+
+                logger.info(f"Executing tool: {tool_name} with input: {tool_input}")
+                tools_used.append({"name": tool_name, "input": tool_input})
+
+                # Execute the tool
+                tool_result = execute_tool(tool_name, tool_input)
+
+                # Add result to messages
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tool_use_id,
+                    "content": json.dumps(tool_result, ensure_ascii=False)
+                })
+
+        # The agent asked the user to choose: end the turn, the browser shows buttons
+        if g.ai_choice:
+            stop_reason = "ask_choice"
+            break
+
+        # Add assistant response and tool results to conversation
+        messages.append({"role": "assistant", "content": response.content})
+        messages.append({"role": "user", "content": tool_results})
+
+        # Continue conversation with tool results
+        response = create_ai_message(system_prompt, messages)
+
+        # Accumulate usage
+        total_input_tokens += response.usage.input_tokens
+        total_output_tokens += response.usage.output_tokens
+        stop_reason = response.stop_reason
+
+    # Extract final response text
+    response_text = ""
+    for content_block in response.content:
+        if content_block.type == "text":
+            response_text += content_block.text
+
+    choices = []
+    if g.ai_choice:
+        choices = g.ai_choice['options']
+        read = f"**Esto es lo que leí:**\n{g.ai_choice['context']}" if g.ai_choice['context'] else ""
+        response_text = "\n\n".join(part for part in [response_text.strip(), read, g.ai_choice['question']] if part)
+
+    # Abnormal endings get an explicit note instead of an empty or cut-off answer
+    note = STOP_REASON_NOTES.get(stop_reason)
+    if note:
+        response_text = f"{response_text}\n\n{note}".strip()
+
+    # Log final usage
+    logger.info(f"Claude API complete - Total input tokens: {total_input_tokens}, Total output tokens: {total_output_tokens}, Tools used: {len(tools_used)}")
+
+    return {
+        "response": response_text,
+        "usage": {
+            "input_tokens": total_input_tokens,
+            "output_tokens": total_output_tokens
+        },
+        "tools_used": tools_used,
+        "pending_actions": g.ai_pending_actions,
+        "choices": choices,
+        "model": response.model,
+        "stop_reason": stop_reason
+    }
+
+
 @ai_chat_bp.route('/', methods=['POST'])
 @require_admin
 def chat():
@@ -1026,155 +1189,11 @@ def chat():
         if not data:
             return jsonify({"error": "No data provided"}), 400
 
-        # The history comes from the browser: never trust it as-is
+        # The history comes from the browser: never trust it as-is (run_chat sanitizes it)
         try:
-            messages = sanitize_messages(data.get('messages'))
-        except InvalidMessages as e:
+            return jsonify(run_chat(data.get('messages'))), 200
+        except ChatInputError as e:
             return jsonify({"error": str(e)}), 400
-
-        # Keep the originals of attached images (private storage) as evidence for proposals
-        g.ai_attachments = []
-        g.ai_pending_actions = []
-        g.ai_choice = None
-        # Everything the USER wrote or tapped (never model output): proposals about a specific
-        # event are only accepted for ids that appear here, so the agent cannot pick one on its own
-        g.ai_user_text = "\n".join(
-            block['text'] for m in messages if m['role'] == 'user' for block in m['content'] if block['type'] == 'text')
-        try:
-            images = extract_images(messages)
-        except InvalidImage as e:
-            return jsonify({"error": str(e)}), 400
-        if images:
-            try:
-                g.ai_attachments = store_images(get_storage_bucket(), g.current_user['uid'], images)
-            except Exception as e:
-                logger.error(f"Could not store chat images: {e}", exc_info=True)
-
-        # Prepare system prompt with current date and time context
-        now = datetime.now()
-        current_date = now.strftime("%Y-%m-%d")
-        current_year = str(now.year)
-        last_year = str(now.year - 1)
-        current_month = str(now.month)
-
-        # Month names in Spanish
-        month_names = {
-            1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
-            5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
-            9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
-        }
-        current_month_name = month_names[now.month]
-
-        # Day names in Spanish (0=Monday, 6=Sunday)
-        day_names = {
-            0: "Lunes", 1: "Martes", 2: "Miércoles", 3: "Jueves",
-            4: "Viernes", 5: "Sábado", 6: "Domingo"
-        }
-        current_day_name = day_names[now.weekday()]
-
-        # Last month
-        last_month = now.month - 1 if now.month > 1 else 12
-        last_month_name = month_names[last_month]
-
-        # Replace all placeholders (must replace "current_year - 1" before "current_year")
-        system_prompt = SYSTEM_PROMPT.replace("{current_year - 1}", last_year)
-        system_prompt = system_prompt.replace("{current_date}", current_date)
-        system_prompt = system_prompt.replace("{current_day_name}", current_day_name)
-        system_prompt = system_prompt.replace("{current_year}", current_year)
-        system_prompt = system_prompt.replace("{current_month}", current_month)
-        system_prompt = system_prompt.replace("{current_month_name}", current_month_name)
-        system_prompt = system_prompt.replace("{last_month_name}", last_month_name)
-
-        # Initial API call with tools
-        logger.info(f"Sending request to Claude API with {len(messages)} messages and {len(TOOLS)} tools")
-
-        response = create_ai_message(system_prompt, messages)
-
-        # Track total usage
-        total_input_tokens = response.usage.input_tokens
-        total_output_tokens = response.usage.output_tokens
-        tools_used = []
-
-        # Handle tool use loop (bounded)
-        iterations = 0
-        stop_reason = response.stop_reason
-        while response.stop_reason == "tool_use":
-            if iterations >= MAX_TOOL_ITERATIONS:
-                logger.warning(f"Tool loop stopped after {MAX_TOOL_ITERATIONS} iterations")
-                stop_reason = "max_iterations"
-                break
-            iterations += 1
-            # Extract tool uses
-            tool_results = []
-
-            for content_block in response.content:
-                if content_block.type == "tool_use":
-                    tool_name = content_block.name
-                    tool_input = content_block.input
-                    tool_use_id = content_block.id
-
-                    logger.info(f"Executing tool: {tool_name} with input: {tool_input}")
-                    tools_used.append({"name": tool_name, "input": tool_input})
-
-                    # Execute the tool
-                    tool_result = execute_tool(tool_name, tool_input)
-
-                    # Add result to messages
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": tool_use_id,
-                        "content": json.dumps(tool_result, ensure_ascii=False)
-                    })
-
-            # The agent asked the user to choose: end the turn, the browser shows buttons
-            if g.ai_choice:
-                stop_reason = "ask_choice"
-                break
-
-            # Add assistant response and tool results to conversation
-            messages.append({"role": "assistant", "content": response.content})
-            messages.append({"role": "user", "content": tool_results})
-
-            # Continue conversation with tool results
-            response = create_ai_message(system_prompt, messages)
-
-            # Accumulate usage
-            total_input_tokens += response.usage.input_tokens
-            total_output_tokens += response.usage.output_tokens
-            stop_reason = response.stop_reason
-
-        # Extract final response text
-        response_text = ""
-        for content_block in response.content:
-            if content_block.type == "text":
-                response_text += content_block.text
-
-        choices = []
-        if g.ai_choice:
-            choices = g.ai_choice['options']
-            read = f"**Esto es lo que leí:**\n{g.ai_choice['context']}" if g.ai_choice['context'] else ""
-            response_text = "\n\n".join(part for part in [response_text.strip(), read, g.ai_choice['question']] if part)
-
-        # Abnormal endings get an explicit note instead of an empty or cut-off answer
-        note = STOP_REASON_NOTES.get(stop_reason)
-        if note:
-            response_text = f"{response_text}\n\n{note}".strip()
-
-        # Log final usage
-        logger.info(f"Claude API complete - Total input tokens: {total_input_tokens}, Total output tokens: {total_output_tokens}, Tools used: {len(tools_used)}")
-
-        return jsonify({
-            "response": response_text,
-            "usage": {
-                "input_tokens": total_input_tokens,
-                "output_tokens": total_output_tokens
-            },
-            "tools_used": tools_used,
-            "pending_actions": g.ai_pending_actions,
-            "choices": choices,
-            "model": response.model,
-            "stop_reason": stop_reason
-        }), 200
 
     except Exception as e:
         logger.error(f"Error in AI chat endpoint: {str(e)}", exc_info=True)

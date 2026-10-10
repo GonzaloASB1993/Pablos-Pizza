@@ -568,8 +568,18 @@ Rama `claude/ai-agent-phase1-services` (sin PR, sin deploy). 119 tests backend e
 - [ ] Deploy 3.1 y prueba manual (reserva de prueba: confirmar la propuesta y verificar que llegan los avisos al admin/socio y NO al cliente)
 - [ ] Deuda: un cliente nuevo se crea con `total_bookings: 1` y luego `Increment(1)`: su primera reserva cuenta 2 (preexistente en `POST /api/bookings/`, fijado en un test; corregirlo cambia estadísticas del panel)
 
-**3.2 — Canal WhatsApp** (pendiente: requiere decisiones, ver propuesta)
-- [ ] Webhook entrante con validación de firma `X-Twilio-Signature`, allowlist de números, descarga de media (`MediaUrl0`, auth básica Twilio), estado de conversación por teléfono en Firestore, confirmación por respuesta ("SI"/"NO") sobre `pending_actions`, ventana de 24 h
+**3.1 desplegada** (10/10/2026, `main` en `cd9fd78`)
+
+**3.2 — Canal WhatsApp** (rama `claude/ai-agent-phase3-whatsapp`, 392 tests, sin PR ni deploy). Guía: `docs/WHATSAPP_ASISTENTE.md`
+- [✅] `run_chat` extraído de `chat()`: el núcleo del asistente lo usan el endpoint web y WhatsApp
+- [✅] `POST /api/whatsapp/webhook` público: valida `X-Twilio-Signature` (403 si no), allowlist (`AI_WHATSAPP_ALLOWED`, por defecto admin + socio; el resto se ignora sin guardar nada), interruptor `AI_WHATSAPP_ENABLED` (apagado por defecto), responde 200 al tiro
+- [✅] Procesamiento asíncrono con trigger de Firestore `whatsapp_inbox_worker` (timeout 300 s): evita el límite de 15 s de Twilio; idempotente por `MessageSid`; plan B `AI_WHATSAPP_MODE=inline`
+- [✅] Fotos: descarga con auth de Twilio, compresión a 1600 px, nunca se guardan en el historial; audios/documentos reciben respuesta explicativa
+- [✅] Confirmación por respuesta: SI / NO / SI 2 / SI todas, solo mientras hay propuesta pendiente; propuestas nuevas cancelan las viejas; ask_choice como lista numerada
+- [✅] Estado de conversación por teléfono (solo texto, se reinicia a las 6 h), límite diario por número, auditoría con `source: ai_agent` y el número
+- [ ] Deploy (función nueva `whatsapp_inbox_worker`: puede fallar si la región no coincide con la de Firestore; plan B `inline`), poner `AI_WHATSAPP_ENABLED=true` en `backend/.env` y configurar el webhook en la consola de Twilio
+- [ ] Probar a mano: "hola", una consulta, una foto de boleta → SI, y desde un número NO autorizado (debe ignorarlo)
+- [ ] Futuro: notas de voz (transcripción), edición de propuestas campo a campo, avisos proactivos con plantillas aprobadas (ventana de 24 h)
 
 ### UI/UX del asistente (transversal)
 - [ ] Rediseño del chat: markdown en respuestas, tarjetas de acción, estados de tool ("consultando inventario…"), adjuntar foto, sugerencias rápidas, layout móvil (fullscreen), historial persistente, accesibilidad

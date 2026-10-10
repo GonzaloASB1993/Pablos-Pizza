@@ -1,4 +1,4 @@
-from firebase_functions import https_fn
+from firebase_functions import https_fn, firestore_fn, options
 import os
 import csv
 import unicodedata
@@ -60,6 +60,7 @@ from routes.ai_chat_routes import ai_chat_bp
 from routes.vacuum_sales_routes import vacuum_sales_bp
 from routes.payments_routes import payments_bp
 from routes.settings_routes import settings_bp
+from routes.whatsapp_routes import whatsapp_bp, process_inbox_message
 
 
 try:
@@ -149,6 +150,8 @@ app.register_blueprint(payments_bp)
 print("  [OK] Payments routes registered")
 app.register_blueprint(settings_bp)
 print("  [OK] Settings routes registered")
+app.register_blueprint(whatsapp_bp)
+print("  [OK] WhatsApp assistant routes registered")
 print("[SUCCESS] All blueprints registered successfully!")
 
 
@@ -1737,6 +1740,16 @@ def main(req: https_fn.Request) -> https_fn.Response:
                 'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With'
             }
         )
+
+# WhatsApp assistant worker: runs when the webhook stores a message in `whatsapp_inbox`.
+# A separate function with a long timeout, because an agent turn (with a photo) can outlast Twilio's 15 s.
+@firestore_fn.on_document_created(
+    document="whatsapp_inbox/{message_sid}",
+    timeout_sec=300,
+    memory=options.MemoryOption.MB_512,
+)
+def whatsapp_inbox_worker(event: firestore_fn.Event[firestore_fn.DocumentSnapshot]) -> None:
+    process_inbox_message(app, event.params["message_sid"])
 
 # ===================== INVENTORY ENDPOINTS =====================
 
