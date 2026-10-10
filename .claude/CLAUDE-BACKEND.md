@@ -161,7 +161,9 @@ POST   /api/ai-chat/pending/<id>/cancel
 GET    /api/ai-chat/health                    # Public
 ```
 - **Propose → confirm:** the agent's `propose_*` tools only create a `pending_actions` document; `confirm` (no LLM) writes through the shared services (`services/expenses_service.py`) and logs to `audit_logs` with `metadata.source = 'ai_agent'`.
-- **Tools:** `get_bookings`, `get_events`, `get_inventory_status`, `get_contacts`, `get_financial_summary`, `get_expenses_summary`, `propose_expense`.
+- **Tools:** read: `get_bookings`, `get_events`, `get_inventory_status`, `get_contacts`, `get_financial_summary`, `get_expenses_summary`, `search_inventory`. Propose (never write): `propose_expense`, `propose_receipt`, `propose_inventory_item`, `propose_inventory_purchase`, `propose_inventory_update`, `propose_stock_adjustment`.
+- **Receipts:** each line of `propose_receipt` is `existing` (adds stock), `new` (item created at stock 0, then a `purchase` movement) or `expense` (variable expense) - never two at once. Confirmation uses `uuid5(action_id, line)` ids, so a retry after a partial failure does not duplicate anything.
+- **Shared logic:** `services/inventory_service.py` (items, weighted-average movements, atomic batch) is used by the HTTP routes in `main.py` and by the agent; `services/inventory_search.py` does fuzzy lookups.
 - **Client history is untrusted:** `services/ai_chat_history.py` allows only user/assistant text and user images (≤3, last message only); the tool loop is capped at 8 iterations.
 - **Images:** originals go to private `ai_uploads/{uid}/` in Storage (client access denied in `storage.rules`).
 - **Model:** `claude-sonnet-5-5` with `anthropic==1.13.0`. No sampling params are sent (Sonnet 5.x rejects them; SDK 1.x dropped them). Thinking is adaptive and counts toward `max_tokens`.

@@ -28,6 +28,8 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../../contexts/AuthContext'
 import ChatMarkdown from './chat/ChatMarkdown'
 import ExpenseActionCard from './chat/ExpenseActionCard'
+import ReceiptActionCard from './chat/ReceiptActionCard'
+import SimpleActionCard from './chat/SimpleActionCard'
 import { describeError, sendChat } from './chat/chatApi'
 import { compressImage, MAX_IMAGES } from './chat/imageUtils'
 
@@ -42,13 +44,28 @@ const TOOL_LABELS = {
   get_contacts: 'contactos',
   get_financial_summary: 'finanzas',
   get_expenses_summary: 'gastos',
-  propose_expense: 'propuesta de gasto'
+  search_inventory: 'búsqueda en inventario',
+  propose_expense: 'propuesta de gasto',
+  propose_receipt: 'propuesta de compra',
+  propose_inventory_item: 'propuesta de insumo',
+  propose_inventory_purchase: 'propuesta de compra',
+  propose_inventory_update: 'propuesta de cambios',
+  propose_stock_adjustment: 'propuesta de ajuste'
+}
+
+// action.type -> card component (unknown types fall back to a plain confirm/cancel card)
+const ACTION_CARDS = {
+  expense: ExpenseActionCard,
+  inventory_receipt: ReceiptActionCard,
+  inventory_update: SimpleActionCard,
+  stock_adjustment: SimpleActionCard
 }
 
 const SUGGESTIONS = [
   { label: 'Subir boleta', action: 'upload' },
   { label: '¿Qué tengo esta semana?', text: '¿Qué eventos y reservas tengo esta semana?' },
   { label: 'Estado del inventario', text: '¿Cómo está el inventario? ¿Qué debo reponer?' },
+  { label: 'Hacer un conteo', text: 'Quiero registrar un conteo de stock de un insumo' },
   { label: 'Gastos del mes', text: '¿Cuánto he gastado este mes, por categoría?' }
 ]
 
@@ -387,14 +404,17 @@ const ChatAssistant = ({ open, onClose }) => {
                 </Typography>
               )}
 
-              {m.actions?.map((action) => (
-                <ExpenseActionCard
-                  key={action.id}
-                  action={action}
-                  getAuthToken={getAuthToken}
-                  onChange={(updated) => updateAction(m.id, updated)}
-                />
-              ))}
+              {m.actions?.map((action) => {
+                const Card = ACTION_CARDS[action.type] || SimpleActionCard
+                return (
+                  <Card
+                    key={action.id}
+                    action={action}
+                    getAuthToken={getAuthToken}
+                    onChange={(updated) => updateAction(m.id, updated)}
+                  />
+                )
+              })}
             </Box>
           </Box>
         ))}

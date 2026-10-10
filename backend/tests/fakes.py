@@ -98,12 +98,36 @@ class FakeTransaction:
         ref.set(data)
 
 
+class FakeBatch:
+    """Queues writes and applies them together on commit (all-or-nothing in the fake too)"""
+
+    def __init__(self):
+        self._ops = []
+
+    def set(self, ref, data, merge=False):
+        self._ops.append(lambda: ref.set(data, merge=merge))
+
+    def update(self, ref, data):
+        self._ops.append(lambda: ref.update(data))
+
+    def delete(self, ref):
+        self._ops.append(ref.delete)
+
+    def commit(self):
+        for op in self._ops:
+            op()
+        self._ops = []
+
+
 class FakeFirestore:
     def __init__(self):
         self.store = {}
 
     def transaction(self):
         return FakeTransaction()
+
+    def batch(self):
+        return FakeBatch()
 
     def collection(self, name):
         return FakeCollection(self.store, name)

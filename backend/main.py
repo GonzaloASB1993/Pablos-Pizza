@@ -46,6 +46,7 @@ if str(CURRENT_DIR) not in sys.path:
 # Utils imports - AFTER sys.path configuration
 from utils.pagination import paginate_query, create_pagination_response
 from utils.audit import log_audit, audit_log
+from services import inventory_service
 
 # ==================== BLUEPRINTS IMPORTS ====================
 from routes.bookings_routes import bookings_bp
@@ -1845,51 +1846,9 @@ def create_inventory_item():
         if not db:
             return jsonify({'error': 'Database connection failed'}), 500
 
-        data = request.get_json()
-
-        # Generate unique ID
-        item_id = str(uuid.uuid4())
-
-        # Prepare item data
-        item_data = {
-            'id': item_id,
-            'name': data['name'],
-            'product_type': data.get('product_type', 'raw_material'),
-            'category': data['category'],
-            'current_stock': float(data['current_stock']),
-            'min_stock': float(data['min_stock']),
-            'max_stock': float(data['max_stock']),
-            'unit': data['unit'],
-            'cost_per_unit': float(data['cost_per_unit']),
-            'supplier': data.get('supplier', ''),
-            'notes': data.get('notes', ''),
-            'batch_size': float(data['batch_size']) if data.get('batch_size') else None,
-            'shelf_life_days': int(data['shelf_life_days']) if data.get('shelf_life_days') else None,
-            'last_updated': datetime.now(),
-            'needs_restock': float(data['current_stock']) <= float(data['min_stock']),
-            # Nutritional information per 100g/100ml (extended fields)
-            'nutrition_info': {
-                'calories': float(data.get('nutrition_info', {}).get('calories', 0)) if data.get('nutrition_info') else 0,
-                'proteins': float(data.get('nutrition_info', {}).get('proteins', 0)) if data.get('nutrition_info') else 0,
-                'carbohydrates': float(data.get('nutrition_info', {}).get('carbohydrates', 0)) if data.get('nutrition_info') else 0,
-                'sugars': float(data.get('nutrition_info', {}).get('sugars', 0)) if data.get('nutrition_info') else 0,
-                'fats': float(data.get('nutrition_info', {}).get('fats', 0)) if data.get('nutrition_info') else 0,
-                'saturated_fats': float(data.get('nutrition_info', {}).get('saturated_fats', 0)) if data.get('nutrition_info') else 0,
-                'trans_fats': float(data.get('nutrition_info', {}).get('trans_fats', 0)) if data.get('nutrition_info') else 0,
-                'unsaturated_fats': float(data.get('nutrition_info', {}).get('unsaturated_fats', 0)) if data.get('nutrition_info') else 0,
-                'fiber': float(data.get('nutrition_info', {}).get('fiber', 0)) if data.get('nutrition_info') else 0,
-                'sodium': float(data.get('nutrition_info', {}).get('sodium', 0)) if data.get('nutrition_info') else 0,
-                'cholesterol': float(data.get('nutrition_info', {}).get('cholesterol', 0)) if data.get('nutrition_info') else 0,
-                'calcium': float(data.get('nutrition_info', {}).get('calcium', 0)) if data.get('nutrition_info') else 0,
-                'iron': float(data.get('nutrition_info', {}).get('iron', 0)) if data.get('nutrition_info') else 0,
-                'allergens': data.get('nutrition_info', {}).get('allergens', '') if data.get('nutrition_info') else ''
-            }
-        }
-
-        # Save to Firestore
-        db.collection('inventory').document(item_id).set(item_data)
-
-        return jsonify(item_data), 201
+        return jsonify(inventory_service.create_item(db, request.get_json())), 201
+    except inventory_service.MissingField as e:
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
         print(f"Error creating inventory item: {e}")
         return jsonify({'error': str(e)}), 500
@@ -1922,79 +1881,9 @@ def update_inventory_item(item_id):
         if not db:
             return jsonify({'error': 'Database connection failed'}), 500
 
-        data = request.get_json()
-
-        # Get current item
-        item_ref = db.collection('inventory').document(item_id)
-        doc = item_ref.get()
-
-        if not doc.exists:
-            return jsonify({'error': 'Item not found'}), 404
-
-        # Prepare update data
-        update_data = {}
-        if 'name' in data:
-            update_data['name'] = data['name']
-        if 'product_type' in data:
-            update_data['product_type'] = data['product_type']
-        if 'category' in data:
-            update_data['category'] = data['category']
-        if 'current_stock' in data:
-            update_data['current_stock'] = float(data['current_stock'])
-        if 'min_stock' in data:
-            update_data['min_stock'] = float(data['min_stock'])
-        if 'max_stock' in data:
-            update_data['max_stock'] = float(data['max_stock'])
-        if 'unit' in data:
-            update_data['unit'] = data['unit']
-        if 'cost_per_unit' in data:
-            update_data['cost_per_unit'] = float(data['cost_per_unit'])
-        if 'supplier' in data:
-            update_data['supplier'] = data['supplier']
-        if 'notes' in data:
-            update_data['notes'] = data['notes']
-        if 'batch_size' in data:
-            update_data['batch_size'] = float(data['batch_size']) if data['batch_size'] else None
-        if 'shelf_life_days' in data:
-            update_data['shelf_life_days'] = int(data['shelf_life_days']) if data['shelf_life_days'] else None
-
-        # Update nutritional information if provided (extended fields)
-        if 'nutrition_info' in data:
-            nutrition = data['nutrition_info']
-            update_data['nutrition_info'] = {
-                'calories': float(nutrition.get('calories', 0)),
-                'proteins': float(nutrition.get('proteins', 0)),
-                'carbohydrates': float(nutrition.get('carbohydrates', 0)),
-                'sugars': float(nutrition.get('sugars', 0)),
-                'fats': float(nutrition.get('fats', 0)),
-                'saturated_fats': float(nutrition.get('saturated_fats', 0)),
-                'trans_fats': float(nutrition.get('trans_fats', 0)),
-                'unsaturated_fats': float(nutrition.get('unsaturated_fats', 0)),
-                'fiber': float(nutrition.get('fiber', 0)),
-                'sodium': float(nutrition.get('sodium', 0)),
-                'cholesterol': float(nutrition.get('cholesterol', 0)),
-                'calcium': float(nutrition.get('calcium', 0)),
-                'iron': float(nutrition.get('iron', 0)),
-                'allergens': nutrition.get('allergens', '')
-            }
-
-        update_data['last_updated'] = datetime.now()
-
-        # Update needs_restock if stock values changed
-        if 'current_stock' in update_data or 'min_stock' in update_data:
-            current_data = doc.to_dict()
-            new_current = update_data.get('current_stock', current_data['current_stock'])
-            new_min = update_data.get('min_stock', current_data['min_stock'])
-            update_data['needs_restock'] = new_current <= new_min
-
-        # Update document
-        item_ref.update(update_data)
-
-        # Return updated data
-        updated_doc = item_ref.get()
-        result = updated_doc.to_dict()
-        result['id'] = updated_doc.id
-        return jsonify(result)
+        return jsonify(inventory_service.update_item(db, item_id, request.get_json()))
+    except inventory_service.ItemNotFound:
+        return jsonify({'error': 'Item not found'}), 404
     except Exception as e:
         print(f"Error updating inventory item: {e}")
         return jsonify({'error': str(e)}), 500
@@ -2454,43 +2343,12 @@ def update_inventory_stock(item_id):
             return jsonify({'error': 'Database connection failed'}), 500
 
         data = request.get_json()
-        new_stock = data.get('new_stock')
-        operation = data.get('operation', 'set')  # 'set', 'add', 'subtract'
-
-        item_ref = db.collection('inventory').document(item_id)
-        doc = item_ref.get()
-
-        if not doc.exists:
-            return jsonify({'error': 'Item not found'}), 404
-
-        current_data = doc.to_dict()
-        current_stock = current_data['current_stock']
-        min_stock = current_data['min_stock']
-
-        if operation == 'set':
-            final_stock = float(new_stock)
-        elif operation == 'add':
-            final_stock = current_stock + float(new_stock)
-        elif operation == 'subtract':
-            final_stock = max(0, current_stock - float(new_stock))
-        else:
-            return jsonify({'error': 'Invalid operation'}), 400
-
-        # Redondear a 2 decimales para evitar errores de precisión flotante
-        final_stock = round(final_stock, 2)
-        needs_restock = final_stock <= min_stock
-
-        item_ref.update({
-            'current_stock': final_stock,
-            'needs_restock': needs_restock,
-            'last_updated': datetime.now()
-        })
-
-        return jsonify({
-            'message': 'Stock updated successfully',
-            'new_stock': final_stock,
-            'needs_restock': needs_restock
-        })
+        result = inventory_service.set_stock(db, item_id, data.get('new_stock'), data.get('operation', 'set'))
+        return jsonify({'message': 'Stock updated successfully', **result})
+    except inventory_service.ItemNotFound:
+        return jsonify({'error': 'Item not found'}), 404
+    except inventory_service.InvalidOperation:
+        return jsonify({'error': 'Invalid operation'}), 400
     except Exception as e:
         print(f"Error updating stock: {e}")
         return jsonify({'error': str(e)}), 500
@@ -2506,126 +2364,32 @@ def update_stock_with_movement():
             return jsonify({'error': 'Database connection failed'}), 500
 
         data = request.get_json()
-        item_id = data.get('item_id')
-        movement_type = data.get('movement_type')
-        quantity = float(data.get('quantity', 0))
-        cost_per_unit = float(data.get('cost_per_unit', 0))
-        reference_id = data.get('reference_id')
-        reference_type = data.get('reference_type')
-        notes = data.get('notes')
-        supplier = data.get('supplier')
-
-        # Get current item data
-        item_ref = db.collection('inventory').document(item_id)
-        doc = item_ref.get()
-
-        if not doc.exists:
-            return jsonify({'error': 'Item not found'}), 404
-
-        current_data = doc.to_dict()
-        stock_before = current_data.get('current_stock', 0)
-        avg_cost_before = current_data.get('weighted_avg_cost', current_data.get('cost_per_unit', 0))
-
-        # Determine if it's inbound or outbound movement
-        inbound_types = ['purchase', 'production', 'return', 'adjustment']
-        is_inbound = movement_type in inbound_types
-
-        # Validation: For outbound movements (waste, consumption), check if there's enough stock
-        if not is_inbound and quantity > stock_before:
-            return jsonify({
-                'error': f'Stock insuficiente. Stock actual: {stock_before}, cantidad solicitada: {quantity}'
-            }), 400
-
-        if is_inbound and quantity > 0:
-            # Inbound movement - calculate new weighted average cost
-            if stock_before <= 0:
-                new_avg_cost = cost_per_unit
-                new_total_value = quantity * cost_per_unit
-            else:
-                current_total_value = stock_before * avg_cost_before
-                new_total_value = current_total_value + (quantity * cost_per_unit)
-                new_total_stock = stock_before + quantity
-                new_avg_cost = new_total_value / new_total_stock if new_total_stock > 0 else avg_cost_before
-
-            new_stock = stock_before + quantity
-            actual_quantity = quantity
-
-        elif not is_inbound and quantity > 0:
-            # Outbound movement - use current average cost
-            new_stock = max(0, stock_before - quantity)
-            new_avg_cost = avg_cost_before
-            new_total_value = new_stock * new_avg_cost
-            actual_quantity = -(min(quantity, stock_before))
-
-        elif movement_type == 'adjustment':
-            # Adjustment - can be positive or negative
-            new_stock = max(0, stock_before + quantity)
-            if quantity > 0:
-                # Positive adjustment - calculate new average
-                if stock_before <= 0:
-                    new_avg_cost = cost_per_unit
-                    new_total_value = quantity * cost_per_unit
-                else:
-                    current_total_value = stock_before * avg_cost_before
-                    new_total_value = current_total_value + (quantity * cost_per_unit)
-                    new_total_stock = stock_before + quantity
-                    new_avg_cost = new_total_value / new_total_stock if new_total_stock > 0 else avg_cost_before
-            else:
-                # Negative adjustment - use current cost
-                new_avg_cost = avg_cost_before
-                new_total_value = new_stock * new_avg_cost
-            actual_quantity = quantity
-        else:
-            return jsonify({'error': 'Invalid movement type or quantity'}), 400
-
-        # Update inventory item
-        needs_restock = new_stock <= current_data.get('min_stock', 0)
-
-        update_data = {
-            'current_stock': new_stock,
-            'weighted_avg_cost': new_avg_cost,
-            'total_value': new_total_value,
-            'cost_per_unit': new_avg_cost,  # Maintain compatibility
-            'needs_restock': needs_restock,
-            'last_updated': datetime.now()
-        }
-
-        item_ref.update(update_data)
-
-        # Create movement record
-        movement_id = str(uuid.uuid4())
-        movement_data = {
-            'id': movement_id,
-            'item_id': item_id,
-            'item_name': current_data.get('name'),
-            'movement_type': movement_type,
-            'quantity': actual_quantity,
-            'unit': current_data.get('unit'),
-            'cost_per_unit': cost_per_unit,
-            'total_cost': abs(actual_quantity) * cost_per_unit,
-            'reference_id': reference_id,
-            'reference_type': reference_type,
-            'notes': notes,
-            'supplier': supplier,
-            'stock_before': stock_before,
-            'stock_after': new_stock,
-            'avg_cost_before': avg_cost_before,
-            'avg_cost_after': new_avg_cost,
-            'created_at': datetime.now()
-        }
-
-        db.collection('inventory_movements').document(movement_id).set(movement_data)
-
+        result = inventory_service.register_movement(
+            db,
+            data.get('item_id'),
+            data.get('movement_type'),
+            data.get('quantity', 0),
+            data.get('cost_per_unit', 0),
+            reference_id=data.get('reference_id'),
+            reference_type=data.get('reference_type'),
+            notes=data.get('notes'),
+            supplier=data.get('supplier'),
+        )
         return jsonify({
             'message': 'Stock updated successfully with movement',
-            'movement_id': movement_id,
-            'stock_before': stock_before,
-            'stock_after': new_stock,
-            'avg_cost_before': avg_cost_before,
-            'avg_cost_after': new_avg_cost,
-            'needs_restock': needs_restock
+            'movement_id': result['movement_id'],
+            'stock_before': result['stock_before'],
+            'stock_after': result['stock_after'],
+            'avg_cost_before': result['avg_cost_before'],
+            'avg_cost_after': result['avg_cost_after'],
+            'needs_restock': result['needs_restock'],
         })
-
+    except inventory_service.ItemNotFound:
+        return jsonify({'error': 'Item not found'}), 404
+    except inventory_service.InsufficientStock as e:
+        return jsonify({'error': str(e)}), 400
+    except inventory_service.InvalidMovement:
+        return jsonify({'error': 'Invalid movement type or quantity'}), 400
     except Exception as e:
         print(f"Error updating stock with movement: {e}")
         return jsonify({'error': str(e)}), 500

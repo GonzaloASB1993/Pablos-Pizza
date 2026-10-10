@@ -539,12 +539,19 @@ Rama `claude/ai-agent-phase1-services` (sin PR, sin deploy). 119 tests backend e
 - [ ] Categoría "transporte"/"insumos varios": hoy solo existen las 6 del diálogo de gastos (`general, servicios, arriendo, sueldos, marketing, otros`)
 
 ### Fase 2: Insumos
-- [ ] `search_inventory` (match difuso) y `search_bookings` / `find_event`
-- [ ] `propose_inventory_item` (alta: buscar antes de crear, stock 0 + compra como movimiento, normalizar unidad/costo)
-- [ ] `propose_inventory_update` y `propose_stock_adjustment`
-- [ ] `propose_inventory_purchase` (costo promedio ponderado) y boleta por línea: insumo existente / nuevo / gasto
-- [ ] `propose_event_supplies` / `propose_event_consumption`: al subir foto de insumos, el agente PREGUNTA a qué evento cargar
-- [ ] Regla anti doble conteo (boleta → insumo O gasto, nunca ambos)
+**2a — Insumos y boletas** (rama `claude/ai-agent-phase2-inventory`, 209 tests, sin PR ni deploy)
+- [✅] Tests de caracterización de `/api/inventory*` y `inventory_service` extraído de `main.py` (costo promedio ponderado en un solo lugar, stock+movimiento en un batch atómico, ids idempotentes). Cambio deliberado: `POST /api/inventory/` sin campo obligatorio ahora responde 400 (antes 500 por `KeyError`)
+- [✅] `search_inventory` (match difuso, categorías y unidades en uso)
+- [✅] `propose_receipt` (boleta por línea: insumo existente / insumo nuevo / gasto), `propose_inventory_item` (stock 0 + compra como movimiento, costo unitario normalizado), `propose_inventory_purchase`, `propose_inventory_update`, `propose_stock_adjustment` (conteo / merma con historial)
+- [✅] Regla anti doble conteo: una línea = una clasificación; test que suma stock + gastos = total del documento
+- [✅] Confirmación idempotente con ids `uuid5(action_id, línea)`: un reintento tras un fallo parcial no duplica lo ya aplicado
+- [✅] UI: `ReceiptActionCard` (selector por línea, campos según tipo, validación), `SimpleActionCard` (cambios y ajustes)
+- [ ] Deploy 2a (`hosting,functions`) y prueba manual con una boleta real mixta
+
+**2b — Insumos de un evento** (pendiente)
+- [ ] `search_bookings` / `find_event`
+- [ ] `ask_choice` (botones de respuesta rápida) para que el agente PREGUNTE a qué evento cargar la foto y si es estimado o real
+- [ ] `propose_event_supplies` (estimado) / `propose_event_consumption` (real; mueve stock y revierte consumo previo)
 
 ### Fase 3: Reservas y canal
 - [ ] `propose_booking` (usa `calculate_estimated_price`)
@@ -554,6 +561,7 @@ Rama `claude/ai-agent-phase1-services` (sin PR, sin deploy). 119 tests backend e
 - [ ] Rediseño del chat: markdown en respuestas, tarjetas de acción, estados de tool ("consultando inventario…"), adjuntar foto, sugerencias rápidas, layout móvil (fullscreen), historial persistente, accesibilidad
 
 ### Deuda detectada
+- [ ] Al importar `main.py` se imprime `Error loading nutrition database: could not convert string to float: 'Vegetales'`: `load_nutrition_database()` falla leyendo el CSV, así que `/api/inventory/nutrition-lookup` queda con base vacía (preexistente, sin tocar)
 - [ ] `POST /api/inventory/` sin validación (KeyError → 500) ni chequeo de duplicados
 - [ ] `isAdmin()` del frontend es "usuario con email"; backend sin verificación de token en el resto de rutas (aplicar `@require_admin` ruta por ruta, cuidando las rutas públicas: reservas, contacto)
 

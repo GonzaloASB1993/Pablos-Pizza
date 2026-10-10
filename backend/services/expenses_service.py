@@ -46,10 +46,10 @@ def list_fixed(db):
     return _newest_first([_with_id(s) for s in db.collection(FIXED).get()])
 
 
-def create_fixed(db, data, extra=None):
+def create_fixed(db, data, extra=None, expense_id=None):
     """`extra`: additional stored fields (e.g. provenance of an AI-proposed expense)"""
     _require(data, ['description', 'amount'])
-    expense_id = str(uuid.uuid4())
+    expense_id = expense_id or str(uuid.uuid4())
     expense = {
         'id': expense_id,
         'description': data['description'],
@@ -108,9 +108,9 @@ def list_variable(db, year=None, month=None):
     return _newest_first(result)
 
 
-def create_variable(db, data, extra=None):
+def create_variable(db, data, extra=None, expense_id=None):
     _require(data, ['description', 'amount', 'year', 'month'])
-    expense_id = str(uuid.uuid4())
+    expense_id = expense_id or str(uuid.uuid4())
     expense = {
         'id': expense_id,
         'description': data['description'],

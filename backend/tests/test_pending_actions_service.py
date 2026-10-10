@@ -33,7 +33,7 @@ def executed():
 
 @pytest.fixture
 def db(executed):
-    def executor(db, payload, user):
+    def executor(db, payload, user, action_id):
         executed.append(payload)
         return {'dummy_id': f'd{len(executed)}'}
 
@@ -152,7 +152,7 @@ def test_executor_failure_marks_failed_and_allows_retry(db, audits):
     _, audit = audits
     attempts = []
 
-    def flaky(db, payload, user):
+    def flaky(db, payload, user, action_id):
         attempts.append(1)
         if len(attempts) == 1:
             raise RuntimeError('firestore down')

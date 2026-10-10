@@ -6,6 +6,7 @@ type is stored with the expense.
 """
 import hashlib
 import re
+import uuid
 from datetime import date, datetime
 from typing import Literal, Optional
 
@@ -40,6 +41,15 @@ def _parse_clp(value):
     raise ValueError('monto inválido')
 
 
+def parse_date(value):
+    """dd-mm-yyyy / dd/mm/yyyy -> date; anything else is left for pydantic (ISO)"""
+    if isinstance(value, str):
+        m = re.fullmatch(r'\s*(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\s*', value)
+        if m:
+            return date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+    return value
+
+
 class ExpenseLine(BaseModel):
     description: str = ''
     amount: int
@@ -64,11 +74,7 @@ class ExpensePayload(BaseModel):
     @field_validator('date', mode='before')
     @classmethod
     def _date(cls, v):
-        if isinstance(v, str):
-            m = re.fullmatch(r'\s*(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\s*', v)
-            if m:  # dd-mm-yyyy
-                return date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
-        return v
+        return parse_date(v)
 
     @field_validator('total', mode='before')
     @classmethod
@@ -136,7 +142,7 @@ def collect_warnings(db, p, h, exclude_action_id=None):
     return warnings
 
 
-def _execute(db, payload, user):
+def _execute(db, payload, user, action_id):
     """Runs only from pending_actions.confirm(); writes through expenses_service"""
     h = dedupe_hash(payload)
     provenance = {
@@ -149,12 +155,12 @@ def _execute(db, payload, user):
         created = expenses.create_fixed(db, {
             'description': description, 'amount': payload.total, 'category': payload.category,
             'notes': payload.notes, 'effective_from': payload.date.strftime('%Y-%m'),
-        }, extra=provenance)
+        }, extra=provenance, expense_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f'{action_id}:expense')))
         return {'collection': expenses.FIXED, 'expense_id': created['id']}
     created = expenses.create_variable(db, {
         'description': description, 'amount': payload.total, 'category': payload.category,
         'notes': payload.notes, 'year': payload.date.year, 'month': payload.date.month,
-    }, extra=provenance)
+    }, extra=provenance, expense_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f'{action_id}:expense')))
     return {'collection': expenses.VARIABLE, 'expense_id': created['id']}
 
 

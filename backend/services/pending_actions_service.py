@@ -65,7 +65,10 @@ def _naive_utc(value):
 
 
 def register_action_type(type_name, model, executor):
-    """executor(db, payload_model, user) -> dict of created ids (stored as `result`)"""
+    """executor(db, payload_model, user, action_id) -> dict of created ids (stored as `result`).
+
+    `action_id` lets executors derive deterministic document ids, so a retry after a
+    partial failure rewrites the same documents instead of duplicating them."""
     _registry[type_name] = (model, executor)
 
 
@@ -84,7 +87,8 @@ def validate_payload(type_name, payload):
         raise InvalidPayload(e.errors(include_url=False, include_context=False))
 
 
-def create(db, type_name, payload, summary, user, warnings=None, attachments=None, dedupe_hash=None):
+def create(db, type_name, payload, summary, user, warnings=None, attachments=None, dedupe_hash=None,
+           context=None):
     now = datetime.utcnow()
     action_id = str(uuid.uuid4())
     action = {
@@ -102,6 +106,8 @@ def create(db, type_name, payload, summary, user, warnings=None, attachments=Non
         'error': None,
         'attachments': list(attachments or []),
         'dedupe_hash': dedupe_hash,
+        # read-only hints for the card (candidates, known categories...); never executed
+        'context': context or {},
     }
     db.collection(COLLECTION).document(action_id).set(action)
     return action
@@ -174,7 +180,7 @@ def confirm(db, action_id, user, edited_payload=None, audit=None):
 
     model, executor = _type_entry(action['type'])
     try:
-        result = executor(db, model.model_validate(payload), user)
+        result = executor(db, model.model_validate(payload), user, action_id)
     except Exception as exc:
         ref.update({'status': FAILED, 'error': str(exc)})
         raise

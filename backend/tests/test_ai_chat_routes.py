@@ -258,7 +258,7 @@ def pending_env(client, monkeypatch):
     monkeypatch.setattr(pas, "_transactional", lambda fn: (lambda txn, *a, **k: fn(txn, *a, **k)))
     monkeypatch.setattr(pas, "_registry", {})
     executed = []
-    pas.register_action_type("t", _Payload, lambda db, p, user: executed.append(p.amount) or {"id": "x1"})
+    pas.register_action_type("t", _Payload, lambda db, p, user, action_id: executed.append(p.amount) or {"id": "x1"})
     monkeypatch.setattr("utils.audit.log_audit", lambda *a, **k: None)
     action = pas.create(fake_db, "t", {"amount": 5}, "resumen", {"uid": "u1", "email": "a@example.com"})
     return client, action["id"], executed
