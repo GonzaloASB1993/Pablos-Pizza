@@ -20,6 +20,12 @@ service firebase.storage {
                   && request.resource.contentType.matches('image/.*');
     }
     
+    // AI chat uploads (receipts, supplies): private. Only the backend (Admin SDK,
+    // which bypasses these rules) reads and writes them.
+    match /ai_uploads/{allPaths=**} {
+      allow read, write: if false;
+    }
+
     // Other files - Only admin can manage
     match /{allPaths=**} {
       allow read, write: if request.auth != null;

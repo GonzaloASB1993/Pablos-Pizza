@@ -152,6 +152,22 @@ GET    /api/reviews/                     # List reviews
 PUT    /api/reviews/<review_id>/approve  # Approve review (admin)
 ```
 
+### 🤖 AI Assistant Endpoints (all `@require_admin`, except `/health`)
+```python
+POST   /api/ai-chat/                          # Chat with tool use; body {messages}; returns {response, tools_used, pending_actions[]}
+GET    /api/ai-chat/pending/<id>              # A proposed action (flips to `expired` after 24 h)
+POST   /api/ai-chat/pending/<id>/confirm      # Execute it ONCE; optional body {payload} with the edited fields (revalidated)
+POST   /api/ai-chat/pending/<id>/cancel
+GET    /api/ai-chat/health                    # Public
+```
+- **Propose → confirm:** the agent's `propose_*` tools only create a `pending_actions` document; `confirm` (no LLM) writes through the shared services (`services/expenses_service.py`) and logs to `audit_logs` with `metadata.source = 'ai_agent'`.
+- **Tools:** `get_bookings`, `get_events`, `get_inventory_status`, `get_contacts`, `get_financial_summary`, `get_expenses_summary`, `propose_expense`.
+- **Client history is untrusted:** `services/ai_chat_history.py` allows only user/assistant text and user images (≤3, last message only); the tool loop is capped at 8 iterations.
+- **Images:** originals go to private `ai_uploads/{uid}/` in Storage (client access denied in `storage.rules`).
+- **Model:** `claude-sonnet-5-5` with `anthropic==1.13.0`. No sampling params are sent (Sonnet 5.x rejects them; SDK 1.x dropped them). Thinking is adaptive and counts toward `max_tokens`.
+- **Env:** `ADMIN_EMAILS`, `AI_CHAT_MODEL` (default `claude-sonnet-5-5`), `AI_CHAT_MAX_TOKENS` (8192), `AI_CHAT_EFFORT` (`medium`; empty = omit), `AI_CHAT_SERVER_FALLBACK` (`true`: beta `server-side-fallback-2026-07-01`, retries cyber/frontier_llm refusals; `false` = plain `messages.create`).
+- **Tests:** `cd backend && pip install -r requirements-dev.txt && python -m pytest tests -q` (in-memory Firestore fake in `tests/fakes.py`).
+
 ## 🔧 Key Backend Functions
 
 ### 🗄️ Database Connection

@@ -1730,7 +1730,8 @@ def delete_booking(booking_id):
         return jsonify({"error": str(e)}), 500
 
 # Firebase Functions entry point using new SDK
-@https_fn.on_request()
+# 180 s: the AI chat can chain several tool calls (and read receipt photos) per request
+@https_fn.on_request(timeout_sec=180)
 def main(req: https_fn.Request) -> https_fn.Response:
     """Firebase Function entry point - Production ready with inventory endpoints v2.4 - Fixed query args"""
 

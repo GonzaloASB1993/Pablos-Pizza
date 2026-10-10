@@ -246,7 +246,7 @@ EMAIL_SERVICE_API_KEY=your_email_key
 cd frontend && npm run dev        # Puerto 3000
 
 # Backend development  
-cd backend && python main.py     # Puerto 5000
+cd backend && python main.py     # Puerto 8000
 
 # Production build
 npm run build                     # Frontend build

@@ -1,408 +1,531 @@
-import { useState, useRef, useEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Box,
-  TextField,
-  IconButton,
-  Typography,
-  Paper,
-  CircularProgress,
   Alert,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Dialog,
   Divider,
-  Fade,
+  IconButton,
+  Paper,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
+  useMediaQuery,
   useTheme
 } from '@mui/material'
 import {
+  AddPhotoAlternate as GalleryIcon,
+  CameraAlt as CameraIcon,
   Close as CloseIcon,
+  DeleteSweep as NewChatIcon,
   Send as SendIcon,
-  SmartToy as BotIcon,
-  Person as PersonIcon,
-  Delete as DeleteIcon
+  SmartToy as BotIcon
 } from '@mui/icons-material'
-import axios from 'axios'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../contexts/AuthContext'
+import ChatMarkdown from './chat/ChatMarkdown'
+import ExpenseActionCard from './chat/ExpenseActionCard'
+import { describeError, sendChat } from './chat/chatApi'
+import { compressImage, MAX_IMAGES } from './chat/imageUtils'
 
-// API Configuration
-const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-const BASE_URL = isDevelopment
-  ? 'http://localhost:8000/api'
-  : 'https://main-446811667554.us-central1.run.app/api'
+const STORAGE_PREFIX = 'pablos-ai-chat-v1:'
+const MAX_STORED_MESSAGES = 40
+const IMAGE_PLACEHOLDER = '[imagen enviada]'
+
+const TOOL_LABELS = {
+  get_bookings: 'reservas',
+  get_events: 'eventos',
+  get_inventory_status: 'inventario',
+  get_contacts: 'contactos',
+  get_financial_summary: 'finanzas',
+  get_expenses_summary: 'gastos',
+  propose_expense: 'propuesta de gasto'
+}
+
+const SUGGESTIONS = [
+  { label: 'Subir boleta', action: 'upload' },
+  { label: '¿Qué tengo esta semana?', text: '¿Qué eventos y reservas tengo esta semana?' },
+  { label: 'Estado del inventario', text: '¿Cómo está el inventario? ¿Qué debo reponer?' },
+  { label: 'Gastos del mes', text: '¿Cuánto he gastado este mes, por categoría?' }
+]
+
+let idCounter = 0
+const newId = () => `${Date.now()}-${idCounter++}`
+
+// localStorage can throw (private mode, quota, blocked): the chat must work without it
+const loadStored = (key) => {
+  try {
+    const raw = window.localStorage.getItem(key)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+const saveStored = (key, messages) => {
+  try {
+    // Photos are never persisted (size + privacy): keep only that there was one
+    const slim = messages.slice(-MAX_STORED_MESSAGES).map(({ images, imagePayloads, ...rest }) => ({
+      ...rest,
+      imageCount: images?.length || rest.imageCount || 0
+    }))
+    window.localStorage.setItem(key, JSON.stringify(slim))
+  } catch {
+    // ignore
+  }
+}
+
+// What the server receives: text for the history, image blocks only for the message being sent
+const toApiMessages = (messages) => {
+  const lastIndex = messages.length - 1
+  const api = messages
+    .map((m, index) => {
+      if (m.role === 'assistant') {
+        return m.content?.trim() ? { role: 'assistant', content: m.content } : null
+      }
+      const text = m.content || ''
+      if (index === lastIndex && m.images?.length && m.imagePayloads?.length) {
+        return {
+          role: 'user',
+          content: [
+            ...(text ? [{ type: 'text', text }] : []),
+            ...m.imagePayloads.map((img) => ({
+              type: 'image',
+              source: { type: 'base64', media_type: img.media_type, data: img.data }
+            }))
+          ]
+        }
+      }
+      const imageNote = (m.images?.length || m.imageCount) ? ` ${IMAGE_PLACEHOLDER}` : ''
+      const content = `${text}${imageNote}`.trim()
+      return content ? { role: 'user', content } : null
+    })
+    .filter(Boolean)
+
+  const trimmed = api.slice(-38)
+  while (trimmed.length && trimmed[0].role !== 'user') trimmed.shift()
+  return trimmed
+}
+
+const Avatar = () => (
+  <Box
+    aria-hidden="true"
+    sx={{
+      width: 32, height: 32, borderRadius: '50%', bgcolor: 'primary.main', flexShrink: 0,
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}
+  >
+    <BotIcon sx={{ color: 'primary.contrastText', fontSize: 18 }} />
+  </Box>
+)
 
 const ChatAssistant = ({ open, onClose }) => {
   const theme = useTheme()
-  const { getAuthToken } = useAuth()
-  const [messages, setMessages] = useState([])
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
+  const { user, getAuthToken } = useAuth()
+  const storageKey = `${STORAGE_PREFIX}${user?.uid || 'anon'}`
+
+  const [messages, setMessages] = useState(() => loadStored(storageKey))
   const [input, setInput] = useState('')
+  const [attachments, setAttachments] = useState([]) // {preview, media_type, data}
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const messagesEndRef = useRef(null)
+  const [loadingLong, setLoadingLong] = useState(false)
+  const [error, setError] = useState(null) // {message, retryable}
+  const [confirmingClear, setConfirmingClear] = useState(false)
+  const [model, setModel] = useState(null)
+
+  const endRef = useRef(null)
   const inputRef = useRef(null)
-
-  // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+  const cameraRef = useRef(null)
+  const galleryRef = useRef(null)
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    saveStored(storageKey, messages)
+  }, [messages, storageKey])
 
-  // Focus input when dialog opens
   useEffect(() => {
-    if (open) {
-      setTimeout(() => {
-        inputRef.current?.focus()
-      }, 100)
-    }
+    endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [messages, loading, error])
+
+  useEffect(() => {
+    if (!open) return undefined
+    const t = setTimeout(() => inputRef.current?.focus(), 150)
+    return () => clearTimeout(t)
   }, [open])
 
-  // Send message to AI
-  const handleSendMessage = async () => {
-    if (!input.trim() || loading) return
+  useEffect(() => {
+    if (!loading) {
+      setLoadingLong(false)
+      return undefined
+    }
+    const t = setTimeout(() => setLoadingLong(true), 8000)
+    return () => clearTimeout(t)
+  }, [loading])
 
-    const userMessage = input.trim()
-    setInput('')
-    setError(null)
-
-    // Add user message to chat
-    const newMessages = [...messages, { role: 'user', content: userMessage }]
-    setMessages(newMessages)
+  const requestReply = useCallback(async (history) => {
     setLoading(true)
-
+    setError(null)
     try {
-      // The endpoint is admin-only: send the Firebase ID token
-      const token = await getAuthToken()
-      if (!token) {
-        throw Object.assign(new Error('no-token'), { code: 'NO_TOKEN' })
-      }
-
-      const response = await axios.post(`${BASE_URL}/ai-chat/`, {
-        messages: newMessages
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 120000 // 2 minutes for complex queries
-      })
-
-      // Add AI response to chat
+      const data = await sendChat(getAuthToken, toApiMessages(history))
+      setModel(data.model || null)
       setMessages([
-        ...newMessages,
-        { role: 'assistant', content: response.data.response }
+        // the raw photo bytes are only needed until the server has answered (retry)
+        ...history.map(({ imagePayloads, ...rest }) => rest),
+        {
+          id: newId(),
+          role: 'assistant',
+          content: data.response || '',
+          tools: [...new Set((data.tools_used || []).map((t) => TOOL_LABELS[t.name]).filter(Boolean))],
+          actions: data.pending_actions || []
+        }
       ])
-
-      // Log usage for cost tracking
-      console.log('AI Usage:', response.data.usage)
-
     } catch (err) {
       console.error('Error calling AI:', err)
-
-      let errorMessage = 'Error al comunicarse con el asistente AI'
-      if (err.code === 'NO_TOKEN' || err.response?.status === 401) {
-        errorMessage = 'Tu sesión expiró. Vuelve a iniciar sesión.'
-      } else if (err.response?.status === 403) {
-        errorMessage = 'Tu cuenta no tiene permisos para usar el asistente.'
-      } else if (err.response?.data?.error) {
-        errorMessage = err.response.data.error
-      } else if (err.code === 'ECONNABORTED') {
-        errorMessage = 'La consulta tardó demasiado. Por favor intenta de nuevo.'
-      } else if (!navigator.onLine) {
-        errorMessage = 'No hay conexión a internet'
-      }
-
-      setError(errorMessage)
-      toast.error(errorMessage)
-
+      setError(describeError(err))
     } finally {
       setLoading(false)
     }
-  }
+  }, [getAuthToken])
 
-  // Handle Enter key press
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  const send = useCallback(async (textOverride) => {
+    const text = (textOverride ?? input).trim()
+    if ((!text && attachments.length === 0) || loading) return
+
+    const userMessage = {
+      id: newId(),
+      role: 'user',
+      content: text,
+      images: attachments.map((a) => a.preview),
+      imagePayloads: attachments
+    }
+    const history = [...messages, userMessage]
+    setInput('')
+    setAttachments([])
+    setMessages(history)
+    await requestReply(history)
+  }, [input, attachments, loading, messages, requestReply])
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()
-      handleSendMessage()
+      send()
     }
   }
 
-  // Clear conversation
-  const handleClearChat = () => {
-    if (window.confirm('¿Deseas borrar toda la conversación?')) {
-      setMessages([])
-      setError(null)
-      toast.success('Conversación borrada')
+  const handleFiles = async (event) => {
+    const files = Array.from(event.target.files || [])
+    event.target.value = '' // allow choosing the same photo again
+    const room = MAX_IMAGES - attachments.length
+    if (files.length > room) {
+      toast.error(`Máximo ${MAX_IMAGES} fotos por mensaje`)
+    }
+    for (const file of files.slice(0, Math.max(room, 0))) {
+      try {
+        const compressed = await compressImage(file)
+        setAttachments((prev) => (prev.length < MAX_IMAGES ? [...prev, compressed] : prev))
+      } catch (err) {
+        toast.error(err.message || 'No se pudo procesar la foto')
+      }
     }
   }
 
-  // Close dialog and reset if needed
-  const handleClose = () => {
-    onClose()
+  const updateAction = (messageId, updated) => {
+    setMessages((prev) => prev.map((m) => (
+      m.id === messageId
+        ? { ...m, actions: m.actions.map((a) => (a.id === updated.id ? updated : a)) }
+        : m
+    )))
+  }
+
+  const startNewConversation = () => {
+    setMessages([])
+    setAttachments([])
+    setError(null)
+    setConfirmingClear(false)
+    setInput('')
+    inputRef.current?.focus()
+  }
+
+  const retry = () => requestReply(messages)
+
+  const canSend = (input.trim() || attachments.length > 0) && !loading
+  const atImageLimit = attachments.length >= MAX_IMAGES
+
+  const handleSuggestion = (s) => {
+    if (s.action === 'upload') {
+      cameraRef.current?.click()
+    } else {
+      send(s.text)
+    }
   }
 
   return (
     <Dialog
       open={open}
-      onClose={handleClose}
+      onClose={onClose}
       maxWidth="md"
       fullWidth
+      fullScreen={fullScreen}
+      aria-labelledby="ai-chat-title"
       PaperProps={{
         sx: {
-          height: '85vh',
-          maxHeight: '800px',
+          height: fullScreen ? '100dvh' : '85vh',
+          maxHeight: fullScreen ? 'none' : 800,
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: 2,
+          borderRadius: fullScreen ? 0 : 2
         }
       }}
     >
-      {/* Dialog Title/Header */}
-      <DialogTitle
+      {/* Header */}
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
         sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          bgcolor: theme.palette.primary.main,
-          color: 'white',
-          py: 2
+          bgcolor: 'primary.main', color: 'primary.contrastText', px: 2, py: 1.25,
+          pt: fullScreen ? 'max(10px, env(safe-area-inset-top))' : 1.25
         }}
       >
-        <Box display="flex" alignItems="center" gap={1.5}>
-          <BotIcon sx={{ fontSize: 32 }} />
-          <Box>
-            <Typography variant="h6" component="div" fontWeight={600}>
-              Asistente IA Pablo's Pizza
+        <Stack direction="row" alignItems="center" gap={1.25} minWidth={0}>
+          <BotIcon />
+          <Box minWidth={0}>
+            <Typography id="ai-chat-title" variant="subtitle1" component="h2" fontWeight={700} color="inherit" noWrap>
+              Asistente de Pablo's Pizza
             </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.9 }}>
-              Powered by Claude Sonnet 4.5
+            <Typography variant="caption" sx={{ opacity: 0.85 }} noWrap component="div">
+              {model ? `Claude · ${model.replace(/^claude-/, '')}` : 'Claude'}
             </Typography>
           </Box>
-        </Box>
-        <Box>
-          {messages.length > 0 && (
-            <IconButton
-              onClick={handleClearChat}
-              sx={{ color: 'white', mr: 1 }}
-              title="Borrar conversación"
-            >
-              <DeleteIcon />
-            </IconButton>
+        </Stack>
+        <Stack direction="row" alignItems="center">
+          {messages.length > 0 && !confirmingClear && (
+            <Tooltip title="Nueva conversación">
+              <IconButton onClick={() => setConfirmingClear(true)} sx={{ color: 'inherit' }} aria-label="Nueva conversación">
+                <NewChatIcon />
+              </IconButton>
+            </Tooltip>
           )}
-          <IconButton onClick={handleClose} sx={{ color: 'white' }}>
+          {confirmingClear && (
+            <Stack direction="row" alignItems="center" gap={0.5} mr={0.5}>
+              <Typography variant="caption">¿Borrar todo?</Typography>
+              <Button size="small" color="inherit" onClick={startNewConversation} sx={{ minWidth: 0 }}>Sí</Button>
+              <Button size="small" color="inherit" onClick={() => setConfirmingClear(false)} sx={{ minWidth: 0 }}>No</Button>
+            </Stack>
+          )}
+          <IconButton onClick={onClose} sx={{ color: 'inherit' }} aria-label="Cerrar asistente">
             <CloseIcon />
           </IconButton>
-        </Box>
-      </DialogTitle>
+        </Stack>
+      </Stack>
 
-      {/* Messages Area */}
-      <DialogContent
+      {/* Messages */}
+      <Box
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        aria-label="Conversación"
         sx={{
-          flex: 1,
-          overflow: 'auto',
-          p: 2,
-          bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
-          display: 'flex',
-          flexDirection: 'column'
+          flex: 1, overflowY: 'auto', p: { xs: 1.5, sm: 2 }, display: 'flex', flexDirection: 'column', gap: 2,
+          bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'
         }}
       >
-        {/* Welcome message when empty */}
         {messages.length === 0 && (
-          <Fade in timeout={500}>
-            <Box
-              display="flex"
-              flexDirection="column"
-              justifyContent="center"
-              alignItems="center"
-              flex={1}
-              gap={3}
-            >
-              <BotIcon sx={{ fontSize: 80, color: 'primary.main', opacity: 0.5 }} />
-              <Typography variant="h5" color="text.secondary" textAlign="center">
-                ¡Hola! Soy tu asistente IA
-              </Typography>
-              <Typography variant="body1" color="text.secondary" textAlign="center" maxWidth={500}>
-                Puedo ayudarte con información sobre eventos, reservas, inventario, finanzas y más.
-                Pregúntame lo que necesites.
-              </Typography>
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Ejemplos:
-                </Typography>
-                <Paper sx={{ p: 2, bgcolor: 'background.paper' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    • "¿Qué eventos tengo esta semana?"
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    • "¿Cómo está el inventario?"
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    • "¿Cuáles son mis números del mes?"
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    • "¿Hay algo urgente que deba atender?"
-                  </Typography>
-                </Paper>
-              </Box>
-            </Box>
-          </Fade>
+          <Stack alignItems="center" justifyContent="center" flex={1} gap={2} textAlign="center" py={3}>
+            <BotIcon sx={{ fontSize: 56, color: 'primary.main', opacity: 0.6 }} />
+            <Typography variant="h6" component="p">¡Hola! ¿En qué te ayudo?</Typography>
+            <Typography variant="body2" color="text.secondary" maxWidth={440}>
+              Consulta reservas, inventario y finanzas, o súbeme la foto de una boleta para dejarte lista la propuesta de gasto.
+            </Typography>
+          </Stack>
         )}
 
-        {/* Message bubbles */}
-        {messages.map((message, index) => (
-          <Fade in key={index} timeout={300}>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
-                mb: 2
-              }}
-            >
-              <Box
+        {messages.map((m) => (
+          <Box key={m.id} sx={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', gap: 1 }}>
+            {m.role === 'assistant' && <Avatar />}
+            <Box sx={{ maxWidth: { xs: '92%', sm: '82%' }, minWidth: 0 }}>
+              <Paper
+                elevation={0}
                 sx={{
-                  display: 'flex',
-                  gap: 1,
-                  maxWidth: '80%',
-                  flexDirection: message.role === 'user' ? 'row-reverse' : 'row'
+                  px: 1.75, py: 1.25, borderRadius: 2.5,
+                  bgcolor: m.role === 'user' ? 'primary.main' : 'background.paper',
+                  color: m.role === 'user' ? 'primary.contrastText' : 'text.primary',
+                  border: m.role === 'user' ? 'none' : 1, borderColor: 'divider'
                 }}
               >
-                {/* Avatar */}
-                <Box
-                  sx={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    bgcolor: message.role === 'user' ? 'secondary.main' : 'primary.main',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}
-                >
-                  {message.role === 'user' ? (
-                    <PersonIcon sx={{ color: 'white', fontSize: 20 }} />
-                  ) : (
-                    <BotIcon sx={{ color: 'white', fontSize: 20 }} />
-                  )}
-                </Box>
-
-                {/* Message bubble */}
-                <Paper
-                  elevation={1}
-                  sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    bgcolor: message.role === 'user'
-                      ? 'secondary.main'
-                      : 'background.paper',
-                    color: message.role === 'user'
-                      ? 'white'
-                      : 'text.primary',
-                    borderTopRightRadius: message.role === 'user' ? 0 : 2,
-                    borderTopLeftRadius: message.role === 'user' ? 2 : 0,
-                  }}
-                >
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      '& strong': { fontWeight: 700 }
-                    }}
-                  >
-                    {message.content}
+                {m.images?.length > 0 && (
+                  <Stack direction="row" gap={0.75} flexWrap="wrap" mb={m.content ? 1 : 0}>
+                    {m.images.map((src, i) => (
+                      <Box
+                        key={i} component="img" src={src} alt={`Foto adjunta ${i + 1}`}
+                        sx={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 1.5 }}
+                      />
+                    ))}
+                  </Stack>
+                )}
+                {!m.images?.length && m.imageCount > 0 && (
+                  <Typography variant="caption" sx={{ opacity: 0.85 }} display="block">
+                    📷 {m.imageCount} foto{m.imageCount === 1 ? '' : 's'}
                   </Typography>
-                </Paper>
-              </Box>
+                )}
+                {m.role === 'assistant'
+                  ? (m.content ? <ChatMarkdown>{m.content}</ChatMarkdown> : null)
+                  : (m.content && (
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      {m.content}
+                    </Typography>
+                  ))}
+              </Paper>
+
+              {m.tools?.length > 0 && (
+                <Typography variant="caption" color="text.secondary" display="block" mt={0.5} ml={0.5}>
+                  Consultó: {m.tools.join(', ')}
+                </Typography>
+              )}
+
+              {m.actions?.map((action) => (
+                <ExpenseActionCard
+                  key={action.id}
+                  action={action}
+                  getAuthToken={getAuthToken}
+                  onChange={(updated) => updateAction(m.id, updated)}
+                />
+              ))}
             </Box>
-          </Fade>
+          </Box>
         ))}
 
-        {/* Loading indicator */}
         {loading && (
-          <Fade in>
-            <Box display="flex" alignItems="center" gap={1} mb={2}>
-              <Box
-                sx={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  bgcolor: 'primary.main',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <BotIcon sx={{ color: 'white', fontSize: 20 }} />
-              </Box>
-              <Paper elevation={1} sx={{ p: 2, borderRadius: 2 }}>
-                <Box display="flex" alignItems="center" gap={1}>
-                  <CircularProgress size={16} />
-                  <Typography variant="body2" color="text.secondary">
-                    Pensando...
-                  </Typography>
-                </Box>
-              </Paper>
-            </Box>
-          </Fade>
+          <Stack direction="row" alignItems="center" gap={1} aria-busy="true">
+            <Avatar />
+            <Paper elevation={0} sx={{ px: 1.75, py: 1.25, borderRadius: 2.5, border: 1, borderColor: 'divider' }}>
+              <Stack direction="row" alignItems="center" gap={1}>
+                <CircularProgress size={16} />
+                <Typography variant="body2" color="text.secondary">
+                  {messages[messages.length - 1]?.images?.length
+                    ? 'Leyendo la foto…'
+                    : 'Consultando tus datos…'}
+                  {loadingLong && ' Esto puede tardar un poco.'}
+                </Typography>
+              </Stack>
+            </Paper>
+          </Stack>
         )}
 
-        {/* Error message */}
         {error && (
-          <Fade in>
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-              {error}
-            </Alert>
-          </Fade>
+          <Alert
+            severity="error"
+            onClose={() => setError(null)}
+            action={error.retryable && (
+              <Button color="inherit" size="small" onClick={retry} disabled={loading}>
+                Reintentar
+              </Button>
+            )}
+          >
+            {error.message}
+          </Alert>
         )}
 
-        {/* Scroll anchor */}
-        <div ref={messagesEndRef} />
-      </DialogContent>
+        <div ref={endRef} />
+      </Box>
 
       <Divider />
 
-      {/* Input Area */}
-      <DialogActions sx={{ p: 2, bgcolor: 'background.paper' }}>
-        <TextField
-          inputRef={inputRef}
-          fullWidth
-          variant="outlined"
-          placeholder="Escribe tu pregunta..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={handleKeyPress}
-          disabled={loading}
-          multiline
-          maxRows={3}
-          InputProps={{
-            endAdornment: (
-              <IconButton
-                onClick={handleSendMessage}
-                disabled={!input.trim() || loading}
-                color="primary"
-                sx={{
-                  ml: 1,
-                  bgcolor: input.trim() && !loading ? 'primary.main' : 'transparent',
-                  color: input.trim() && !loading ? 'white' : 'inherit',
-                  '&:hover': {
-                    bgcolor: input.trim() && !loading ? 'primary.dark' : 'transparent'
-                  }
-                }}
-              >
-                <SendIcon />
+      {/* Composer */}
+      <Box
+        sx={{
+          p: 1.5, pb: fullScreen ? 'max(12px, env(safe-area-inset-bottom))' : 1.5,
+          bgcolor: 'background.paper'
+        }}
+      >
+        {messages.length === 0 && (
+          <Stack direction="row" gap={1} flexWrap="wrap" mb={1.25}>
+            {SUGGESTIONS.map((s) => (
+              <Chip
+                key={s.label} label={s.label} variant="outlined" color="primary" clickable
+                onClick={() => handleSuggestion(s)} disabled={loading}
+              />
+            ))}
+          </Stack>
+        )}
+
+        {attachments.length > 0 && (
+          <Stack direction="row" gap={1} mb={1.25} aria-label="Fotos para enviar">
+            {attachments.map((a, i) => (
+              <Box key={i} sx={{ position: 'relative' }}>
+                <Box
+                  component="img" src={a.preview} alt={`Vista previa ${i + 1}`}
+                  sx={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 1.5, display: 'block' }}
+                />
+                <IconButton
+                  size="small"
+                  aria-label={`Quitar foto ${i + 1}`}
+                  onClick={() => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}
+                  sx={{
+                    position: 'absolute', top: -8, right: -8, bgcolor: 'background.paper',
+                    border: 1, borderColor: 'divider', p: 0.25,
+                    '&:hover': { bgcolor: 'background.paper' }
+                  }}
+                >
+                  <CloseIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              </Box>
+            ))}
+          </Stack>
+        )}
+
+        <Stack direction="row" alignItems="flex-end" gap={0.5}>
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={handleFiles} />
+          <input ref={galleryRef} type="file" accept="image/*" multiple hidden onChange={handleFiles} />
+          <Tooltip title="Tomar foto">
+            <span>
+              <IconButton onClick={() => cameraRef.current?.click()} disabled={loading || atImageLimit} aria-label="Tomar foto" color="primary">
+                <CameraIcon />
               </IconButton>
-            )
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 3,
-              pr: 0.5
-            }
-          }}
-        />
-      </DialogActions>
+            </span>
+          </Tooltip>
+          <Tooltip title="Elegir de la galería">
+            <span>
+              <IconButton onClick={() => galleryRef.current?.click()} disabled={loading || atImageLimit} aria-label="Elegir foto de la galería" color="primary">
+                <GalleryIcon />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <TextField
+            inputRef={inputRef}
+            fullWidth
+            size="small"
+            placeholder="Escribe tu pregunta…"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={loading}
+            multiline
+            maxRows={4}
+            inputProps={{ 'aria-label': 'Mensaje', enterKeyHint: 'send' }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+          />
+          <IconButton
+            onClick={() => send()}
+            disabled={!canSend}
+            aria-label="Enviar mensaje"
+            sx={{
+              bgcolor: canSend ? 'primary.main' : 'action.disabledBackground',
+              color: canSend ? 'primary.contrastText' : 'action.disabled',
+              '&:hover': { bgcolor: canSend ? 'primary.dark' : 'action.disabledBackground' }
+            }}
+          >
+            <SendIcon />
+          </IconButton>
+        </Stack>
+        <Typography variant="caption" color="text.disabled" display="block" mt={0.75} textAlign="center">
+          Enter envía · Shift+Enter nueva línea · El asistente propone, tú confirmas
+        </Typography>
+      </Box>
     </Dialog>
   )
 }

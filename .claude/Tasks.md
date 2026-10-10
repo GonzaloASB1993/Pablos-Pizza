@@ -520,16 +520,23 @@
 - [✅] Quitar fallback silencioso al año anterior en `get_financial_summary`
 - [✅] Frontend envía `Authorization: Bearer <idToken>` desde ChatAssistant (+ mensajes 401/403)
 - [✅] Tests del endpoint (`backend/tests/test_ai_chat_routes.py`, 9 tests)
-- [ ] **Deploy**: definir `ADMIN_EMAILS` en el entorno de la Function ANTES de desplegar (sin esto acepta cualquier usuario Firebase autenticado)
-- [ ] Subir SDK `anthropic` (0.40.0 → actual) y migrar a `claude-sonnet-5-5` (rechaza `temperature`: dejar `AI_CHAT_TEMPERATURE=""`; requiere manejar `stop_reason: refusal` y bloques thinking en el loop de tools)
+- [✅] **Deploy** Fase 0 con `ADMIN_EMAILS` (10/10/2026, `main` en `9f2a54a`); registro abierto de Firebase Auth desactivado
+- [✅] SDK `anthropic` 0.40.0 → 1.13.0 y modelo `claude-sonnet-5-5` (sin `temperature`, `effort=medium`, `max_tokens=8192`, fallback server-side de refusals, `refusal` ya manejado). Probado contra la API real: tool use + lectura de boleta + propose/confirm (con Firestore/Storage falsos)
 
 ### Fase 1: Escritura con confirmación + boletas
-- [ ] Extraer servicios de `main.py` (gastos, inventario, supplies, consumption) a `services/`
-- [ ] Colección `pending_actions` + endpoints confirmar/cancelar (determinísticos, sin LLM)
-- [ ] Tarjeta de confirmación editable en el chat
-- [ ] Subida de imagen (cámara móvil, compresión en cliente, placeholder en historial, guardado en Storage)
-- [ ] `propose_expense` (fijo/variable) con detección de duplicados (proveedor+fecha+total+folio)
-- [ ] `get_expenses_summary`
+Rama `claude/ai-agent-phase1-services` (sin PR, sin deploy). 119 tests backend en verde, `npm run build` OK.
+- [✅] Tests de caracterización de `/api/expenses` + Firestore fake en memoria (`backend/tests/fakes.py`), `requirements-dev.txt`
+- [✅] `services/expenses_service.py` extraído (gastos fijos/variables); rutas como wrappers finos
+- [✅] `utils/text_matching.py` (copia de `normalize_text`/`calculate_similarity`, sin importar `main`)
+- [✅] Saneo del historial del cliente (`services/ai_chat_history.py`), tope de 8 iteraciones del loop, notas para `refusal`/`max_tokens`, sin `details` en errores 500
+- [✅] `pending_actions` (`services/pending_actions_service.py`) + `GET /pending/<id>`, `POST /pending/<id>/confirm|cancel`; confirmación idempotente con transacción, revalidación Pydantic, auditoría `source=ai_agent`
+- [✅] Imágenes: validación de bytes (magic numbers), subida privada a `ai_uploads/{uid}/`, `storage.rules` niega acceso desde clientes, timeout de la Function a 180 s
+- [✅] `propose_expense` (fijo/variable, montos y fechas chilenas, hash de duplicados, avisos de total/IVA/folio/fecha) y `get_expenses_summary`
+- [✅] UI: chat móvil (fullscreen), markdown, cámara/galería con compresión, tarjeta de gasto editable, chips, `localStorage`, reintento, a11y
+- [ ] **Deploy Fase 1**: `firebase deploy --only hosting,functions,storage --project pablospizza-d84bf` (storage = reglas nuevas de `ai_uploads/`)
+- [ ] Probar a mano en producción: foto de boleta → tarjeta → confirmar; misma boleta otra vez → aviso de duplicado
+- [ ] Dedupe en `main.py`: importar `utils/text_matching` en vez de tener copia propia (hoy duplicado a propósito)
+- [ ] Categoría "transporte"/"insumos varios": hoy solo existen las 6 del diálogo de gastos (`general, servicios, arriendo, sueldos, marketing, otros`)
 
 ### Fase 2: Insumos
 - [ ] `search_inventory` (match difuso) y `search_bookings` / `find_event`
