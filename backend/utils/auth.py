@@ -5,6 +5,7 @@ The frontend sends `Authorization: Bearer <Firebase ID token>`. The token is
 verified with the Firebase Admin SDK and, when the ADMIN_EMAILS environment
 variable is set (comma separated), the caller must be on that allowlist.
 """
+import hmac
 import logging
 import os
 from functools import wraps
@@ -78,5 +79,39 @@ def require_admin(view):
 
         g.current_user = {'uid': decoded.get('uid'), 'email': email}
         return view(*args, **kwargs)
+
+    return wrapper
+
+
+# ---------- scheduler / machine callers ----------
+
+SCHEDULER_HEADER = 'X-Scheduler-Token'
+MIN_SCHEDULER_TOKEN_LENGTH = 24
+_PLACEHOLDER_TOKENS = {'your_secure_random_token_here_change_in_production', 'changeme', 'change_me', 'secret', 'token'}
+
+
+def scheduler_token_ok():
+    """True only if the request carries the configured shared secret.
+
+    Fails CLOSED: with no token configured (or a short / placeholder one) nobody gets in this way. The comparison
+    is constant-time. NOTE: `X-CloudScheduler-JobName` is NOT a credential: any client can send it.
+    """
+    expected = os.getenv('SCHEDULER_AUTH_TOKEN', '').strip()
+    if len(expected) < MIN_SCHEDULER_TOKEN_LENGTH or expected.lower() in _PLACEHOLDER_TOKENS:
+        logger.error('SCHEDULER_AUTH_TOKEN is missing or too weak: scheduler endpoints are closed')
+        return False
+    given = request.headers.get(SCHEDULER_HEADER, '')
+    return bool(given) and hmac.compare_digest(given.encode('utf-8'), expected.encode('utf-8'))
+
+
+def require_scheduler_or_admin(view):
+    """Only Cloud Scheduler (shared secret header) or a signed-in admin (Firebase token) may call the endpoint"""
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        if scheduler_token_ok():
+            g.current_user = {'uid': 'cloud-scheduler', 'email': 'cloud-scheduler'}
+            return view(*args, **kwargs)
+        # no (or wrong) secret: the only other way in is a verified admin session
+        return require_admin(view)(*args, **kwargs)
 
     return wrapper

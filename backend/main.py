@@ -12,7 +12,7 @@ if os.path.exists('.env'):
 # Import after loading env variables
 import firebase_admin
 from firebase_admin import firestore, storage
-from flask import Flask, request, jsonify, redirect
+from flask import Flask, request, jsonify, redirect, g
 from flask_cors import CORS
 from datetime import datetime, timedelta
 import uuid
@@ -46,6 +46,7 @@ if str(CURRENT_DIR) not in sys.path:
 # Utils imports - AFTER sys.path configuration
 from utils.pagination import paginate_query, create_pagination_response
 from utils.audit import log_audit, audit_log
+from utils.auth import require_scheduler_or_admin
 from services import inventory_service
 from services import event_inventory_service
 
@@ -349,23 +350,24 @@ def health():
 
 # Scheduler endpoint for automated tasks
 @app.route('/api/scheduler/check-overdue-events', methods=['POST', 'GET'])
+@require_scheduler_or_admin
 def scheduler_check_overdue_events():
     """
     Auto-close overdue events with the configured profit margin
     Called by Google Cloud Scheduler daily at 11:00 AM
 
-    Security: Should be called with proper authentication token in production
+    SECURITY: this writes events and costs and sends WhatsApp reminders, so it is NOT public: it needs the
+    shared secret header `X-Scheduler-Token` (Cloud Scheduler) or a signed-in admin (manual runs).
+    `?dry_run=true` only proves the caller is authorized, without running anything.
     """
     try:
-        # Verify scheduler token for production (optional but recommended)
-        scheduler_token = request.headers.get('X-CloudScheduler-JobName')
-        expected_token = os.getenv('SCHEDULER_AUTH_TOKEN', '')
+        if request.args.get('dry_run', 'false').lower() == 'true':
+            return jsonify({'success': True, 'dry_run': True, 'caller': g.current_user['uid']}), 200
 
-        # Allow GET for manual testing, POST for Cloud Scheduler
+        # Allow GET for manual runs by an admin, POST for Cloud Scheduler
         if request.method == 'GET':
-            # Manual test endpoint
             force = request.args.get('force', 'false').lower() == 'true'
-            logger.info(f"🔧 Manual scheduler check triggered (force={force})")
+            logger.info(f"🔧 Manual scheduler check triggered by {g.current_user['uid']} (force={force})")
         else:
             force = False
 
