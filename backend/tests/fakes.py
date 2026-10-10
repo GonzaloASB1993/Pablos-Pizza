@@ -3,9 +3,10 @@ import copy
 
 
 class FakeDocSnapshot:
-    def __init__(self, doc_id, data):
+    def __init__(self, doc_id, data, reference=None):
         self.id = doc_id
         self._data = data
+        self.reference = reference  # like google-cloud-firestore: lets callers delete/update the doc
 
     @property
     def exists(self):
@@ -23,7 +24,7 @@ class FakeDocRef:
 
     def get(self, transaction=None):
         data = self._store.get(self._name, {}).get(self.id)
-        return FakeDocSnapshot(self.id, data)
+        return FakeDocSnapshot(self.id, data, reference=self)
 
     def set(self, data, merge=False):
         coll = self._store.setdefault(self._name, {})
@@ -69,7 +70,7 @@ class FakeQuery:
 
     def stream(self):
         docs = [
-            FakeDocSnapshot(doc_id, data)
+            FakeDocSnapshot(doc_id, data, reference=FakeDocRef(self._store, self._name, doc_id))
             for doc_id, data in self._store.get(self._name, {}).items()
             if all(self._OPS[op](data.get(f), v) for f, op, v in self._filters)
         ]

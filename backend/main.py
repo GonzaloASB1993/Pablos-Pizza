@@ -47,6 +47,7 @@ if str(CURRENT_DIR) not in sys.path:
 from utils.pagination import paginate_query, create_pagination_response
 from utils.audit import log_audit, audit_log
 from services import inventory_service
+from services import event_inventory_service
 
 # ==================== BLUEPRINTS IMPORTS ====================
 from routes.bookings_routes import bookings_bp
@@ -3739,110 +3740,39 @@ def get_production_batch_label(batch_id):
 # EVENT SUPPLIES (STOCK ESTIMADO) ENDPOINTS
 # ==========================================
 
+def _event_inventory_preflight():
+    """CORS preflight shared by the event supplies / consumption endpoints"""
+    response = jsonify({'message': 'OK'})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
+
+def _event_inventory_error(e):
+    return jsonify({'error': e.message}), e.status_code
+
+
 @app.route('/api/event-supplies/', methods=['POST', 'OPTIONS'])
 def create_event_supplies():
     """Crear estimación de insumos para un evento (Stock Estimado)"""
     if request.method == 'OPTIONS':
-        response = jsonify({'message': 'OK'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-        return response
+        return _event_inventory_preflight()
 
     try:
-        data = request.get_json()
-        supplies_id = str(uuid.uuid4())
-
-        # Validar datos requeridos
-        if not data or 'booking_id' not in data or 'items' not in data:
-            return jsonify({'error': 'booking_id and items are required'}), 400
-
         db = get_db()
-        if not db:
+        data = request.get_json()
+        if data and 'booking_id' in data and 'items' in data and not db:
             return jsonify({'error': 'Database connection failed'}), 500
 
-        # Verificar que el booking existe y está confirmado
-        booking_ref = db.collection('bookings').document(data['booking_id'])
-        booking_doc = booking_ref.get()
-
-        if not booking_doc.exists:
-            return jsonify({'error': 'Booking not found'}), 404
-
-        booking_data = booking_doc.to_dict()
-        if booking_data.get('status') != 'confirmed':
-            return jsonify({'error': 'Booking must be confirmed to add supplies'}), 400
-
-        # Verificar disponibilidad de stock para todos los items
-        total_estimated_cost = 0
-        processed_items = []
-
-        for item in data['items']:
-            if not all(k in item for k in ['item_id', 'estimated_quantity']):
-                return jsonify({'error': 'Each item must have item_id and estimated_quantity'}), 400
-
-            inventory_ref = db.collection('inventory').document(item['item_id'])
-            inventory_doc = inventory_ref.get()
-
-            if not inventory_doc.exists:
-                return jsonify({'error': f'Inventory item {item["item_id"]} not found'}), 404
-
-            inventory_data = inventory_doc.to_dict()
-
-            if inventory_data['current_stock'] < item['estimated_quantity']:
-                return jsonify({
-                    'error': f'Insufficient stock for {inventory_data["name"]}. '
-                             f'Available: {inventory_data["current_stock"]}, '
-                             f'Required: {item["estimated_quantity"]}'
-                }), 400
-
-            # Calcular costo usando el costo promedio ponderado
-            cost_per_unit = inventory_data.get('weighted_avg_cost', inventory_data.get('cost_per_unit', 0))
-            estimated_total_cost = item['estimated_quantity'] * cost_per_unit
-            total_estimated_cost += estimated_total_cost
-
-            processed_item = {
-                'item_id': item['item_id'],
-                'item_name': inventory_data['name'],
-                'estimated_quantity': item['estimated_quantity'],
-                'unit': inventory_data['unit'],
-                'cost_per_unit': cost_per_unit,
-                'estimated_total_cost': estimated_total_cost,
-                'batch_id': item.get('batch_id'),
-                'notes': item.get('notes')
-            }
-            processed_items.append(processed_item)
-
-        # Crear registro de supplies
-        supplies_data = {
-            'id': supplies_id,
-            'booking_id': data['booking_id'],
-            'items': processed_items,
-            'estimated_total_cost': total_estimated_cost,
-            'notes': data.get('notes'),
-            'created_at': datetime.now()
-        }
-
-        db.collection('event_supplies').document(supplies_id).set(supplies_data)
-
-        # Sync booking financials with estimated supply cost for easier frontend consumption
-        try:
-            existing_financials = booking_data.get('financials') or {}
-            existing_financials.update({
-                'estimated_supply_cost': float(total_estimated_cost)
-            })
-            booking_ref.update({
-                'financials': existing_financials,
-                'updated_at': datetime.now()
-            })
-        except Exception as fin_err:
-            print(f"⚠️ Failed to update booking financials with estimated supply cost: {fin_err}")
-
+        supplies_id, supplies = event_inventory_service.create_supplies(db, data)
         return jsonify({
             'message': 'Event supplies created successfully',
             'supplies_id': supplies_id,
-            'supplies': supplies_data
+            'supplies': supplies
         }), 201
-
+    except event_inventory_service.EventInventoryError as e:
+        return _event_inventory_error(e)
     except Exception as e:
         print(f"Error creating event supplies: {e}")
         return jsonify({'error': str(e)}), 500
@@ -3851,24 +3781,16 @@ def create_event_supplies():
 def get_event_supplies_by_booking(booking_id):
     """Obtener supplies de un booking específico"""
     if request.method == 'OPTIONS':
-        response = jsonify({'message': 'OK'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-        return response
+        return _event_inventory_preflight()
 
     try:
         db = get_db()
         if not db:
             return jsonify({'error': 'Database connection failed'}), 500
 
-        # Buscar supplies para el booking
-        docs = list(db.collection('event_supplies').where('booking_id', '==', booking_id).limit(1).stream())
-
-        if not docs:
+        supplies_data = event_inventory_service.get_supplies_for_booking(db, booking_id)
+        if not supplies_data:
             return jsonify({'error': 'Supplies not found for this booking'}), 404
-
-        supplies_data = docs[0].to_dict()
 
         # Serializar fechas
         if 'created_at' in supplies_data:
@@ -3886,11 +3808,7 @@ def get_event_supplies_by_booking(booking_id):
 def update_event_supplies(supplies_id):
     """Actualizar supplies estimadas"""
     if request.method == 'OPTIONS':
-        response = jsonify({'message': 'OK'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-        return response
+        return _event_inventory_preflight()
 
     try:
         data = request.get_json()
@@ -3898,85 +3816,9 @@ def update_event_supplies(supplies_id):
         if not db:
             return jsonify({'error': 'Database connection failed'}), 500
 
-        supplies_ref = db.collection('event_supplies').document(supplies_id)
-        doc = supplies_ref.get()
-
-        if not doc.exists:
-            return jsonify({'error': 'Supplies not found'}), 404
-
         # Nota: Permitimos actualizar insumos aunque exista consumo registrado.
         # La variación se recalculará cuando se re-registre el consumo.
-
-        # Procesar items si se proporcionan
-        update_data = {}
-        if 'items' in data:
-            total_estimated_cost = 0
-            processed_items = []
-
-            for item in data['items']:
-                inventory_ref = db.collection('inventory').document(item['item_id'])
-                inventory_doc = inventory_ref.get()
-
-                if not inventory_doc.exists:
-                    return jsonify({'error': f'Inventory item {item["item_id"]} not found'}), 404
-
-                inventory_data = inventory_doc.to_dict()
-
-                if inventory_data['current_stock'] < item['estimated_quantity']:
-                    return jsonify({
-                        'error': f'Insufficient stock for {inventory_data["name"]}'
-                    }), 400
-
-                cost_per_unit = inventory_data.get('weighted_avg_cost', inventory_data.get('cost_per_unit', 0))
-                estimated_total_cost = item['estimated_quantity'] * cost_per_unit
-                total_estimated_cost += estimated_total_cost
-
-                processed_item = {
-                    'item_id': item['item_id'],
-                    'item_name': inventory_data['name'],
-                    'estimated_quantity': item['estimated_quantity'],
-                    'unit': inventory_data['unit'],
-                    'cost_per_unit': cost_per_unit,
-                    'estimated_total_cost': estimated_total_cost,
-                    'batch_id': item.get('batch_id'),
-                    'notes': item.get('notes')
-                }
-                processed_items.append(processed_item)
-
-            update_data['items'] = processed_items
-            update_data['estimated_total_cost'] = total_estimated_cost
-
-        if 'notes' in data:
-            update_data['notes'] = data['notes']
-
-        update_data['updated_at'] = datetime.now()
-
-        supplies_ref.update(update_data)
-
-        # Also sync booking financials with the refreshed estimated supply cost
-        try:
-            updated_supplies = supplies_ref.get().to_dict()
-            booking_id = updated_supplies.get('booking_id')
-            if booking_id:
-                booking_ref = db.collection('bookings').document(booking_id)
-                booking_doc = booking_ref.get()
-                if booking_doc.exists:
-                    booking_data = booking_doc.to_dict()
-                    financials = booking_data.get('financials') or {}
-                    if 'estimated_total_cost' in update_data:
-                        financials['estimated_supply_cost'] = float(update_data['estimated_total_cost'])
-                    else:
-                        financials['estimated_supply_cost'] = float(updated_supplies.get('estimated_total_cost', 0))
-                    booking_ref.update({
-                        'financials': financials,
-                        'updated_at': datetime.now()
-                    })
-        except Exception as sync_err:
-            print(f"⚠️ Failed syncing booking financials after supplies update: {sync_err}")
-
-        # Obtener datos actualizados
-        updated_doc = supplies_ref.get()
-        updated_data = updated_doc.to_dict()
+        updated_data = event_inventory_service.update_supplies(db, supplies_id, data)
 
         # Serializar fechas
         if 'created_at' in updated_data:
@@ -3988,7 +3830,8 @@ def update_event_supplies(supplies_id):
             'message': 'Supplies updated successfully',
             'supplies': updated_data
         }), 200
-
+    except event_inventory_service.EventInventoryError as e:
+        return _event_inventory_error(e)
     except Exception as e:
         print(f"Error updating event supplies: {e}")
         return jsonify({'error': str(e)}), 500
@@ -4001,15 +3844,10 @@ def update_event_supplies(supplies_id):
 def create_event_consumption():
     """Registrar consumo real de insumos y descontar del stock (Stock Confirmado)"""
     if request.method == 'OPTIONS':
-        response = jsonify({'message': 'OK'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-        return response
+        return _event_inventory_preflight()
 
     try:
         data = request.get_json()
-        consumption_id = str(uuid.uuid4())
 
         # Validar datos requeridos
         required_fields = ['booking_id', 'items_consumed', 'total_other_expenses']
@@ -4020,252 +3858,9 @@ def create_event_consumption():
         if not db:
             return jsonify({'error': 'Database connection failed'}), 500
 
-        # Verificar que el booking existe
-        booking_ref = db.collection('bookings').document(data['booking_id'])
-        booking_doc = booking_ref.get()
-        if not booking_doc.exists:
-            return jsonify({'error': 'Booking not found'}), 404
-
-        # Verificar si existe un consumption para este booking
-        # Si existe, lo actualizaremos en lugar de crear uno nuevo
-        existing_docs = list(db.collection('event_consumption').where('booking_id', '==', data['booking_id']).limit(1).stream())
-        existing_consumption = None
-        if existing_docs:
-            existing_consumption = existing_docs[0]
-            existing_consumption_data = existing_consumption.to_dict()
-
-            # Revertir movimientos de inventario anteriores antes de aplicar nuevos
-            for old_item in existing_consumption_data.get('items_consumed', []):
-                # Buscar y revertir el movimiento de inventario
-                old_movements = list(db.collection('inventory_movements')
-                    .where('reference_id', '==', data['booking_id'])
-                    .where('reference_type', '==', 'event_consumption')
-                    .where('item_id', '==', old_item['item_id'])
-                    .stream())
-
-                for mov_doc in old_movements:
-                    # Restaurar el stock (revertir la salida)
-                    inventory_ref = db.collection('inventory').document(old_item['item_id'])
-                    inventory_doc = inventory_ref.get()
-                    if inventory_doc.exists:
-                        inventory_data = inventory_doc.to_dict()
-                        restored_stock = inventory_data['current_stock'] + abs(old_item['actual_quantity_consumed'])
-                        # Redondear a 2 decimales para evitar errores de precisión flotante
-                        restored_stock = round(restored_stock, 2)
-                        inventory_ref.update({
-                            'current_stock': restored_stock,
-                            'needs_restock': restored_stock <= inventory_data.get('min_stock', 0),
-                            'last_updated': datetime.now()
-                        })
-                    # Eliminar movimiento anterior
-                    mov_doc.reference.delete()
-
-        # Obtener supplies estimadas si existen (se usa para variación y para calcular consumo desde 'lo que volvió')
-        supplies_data = None
-        supplies_docs = list(db.collection('event_supplies').where('booking_id', '==', data['booking_id']).limit(1).stream())
-        if supplies_docs:
-            supplies_data = supplies_docs[0].to_dict()
-
-        # Procesar cada item consumido y crear movimientos de inventario
-        processed_items = []
-        total_supply_cost = 0
-
-        # Asegurar que total_other_expenses sea numérico
-        total_other_expenses_input = data.get('total_other_expenses')
-        try:
-            total_other_expenses_input = float(total_other_expenses_input) if total_other_expenses_input is not None else 0.0
-        except Exception:
-            total_other_expenses_input = 0.0
-
-        for item in data['items_consumed']:
-            # Soportar nuevo flujo: quantity_returned (lo que volvió) o actual_quantity_consumed (legacy)
-            if 'item_id' not in item:
-                logger.error(f"Item missing item_id: {item}")
-                return jsonify({'error': 'Each item must have item_id'}), 400
-
-            # Calcular actual_quantity_consumed según el flujo
-            calculated_from_return = False
-            estimated_quantity = 0.0
-            estimated_item = None
-            if supplies_data:
-                estimated_item = next((s for s in supplies_data.get('items', []) if s['item_id'] == item['item_id']), None)
-                if estimated_item:
-                    estimated_quantity = float(estimated_item.get('estimated_quantity', 0) or 0)
-
-            if 'quantity_returned' in item:
-                # Calcular consumo = estimado - lo que volvió (si hay estimación); si no, usar actual si viene provisto
-                try:
-                    returned_qty = float(item.get('quantity_returned') or 0)
-                except Exception:
-                    returned_qty = 0.0
-
-                if estimated_item is not None:
-                    # Validar que no vuelva más de lo llevado
-                    if returned_qty > estimated_quantity:
-                        logger.error(f"Quantity returned ({returned_qty}) exceeds estimated ({estimated_quantity})")
-                        return jsonify({
-                            'error': f'La cantidad que volvió ({returned_qty}) no puede ser mayor que lo llevado ({estimated_quantity})'
-                        }), 400
-                    actual_qty = max(0.0, estimated_quantity - returned_qty)
-                    calculated_from_return = True
-                else:
-                    # Sin item estimado: permitir si nos dan actual directamente; si no, consumo=0
-                    try:
-                        actual_qty = float(item.get('actual_quantity_consumed') or 0)
-                    except Exception:
-                        actual_qty = 0.0
-            else:
-                # Legacy: usar actual_quantity_consumed
-                try:
-                    actual_qty = float(item.get('actual_quantity_consumed') or 0)
-                except Exception:
-                    logger.error(f"Item missing both quantity_returned and actual_quantity_consumed: {item}")
-                    return jsonify({'error': 'Each item must have quantity_returned or actual_quantity_consumed'}), 400
-
-            # Normalizar a no-negativo
-            actual_qty = max(0.0, actual_qty)
-            item['actual_quantity_consumed'] = actual_qty
-
-            # Verificar item de inventario
-            inventory_ref = db.collection('inventory').document(item['item_id'])
-            inventory_doc = inventory_ref.get()
-
-            if not inventory_doc.exists:
-                return jsonify({'error': f'Inventory item {item["item_id"]} not found'}), 404
-
-            inventory_data = inventory_doc.to_dict()
-
-            # Verificar stock suficiente
-            if inventory_data['current_stock'] < item['actual_quantity_consumed']:
-                return jsonify({
-                    'error': f'Insufficient stock for {inventory_data["name"]}. '
-                             f'Available: {inventory_data["current_stock"]}, '
-                             f'Required: {item["actual_quantity_consumed"]}'
-                }), 400
-
-            # Calcular variance si hay datos estimados
-            variance = None
-            # Variación solo si hay estimación para ese item
-            if estimated_item is not None:
-                variance = item['actual_quantity_consumed'] - estimated_quantity
-
-            # Usar costo promedio ponderado actual
-            cost_per_unit = inventory_data.get('weighted_avg_cost', inventory_data.get('cost_per_unit', 0))
-            total_cost = item['actual_quantity_consumed'] * cost_per_unit
-            total_supply_cost += total_cost
-
-            # Crear item procesado
-            processed_item = {
-                'item_id': item['item_id'],
-                'item_name': inventory_data['name'],
-                'estimated_quantity': estimated_quantity,
-                'quantity_returned': item.get('quantity_returned', 0),  # Lo que volvió
-                'actual_quantity_consumed': item['actual_quantity_consumed'],  # Consumo real calculado
-                'unit': inventory_data['unit'],
-                'cost_per_unit': cost_per_unit,
-                'total_cost': total_cost,
-                'batch_id': item.get('batch_id'),
-                'variance': variance
-            }
-            processed_items.append(processed_item)
-
-            # Crear movimiento de inventario (salida por consumo en evento)
-            movement_id = str(uuid.uuid4())
-            movement_data = {
-                'id': movement_id,
-                'item_id': item['item_id'],
-                'item_name': inventory_data['name'],
-                'movement_type': 'sale',  # Salida por consumo
-                'quantity': -item['actual_quantity_consumed'],  # Negativo para salida
-                'unit': inventory_data['unit'],
-                'cost_per_unit': cost_per_unit,
-                'total_cost': total_cost,
-                'reference_id': data['booking_id'],
-                'reference_type': 'event_consumption',
-                'notes': f"Consumo en evento - {data.get('notes', '')}",
-                'stock_before': inventory_data['current_stock'],
-                'stock_after': inventory_data['current_stock'] - item['actual_quantity_consumed'],
-                'avg_cost_before': cost_per_unit,
-                'avg_cost_after': cost_per_unit,
-                'created_at': datetime.now()
-            }
-
-            db.collection('inventory_movements').document(movement_id).set(movement_data)
-
-            # Actualizar stock en inventario
-            new_stock = inventory_data['current_stock'] - item['actual_quantity_consumed']
-            # Redondear a 2 decimales para evitar errores de precisión flotante
-            new_stock = round(new_stock, 2)
-            needs_restock = new_stock <= inventory_data.get('min_stock', 0)
-
-            inventory_ref.update({
-                'current_stock': new_stock,
-                'needs_restock': needs_restock,
-                'last_updated': datetime.now()
-            })
-
-        # Calcular costo total
-        total_cost = total_supply_cost + total_other_expenses_input
-
-        # Crear o actualizar registro de consumption
-        if existing_consumption:
-            # Actualizar consumo existente
-            consumption_id = existing_consumption.id
-            consumption_data = {
-                'items_consumed': processed_items,
-                'total_supply_cost': total_supply_cost,
-                'total_other_expenses': total_other_expenses_input,
-                'total_cost': total_cost,
-                'notes': data.get('notes'),
-                'updated_at': datetime.now()
-            }
-            db.collection('event_consumption').document(consumption_id).update(consumption_data)
-            # Leer documento actualizado para responder con datos consistentes
-            saved_doc = db.collection('event_consumption').document(consumption_id).get()
-            saved_consumption = saved_doc.to_dict()
-        else:
-            # Crear nuevo registro de consumption
-            consumption_data = {
-                'id': consumption_id,
-                'event_id': data.get('event_id'),  # Puede ser None si es solo booking
-                'booking_id': data['booking_id'],
-                'items_consumed': processed_items,
-                'total_supply_cost': total_supply_cost,
-                'total_other_expenses': total_other_expenses_input,
-                'total_cost': total_cost,
-                'notes': data.get('notes'),
-                'supplies_id': supplies_data['id'] if supplies_data else None,
-                'created_at': datetime.now()
-            }
-            db.collection('event_consumption').document(consumption_id).set(consumption_data)
-            saved_consumption = consumption_data
-
-        # Actualizar el booking con el costo total calculado
-        print(f"DEBUG: About to update booking {data['booking_id']} with financials")
-        booking_data = booking_doc.to_dict()
-        financials = booking_data.get('financials', {})
-
-        # Actualizar financials con los nuevos costos
-        financials.update({
-            'total_expenses': total_cost,
-            'supply_cost': total_supply_cost,
-            'other_expenses': total_other_expenses_input
-        })
-
-        print(f"DEBUG: Calculated financials: {financials}")
-
-        # Recalcular profit si hay income
-        if 'income' in financials:
-            financials['profit'] = financials['income'] - total_cost
-
-        update_data = {
-            'financials': financials,
-            'updated_at': datetime.now()
-        }
-
-        print(f"DEBUG: Updating booking with: {update_data}")
-        booking_ref.update(update_data)
-        print(f"DEBUG: Booking update completed successfully")
+        consumption_id, saved_consumption = event_inventory_service.save_consumption(
+            db, data['booking_id'], data['items_consumed'], data.get('total_other_expenses'),
+            notes=data.get('notes'), event_id=data.get('event_id'))
 
         # Serializar fecha para respuesta
         if 'created_at' in saved_consumption:
@@ -4276,7 +3871,8 @@ def create_event_consumption():
             'consumption_id': consumption_id,
             'consumption': saved_consumption
         }), 201
-
+    except event_inventory_service.EventInventoryError as e:
+        return _event_inventory_error(e)
     except Exception as e:
         print(f"Error creating event consumption: {e}")
         return jsonify({'error': str(e)}), 500

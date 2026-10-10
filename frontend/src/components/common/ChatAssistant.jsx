@@ -30,6 +30,7 @@ import ChatMarkdown from './chat/ChatMarkdown'
 import ExpenseActionCard from './chat/ExpenseActionCard'
 import ReceiptActionCard from './chat/ReceiptActionCard'
 import SimpleActionCard from './chat/SimpleActionCard'
+import EventInventoryCard from './chat/EventInventoryCard'
 import { describeError, sendChat } from './chat/chatApi'
 import { compressImage, MAX_IMAGES } from './chat/imageUtils'
 
@@ -50,7 +51,10 @@ const TOOL_LABELS = {
   propose_inventory_item: 'propuesta de insumo',
   propose_inventory_purchase: 'propuesta de compra',
   propose_inventory_update: 'propuesta de cambios',
-  propose_stock_adjustment: 'propuesta de ajuste'
+  propose_stock_adjustment: 'propuesta de ajuste',
+  search_bookings: 'reservas',
+  propose_event_supplies: 'propuesta de insumos del evento',
+  propose_event_consumption: 'propuesta de consumo del evento'
 }
 
 // action.type -> card component (unknown types fall back to a plain confirm/cancel card)
@@ -58,7 +62,9 @@ const ACTION_CARDS = {
   expense: ExpenseActionCard,
   inventory_receipt: ReceiptActionCard,
   inventory_update: SimpleActionCard,
-  stock_adjustment: SimpleActionCard
+  stock_adjustment: SimpleActionCard,
+  event_supplies: EventInventoryCard,
+  event_consumption: EventInventoryCard
 }
 
 const SUGGESTIONS = [
@@ -197,7 +203,8 @@ const ChatAssistant = ({ open, onClose }) => {
           role: 'assistant',
           content: data.response || '',
           tools: [...new Set((data.tools_used || []).map((t) => TOOL_LABELS[t.name]).filter(Boolean))],
-          actions: data.pending_actions || []
+          actions: data.pending_actions || [],
+          choices: data.choices || []
         }
       ])
     } catch (err) {
@@ -208,7 +215,7 @@ const ChatAssistant = ({ open, onClose }) => {
     }
   }, [getAuthToken])
 
-  const send = useCallback(async (textOverride) => {
+  const send = useCallback(async (textOverride, display) => {
     const text = (textOverride ?? input).trim()
     if ((!text && attachments.length === 0) || loading) return
 
@@ -216,6 +223,7 @@ const ChatAssistant = ({ open, onClose }) => {
       id: newId(),
       role: 'user',
       content: text,
+      ...(display ? { display } : {}),
       images: attachments.map((a) => a.preview),
       imagePayloads: attachments
     }
@@ -361,7 +369,7 @@ const ChatAssistant = ({ open, onClose }) => {
           </Stack>
         )}
 
-        {messages.map((m) => (
+        {messages.map((m, index) => (
           <Box key={m.id} sx={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', gap: 1 }}>
             {m.role === 'assistant' && <Avatar />}
             <Box sx={{ maxWidth: { xs: '92%', sm: '82%' }, minWidth: 0 }}>
@@ -391,12 +399,24 @@ const ChatAssistant = ({ open, onClose }) => {
                 )}
                 {m.role === 'assistant'
                   ? (m.content ? <ChatMarkdown>{m.content}</ChatMarkdown> : null)
-                  : (m.content && (
+                  : ((m.display || m.content) && (
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                      {m.content}
+                      {m.display || m.content}
                     </Typography>
                   ))}
               </Paper>
+
+              {m.choices?.length > 0 && index === messages.length - 1 && !loading && (
+                <Stack direction="row" gap={1} flexWrap="wrap" mt={1} role="group" aria-label="Opciones">
+                  {m.choices.map((choice) => (
+                    <Chip
+                      key={choice.id} label={choice.label} color="primary" variant="outlined" clickable
+                      onClick={() => send(`${choice.label} [id: ${choice.id}]`, choice.label)}
+                      sx={{ height: 'auto', py: 0.75, '& .MuiChip-label': { whiteSpace: 'normal', textAlign: 'left' } }}
+                    />
+                  ))}
+                </Stack>
+              )}
 
               {m.tools?.length > 0 && (
                 <Typography variant="caption" color="text.secondary" display="block" mt={0.5} ml={0.5}>

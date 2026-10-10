@@ -548,10 +548,15 @@ Rama `claude/ai-agent-phase1-services` (sin PR, sin deploy). 119 tests backend e
 - [✅] UI: `ReceiptActionCard` (selector por línea, campos según tipo, validación), `SimpleActionCard` (cambios y ajustes)
 - [ ] Deploy 2a (`hosting,functions`) y prueba manual con una boleta real mixta
 
-**2b — Insumos de un evento** (pendiente)
-- [ ] `search_bookings` / `find_event`
-- [ ] `ask_choice` (botones de respuesta rápida) para que el agente PREGUNTE a qué evento cargar la foto y si es estimado o real
-- [ ] `propose_event_supplies` (estimado) / `propose_event_consumption` (real; mueve stock y revierte consumo previo)
+**2b — Insumos de un evento** (rama `claude/ai-agent-phase2b-events`, 281 tests, sin PR ni deploy)
+- [✅] Tests de caracterización de `/api/event-supplies*` y `/api/event-consumption*` + `event_inventory_service` extraído. Mejora deliberada: el consumo se valida completo ANTES de escribir y se aplica (reversión del consumo previo + movimientos + stock + consumo + booking) en un solo batch atómico; antes un fallo a mitad dejaba el stock viejo restaurado y los movimientos borrados. La reversión devuelve lo que cada movimiento realmente descontó
+- [✅] `search_bookings` (cliente tolerante a tildes/typos, fechas, estado; indica si ya hay insumos/consumo)
+- [✅] `ask_choice`: botones de respuesta rápida; el servidor termina el turno, una pregunta por turno; el texto "Esto es lo que leí" conserva la lectura de la foto (el historial no reenvía imágenes)
+- [✅] Guarda: `propose_event_*` solo acepta un `booking_id` que aparezca en un mensaje del USUARIO (botón o texto), nunca uno inferido por el modelo
+- [✅] `propose_event_supplies` (estimación, no mueve stock; reemplaza la anterior) y `propose_event_consumption` (descuenta stock; reemplaza el consumo previo; `quantity_returned` o `actual_quantity_consumed`; avisos de variación, ítems fuera de estimación, otros gastos en $0)
+- [✅] UI: botones de `ask_choice` y `EventInventoryCard` (cantidades editables, costo en vivo, otros gastos, quitar filas)
+- [ ] Deploy 2b y prueba manual con un evento real (foto → elegir evento → estimado/real → confirmar)
+- [ ] Pendiente de producto: `POST /api/event-supplies/` sigue permitiendo crear varias estimaciones por booking desde la API directa (el agente siempre actualiza la existente)
 
 ### Fase 3: Reservas y canal
 - [ ] `propose_booking` (usa `calculate_estimated_price`)
