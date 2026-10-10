@@ -510,6 +510,48 @@
 
 ---
 
+## 🤖 M_AI: Rediseño del Agente IA (Octubre 2026)
+**Estado**: 🔄 EN PROGRESO
+**Decisiones**: panel admin primero (WhatsApp después), "registrar evento" = crear reserva, boleta = insumo o gasto por línea, confirmación SIEMPRE manual (propose → confirm).
+
+### Fase 0: Base segura
+- [✅] Auth en `/api/ai-chat` (Firebase ID token + allowlist admin `ADMIN_EMAILS`) — `backend/utils/auth.py` (`require_admin`)
+- [✅] Modelo configurable (`AI_CHAT_MODEL`, `AI_CHAT_MAX_TOKENS`) y `temperature` baja (`AI_CHAT_TEMPERATURE`, default 0.2)
+- [✅] Quitar fallback silencioso al año anterior en `get_financial_summary`
+- [✅] Frontend envía `Authorization: Bearer <idToken>` desde ChatAssistant (+ mensajes 401/403)
+- [✅] Tests del endpoint (`backend/tests/test_ai_chat_routes.py`, 9 tests)
+- [ ] **Deploy**: definir `ADMIN_EMAILS` en el entorno de la Function ANTES de desplegar (sin esto acepta cualquier usuario Firebase autenticado)
+- [ ] Subir SDK `anthropic` (0.40.0 → actual) y migrar a `claude-sonnet-5-5` (rechaza `temperature`: dejar `AI_CHAT_TEMPERATURE=""`; requiere manejar `stop_reason: refusal` y bloques thinking en el loop de tools)
+
+### Fase 1: Escritura con confirmación + boletas
+- [ ] Extraer servicios de `main.py` (gastos, inventario, supplies, consumption) a `services/`
+- [ ] Colección `pending_actions` + endpoints confirmar/cancelar (determinísticos, sin LLM)
+- [ ] Tarjeta de confirmación editable en el chat
+- [ ] Subida de imagen (cámara móvil, compresión en cliente, placeholder en historial, guardado en Storage)
+- [ ] `propose_expense` (fijo/variable) con detección de duplicados (proveedor+fecha+total+folio)
+- [ ] `get_expenses_summary`
+
+### Fase 2: Insumos
+- [ ] `search_inventory` (match difuso) y `search_bookings` / `find_event`
+- [ ] `propose_inventory_item` (alta: buscar antes de crear, stock 0 + compra como movimiento, normalizar unidad/costo)
+- [ ] `propose_inventory_update` y `propose_stock_adjustment`
+- [ ] `propose_inventory_purchase` (costo promedio ponderado) y boleta por línea: insumo existente / nuevo / gasto
+- [ ] `propose_event_supplies` / `propose_event_consumption`: al subir foto de insumos, el agente PREGUNTA a qué evento cargar
+- [ ] Regla anti doble conteo (boleta → insumo O gasto, nunca ambos)
+
+### Fase 3: Reservas y canal
+- [ ] `propose_booking` (usa `calculate_estimated_price`)
+- [ ] Canal WhatsApp (Twilio media inbound + allowlist de números) sobre las mismas tools
+
+### UI/UX del asistente (transversal)
+- [ ] Rediseño del chat: markdown en respuestas, tarjetas de acción, estados de tool ("consultando inventario…"), adjuntar foto, sugerencias rápidas, layout móvil (fullscreen), historial persistente, accesibilidad
+
+### Deuda detectada
+- [ ] `POST /api/inventory/` sin validación (KeyError → 500) ni chequeo de duplicados
+- [ ] `isAdmin()` del frontend es "usuario con email"; backend sin verificación de token en el resto de rutas (aplicar `@require_admin` ruta por ruta, cuidando las rutas públicas: reservas, contacto)
+
+---
+
 **Última actualización**: Marzo 2026
 **Total tareas activas**: 55+ items
 **Estado del proyecto**: M0 ✅, M1 ✅, M2 ✅, M3 ✅, M4 ✅, M_NUT ✅ COMPLETADO

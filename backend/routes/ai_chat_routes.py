@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from anthropic import Anthropic
 from database import get_db
 from firebase_admin import firestore
+from utils.auth import require_admin
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,28 @@ ai_chat_bp = Blueprint('ai_chat', __name__, url_prefix='/api/ai-chat')
 # Initialize Anthropic client
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
 anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
+
+# Model configuration (override per environment without redeploying code).
+# NOTE: Claude Sonnet 5.5 / Opus 5.5 reject non-default sampling parameters:
+# when migrating to them set AI_CHAT_TEMPERATURE to an empty string.
+AI_CHAT_MODEL = os.getenv('AI_CHAT_MODEL', 'claude-sonnet-4-5-20250929')
+AI_CHAT_MAX_TOKENS = int(os.getenv('AI_CHAT_MAX_TOKENS', '4096'))
+_temperature_raw = os.getenv('AI_CHAT_TEMPERATURE', '0.2').strip()
+AI_CHAT_TEMPERATURE = float(_temperature_raw) if _temperature_raw else None
+
+
+def create_ai_message(system_prompt, messages):
+    """Single place that builds the Messages API request for the assistant"""
+    params = {
+        "model": AI_CHAT_MODEL,
+        "max_tokens": AI_CHAT_MAX_TOKENS,
+        "system": system_prompt,
+        "tools": TOOLS,
+        "messages": messages,
+    }
+    if AI_CHAT_TEMPERATURE is not None:
+        params["temperature"] = AI_CHAT_TEMPERATURE
+    return anthropic_client.messages.create(**params)
 
 # System prompt for Pablo's Pizza AI Assistant
 SYSTEM_PROMPT = """
@@ -451,75 +474,43 @@ def get_contacts_data(priority=None, status=None, limit=20):
 
 def get_financial_summary(year, month=None):
     """
-    Get financial summary for a specific period with intelligent fallback
+    Get financial summary for a specific period.
 
-    If the requested period has no data and it's the current year,
-    automatically tries the previous year and notifies about the fallback.
+    Reports exactly the requested period: when it has no events the counters
+    are zero and a note says so (no silent fallback to another year).
     """
     try:
         db = get_db()
         if not db:
             return {"error": "Database connection failed"}
 
-        current_year = datetime.now().year
-        original_year = year
-        fallback_used = False
-
-        # Build date range
-        if month:
-            date_from = f"{year}-{month:02d}-01"
-            # Calculate last day of month
-            if month == 12:
-                date_to = f"{year}-12-31"
-            else:
-                next_month = datetime(year, month + 1, 1)
-                last_day = next_month - timedelta(days=1)
-                date_to = last_day.strftime("%Y-%m-%d")
-        else:
-            date_from = f"{year}-01-01"
-            date_to = f"{year}-12-31"
-
-        # Get events for the period
-        events_data = get_events_data(date_from=date_from, date_to=date_to, limit=1000)
-
-        if "error" in events_data:
-            return events_data
-
-        # If no data found and it's the current year, try previous year
-        if events_data["count"] == 0 and year == current_year:
-            logger.info(f"No data found for {year}, trying {year-1} as fallback")
-            previous_year = year - 1
-
-            # Rebuild date range for previous year
-            if month:
-                date_from = f"{previous_year}-{month:02d}-01"
-                if month == 12:
-                    date_to = f"{previous_year}-12-31"
-                else:
-                    next_month = datetime(previous_year, month + 1, 1)
-                    last_day = next_month - timedelta(days=1)
-                    date_to = last_day.strftime("%Y-%m-%d")
-            else:
-                date_from = f"{previous_year}-01-01"
-                date_to = f"{previous_year}-12-31"
-
-            # Try again with previous year
-            events_data = get_events_data(date_from=date_from, date_to=date_to, limit=1000)
-
-            if "error" not in events_data and events_data["count"] > 0:
-                year = previous_year
-                fallback_used = True
-
-        # Month names in Spanish for better reporting
         month_names = {
             1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
             5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
             9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
         }
 
+        # Build date range
+        if month:
+            date_from = f"{year}-{month:02d}-01"
+            if month == 12:
+                date_to = f"{year}-12-31"
+            else:
+                last_day = datetime(year, month + 1, 1) - timedelta(days=1)
+                date_to = last_day.strftime("%Y-%m-%d")
+        else:
+            date_from = f"{year}-01-01"
+            date_to = f"{year}-12-31"
+
+        events_data = get_events_data(date_from=date_from, date_to=date_to, limit=1000)
+        if "error" in events_data:
+            return events_data
+
+        period_description = f"{month_names[month]} {year}" if month else f"Año {year}"
+
         result = {
             "period": f"{year}-{month:02d}" if month else str(year),
-            "period_description": f"{month_names.get(month, '')} {year}" if month else f"Año {year}",
+            "period_description": period_description,
             "year": year,
             "month": month,
             "event_count": events_data["count"],
@@ -529,11 +520,8 @@ def get_financial_summary(year, month=None):
             "profit_margin_percentage": events_data["summary"]["average_profit_margin"]
         }
 
-        # Add fallback information if used
-        if fallback_used:
-            result["fallback_used"] = True
-            result["original_year_requested"] = original_year
-            result["note"] = f"No se encontraron datos para {month_names.get(month, '')} {original_year}. Mostrando datos de {month_names.get(month, '')} {year} en su lugar."
+        if events_data["count"] == 0:
+            result["note"] = f"No hay eventos registrados en {period_description}."
 
         return result
 
@@ -589,6 +577,7 @@ def execute_tool(tool_name, tool_input):
 # ==================== MAIN ENDPOINT ====================
 
 @ai_chat_bp.route('/', methods=['POST'])
+@require_admin
 def chat():
     """
     Main AI chat endpoint with tool use support
@@ -667,14 +656,7 @@ def chat():
         # Initial API call with tools
         logger.info(f"Sending request to Claude API with {len(messages)} messages and {len(TOOLS)} tools")
 
-        response = anthropic_client.messages.create(
-            model="claude-sonnet-4-5-20250929",
-            max_tokens=4096,
-            temperature=0.7,
-            system=system_prompt,
-            tools=TOOLS,
-            messages=messages
-        )
+        response = create_ai_message(system_prompt, messages)
 
         # Track total usage
         total_input_tokens = response.usage.input_tokens
@@ -710,14 +692,7 @@ def chat():
             messages.append({"role": "user", "content": tool_results})
 
             # Continue conversation with tool results
-            response = anthropic_client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=4096,
-                temperature=0.7,
-                system=system_prompt,
-                tools=TOOLS,
-                messages=messages
-            )
+            response = create_ai_message(system_prompt, messages)
 
             # Accumulate usage
             total_input_tokens += response.usage.input_tokens

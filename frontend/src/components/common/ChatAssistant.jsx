@@ -24,6 +24,7 @@ import {
 } from '@mui/icons-material'
 import axios from 'axios'
 import toast from 'react-hot-toast'
+import { useAuth } from '../../contexts/AuthContext'
 
 // API Configuration
 const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -33,6 +34,7 @@ const BASE_URL = isDevelopment
 
 const ChatAssistant = ({ open, onClose }) => {
   const theme = useTheme()
+  const { getAuthToken } = useAuth()
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -72,10 +74,16 @@ const ChatAssistant = ({ open, onClose }) => {
     setLoading(true)
 
     try {
-      // Call AI API
+      // The endpoint is admin-only: send the Firebase ID token
+      const token = await getAuthToken()
+      if (!token) {
+        throw Object.assign(new Error('no-token'), { code: 'NO_TOKEN' })
+      }
+
       const response = await axios.post(`${BASE_URL}/ai-chat/`, {
         messages: newMessages
       }, {
+        headers: { Authorization: `Bearer ${token}` },
         timeout: 120000 // 2 minutes for complex queries
       })
 
@@ -92,7 +100,11 @@ const ChatAssistant = ({ open, onClose }) => {
       console.error('Error calling AI:', err)
 
       let errorMessage = 'Error al comunicarse con el asistente AI'
-      if (err.response?.data?.error) {
+      if (err.code === 'NO_TOKEN' || err.response?.status === 401) {
+        errorMessage = 'Tu sesión expiró. Vuelve a iniciar sesión.'
+      } else if (err.response?.status === 403) {
+        errorMessage = 'Tu cuenta no tiene permisos para usar el asistente.'
+      } else if (err.response?.data?.error) {
         errorMessage = err.response.data.error
       } else if (err.code === 'ECONNABORTED') {
         errorMessage = 'La consulta tardó demasiado. Por favor intenta de nuevo.'
