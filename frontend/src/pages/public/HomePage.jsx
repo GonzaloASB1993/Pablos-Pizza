@@ -50,6 +50,35 @@ import { listenGalleryPhotos, getGalleryImageUrls } from '../../services/gallery
 import BorderBeam from '../../components/common/BorderBeam'
 import RollingGallery from '../../components/common/RollingGallery'
 import LightRays from '../../components/common/LightRays'
+import { ACTIVE_PROMO, PIZZEROS_TIERS } from '../../data/pricing'
+import { CTA_VARIANT } from '../../data/stats'
+import { useStats } from '../../hooks/useStats'
+
+// ─────────────────────────────────────────────────────────────
+// FAQ — visible content + FAQPage schema (rich results / leads)
+// ─────────────────────────────────────────────────────────────
+const FAQS = [
+  {
+    question: '¿Cuánto cuesta un taller de pizza para niños en Santiago?',
+    answer: 'Nuestros talleres "Pizzeros en Acción" parten desde $9.000 por niño y el "Pizza Party" desde $11.990 por persona (mínimo 15 personas). El precio final depende de la cantidad de participantes y el servicio elegido. Cotiza gratis en menos de 24 horas.',
+  },
+  {
+    question: '¿Para qué edades son los talleres de pizza?',
+    answer: 'Están diseñados para niños desde los 4 años en adelante, adaptando la dificultad a cada grupo. También realizamos pizza parties para adolescentes, eventos familiares y corporativos.',
+  },
+  {
+    question: '¿En qué comunas de Santiago tienen cobertura?',
+    answer: 'Ofrecemos servicio a domicilio en toda la Región Metropolitana. El equipo llega 45 minutos antes para preparar todo, así los anfitriones no cocinan ni limpian.',
+  },
+  {
+    question: '¿Qué incluye el servicio de Pizza Party a domicilio?',
+    answer: 'Incluye todos los ingredientes artesanales, masa preparada, montaje, preparación en vivo y limpieza. Es un servicio integral todo incluido: ustedes solo disfrutan del evento.',
+  },
+  {
+    question: '¿Con cuánta anticipación debo reservar mi evento?',
+    answer: 'Recomendamos reservar con al menos 1 a 2 semanas de anticipación para asegurar la fecha, especialmente en fines de semana. Respondemos toda cotización en menos de 24 horas por WhatsApp.',
+  },
+]
 
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS (local shortcuts)
@@ -101,7 +130,7 @@ const FloatingCTA = ({ navigate, prefersReducedMotion }) => {
       <Box
         role="button"
         tabIndex={0}
-        aria-label="Agendar evento ahora — 10% descuento este mes"
+        aria-label="Agendar evento ahora"
         onKeyDown={handleKeyDown}
         onClick={() => navigate('/agendar')}
         sx={{
@@ -140,9 +169,11 @@ const FloatingCTA = ({ navigate, prefersReducedMotion }) => {
           <Typography variant="caption" sx={{ fontWeight: 800, display: 'block', lineHeight: 1.1, fontSize: '0.8rem' }}>
             ¡Agenda HOY!
           </Typography>
-          <Typography variant="caption" sx={{ opacity: 0.75, fontSize: '0.7rem', lineHeight: 1 }}>
-            10% dcto este mes
-          </Typography>
+          {ACTIVE_PROMO ? (
+            <Typography variant="caption" sx={{ opacity: 0.75, fontSize: '0.7rem', lineHeight: 1 }}>
+              {ACTIVE_PROMO.label}
+            </Typography>
+          ) : null}
         </Box>
       </Box>
     </Fade>
@@ -410,6 +441,8 @@ export default function HomePage() {
   const [galleryPhotos, setGalleryPhotos] = useState([])
   const [galleryLoading, setGalleryLoading] = useState(true)
 
+  const { stats } = useStats()
+
   const heroTitleRef = useRef(null)
   const heroSubtitleRef = useRef(null)
   const heroCtaRef = useRef(null)
@@ -511,6 +544,7 @@ export default function HomePage() {
         description="Talleres de pizza para niños y pizza parties en Santiago. Experiencias gastronómicas educativas donde los niños aprenden a hacer pizzas artesanales. Servicio a domicilio para cumpleaños."
         keywords="talleres pizza niños Santiago, pizza party cumpleaños, eventos infantiles Santiago, taller cocina niños, catering pizza, fiestas infantiles Chile, pizzeros en acción"
         url="/"
+        faqs={FAQS}
       />
 
       {/* ══════════════════════════════════════════════════
@@ -749,9 +783,9 @@ export default function HomePage() {
               }}
             >
               {[
-                { number: '500+', label: 'Niños felices', icon: <Favorite sx={{ fontSize: 16, color: GOLD }} /> },
-                { number: '50+', label: 'Eventos exitosos', icon: <EmojiEvents sx={{ fontSize: 16, color: GOLD }} /> },
-                { number: '★ 5.0', label: 'Calificación', icon: <Star sx={{ fontSize: 16, color: GOLD }} /> },
+                { number: stats.kidsServed, label: 'Niños felices', icon: <Favorite sx={{ fontSize: 16, color: GOLD }} /> },
+                { number: stats.eventsCount, label: 'Eventos exitosos', icon: <EmojiEvents sx={{ fontSize: 16, color: GOLD }} /> },
+                { number: `★ ${stats.rating}`, label: 'Calificación', icon: <Star sx={{ fontSize: 16, color: GOLD }} /> },
               ].map(({ number, label, icon }) => (
                 <Box key={label} sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -924,10 +958,10 @@ export default function HomePage() {
                   variant="body1"
                   sx={{ color: 'rgba(255,255,255,0.75)', mb: 3.5, lineHeight: 1.75, fontSize: { xs: '1rem', md: '1.05rem' } }}
                 >
-                  <Box component="span" sx={{ color: GOLD, fontWeight: 700 }}>Talleres gastronómicos únicos</Box>{' '}
+                  <Box component="span" sx={{ color: GOLD, fontWeight: 700 }}>Talleres gastronómicos a domicilio</Box>{' '}
                   donde los niños se transforman en verdaderos chefs profesionales.
-                  Aprenden técnicas culinarias auténticas mientras crean pizzas artesanales
-                  con ingredientes de primera calidad.
+                  90 minutos de amasado real con harina 00 italiana Caputo,
+                  guiados por un chef con 10 años de experiencia.
                 </Typography>
 
                 {/* Features */}
@@ -964,7 +998,7 @@ export default function HomePage() {
                     </Typography>
                   </Typography>
                   <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontWeight: 500, mt: 1, fontSize: '0.9rem' }}>
-                    Descuentos: 10% para +15 niños · 15% para +25 niños
+                    Desde ${PIZZEROS_TIERS[PIZZEROS_TIERS.length - 1].price.toLocaleString('es-CL')} con grupos de 20+ niños
                   </Typography>
                 </Box>
 
@@ -1134,9 +1168,9 @@ export default function HomePage() {
                   sx={{ color: 'rgba(255,255,255,0.75)', mb: 3.5, lineHeight: 1.75, fontSize: { xs: '1rem', md: '1.05rem' } }}
                 >
                   <Box component="span" sx={{ color: GOLD, fontWeight: 700 }}>Catering gourmet especializado</Box>{' '}
-                  en pizzas artesanales para eventos únicos y memorables.
-                  Servicio integral con preparación en vivo e ingredientes de primera calidad
-                  para hacer de tu celebración algo extraordinario.
+                  en pizzas artesanales para eventos con preparación en vivo.
+                  Servicio integral a domicilio — los padres no cocinan ni limpian,
+                  el equipo llega 45 min antes y lo deja todo listo.
                 </Typography>
 
                 {/* Price */}
@@ -1442,7 +1476,7 @@ export default function HomePage() {
       <AnimatedSection delay={80}>
         <Box
           component="section"
-          aria-label="Galería de momentos mágicos"
+          aria-label="Galería de eventos"
           sx={{
             py: { xs: 8, md: 12 },
             backgroundColor: BG.s4,
@@ -1483,7 +1517,7 @@ export default function HomePage() {
                 variant="h2"
                 sx={{ color: '#fff', fontWeight: 900, mb: 2, fontSize: { xs: '2rem', md: '3rem' }, lineHeight: 1.1 }}
               >
-                Momentos Mágicos
+                Así son nuestros eventos
               </Typography>
               <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.5)', maxWidth: 500, mx: 'auto' }}>
                 Capturamos cada sonrisa, cada momento de aprendizaje y diversión
@@ -1528,6 +1562,108 @@ export default function HomePage() {
         </Box>
       </AnimatedSection>
 
+      <SectionDivider />
+
+      {/* ══════════════════════════════════════════════════
+          SECCIÓN 5 — PREGUNTAS FRECUENTES (SEO / leads)
+      ══════════════════════════════════════════════════ */}
+      <AnimatedSection>
+        <Box
+          component="section"
+          aria-label="Preguntas frecuentes"
+          sx={{ py: { xs: 8, md: 12 }, backgroundColor: BG.s3 }}
+        >
+          <Container maxWidth="md">
+            <Box sx={{ textAlign: 'center', mb: { xs: 5, md: 7 } }}>
+              <Typography
+                variant="overline"
+                sx={{ color: GOLD, letterSpacing: 4, fontWeight: 700, fontSize: '0.75rem', mb: 1.5, display: 'block' }}
+              >
+                ¿TIENES DUDAS?
+              </Typography>
+              <Typography
+                variant="h2"
+                sx={{ color: '#fff', fontWeight: 900, fontSize: { xs: '2rem', md: '3rem' }, lineHeight: 1.1 }}
+              >
+                Preguntas Frecuentes
+              </Typography>
+            </Box>
+
+            <Box sx={{ maxWidth: 760, mx: 'auto' }}>
+              {FAQS.map((faq) => (
+                <Box
+                  key={faq.question}
+                  component="details"
+                  sx={{
+                    mb: 2,
+                    borderRadius: 2,
+                    border: '1px solid rgba(255,215,0,0.18)',
+                    background: 'rgba(255,255,255,0.03)',
+                    overflow: 'hidden',
+                    '&[open]': { borderColor: 'rgba(255,215,0,0.4)' },
+                    '& summary': {
+                      listStyle: 'none',
+                      cursor: 'pointer',
+                      px: 3,
+                      py: 2.25,
+                      color: '#fff',
+                      fontWeight: 600,
+                      fontSize: { xs: '1rem', md: '1.05rem' },
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      transition: 'color 0.2s ease',
+                    },
+                    '& summary:hover': { color: GOLD },
+                    '& summary::-webkit-details-marker': { display: 'none' },
+                  }}
+                >
+                  <Box component="summary">
+                    <CheckCircle sx={{ color: GOLD, fontSize: 20, flexShrink: 0 }} />
+                    {faq.question}
+                  </Box>
+                  <Typography
+                    sx={{
+                      px: 3,
+                      pb: 2.5,
+                      pt: 0,
+                      color: 'rgba(255,255,255,0.72)',
+                      lineHeight: 1.7,
+                      fontSize: { xs: '0.95rem', md: '1rem' },
+                    }}
+                  >
+                    {faq.answer}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+
+            <Box sx={{ textAlign: 'center', mt: 5 }}>
+              <Button
+                variant="outlined"
+                size="large"
+                endIcon={<WhatsApp />}
+                href="https://wa.me/56989424566?text=Hola!%20Tengo%20una%20consulta%20sobre%20los%20talleres%20de%20pizza"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  px: 5,
+                  py: 1.5,
+                  borderColor: 'rgba(255,215,0,0.4)',
+                  color: GOLD,
+                  fontWeight: 700,
+                  borderRadius: designTokens.radius.xl,
+                  '&:hover': { borderColor: GOLD, backgroundColor: 'rgba(255,215,0,0.08)' },
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                Hacer otra pregunta
+              </Button>
+            </Box>
+          </Container>
+        </Box>
+      </AnimatedSection>
+
       {/* ══════════════════════════════════════════════════
           CTA FINAL — Golden
       ══════════════════════════════════════════════════ */}
@@ -1565,13 +1701,13 @@ export default function HomePage() {
             EMPECEMOS
           </Typography>
           <Typography variant="h2" sx={{ fontWeight: 900, mb: 2.5, fontSize: { xs: '2rem', md: '3rem' }, lineHeight: 1.1 }}>
-            ¿Listo para Crear
+            ¿Listo para Agendar
             <br />
-            Recuerdos Mágicos?
+            Tu Evento?
           </Typography>
           <Typography variant="h6" sx={{ mb: 6, opacity: 0.75, maxWidth: 580, mx: 'auto', fontWeight: 400, lineHeight: 1.6, fontSize: { xs: '1rem', md: '1.1rem' } }}>
-            Agenda tu taller o pizza party hoy mismo. Nuestro equipo de chefs expertos
-            está listo para hacer de tu evento algo verdaderamente especial.
+            Agenda tu taller o pizza party hoy mismo. Máximo 15 niños por chef —
+            atención real, no caos — y el equipo llega 45 min antes a preparar todo.
           </Typography>
 
           {/* Quick stats */}
@@ -1584,7 +1720,7 @@ export default function HomePage() {
             {[
               { number: '24h', label: 'Respuesta garantizada' },
               { number: '100%', label: 'Satisfacción garantizada' },
-              { number: '500+', label: 'Familias felices' },
+              { number: stats.kidsServed, label: 'Familias felices' },
             ].map(({ number, label }) => (
               <Box key={label} sx={{ textAlign: 'center' }}>
                 <Typography sx={{ fontSize: { xs: '2rem', md: '2.5rem' }, fontWeight: 900, lineHeight: 1 }}>
@@ -1651,7 +1787,46 @@ export default function HomePage() {
       </Box>
 
       {/* Floating CTA */}
-      <FloatingCTA navigate={navigate} prefersReducedMotion={prefersReducedMotion} />
+      {CTA_VARIANT === 'floating' && <FloatingCTA navigate={navigate} prefersReducedMotion={prefersReducedMotion} />}
+
+      {/* Bottom-bar sticky CTA — variante A/B */}
+      {CTA_VARIANT === 'bottombar' && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1200,
+            background: '#0d0d0d',
+            borderTop: '1px solid rgba(232,182,58,0.3)',
+            py: 1.5,
+            px: { xs: 2, md: 4 },
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
+          }}
+        >
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', flexShrink: 0 }}>
+            {`Desde $${PIZZEROS_TIERS[PIZZEROS_TIERS.length - 1].price.toLocaleString('es-CL')} por niño`}
+          </Typography>
+          <Button
+            variant="contained"
+            href="/agendar"
+            sx={{
+              bgcolor: '#e8b63a',
+              color: '#0d0d0d',
+              fontWeight: 700,
+              px: 3,
+              borderRadius: 1,
+              '&:hover': { bgcolor: '#FFD700' },
+            }}
+          >
+            Reservar fecha
+          </Button>
+        </Box>
+      )}
     </>
   )
 }

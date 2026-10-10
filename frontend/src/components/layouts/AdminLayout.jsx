@@ -76,9 +76,10 @@ const AdminLayoutContent = () => {
     { label: 'Ventas Vacío', path: '/admin/ventas-vacio', icon: <LocalPizza />, category: 'business' },
     { label: 'Contactos', path: '/admin/contactos', icon: <ContactMail />, category: 'business' },
     { label: 'Testimonios', path: '/admin/testimonios', icon: <Star />, category: 'business' },
-    { label: 'Inventario', path: '/admin/inventario', icon: <Inventory />, category: 'analytics' },
-    { label: 'Producción', path: '/admin/produccion', icon: <Factory />, category: 'analytics' },
+    { label: 'Inventario', path: '/admin/inventario', icon: <Inventory />, category: 'business' },
+    { label: 'Producción', path: '/admin/produccion', icon: <Factory />, category: 'business' },
     { label: 'Reportes', path: '/admin/reportes', icon: <Assessment />, category: 'analytics' },
+    { label: 'Configuración', path: '/admin/configuracion', icon: <Settings />, category: 'settings' },
   ]
 
   const handleDrawerToggle = () => {
@@ -269,7 +270,7 @@ const AdminLayoutContent = () => {
               <ListItemIcon>
                 <Analytics />
               </ListItemIcon>
-              <ListItemText primary="Analytics & Reportes" />
+              <ListItemText primary="Reportes" />
               {analyticsOpen ? <ExpandLess /> : <ExpandMore />}
             </ListItem>
           </ListSubheader>
@@ -300,6 +301,31 @@ const AdminLayoutContent = () => {
               ))}
             </List>
           </Collapse>
+
+          <Divider sx={{ my: 1 }} />
+
+          {menuItems.filter(item => item.category === 'settings').map((item) => (
+            <ListItem
+              button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              selected={location.pathname === item.path}
+              sx={{
+                mb: 1,
+                borderRadius: 1,
+                mx: 1,
+                '&.Mui-selected': {
+                  backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                  borderLeft: '4px solid #FFD700'
+                }
+              }}
+            >
+              <ListItemIcon sx={{ color: location.pathname === item.path ? '#FFD700' : 'inherit' }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItem>
+          ))}
         </List>
       )}
 
@@ -433,7 +459,7 @@ const AdminLayoutContent = () => {
 
         {/* Analytics Section - Always expanded on mobile */}
         <ListSubheader sx={{ backgroundColor: 'transparent', fontWeight: 'bold', color: '#FFD700' }}>
-          Analytics & Reportes
+          Reportes
         </ListSubheader>
 
         <List component="div" disablePadding>
@@ -443,7 +469,7 @@ const AdminLayoutContent = () => {
               key={item.path}
               onClick={() => {
                 navigate(item.path)
-                setMobileOpen(false) // Close drawer after navigation
+                setMobileOpen(false)
               }}
               selected={location.pathname === item.path}
               sx={{
@@ -463,6 +489,34 @@ const AdminLayoutContent = () => {
             </ListItem>
           ))}
         </List>
+
+        <Divider sx={{ my: 1 }} />
+
+        {menuItems.filter(item => item.category === 'settings').map((item) => (
+          <ListItem
+            button
+            key={item.path}
+            onClick={() => {
+              navigate(item.path)
+              setMobileOpen(false)
+            }}
+            selected={location.pathname === item.path}
+            sx={{
+              mb: 1,
+              borderRadius: 1,
+              mx: 1,
+              '&.Mui-selected': {
+                backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                borderLeft: '4px solid #FFD700'
+              }
+            }}
+          >
+            <ListItemIcon sx={{ color: location.pathname === item.path ? '#FFD700' : 'inherit' }}>
+              {item.icon}
+            </ListItemIcon>
+            <ListItemText primary={item.label} />
+          </ListItem>
+        ))}
       </List>
 
       <Box sx={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>

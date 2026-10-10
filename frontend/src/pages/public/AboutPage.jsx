@@ -20,13 +20,18 @@ import {
   ArrowForward,
   Star,
   Favorite,
-  EmojiEvents
+  EmojiEvents,
+  LocalPizza,
+  Groups,
+  AccessTime,
+  HealthAndSafety
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@mui/material/styles'
+import { STATS } from '../../data/stats'
 
 // Team Member Card Component
-const TeamMemberCard = ({ name, role, story, image, delay = 0 }) => {
+const TeamMemberCard = ({ name, role, story, initials, delay = 0 }) => {
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
@@ -41,53 +46,50 @@ const TeamMemberCard = ({ name, role, story, image, delay = 0 }) => {
           height: '100%',
           borderRadius: 4,
           overflow: 'hidden',
+          background: '#1a1714',
+          border: '1px solid rgba(232,182,58,0.12)',
           transition: 'all 0.4s ease',
           '&:hover': {
-            transform: 'translateY(-12px)',
-            boxShadow: '0 20px 40px rgba(255, 215, 0, 0.3)'
+            transform: 'translateY(-4px)',
+            boxShadow: '0 12px 32px rgba(232,182,58,0.15)',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
           }
         }}
       >
-        {/* Imagen del miembro del equipo */}
+        {/* Avatar con iniciales del miembro del equipo */}
         <Box
           sx={{
-            position: 'relative',
-            height: 320,
-            overflow: 'hidden'
+            pt: 4,
+            pb: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            background: 'linear-gradient(180deg, rgba(232,182,58,0.06) 0%, transparent 100%)',
+            borderBottom: '1px solid rgba(232,182,58,0.1)'
           }}
         >
-          <Box
-            component="img"
-            src={image}
-            alt={`${name} - ${role}`}
+          <Avatar
             sx={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              transition: 'transform 0.4s ease',
-              '&:hover': {
-                transform: 'scale(1.05)'
-              }
-            }}
-          />
-          {/* Overlay con gradiente */}
-          <Box
-            sx={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              p: 3,
-              background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, transparent 100%)'
+              width: 120,
+              height: 120,
+              bgcolor: '#1a1714',
+              color: '#e8b63a',
+              fontSize: '2rem',
+              fontFamily: '"Fraunces", serif',
+              fontWeight: 700,
+              border: '3px solid #e8b63a',
+              mx: 'auto',
+              mb: 2,
             }}
           >
-            <Typography variant="h4" sx={{ color: '#FFD700', fontWeight: 800, mb: 0.5 }}>
-              {name}
-            </Typography>
-            <Typography variant="h6" sx={{ color: '#FFF', fontWeight: 500 }}>
-              {role}
-            </Typography>
-          </Box>
+            {initials}
+          </Avatar>
+          <Typography variant="h4" component="h3" sx={{ color: '#e8b63a', fontWeight: 800, mb: 0.5, textAlign: 'center' }}>
+            {name}
+          </Typography>
+          <Typography variant="h6" sx={{ color: '#FFF', fontWeight: 500, textAlign: 'center' }}>
+            {role}
+          </Typography>
         </Box>
 
         {/* Historia del miembro */}
@@ -96,7 +98,7 @@ const TeamMemberCard = ({ name, role, story, image, delay = 0 }) => {
             variant="body1"
             sx={{
               lineHeight: 1.8,
-              color: 'text.secondary'
+              color: 'rgba(255,255,255,0.65)'
             }}
           >
             {story}
@@ -112,13 +114,13 @@ const StatBox = ({ icon, number, label }) => (
   <Box sx={{ textAlign: 'center' }}>
     <Box sx={{ mb: 1 }}>
       {React.cloneElement(icon, {
-        sx: { fontSize: 48, color: '#FFD700' }
+        sx: { fontSize: 48, color: '#e8b63a' }
       })}
     </Box>
-    <Typography variant="h3" sx={{ fontWeight: 800, color: '#FFD700', mb: 0.5 }}>
+    <Typography variant="h3" component="p" sx={{ fontWeight: 800, color: '#e8b63a', mb: 0.5 }}>
       {number}
     </Typography>
-    <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600 }}>
+    <Typography variant="body1" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.65)' }}>
       {label}
     </Typography>
   </Box>
@@ -134,38 +136,62 @@ export default function AboutPage() {
     setHeroLoaded(true)
   }, [])
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.style.opacity = '1'
+            entry.target.style.transform = 'translateY(0)'
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.2 }
+    )
+    const titles = document.querySelectorAll('#about-page [data-reveal]')
+    titles.forEach((el) => {
+      el.style.opacity = '0'
+      el.style.transform = 'translateY(24px)'
+      el.style.transition = 'opacity 0.6s ease, transform 0.6s ease'
+      observer.observe(el)
+    })
+    return () => observer.disconnect()
+  }, [])
+
   // Datos del equipo
   const teamMembers = [
     {
       name: 'Juan Pablo',
       role: 'Chef Principal',
       story: 'Con más de 10 años de experiencia en gastronomía profesional, Juan Pablo es el corazón de Pablo\'s Pizza. Su pasión por enseñar a los niños técnicas culinarias auténticas, combinada con su energía contagiosa, hace que cada taller sea una experiencia única. Se especializa en adaptar recetas complejas para que los más pequeños las comprendan y disfruten.',
-      image: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=800&q=80'
+      initials: 'JP',
     },
     {
       name: 'Nicole',
       role: 'Segunda a Bordo',
-      story: 'Nicole es la mano derecha de Juan Pablo y experta en logística de eventos. Con su ojo para los detalles y su capacidad para conectar con los niños, se asegura de que cada taller fluya perfectamente. Su experiencia en educación infantil la convierte en la persona ideal para mantener a todos los pequeños chefs seguros, motivados y felices durante toda la experiencia.',
-      image: 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=800&q=80'
+      story: 'Nicole es la mano derecha de Juan Pablo y experta en logística de eventos. Con su ojo para los detalles y su capacidad para conectar con los niños, se asegura de que cada taller fluya sin contratiempos. Su experiencia en educación infantil la convierte en la persona ideal para mantener a todos los pequeños chefs seguros, motivados y felices durante todo el taller.',
+      initials: 'N',
     },
     {
       name: 'Mauro',
       role: 'Ayudante',
       story: 'Mauro es el músculo del equipo, encargándose de todo el montaje y desmontaje del equipamiento. Su actitud positiva y disposición para ayudar en cada detalle hacen que los eventos se desarrollen sin contratiempos. Además, su habilidad para hacer reír a los niños y mantener el ambiente divertido lo convierte en un favorito de todos los pequeños participantes.',
-      image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=80'
+      initials: 'M',
     }
   ]
 
   return (
-    <Box>
+    <Box id="about-page" sx={{ background: '#0d0d0d', minHeight: '100vh' }}>
       {/* Hero Section */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #FFD700 0%, #CBA900 50%, #B8860B 100%)',
-          color: '#000',
+          background: '#0d0d0d',
+          color: '#FFFFFF',
           py: { xs: 6, md: 10 },
           position: 'relative',
           overflow: 'hidden',
+          borderBottom: '1px solid rgba(232,182,58,0.15)',
           '&::before': {
             content: '""',
             position: 'absolute',
@@ -173,8 +199,8 @@ export default function AboutPage() {
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'radial-gradient(circle at 30% 50%, rgba(255, 255, 255, 0.2) 0%, transparent 50%)',
-            opacity: 0.5
+            background: 'radial-gradient(circle at 30% 50%, rgba(232,182,58,0.08) 0%, transparent 60%)',
+            opacity: 0.8
           }
         }}
       >
@@ -184,12 +210,13 @@ export default function AboutPage() {
               <Chip
                 label="Conoce al Equipo"
                 sx={{
-                  bgcolor: 'rgba(0, 0, 0, 0.2)',
-                  color: '#000',
+                  bgcolor: 'rgba(232,182,58,0.12)',
+                  color: '#e8b63a',
                   fontWeight: 700,
                   mb: 3,
                   fontSize: '1rem',
-                  px: 2
+                  px: 2,
+                  border: '1px solid rgba(232,182,58,0.3)'
                 }}
               />
               <Typography
@@ -198,7 +225,7 @@ export default function AboutPage() {
                   fontWeight: 900,
                   fontSize: { xs: '2.5rem', md: '4rem' },
                   mb: 3,
-                  textShadow: '2px 2px 4px rgba(0, 0, 0, 0.1)'
+                  color: '#FFFFFF'
                 }}
               >
                 Nosotros
@@ -209,12 +236,12 @@ export default function AboutPage() {
                   maxWidth: 800,
                   mx: 'auto',
                   fontWeight: 500,
-                  opacity: 0.9,
+                  color: 'rgba(255,255,255,0.65)',
                   lineHeight: 1.6
                 }}
               >
                 Las personas apasionadas que hacen realidad cada experiencia
-                gastronómica inolvidable.
+                gastronómica que los niños recuerdan.
               </Typography>
             </Box>
           </Fade>
@@ -229,22 +256,22 @@ export default function AboutPage() {
             p: 6,
             mb: 10,
             borderRadius: 4,
-            background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 255, 255, 1) 100%)',
-            border: '2px solid rgba(255, 215, 0, 0.2)'
+            background: '#1a1714',
+            border: '1px solid rgba(232,182,58,0.15)'
           }}
         >
           <Grid container spacing={4}>
             <Grid item xs={12} md={4}>
               <StatBox
                 icon={<Favorite />}
-                number="500+"
+                number={STATS.kidsServed}
                 label="Niños Felices"
               />
             </Grid>
             <Grid item xs={12} md={4}>
               <StatBox
                 icon={<EmojiEvents />}
-                number="50+"
+                number={STATS.eventsCount}
                 label="Eventos Realizados"
               />
             </Grid>
@@ -259,19 +286,19 @@ export default function AboutPage() {
         </Paper>
 
         {/* Team Section */}
-        <Box sx={{ mb: 10 }}>
+        <Box sx={{ mb: 10, background: '#141414', borderRadius: 4, p: { xs: 3, md: 6 } }}>
           <Typography
             variant="h2"
+            component="h2"
             align="center"
-            sx={{ fontWeight: 800, mb: 2, color: '#000' }}
+            sx={{ fontWeight: 800, mb: 2, color: '#FFFFFF' }}
           >
             Nuestro Equipo
           </Typography>
           <Typography
             variant="h6"
             align="center"
-            color="text.secondary"
-            sx={{ mb: 6, maxWidth: 700, mx: 'auto' }}
+            sx={{ mb: 6, maxWidth: 700, mx: 'auto', color: 'rgba(255,255,255,0.65)' }}
           >
             Tres profesionales dedicados que combinan talento culinario,
             experiencia educativa y pasión por hacer felices a los niños
@@ -295,98 +322,136 @@ export default function AboutPage() {
             mb: 10,
             p: 6,
             borderRadius: 4,
-            background: 'linear-gradient(135deg, #000 0%, #1a1a1a 100%)',
+            background: '#0d0d0d',
+            border: '1px solid rgba(232,182,58,0.15)',
             color: '#FFF'
           }}
         >
           <Typography
             variant="h2"
+            component="h2"
             align="center"
-            sx={{ fontWeight: 800, mb: 2, color: '#FFD700' }}
+            sx={{ fontWeight: 800, mb: 2, color: '#e8b63a' }}
           >
             Lo que Nos Define
           </Typography>
           <Typography
             variant="h6"
             align="center"
-            sx={{ mb: 6, maxWidth: 600, mx: 'auto', opacity: 0.9 }}
+            sx={{ mb: 6, maxWidth: 600, mx: 'auto', color: 'rgba(255,255,255,0.65)' }}
           >
-            Los valores que guían cada evento y experiencia
+            Compromisos concretos, no palabras genéricas
           </Typography>
 
           <Grid container spacing={4}>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 4 }}>
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: '#FFD700', color: '#000', width: 56, height: 56 }}>
-                    <Restaurant sx={{ fontSize: 28 }} />
-                  </Avatar>
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                    Pasión por la Gastronomía
+            {[
+              {
+                title: 'Harina 00 Italiana Caputo',
+                description: 'Usamos siempre harina 00 Caputo importada. No hay atajos en la masa.',
+                icon: <LocalPizza sx={{ fontSize: 28 }} />,
+              },
+              {
+                title: 'Máx. 15 niños por chef',
+                description: 'Nunca más de 15 participantes por taller. Cada niño amasa su propia pizza.',
+                icon: <Groups sx={{ fontSize: 28 }} />,
+              },
+              {
+                title: 'Llegamos 45 min antes',
+                description: 'Montaje completo antes de que lleguen los invitados. Sin estrés para los papás.',
+                icon: <AccessTime sx={{ fontSize: 28 }} />,
+              },
+              {
+                title: 'Sin frutos secos ni sésamo',
+                description: 'Por defecto, todos los talleres son libres de frutos secos y sésamo.',
+                icon: <HealthAndSafety sx={{ fontSize: 28 }} />,
+              },
+            ].map((value, index) => (
+              <Grid item xs={12} md={6} key={index}>
+                <Box sx={{ mb: 4 }}>
+                  <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                    <Avatar sx={{ bgcolor: 'rgba(232,182,58,0.15)', color: '#e8b63a', width: 56, height: 56, border: '1px solid rgba(232,182,58,0.3)' }}>
+                      {value.icon}
+                    </Avatar>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#FFFFFF' }}>
+                      {value.title}
+                    </Typography>
+                  </Stack>
+                  <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, pl: 9 }}>
+                    {value.description}
                   </Typography>
-                </Stack>
-                <Typography variant="body1" sx={{ opacity: 0.9, lineHeight: 1.8, pl: 9 }}>
-                  Amamos lo que hacemos. Cada taller es una oportunidad para compartir
-                  nuestra pasión culinaria con los más pequeños y ver sus rostros iluminarse
-                  cuando crean algo delicioso con sus propias manos.
-                </Typography>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 4 }}>
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: '#FFD700', color: '#000', width: 56, height: 56 }}>
-                    <Favorite sx={{ fontSize: 28 }} />
-                  </Avatar>
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                    Compromiso Total
-                  </Typography>
-                </Stack>
-                <Typography variant="body1" sx={{ opacity: 0.9, lineHeight: 1.8, pl: 9 }}>
-                  Nos comprometemos al 100% con la calidad y seguridad de cada evento.
-                  Desde los ingredientes que usamos hasta el trato con cada niño,
-                  todo recibe nuestra máxima atención y dedicación.
-                </Typography>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 4 }}>
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: '#FFD700', color: '#000', width: 56, height: 56 }}>
-                    <EmojiEvents sx={{ fontSize: 28 }} />
-                  </Avatar>
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                    Trabajo en Equipo
-                  </Typography>
-                </Stack>
-                <Typography variant="body1" sx={{ opacity: 0.9, lineHeight: 1.8, pl: 9 }}>
-                  Somos más que colegas, somos un equipo coordinado que trabaja en perfecta
-                  sincronía. Esta química se refleja en cada evento y hace que todo fluya
-                  sin problemas, incluso en los momentos más caóticos.
-                </Typography>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 4 }}>
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: '#FFD700', color: '#000', width: 56, height: 56 }}>
-                    <Star sx={{ fontSize: 28 }} />
-                  </Avatar>
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                    Excelencia Constante
-                  </Typography>
-                </Stack>
-                <Typography variant="body1" sx={{ opacity: 0.9, lineHeight: 1.8, pl: 9 }}>
-                  Nunca dejamos de mejorar. Después de cada evento analizamos qué funcionó
-                  bien y qué podemos perfeccionar, siempre buscando superar las expectativas
-                  de nuestros clientes.
-                </Typography>
-              </Box>
-            </Grid>
+                </Box>
+              </Grid>
+            ))}
           </Grid>
+        </Box>
+
+        {/* Timeline del proceso de evento */}
+        <Box sx={{ background: '#141414', borderRadius: 4, py: { xs: 6, md: 10 }, px: { xs: 3, md: 6 }, mb: 10 }}>
+          <Container maxWidth="md">
+            <Typography
+              variant="h2"
+              component="h2"
+              data-reveal
+              sx={{ color: '#FFFFFF', textAlign: 'center', mb: 6, fontWeight: 700 }}
+            >
+              Cómo funciona
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {[
+                {
+                  step: '01',
+                  title: 'Reservá online',
+                  desc: 'Completás el formulario con fecha, cantidad de niños y tipo de evento. Te confirmamos en menos de 24 hs.',
+                },
+                {
+                  step: '02',
+                  title: 'Llegamos 45 min antes',
+                  desc: 'El equipo llega con todo el equipamiento, harina 00 italiana y los ingredientes. Vos no preparás nada.',
+                },
+                {
+                  step: '03',
+                  title: '90 min de taller',
+                  desc: 'Cada niño amasa, estira y arma su propia pizza con técnicas reales de pizzaiolo. Máximo 15 participantes por chef.',
+                },
+                {
+                  step: '04',
+                  title: 'Pizza + certificado',
+                  desc: 'Los niños comen la pizza que hicieron y reciben su certificado de pizzaiolo. El equipo limpia y se va.',
+                },
+              ].map((item, index) => (
+                <Box
+                  key={index}
+                  sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', pb: 4 }}
+                >
+                  <Box
+                    sx={{
+                      minWidth: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      border: '2px solid #e8b63a',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#e8b63a',
+                      fontWeight: 700,
+                      fontSize: '0.9rem',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {item.step}
+                  </Box>
+                  <Box sx={{ pt: 0.5 }}>
+                    <Typography variant="h6" component="h3" sx={{ color: '#FFFFFF', fontWeight: 600, mb: 0.5 }}>
+                      {item.title}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.6 }}>
+                      {item.desc}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Container>
         </Box>
 
         {/* CTA Section */}
@@ -395,16 +460,16 @@ export default function AboutPage() {
             p: 6,
             borderRadius: 4,
             textAlign: 'center',
-            background: 'linear-gradient(135deg, #FFD700 0%, #CBA900 100%)',
-            color: '#000'
+            background: '#1a1714',
+            border: '1px solid rgba(232,182,58,0.15)'
           }}
         >
-          <Typography variant="h3" sx={{ fontWeight: 900, mb: 2 }}>
+          <Typography variant="h3" component="h3" sx={{ fontWeight: 900, mb: 2, color: '#FFFFFF' }}>
             ¿Listo para Conocernos en Persona?
           </Typography>
-          <Typography variant="h6" sx={{ mb: 4, opacity: 0.9, maxWidth: 600, mx: 'auto' }}>
+          <Typography variant="h6" sx={{ mb: 4, color: 'rgba(255,255,255,0.65)', maxWidth: 600, mx: 'auto' }}>
             Agenda tu taller o pizza party y conoce al equipo que hará de tu
-            evento una experiencia inolvidable.
+            evento un taller de 90 min a domicilio que los niños llevarán puesto.
           </Typography>
 
           <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -414,14 +479,14 @@ export default function AboutPage() {
               onClick={() => navigate('/agendar')}
               endIcon={<ArrowForward />}
               sx={{
-                bgcolor: '#000',
-                color: '#FFD700',
+                bgcolor: '#e8b63a',
+                color: '#0d0d0d',
                 px: 4,
                 py: 2,
                 fontSize: '1.1rem',
                 fontWeight: 700,
                 '&:hover': {
-                  bgcolor: '#333',
+                  bgcolor: '#d4a030',
                   transform: 'translateY(-2px)'
                 }
               }}
@@ -435,15 +500,16 @@ export default function AboutPage() {
               target="_blank"
               startIcon={<WhatsApp />}
               sx={{
-                borderColor: '#000',
-                color: '#000',
+                borderColor: 'rgba(232,182,58,0.5)',
+                color: '#e8b63a',
                 px: 4,
                 py: 2,
                 fontSize: '1.1rem',
                 fontWeight: 700,
                 borderWidth: 2,
                 '&:hover': {
-                  bgcolor: 'rgba(0, 0, 0, 0.1)',
+                  bgcolor: 'rgba(232,182,58,0.08)',
+                  borderColor: '#e8b63a',
                   borderWidth: 2,
                   transform: 'translateY(-2px)'
                 }

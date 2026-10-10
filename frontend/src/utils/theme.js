@@ -88,11 +88,13 @@ const theme = createTheme({
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
+      fontFamily: '"Fraunces", serif',
       fontWeight: 700,
       fontSize: '2.5rem',
       color: '#000000',
     },
     h2: {
+      fontFamily: '"Fraunces", serif',
       fontWeight: 600,
       fontSize: '2rem',
       color: '#000000',
@@ -139,6 +141,16 @@ const theme = createTheme({
         },
       },
     },
+    MuiButtonBase: {
+      styleOverrides: {
+        root: {
+          '&:focus-visible': {
+            outline: '3px solid #e8b63a',
+            outlineOffset: '3px',
+          },
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {
@@ -148,8 +160,8 @@ const theme = createTheme({
           padding: '10px 24px',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:focus-visible': {
-            outline: '3px solid #FFD700',
-            outlineOffset: '2px',
+            outline: '3px solid #e8b63a',
+            outlineOffset: '3px',
           },
         },
         containedPrimary: {
@@ -174,8 +186,19 @@ const theme = createTheme({
           minWidth: 48,
           minHeight: 48,
           '&:focus-visible': {
-            outline: '3px solid #FFD700',
-            outlineOffset: '2px',
+            outline: '3px solid #e8b63a',
+            outlineOffset: '3px',
+          },
+        },
+      },
+    },
+    MuiLink: {
+      styleOverrides: {
+        root: {
+          '&:focus-visible': {
+            outline: '3px solid #e8b63a',
+            outlineOffset: '3px',
+            borderRadius: '2px',
           },
         },
       },
@@ -193,7 +216,7 @@ const theme = createTheme({
         root: {
           borderRadius: 12,
           boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          border: '1px solid #f0f0f0',
+          border: '1px solid rgba(232,182,58,0.12)',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:focus-visible': {
             outline: '3px solid #FFD700',
@@ -250,6 +273,11 @@ const theme = createTheme({
             '&:hover': {
               backgroundColor: 'rgba(255, 215, 0, 0.3)',
             },
+          },
+          '&:focus-visible': {
+            outline: '3px solid #e8b63a',
+            outlineOffset: '3px',
+            backgroundColor: 'rgba(232,182,58,0.08)',
           },
         },
       },

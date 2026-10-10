@@ -1,0 +1,177 @@
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e7]:
+      - generic [ref=e8] [cursor=pointer]:
+        - img "Pablo's Pizza Logo" [ref=e10]
+        - heading "Pablo's Pizza" [level=5] [ref=e11]
+      - generic [ref=e12]:
+        - button "Inicio" [ref=e13] [cursor=pointer]: Inicio
+        - button "Servicios" [ref=e14] [cursor=pointer]: Servicios
+        - button "Galería" [ref=e15] [cursor=pointer]: Galería
+        - button "Testimonios" [ref=e16] [cursor=pointer]: Testimonios
+        - button "Contacto" [ref=e17] [cursor=pointer]: Contacto
+        - button "Agendar" [ref=e18] [cursor=pointer]:
+          - img [ref=e20]
+          - text: Agendar
+        - link "Contactar por WhatsApp" [ref=e22] [cursor=pointer]:
+          - /url: https://wa.me/56989424566
+          - img [ref=e23]
+        - link "Instagram" [ref=e25] [cursor=pointer]:
+          - /url: https://instagram.com/pablospizza.cl
+          - img [ref=e26]
+  - main [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e32]:
+        - generic [ref=e33]:
+          - img [ref=e34]
+          - generic [ref=e37]: Respuesta en 24 horas
+        - heading "Reserva tu Evento" [level=1] [ref=e38]
+        - paragraph [ref=e39]: Completá el formulario y te contactamos en menos de 24 horas para coordinar todos los detalles.
+      - generic [ref=e40]:
+        - button "Volver" [ref=e42] [cursor=pointer]:
+          - img [ref=e44]
+          - text: Volver
+        - generic [ref=e46]:
+          - generic [ref=e48]:
+            - generic [ref=e50]:
+              - generic [ref=e52]:
+                - img [ref=e54]:
+                  - generic [ref=e56]: "1"
+                - paragraph [ref=e59]: Información Personal
+              - generic [ref=e63]:
+                - img [ref=e65]:
+                  - generic [ref=e67]: "2"
+                - paragraph [ref=e70]: Detalles del Evento
+              - generic [ref=e74]:
+                - img [ref=e76]:
+                  - generic [ref=e78]: "3"
+                - paragraph [ref=e81]: Confirmación
+            - generic [ref=e85]:
+              - generic [ref=e86]:
+                - img [ref=e88]
+                - heading "Información Personal" [level=5] [ref=e90]
+                - paragraph [ref=e91]: Necesitamos tus datos para coordinar tu evento perfecto
+              - generic [ref=e92]:
+                - generic [ref=e94]:
+                  - generic [ref=e95]:
+                    - text: Tu nombre completo
+                    - generic [ref=e96]: "*"
+                  - generic [ref=e97]:
+                    - img [ref=e99]
+                    - textbox "Tu nombre completo" [ref=e101]
+                    - group:
+                      - generic: Tu nombre completo *
+                - generic [ref=e103]:
+                  - generic [ref=e104]:
+                    - text: Email
+                    - generic [ref=e105]: "*"
+                  - generic [ref=e106]:
+                    - img [ref=e108]
+                    - textbox "Email" [ref=e110]
+                    - group:
+                      - generic: Email *
+                - generic [ref=e112]:
+                  - generic [ref=e113]:
+                    - text: Teléfono / WhatsApp
+                    - generic [ref=e114]: "*"
+                  - generic [ref=e115]:
+                    - generic [ref=e117]:
+                      - img [ref=e118]
+                      - paragraph [ref=e120]: "+56"
+                    - textbox "Teléfono / WhatsApp" [ref=e121]:
+                      - /placeholder: 9 1234 5678
+                    - group:
+                      - generic: Teléfono / WhatsApp *
+                  - paragraph [ref=e122]: Preferiblemente WhatsApp para confirmación rápida
+              - generic [ref=e123]:
+                - button "Continuar" [disabled]:
+                  - text: Continuar
+                  - generic:
+                    - img
+          - generic [ref=e126]:
+            - generic [ref=e128]:
+              - generic [ref=e129]:
+                - img [ref=e131]
+                - heading "Precio Estimado" [level=6] [ref=e133]
+              - generic [ref=e134]:
+                - img [ref=e135]
+                - paragraph [ref=e137]: Selecciona servicios y participantes
+                - paragraph [ref=e138]: para ver tu precio estimado en tiempo real
+            - generic [ref=e140]:
+              - img [ref=e142]
+              - heading "¿Tienes preguntas?" [level=6] [ref=e144]
+              - paragraph [ref=e145]: Chatea con nosotros por WhatsApp y resuelve tus dudas al instante
+              - link "Chatear Ahora" [ref=e146] [cursor=pointer]:
+                - /url: https://wa.me/56989424566?text=Hola! Tengo preguntas sobre el servicio de pizzeros
+                - img [ref=e148]
+                - text: Chatear Ahora
+              - generic [ref=e150]:
+                - generic [ref=e151]:
+                  - img [ref=e152]
+                  - generic [ref=e155]: Respuesta 24h
+                - generic [ref=e156]:
+                  - img [ref=e157]
+                  - generic [ref=e159]: 100% Confiable
+  - contentinfo [ref=e160]:
+    - generic [ref=e161]:
+      - generic [ref=e162]:
+        - generic [ref=e163]:
+          - generic [ref=e164]:
+            - img "Pablo's Pizza Logo" [ref=e165]
+            - heading "Pablo's Pizza" [level=5] [ref=e166]
+          - paragraph [ref=e167]: Creamos experiencias gastronómicas únicas para niños y familias. Talleres de pizza educativos y eventos memorables.
+          - generic [ref=e168]:
+            - link "Visitar Instagram de Pablo's Pizza" [ref=e169] [cursor=pointer]:
+              - /url: https://instagram.com/pablospizza.cl
+              - img [ref=e170]
+            - link "Contactar por WhatsApp" [ref=e172] [cursor=pointer]:
+              - /url: https://wa.me/56989424566
+              - img [ref=e173]
+        - generic [ref=e175]:
+          - heading "Servicios" [level=6] [ref=e176]
+          - generic [ref=e177]:
+            - link "Talleres para Niños" [ref=e178] [cursor=pointer]:
+              - /url: /servicios
+            - link "Pizza Parties" [ref=e179] [cursor=pointer]:
+              - /url: /servicios
+            - link "Eventos Corporativos" [ref=e180] [cursor=pointer]:
+              - /url: /servicios
+            - link "Celebraciones Escolares" [ref=e181] [cursor=pointer]:
+              - /url: /servicios
+        - generic [ref=e182]:
+          - heading "Enlaces" [level=6] [ref=e183]
+          - generic [ref=e184]:
+            - link "Inicio" [ref=e185] [cursor=pointer]:
+              - /url: /
+            - link "Galería" [ref=e186] [cursor=pointer]:
+              - /url: /galeria
+            - link "Testimonios" [ref=e187] [cursor=pointer]:
+              - /url: /testimonios
+            - link "Agendar Evento" [ref=e188] [cursor=pointer]:
+              - /url: /agendar
+            - link "Contacto" [ref=e189] [cursor=pointer]:
+              - /url: /contacto
+        - generic [ref=e190]:
+          - heading "Contacto" [level=6] [ref=e191]
+          - generic [ref=e192]:
+            - generic [ref=e193]:
+              - img [ref=e194]
+              - link "+56 9 8942 4566" [ref=e196] [cursor=pointer]:
+                - /url: https://wa.me/56989424566
+            - generic [ref=e197]:
+              - img [ref=e198]
+              - link "+56 9 8942 4566" [ref=e200] [cursor=pointer]:
+                - /url: tel:56989424566
+            - generic [ref=e201]:
+              - img [ref=e202]
+              - link "Pablospizza.cl@gmail.com" [ref=e204] [cursor=pointer]:
+                - /url: mailto:Pablospizza.cl@gmail.com
+            - generic [ref=e205]:
+              - img [ref=e206]
+              - paragraph [ref=e208]:
+                - text: Santiago de Chile
+                - text: Servicio a domicilio disponible
+      - separator [ref=e209]
+      - generic [ref=e210]:
+        - paragraph [ref=e212]: © 2026 Pablo's Pizza. Todos los derechos reservados.
+        - paragraph [ref=e214]: "Horarios: Lunes a Domingo | 9:00 AM - 8:00 PM"

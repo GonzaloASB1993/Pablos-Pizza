@@ -71,7 +71,17 @@
       "Bash(gcloud logging read:*)",
       "Bash(gcloud run deploy:*)",
       "WebSearch",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(npx vite:*)",
+      "Bash(node_modules/.bin/vite build:*)",
+      "Bash(python main.py)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(cat functions.yaml)",
+      "Bash(cat scheduler.yaml)",
+      "Bash(ls *.yaml)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "Bash(venv/Scripts/pip install *)"
     ],
     "deny": [],
     "ask": []

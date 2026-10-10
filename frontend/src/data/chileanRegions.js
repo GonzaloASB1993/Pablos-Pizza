@@ -52,7 +52,7 @@ export const santiagoComunas = [
   'Talagante',
   'Tiltil',
   'Vitacura'
-].sort() // Ordenar alfabéticamente
+].sort()
 
 // Mantener compatibilidad hacia atrás
 export const chileanRegions = [
@@ -71,17 +71,21 @@ export const getAllComunas = () => {
   }))
 }
 
-// Comunas lejanas con cargo adicional de $20.000
-export const comunasLejanas = [
+// Defaults usados como fallback si el API no responde
+export const DEFAULT_COMUNAS_LEJANAS = [
   'Quilicura',
   'Lampa',
   'Colina',
   'Huechuraba'
 ]
 
-export const CARGO_COMUNA_LEJANA = 20000
+export const DEFAULT_CARGO_COMUNA_LEJANA = 20000
 
-export const isComunaLejana = (comuna) => {
+// Kept for backwards compatibility - will be overridden by API values
+export const comunasLejanas = DEFAULT_COMUNAS_LEJANAS
+export const CARGO_COMUNA_LEJANA = DEFAULT_CARGO_COMUNA_LEJANA
+
+export const isComunaLejana = (comuna, listaComunas = DEFAULT_COMUNAS_LEJANAS) => {
   if (!comuna) return false
-  return comunasLejanas.some(c => c.toLowerCase() === comuna.toLowerCase())
+  return listaComunas.some(c => c.toLowerCase() === comuna.toLowerCase())
 }

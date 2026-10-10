@@ -84,7 +84,7 @@ export default function ContactPage() {
   }
 
   return (
-    <Box>
+    <Box sx={{ background: '#0d0d0d', minHeight: '100vh' }}>
       <SEO
         title="Contacto - Consultas y Cotizaciones"
         description="Contáctanos para cotizar tu taller de pizza o pizza party en Santiago. WhatsApp +56 9 8942 4566. Respuesta en menos de 2 horas."
@@ -94,11 +94,12 @@ export default function ContactPage() {
       {/* Header Section */}
       <Box sx={{
         position: 'relative',
-        background: 'linear-gradient(135deg, #FFD700 0%, #CBA900 50%, #B8860B 100%)',
-        color: '#000',
+        background: '#0d0d0d',
+        color: '#FFFFFF',
         py: { xs: 4, md: 6 },
         mb: 6,
         overflow: 'hidden',
+        borderBottom: '1px solid rgba(232,182,58,0.15)',
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -106,8 +107,8 @@ export default function ContactPage() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'url("data:image/svg+xml,%3Csvg width="20" height="20" xmlns="http://www.w3.org/2000/svg"%3E%3Cdefs%3E%3Cpattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"%3E%3Cpath d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(0,0,0,0.05)" stroke-width="1"/%3E%3C/pattern%3E%3C/defs%3E%3Crect width="100%25" height="100%25" fill="url(%23grid)" /%3E%3C/svg%3E")',
-          opacity: 0.3
+          background: 'radial-gradient(circle at 60% 50%, rgba(232,182,58,0.08) 0%, transparent 60%)',
+          opacity: 0.8
         }
       }}>
         <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1 }}>
@@ -123,7 +124,7 @@ export default function ContactPage() {
                 fontWeight: 900,
                 fontSize: { xs: '2.5rem', md: '4rem' },
                 mb: 2,
-                textShadow: '2px 2px 4px rgba(0,0,0,0.1)'
+                color: '#FFFFFF'
               }}
             >
               Contacto
@@ -133,7 +134,7 @@ export default function ContactPage() {
               sx={{
                 maxWidth: '800px',
                 lineHeight: 1.6,
-                opacity: 0.9,
+                color: 'rgba(255,255,255,0.65)',
                 fontSize: { xs: '1.1rem', md: '1.3rem' }
               }}
             >
@@ -147,12 +148,17 @@ export default function ContactPage() {
         <Grid container spacing={4}>
           {/* Col izquierda - Información de contacto */}
           <Grid item xs={12} md={6}>
-            <Card sx={{ mb: 3, borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}>
+            <Card sx={{
+              mb: 3,
+              borderRadius: 3,
+              background: '#1a1714',
+              border: '1px solid rgba(232,182,58,0.15)'
+            }}>
               <CardContent sx={{ p: 3 }}>
-                <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#333' }}>
+                <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#FFFFFF' }}>
                   ¡Conectemos!
                 </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                <Typography variant="body1" sx={{ lineHeight: 1.7, color: 'rgba(255,255,255,0.65)' }}>
                   Estamos aquí para hacer realidad el evento perfecto. Contáctanos para más información o para resolver cualquier duda.
                 </Typography>
               </CardContent>
@@ -163,18 +169,20 @@ export default function ContactPage() {
               <Grid item xs={12} sm={6}>
                 <Card sx={{
                   borderRadius: 3,
+                  background: '#1a1714',
+                  border: '1px solid rgba(232,182,58,0.15)',
                   transition: 'all 0.3s ease',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                    boxShadow: '0 12px 40px rgba(232,182,58,0.15)'
                   }
                 }}>
                   <CardContent sx={{ p: { xs: 2, sm: 3 }, textAlign: 'center' }}>
                     <WhatsApp sx={{ fontSize: { xs: 32, sm: 40 }, color: '#25D366', mb: 1 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, fontSize: { xs: '1rem', sm: '1.25rem' }, color: '#FFFFFF' }}>
                       WhatsApp
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                    <Typography variant="body2" sx={{ mb: 2, fontSize: { xs: '0.75rem', sm: '0.875rem' }, color: 'rgba(255,255,255,0.65)' }}>
                       {CONTACT_INFO.WHATSAPP_DISPLAY}
                     </Typography>
                     <Button
@@ -200,25 +208,35 @@ export default function ContactPage() {
               <Grid item xs={12} sm={6}>
                 <Card sx={{
                   borderRadius: 3,
+                  background: '#1a1714',
+                  border: '1px solid rgba(232,182,58,0.15)',
                   transition: 'all 0.3s ease',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                    boxShadow: '0 12px 40px rgba(232,182,58,0.15)'
                   }
                 }}>
                   <CardContent sx={{ p: 3, textAlign: 'center' }}>
-                    <Phone sx={{ fontSize: 40, color: '#1976d2', mb: 1 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    <Phone sx={{ fontSize: 40, color: '#e8b63a', mb: 1 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, color: '#FFFFFF' }}>
                       Teléfono
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    <Typography variant="body2" sx={{ mb: 2, color: 'rgba(255,255,255,0.65)' }}>
                       {CONTACT_INFO.WHATSAPP_DISPLAY}
                     </Typography>
                     <Button
                       href={`tel:${CONTACT_INFO.WHATSAPP_NUMBER}`}
                       variant="outlined"
                       fullWidth
-                      sx={{ borderRadius: 2 }}
+                      sx={{
+                        borderRadius: 2,
+                        borderColor: 'rgba(232,182,58,0.5)',
+                        color: '#e8b63a',
+                        '&:hover': {
+                          borderColor: '#e8b63a',
+                          bgcolor: 'rgba(232,182,58,0.08)'
+                        }
+                      }}
                     >
                       Llamar
                     </Button>
@@ -230,25 +248,35 @@ export default function ContactPage() {
               <Grid item xs={12} sm={6}>
                 <Card sx={{
                   borderRadius: 3,
+                  background: '#1a1714',
+                  border: '1px solid rgba(232,182,58,0.15)',
                   transition: 'all 0.3s ease',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                    boxShadow: '0 12px 40px rgba(232,182,58,0.15)'
                   }
                 }}>
                   <CardContent sx={{ p: 3, textAlign: 'center' }}>
-                    <Email sx={{ fontSize: 40, color: '#d32f2f', mb: 1 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    <Email sx={{ fontSize: 40, color: '#e8b63a', mb: 1 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, color: '#FFFFFF' }}>
                       Email
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    <Typography variant="body2" sx={{ mb: 2, color: 'rgba(255,255,255,0.65)' }}>
                       Pablospizza.cl@gmail.com
                     </Typography>
                     <Button
                       href="mailto:Pablospizza.cl@gmail.com"
                       variant="outlined"
                       fullWidth
-                      sx={{ borderRadius: 2 }}
+                      sx={{
+                        borderRadius: 2,
+                        borderColor: 'rgba(232,182,58,0.5)',
+                        color: '#e8b63a',
+                        '&:hover': {
+                          borderColor: '#e8b63a',
+                          bgcolor: 'rgba(232,182,58,0.08)'
+                        }
+                      }}
                     >
                       Escribir
                     </Button>
@@ -260,18 +288,20 @@ export default function ContactPage() {
               <Grid item xs={12} sm={6}>
                 <Card sx={{
                   borderRadius: 3,
+                  background: '#1a1714',
+                  border: '1px solid rgba(232,182,58,0.15)',
                   transition: 'all 0.3s ease',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                    boxShadow: '0 12px 40px rgba(232,182,58,0.15)'
                   }
                 }}>
                   <CardContent sx={{ p: 3, textAlign: 'center' }}>
-                    <Room sx={{ fontSize: 40, color: '#ed6c02', mb: 1 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    <Room sx={{ fontSize: 40, color: '#e8b63a', mb: 1 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, color: '#FFFFFF' }}>
                       Servicio
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>
                       A domicilio en toda la ciudad. Llevamos la diversión a tu ubicación.
                     </Typography>
                   </CardContent>
@@ -282,12 +312,16 @@ export default function ContactPage() {
 
           {/* Col derecha - formulario */}
           <Grid item xs={12} md={6}>
-            <Card sx={{ borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}>
+            <Card sx={{
+              borderRadius: 3,
+              background: '#1a1714',
+              border: '1px solid rgba(232,182,58,0.15)'
+            }}>
               <CardContent sx={{ p: 4 }}>
-                <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#333' }}>
+                <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#FFFFFF' }}>
                   Déjanos un mensaje
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                <Typography variant="body2" sx={{ mb: 3, color: 'rgba(255,255,255,0.65)' }}>
                   Completa el formulario y nos comunicaremos contigo por WhatsApp
                 </Typography>
 
@@ -302,7 +336,17 @@ export default function ContactPage() {
                         fullWidth
                         required
                         variant="outlined"
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                            color: '#FFFFFF',
+                            '& fieldset': { borderColor: 'rgba(232,182,58,0.3)' },
+                            '&:hover fieldset': { borderColor: 'rgba(232,182,58,0.6)' },
+                            '&.Mui-focused fieldset': { borderColor: '#e8b63a' }
+                          },
+                          '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)' },
+                          '& .MuiInputLabel-root.Mui-focused': { color: '#e8b63a' }
+                        }}
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
@@ -315,7 +359,17 @@ export default function ContactPage() {
                         fullWidth
                         required
                         variant="outlined"
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                            color: '#FFFFFF',
+                            '& fieldset': { borderColor: 'rgba(232,182,58,0.3)' },
+                            '&:hover fieldset': { borderColor: 'rgba(232,182,58,0.6)' },
+                            '&.Mui-focused fieldset': { borderColor: '#e8b63a' }
+                          },
+                          '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)' },
+                          '& .MuiInputLabel-root.Mui-focused': { color: '#e8b63a' }
+                        }}
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
@@ -326,7 +380,17 @@ export default function ContactPage() {
                         onChange={handleInputChange}
                         fullWidth
                         variant="outlined"
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                            color: '#FFFFFF',
+                            '& fieldset': { borderColor: 'rgba(232,182,58,0.3)' },
+                            '&:hover fieldset': { borderColor: 'rgba(232,182,58,0.6)' },
+                            '&.Mui-focused fieldset': { borderColor: '#e8b63a' }
+                          },
+                          '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)' },
+                          '& .MuiInputLabel-root.Mui-focused': { color: '#e8b63a' }
+                        }}
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
@@ -338,17 +402,55 @@ export default function ContactPage() {
                         fullWidth
                         required
                         variant="outlined"
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                            color: '#FFFFFF',
+                            '& fieldset': { borderColor: 'rgba(232,182,58,0.3)' },
+                            '&:hover fieldset': { borderColor: 'rgba(232,182,58,0.6)' },
+                            '&.Mui-focused fieldset': { borderColor: '#e8b63a' }
+                          },
+                          '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)' },
+                          '& .MuiInputLabel-root.Mui-focused': { color: '#e8b63a' }
+                        }}
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth variant="outlined" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
+                      <FormControl
+                        fullWidth
+                        variant="outlined"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                            color: '#FFFFFF',
+                            '& fieldset': { borderColor: 'rgba(232,182,58,0.3)' },
+                            '&:hover fieldset': { borderColor: 'rgba(232,182,58,0.6)' },
+                            '&.Mui-focused fieldset': { borderColor: '#e8b63a' }
+                          },
+                          '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)' },
+                          '& .MuiInputLabel-root.Mui-focused': { color: '#e8b63a' },
+                          '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.6)' }
+                        }}
+                      >
                         <InputLabel>Prioridad</InputLabel>
                         <Select
                           name="priority"
                           value={formData.priority}
                           onChange={handleInputChange}
                           label="Prioridad"
+                          MenuProps={{
+                            PaperProps: {
+                              sx: {
+                                background: '#1a1714',
+                                border: '1px solid rgba(232,182,58,0.2)',
+                                '& .MuiMenuItem-root': {
+                                  color: '#FFFFFF',
+                                  '&:hover': { bgcolor: 'rgba(232,182,58,0.08)' },
+                                  '&.Mui-selected': { bgcolor: 'rgba(232,182,58,0.15)' }
+                                }
+                              }
+                            }
+                          }}
                         >
                           <MenuItem value="low">Baja - Consulta general</MenuItem>
                           <MenuItem value="normal">Normal - Información de evento</MenuItem>
@@ -368,7 +470,17 @@ export default function ContactPage() {
                         minRows={4}
                         required
                         variant="outlined"
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                            color: '#FFFFFF',
+                            '& fieldset': { borderColor: 'rgba(232,182,58,0.3)' },
+                            '&:hover fieldset': { borderColor: 'rgba(232,182,58,0.6)' },
+                            '&.Mui-focused fieldset': { borderColor: '#e8b63a' }
+                          },
+                          '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)' },
+                          '& .MuiInputLabel-root.Mui-focused': { color: '#e8b63a' }
+                        }}
                       />
                     </Grid>
                     <Grid item xs={12}>
@@ -384,8 +496,13 @@ export default function ContactPage() {
                           borderRadius: 2,
                           fontSize: '1.1rem',
                           fontWeight: 600,
-                          bgcolor: '#1976d2',
-                          '&:hover': { bgcolor: '#1565c0' }
+                          bgcolor: '#e8b63a',
+                          color: '#0d0d0d',
+                          '&:hover': { bgcolor: '#d4a030' },
+                          '&.Mui-disabled': {
+                            bgcolor: 'rgba(232,182,58,0.3)',
+                            color: 'rgba(255,255,255,0.4)'
+                          }
                         }}
                       >
                         {isSubmitting ? 'Enviando...' : 'Enviar Mensaje'}
@@ -394,24 +511,39 @@ export default function ContactPage() {
                   </Grid>
                 </Box>
 
-                <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
+                <Alert
+                  severity="info"
+                  sx={{
+                    mt: 3,
+                    borderRadius: 2,
+                    bgcolor: 'rgba(232,182,58,0.08)',
+                    border: '1px solid rgba(232,182,58,0.2)',
+                    color: 'rgba(255,255,255,0.8)',
+                    '& .MuiAlert-icon': { color: '#e8b63a' }
+                  }}
+                >
                   <Typography variant="body2">
                     Tu mensaje será enviado directamente a nuestro sistema interno y un agente te contactará dentro de las próximas 24 horas.
                   </Typography>
                 </Alert>
 
-                <Card sx={{ mt: 3, backgroundColor: '#FFF7CC', borderRadius: 2 }}>
+                <Card sx={{
+                  mt: 3,
+                  background: 'rgba(232,182,58,0.06)',
+                  border: '1px solid rgba(232,182,58,0.2)',
+                  borderRadius: 2
+                }}>
                   <CardContent>
-                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
+                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: '#e8b63a' }}>
                       Horarios de Atención
                     </Typography>
-                    <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    <Typography variant="body2" sx={{ mb: 0.5, color: 'rgba(255,255,255,0.8)' }}>
                       Lunes a Viernes: 9:00 AM - 8:00 PM
                     </Typography>
-                    <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    <Typography variant="body2" sx={{ mb: 0.5, color: 'rgba(255,255,255,0.8)' }}>
                       Sábados y Domingos: 10:00 AM - 6:00 PM
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
                       *Eventos disponibles todos los días
                     </Typography>
                   </CardContent>

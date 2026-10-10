@@ -199,17 +199,24 @@ def update_booking(booking_id):
             client_phone = updated_booking.get('client_phone')
             if client_phone:
                 try:
-                    asyncio.run(send_whatsapp_template(client_phone, 'booking_confirmed', updated_booking))
-                    print(f"✅ WhatsApp de confirmación enviado al cliente {client_phone}")
+                    sent = asyncio.run(send_whatsapp_template(client_phone, 'booking_confirmed', updated_booking))
+                    if sent:
+                        print(f"✅ WhatsApp de confirmación enviado al cliente {client_phone}")
+                    else:
+                        print(f"❌ WhatsApp de confirmación NO enviado al cliente {client_phone}")
                 except Exception as e:
                     print(f"❌ Error enviando WhatsApp al cliente: {e}")
 
-            # Send WhatsApp to admins
+            # Send WhatsApp to admins (reuses the client-facing 'booking_confirmed'
+            # template - there is no separate approved Twilio template for admins)
             for admin_phone in [os.getenv('ADMIN_WHATSAPP_NUMBER'), os.getenv('PARTNER_WHATSAPP_NUMBER')]:
                 if admin_phone:
                     try:
-                        asyncio.run(send_whatsapp_template(admin_phone, 'booking_confirmed_admin', updated_booking))
-                        print(f"✅ WhatsApp enviado al admin {admin_phone}")
+                        sent = asyncio.run(send_whatsapp_template(admin_phone, 'booking_confirmed', updated_booking))
+                        if sent:
+                            print(f"✅ WhatsApp enviado al admin {admin_phone}")
+                        else:
+                            print(f"❌ WhatsApp NO enviado al admin {admin_phone}")
                     except Exception as e:
                         print(f"❌ Error enviando WhatsApp al admin: {e}")
 

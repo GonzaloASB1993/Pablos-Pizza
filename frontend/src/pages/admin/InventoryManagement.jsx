@@ -16,6 +16,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
   DialogActions,
   TextField,
   Grid,
@@ -35,8 +36,10 @@ import {
   ListItemText,
   InputAdornment,
   Stack,
+  Skeleton,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  alpha
 } from '@mui/material'
 import { Add, Edit, Delete, Warning, Inventory, Kitchen, Build, Timeline, ArrowDownward, ArrowUpward, AddBox, Visibility, SwapHoriz, Search, RemoveCircleOutline, Undo, AutoAwesome } from '@mui/icons-material'
 import { inventoryAPI, recipesAPI } from '../../services/api'
@@ -123,6 +126,7 @@ const InventoryManagement = () => {
     reason: '',
     notes: ''
   })
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null, severity: 'warning' })
 
   useEffect(() => {
     loadInventory()
@@ -278,8 +282,6 @@ const InventoryManagement = () => {
       notes: ''
     })
     setStockDialog(true)
-    // Cargar movimientos del item automáticamente
-    loadItemMovements(item.id, item.name)
   }
 
   const handleStockSubmit = async () => {
@@ -302,18 +304,8 @@ const InventoryManagement = () => {
       await inventoryAPI.createMovement(movementData)
       toast.success('Stock agregado exitosamente')
 
-      // Recargar inventario y movimientos
       loadInventory()
-      // Recargar movimientos para mostrar el nuevo movimiento
-      loadItemMovements(stockItem.id, stockItem.name)
-
-      // Resetear solo el formulario, mantener modal abierto para ver el historial actualizado
-      setStockFormData({
-        quantity: '',
-        cost_per_unit: stockItem.cost_per_unit?.toString() || '',
-        supplier: stockItem.supplier || '',
-        notes: ''
-      })
+      handleCloseStockDialog()
     } catch (error) {
       console.error('Error adding stock:', error)
       toast.error('Error al agregar stock')
@@ -487,17 +479,24 @@ const InventoryManagement = () => {
     }
   }
 
-  const handleDelete = async (itemId) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este producto?')) {
-      try {
-        await inventoryAPI.delete(itemId)
-        toast.success('Producto eliminado')
-        loadInventory()
-      } catch (error) {
-        console.error('Error deleting inventory item:', error)
-        toast.error('Error al eliminar producto')
+  const handleDelete = (itemId) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Eliminar producto',
+      message: 'Esta acción es irreversible. ¿Confirmas que deseas eliminar este producto del inventario?',
+      severity: 'error',
+      onConfirm: async () => {
+        try {
+          await inventoryAPI.delete(itemId)
+          toast.success('Producto eliminado')
+          loadInventory()
+        } catch (error) {
+          console.error('Error deleting inventory item:', error)
+          toast.error('Error al eliminar producto')
+        }
+        setConfirmDialog(d => ({ ...d, open: false }))
       }
-    }
+    })
   }
 
   const handleCloseDialog = () => {
@@ -658,17 +657,24 @@ const InventoryManagement = () => {
     setShowRecipeForm(true)
   }
 
-  const handleDeleteRecipe = async (recipeId) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar esta receta?')) {
-      try {
-        await recipesAPI.delete(recipeId)
-        toast.success('Receta eliminada exitosamente')
-        loadRecipes()
-      } catch (error) {
-        console.error('Error deleting recipe:', error)
-        toast.error('Error al eliminar receta')
+  const handleDeleteRecipe = (recipeId) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Eliminar receta',
+      message: 'Esta acción es irreversible. ¿Confirmas que deseas eliminar esta receta?',
+      severity: 'error',
+      onConfirm: async () => {
+        try {
+          await recipesAPI.delete(recipeId)
+          toast.success('Receta eliminada exitosamente')
+          loadRecipes()
+        } catch (error) {
+          console.error('Error deleting recipe:', error)
+          toast.error('Error al eliminar receta')
+        }
+        setConfirmDialog(d => ({ ...d, open: false }))
       }
-    }
+    })
   }
 
   const getStockStatus = (item) => {
@@ -801,254 +807,145 @@ const InventoryManagement = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      {/* ── Page Header ── */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
-          <Typography variant="h4" gutterBottom>
+          <Typography variant="h4" fontWeight={700} gutterBottom sx={{ letterSpacing: '-0.5px' }}>
             Gestión de Inventario
           </Typography>
           <Typography variant="body1" color="text.secondary">
             Controla materias primas, productos intermedios y equipos
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<Kitchen />}
-            onClick={() => setRecipeDialog(true)}
-          >
-            Gestionar Recetas
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => setDialog(true)}
-          >
-            Agregar Producto
-          </Button>
-        </Box>
+        {isMobile ? (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title="Gestionar Recetas">
+              <IconButton
+                aria-label="Gestionar recetas"
+                onClick={() => setRecipeDialog(true)}
+                sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}
+              >
+                <Kitchen />
+              </IconButton>
+            </Tooltip>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => setDialog(true)}
+              size="small"
+              aria-label="Agregar producto"
+            >
+              Agregar
+            </Button>
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<Kitchen />}
+              onClick={() => setRecipeDialog(true)}
+            >
+              Gestionar Recetas
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => setDialog(true)}
+            >
+              Agregar Producto
+            </Button>
+          </Box>
+        )}
       </Box>
 
-      {/* Inventory Summary Cards */}
+      {/* ── Stats Cards ── */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        {/* Total Inventory Value Card */}
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card
-            sx={{
-              height: '100%',
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 4
-              }
-            }}
-          >
-            <CardContent sx={{ p: 2.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                <Box
-                  sx={{
-                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)',
-                    color: 'inherit',
-                    p: 1.2,
-                    borderRadius: 2,
-                    mr: 1.5,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <Inventory fontSize="medium" />
+        {[
+          {
+            label: 'Valor Total',
+            value: formatCurrency(inventoryStats.totalValue),
+            sub: `${inventoryStats.totalItems} productos`,
+            icon: <Inventory />,
+            color: 'primary.main',
+            bg: 'primary.main',
+          },
+          {
+            label: 'Stock Crítico',
+            value: inventoryStats.stockByStatus.critical,
+            sub: 'Requiere atención inmediata',
+            icon: <Warning />,
+            color: 'error.main',
+            bg: 'error.main',
+          },
+          {
+            label: 'Stock Bajo',
+            value: inventoryStats.stockByStatus.low,
+            sub: 'Reabastecer pronto',
+            icon: <ArrowDownward />,
+            color: 'warning.main',
+            bg: 'warning.main',
+          },
+          {
+            label: 'Stock Medio',
+            value: inventoryStats.stockByStatus.medium,
+            sub: 'Nivel aceptable',
+            icon: <Timeline />,
+            color: 'info.main',
+            bg: 'info.main',
+          },
+          {
+            label: 'Stock Bueno',
+            value: inventoryStats.stockByStatus.good,
+            sub: 'Nivel óptimo',
+            icon: <ArrowUpward />,
+            color: 'success.main',
+            bg: 'success.main',
+          },
+        ].map((stat) => (
+          <Grid item xs={6} sm={4} md={2.4} key={stat.label}>
+            <Card
+              elevation={0}
+              sx={{
+                height: '100%',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderLeft: '4px solid',
+                borderLeftColor: stat.color,
+                borderRadius: 2,
+                transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+                '&:hover': { transform: 'translateY(-3px)', boxShadow: 4 },
+              }}
+            >
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5, gap: 1.5 }}>
+                  <Box
+                    sx={{
+                      bgcolor: stat.bg,
+                      color: '#fff',
+                      p: 0.9,
+                      borderRadius: 1.5,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {stat.icon}
+                  </Box>
+                  <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ lineHeight: 1.3 }}>
+                    {stat.label}
+                  </Typography>
                 </Box>
-                <Typography variant="subtitle2" fontWeight="600">
-                  Valor Inventario
+                <Typography variant="h5" fontWeight={700} sx={{ mb: 0.25, fontVariantNumeric: 'tabular-nums' }}>
+                  {stat.value}
                 </Typography>
-              </Box>
-              <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
-                {formatCurrency(inventoryStats.totalValue)}
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                {inventoryStats.totalItems} productos
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Critical Stock Card */}
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card
-            sx={{
-              height: '100%',
-              bgcolor: 'error.main',
-              color: 'error.contrastText',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 4
-              }
-            }}
-          >
-            <CardContent sx={{ p: 2.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                <Box
-                  sx={{
-                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)',
-                    color: 'inherit',
-                    p: 1.2,
-                    borderRadius: 2,
-                    mr: 1.5,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <Warning fontSize="medium" />
-                </Box>
-                <Typography variant="subtitle2" fontWeight="600">
-                  Stock Crítico
+                <Typography variant="caption" color="text.secondary">
+                  {stat.sub}
                 </Typography>
-              </Box>
-              <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
-                {inventoryStats.stockByStatus.critical}
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                Requiere atención
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Low Stock Card */}
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card
-            sx={{
-              height: '100%',
-              bgcolor: 'warning.main',
-              color: 'warning.contrastText',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 4
-              }
-            }}
-          >
-            <CardContent sx={{ p: 2.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                <Box
-                  sx={{
-                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)',
-                    color: 'inherit',
-                    p: 1.2,
-                    borderRadius: 2,
-                    mr: 1.5,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <ArrowDownward fontSize="medium" />
-                </Box>
-                <Typography variant="subtitle2" fontWeight="600">
-                  Stock Bajo
-                </Typography>
-              </Box>
-              <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
-                {inventoryStats.stockByStatus.low}
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                Reabastecer pronto
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Medium Stock Card */}
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card
-            sx={{
-              height: '100%',
-              bgcolor: 'info.main',
-              color: 'info.contrastText',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 4
-              }
-            }}
-          >
-            <CardContent sx={{ p: 2.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                <Box
-                  sx={{
-                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)',
-                    color: 'inherit',
-                    p: 1.2,
-                    borderRadius: 2,
-                    mr: 1.5,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <Timeline fontSize="medium" />
-                </Box>
-                <Typography variant="subtitle2" fontWeight="600">
-                  Stock Medio
-                </Typography>
-              </Box>
-              <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
-                {inventoryStats.stockByStatus.medium}
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                Nivel aceptable
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Good Stock Card */}
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card
-            sx={{
-              height: '100%',
-              bgcolor: 'success.main',
-              color: 'success.contrastText',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 4
-              }
-            }}
-          >
-            <CardContent sx={{ p: 2.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                <Box
-                  sx={{
-                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.3)',
-                    color: 'inherit',
-                    p: 1.2,
-                    borderRadius: 2,
-                    mr: 1.5,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <ArrowUpward fontSize="medium" />
-                </Box>
-                <Typography variant="subtitle2" fontWeight="600">
-                  Stock Bueno
-                </Typography>
-              </Box>
-              <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
-                {inventoryStats.stockByStatus.good}
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                Nivel óptimo
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
 
       {/* Low Stock Alert */}
@@ -1063,45 +960,40 @@ const InventoryManagement = () => {
         </Alert>
       )}
 
-      {/* Tabs */}
-      <Card sx={{ mb: 3 }}>
+      {/* ── Tabs ── */}
+      <Card elevation={0} sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
         <Tabs
           value={currentTab}
           onChange={(e, newTab) => setCurrentTab(newTab)}
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{
+            borderBottom: 1,
+            borderColor: 'divider',
+            '& .MuiTab-root': { minHeight: 52, fontWeight: 600 },
+          }}
         >
-          <Tab
-            icon={getTabIcon(0)}
-            label="Materias Primas"
-            iconPosition="start"
-          />
-          <Tab
-            icon={getTabIcon(1)}
-            label="Productos Intermedios"
-            iconPosition="start"
-          />
-          <Tab
-            icon={getTabIcon(2)}
-            label="Productos Terminados"
-            iconPosition="start"
-          />
+          <Tab icon={getTabIcon(0)} label="Materias Primas" iconPosition="start" />
+          <Tab icon={getTabIcon(1)} label="Prod. Intermedios" iconPosition="start" />
+          <Tab icon={getTabIcon(2)} label="Prod. Terminados" iconPosition="start" />
         </Tabs>
       </Card>
 
-      {/* Search and Filters */}
-      <Card sx={{ mb: 3 }}>
+      {/* ── Search and Filters ── */}
+      <Card elevation={0} sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                placeholder="Buscar por nombre o categoría..."
+                label="Buscar producto"
+                placeholder="Nombre o categoría..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Search />
+                      <Search color="action" />
                     </InputAdornment>
                   ),
                 }}
@@ -1155,75 +1047,98 @@ const InventoryManagement = () => {
       </Card>
 
       {loading ? (
-        <Card>
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
           <CardContent>
-            <Typography>Cargando inventario...</Typography>
+            <Stack spacing={1.5}>
+              {[...Array(5)].map((_, i) => (
+                <Box key={i} sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                  <Skeleton variant="rounded" width={120} height={20} />
+                  <Skeleton variant="rounded" width={80} height={20} />
+                  <Skeleton variant="rounded" width={100} height={20} />
+                  <Skeleton variant="rounded" width={90} height={20} sx={{ ml: 'auto' }} />
+                </Box>
+              ))}
+            </Stack>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              {currentTab === 0 ? 'Materias Primas' :
-               currentTab === 1 ? 'Productos Intermedios' : 'Productos Terminados'}
-              <Chip
-                label={`${filteredInventory.length} items`}
-                size="small"
-                sx={{ ml: 2 }}
-              />
-            </Typography>
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+          <CardContent sx={{ pb: '12px !important' }}>
+            {/* Card header */}
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
+              <Typography variant="h6" fontWeight={600}>
+                {currentTab === 0 ? 'Materias Primas' : currentTab === 1 ? 'Productos Intermedios' : 'Productos Terminados'}
+              </Typography>
+              <Chip label={`${filteredInventory.length}`} size="small" variant="outlined" />
+            </Box>
+
             {isMobile ? (
+              /* ── Mobile cards ── */
               <Stack spacing={1.5}>
                 {filteredInventory.length === 0 ? (
-                  <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
-                    No hay productos en esta categoría
-                  </Typography>
+                  <Box sx={{ textAlign: 'center', py: 6 }}>
+                    <Inventory sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
+                    <Typography variant="h6" color="text.secondary" gutterBottom>
+                      Sin productos aquí
+                    </Typography>
+                    <Typography variant="body2" color="text.disabled" sx={{ mb: 3 }}>
+                      Agrega el primer producto a esta categoría
+                    </Typography>
+                    <Button variant="contained" startIcon={<Add />} onClick={() => setDialog(true)}>
+                      Agregar Producto
+                    </Button>
+                  </Box>
                 ) : filteredInventory.map((item) => {
                   const stockStatus = getStockStatus(item)
                   const stockPercentage = (item.current_stock / item.max_stock) * 100
                   return (
-                    <Card key={item.id} variant="outlined" sx={{ p: 0 }}>
-                      <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                    <Card
+                      key={item.id}
+                      elevation={0}
+                      sx={{
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderLeft: '3px solid',
+                        borderLeftColor: `${getStockColor(stockStatus)}.main`,
+                        borderRadius: 2,
+                      }}
+                    >
+                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                           <Box sx={{ flex: 1, mr: 1 }}>
-                            <Typography variant="body2" fontWeight="bold">
-                              {item.name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {getCategoryLabel(item.category)}
+                            <Typography variant="body2" fontWeight={700}>{item.name}</Typography>
+                            <Typography variant="caption" color="text.secondary">{getCategoryLabel(item.category)}</Typography>
+                          </Box>
+                          <Chip label={getStockLabel(stockStatus)} color={getStockColor(stockStatus)} size="small" />
+                        </Box>
+                        <Box sx={{ mb: 1.5 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                            <Typography variant="caption" color="text.secondary">Stock actual</Typography>
+                            <Typography variant="caption" fontWeight={600} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                              {formatStock(item.current_stock, false)} {item.unit}
                             </Typography>
                           </Box>
-                          <Chip
-                            label={getStockLabel(stockStatus)}
-                            color={getStockColor(stockStatus)}
-                            size="small"
-                          />
-                        </Box>
-                        <Box sx={{ mb: 1 }}>
-                          <Typography variant="body2">
-                            Stock: {formatStock(item.current_stock, false)} {item.unit}
-                          </Typography>
                           <LinearProgress
                             variant="determinate"
                             value={Math.min(stockPercentage, 100)}
                             color={getStockColor(stockStatus)}
-                            sx={{ height: 4, mt: 0.5, mb: 0.5 }}
+                            sx={{ height: 5, borderRadius: 3 }}
                           />
-                          <Typography variant="caption" color="text.secondary">
-                            Costo/Unidad: ${item.cost_per_unit?.toLocaleString('es-CL') || '0'}
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                            Costo: ${item.cost_per_unit?.toLocaleString('es-CL') || '0'} / {item.unit}
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                          <Button size="small" startIcon={<Edit />} onClick={() => handleEdit(item)}>
+                          <Button size="small" startIcon={<Edit />} onClick={() => handleEdit(item)} aria-label={`Editar ${item.name}`}>
                             Editar
                           </Button>
-                          <Button size="small" color="success" startIcon={<AddBox />} onClick={() => handleAddStock(item)}>
+                          <Button size="small" color="success" startIcon={<AddBox />} onClick={() => handleAddStock(item)} aria-label={`Agregar stock a ${item.name}`}>
                             + Stock
                           </Button>
-                          <Button size="small" color="warning" startIcon={<RemoveCircleOutline />} onClick={() => handleWasteOpen(item)}>
+                          <Button size="small" color="warning" startIcon={<RemoveCircleOutline />} onClick={() => handleWasteOpen(item)} aria-label={`Registrar merma de ${item.name}`}>
                             Merma
                           </Button>
-                          <Button size="small" color="error" startIcon={<Delete />} onClick={() => handleDelete(item.id)}>
+                          <Button size="small" color="error" startIcon={<Delete />} onClick={() => handleDelete(item.id)} aria-label={`Eliminar ${item.name}`}>
                             Eliminar
                           </Button>
                         </Box>
@@ -1233,103 +1148,93 @@ const InventoryManagement = () => {
                 })}
               </Stack>
             ) : (
-              <TableContainer component={Paper}>
-                <Table>
+              /* ── Desktop table ── */
+              <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
+                <Table size="small">
                   <TableHead>
-                    <TableRow>
+                    <TableRow sx={{ '& th': { fontWeight: 700, bgcolor: (t) => alpha(t.palette.primary.main, 0.06), py: 1.5 } }}>
                       <TableCell>Producto</TableCell>
-                      <TableCell>Tipo</TableCell>
                       <TableCell>Categoría</TableCell>
                       <TableCell>Stock Actual</TableCell>
-                      <TableCell>Stock Mínimo</TableCell>
+                      <TableCell>Mín.</TableCell>
                       <TableCell>Estado</TableCell>
-                      <TableCell>Costo/Unidad</TableCell>
-                      <TableCell>Acciones</TableCell>
+                      <TableCell align="right">Costo/Unidad</TableCell>
+                      <TableCell align="center">Acciones</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {filteredInventory.map((item) => {
+                    {filteredInventory.map((item, idx) => {
                       const stockStatus = getStockStatus(item)
                       const stockPercentage = (item.current_stock / item.max_stock) * 100
-
                       return (
-                        <TableRow key={item.id}>
+                        <TableRow
+                          key={item.id}
+                          sx={{
+                            bgcolor: idx % 2 === 0 ? 'transparent' : (t) => alpha(t.palette.action.hover, 0.03),
+                            '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.04) },
+                            transition: 'background-color 0.15s ease',
+                          }}
+                        >
                           <TableCell>
-                            <Box>
-                              <Typography variant="body2" fontWeight="bold">
-                                {item.name}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {item.unit && `Unidad: ${item.unit}`}
-                              </Typography>
-                            </Box>
+                            <Typography variant="body2" fontWeight={600}>{item.name}</Typography>
+                            <Typography variant="caption" color="text.secondary">{item.unit}</Typography>
                           </TableCell>
                           <TableCell>
-                            <Chip
-                              label={getProductTypeLabel(item.product_type)}
-                              size="small"
-                              color={item.product_type === 'raw_material' ? 'primary' :
-                                     item.product_type === 'intermediate' ? 'secondary' : 'default'}
-                            />
+                            <Typography variant="body2">{getCategoryLabel(item.category)}</Typography>
                           </TableCell>
-                          <TableCell>{getCategoryLabel(item.category)}</TableCell>
                           <TableCell>
                             <Box>
-                              <Typography variant="body2">
+                              <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
                                 {formatStock(item.current_stock, false)} {item.unit}
                               </Typography>
                               <LinearProgress
                                 variant="determinate"
                                 value={Math.min(stockPercentage, 100)}
                                 color={getStockColor(stockStatus)}
-                                sx={{ width: 80, height: 4, mt: 0.5 }}
+                                sx={{ width: 90, height: 4, borderRadius: 2, mt: 0.5 }}
                               />
                             </Box>
                           </TableCell>
-                          <TableCell>{item.min_stock} {item.unit}</TableCell>
                           <TableCell>
-                            <Chip
-                              label={getStockLabel(stockStatus)}
-                              color={getStockColor(stockStatus)}
-                              size="small"
-                            />
+                            <Typography variant="body2" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                              {item.min_stock} {item.unit}
+                            </Typography>
                           </TableCell>
                           <TableCell>
-                            ${item.cost_per_unit?.toLocaleString('es-CL') || '0'}
+                            <Chip label={getStockLabel(stockStatus)} color={getStockColor(stockStatus)} size="small" />
                           </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                              <Button
-                                size="small"
-                                startIcon={<Edit />}
-                                onClick={() => handleEdit(item)}
-                              >
-                                Editar
-                              </Button>
-                              <Button
-                                size="small"
-                                color="success"
-                                startIcon={<AddBox />}
-                                onClick={() => handleAddStock(item)}
-                              >
-                                + Stock
-                              </Button>
-                              <Button
-                                size="small"
-                                color="warning"
-                                startIcon={<RemoveCircleOutline />}
-                                onClick={() => handleWasteOpen(item)}
-                              >
-                                Merma
-                              </Button>
-                              <Button
-                                size="small"
-                                color="error"
-                                startIcon={<Delete />}
-                                onClick={() => handleDelete(item.id)}
-                              >
-                                Eliminar
-                              </Button>
+                          <TableCell align="right">
+                            <Typography variant="body2" fontWeight={500} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                              ${item.cost_per_unit?.toLocaleString('es-CL') || '0'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                              <Tooltip title="Editar datos del producto">
+                                <IconButton size="small" onClick={() => handleEdit(item)} aria-label={`Editar ${item.name}`}>
+                                  <Edit fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Agregar stock">
+                                <IconButton size="small" color="success" onClick={() => handleAddStock(item)} aria-label={`Agregar stock a ${item.name}`}>
+                                  <AddBox fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Historial de movimientos">
+                                <IconButton size="small" color="info" onClick={() => loadItemMovements(item.id, item.name)} aria-label={`Ver movimientos de ${item.name}`}>
+                                  <Visibility fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Registrar merma">
+                                <IconButton size="small" color="warning" onClick={() => handleWasteOpen(item)} aria-label={`Registrar merma de ${item.name}`}>
+                                  <RemoveCircleOutline fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Eliminar producto">
+                                <IconButton size="small" color="error" onClick={() => handleDelete(item.id)} aria-label={`Eliminar ${item.name}`}>
+                                  <Delete fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
                             </Box>
                           </TableCell>
                         </TableRow>
@@ -1337,10 +1242,14 @@ const InventoryManagement = () => {
                     })}
                     {filteredInventory.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={8} align="center">
-                          <Typography color="text.secondary">
-                            No hay productos en esta categoría
+                        <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                          <Inventory sx={{ fontSize: 48, color: 'text.disabled', mb: 1.5 }} />
+                          <Typography variant="body1" color="text.secondary" gutterBottom>
+                            Sin productos en esta categoría
                           </Typography>
+                          <Button variant="outlined" startIcon={<Add />} onClick={() => setDialog(true)} sx={{ mt: 1 }}>
+                            Agregar primer producto
+                          </Button>
                         </TableCell>
                       </TableRow>
                     )}
@@ -2175,134 +2084,6 @@ const InventoryManagement = () => {
               </Grid>
             )}
 
-            {/* Información de Costo Promedio Actual */}
-            {stockItem && itemMovements.length > 0 && (
-              <Grid item xs={12}>
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  <Typography variant="body2">
-                    <strong>Estado Actual del Inventario:</strong><br />
-                    • Costo promedio actual: ${safeFormatCost(stockItem.cost_per_unit)} por {stockItem.unit}<br />
-                    • Últimos movimientos: {itemMovements.length} registros<br />
-                    • Último costo promedio registrado: ${safeFormatCost(itemMovements[0]?.avg_cost_after, stockItem.cost_per_unit)}
-                  </Typography>
-                </Alert>
-              </Grid>
-            )}
-
-            {/* Sección de Historial de Movimientos */}
-            <Grid item xs={12} sx={{ mt: 3 }}>
-              <Divider sx={{ mb: 2 }}>
-                <Typography variant="h6" color="text.secondary">
-                  Historial de Movimientos
-                </Typography>
-              </Divider>
-
-              {loadingItemMovements ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                  <LinearProgress sx={{ width: '100%' }} />
-                </Box>
-              ) : itemMovements.length === 0 ? (
-                <Alert severity="info">
-                  No hay movimientos registrados para este producto.
-                </Alert>
-              ) : (
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Fecha</TableCell>
-                        <TableCell>Tipo</TableCell>
-                        <TableCell align="right">Cantidad</TableCell>
-                        <TableCell align="right">Costo/Unidad</TableCell>
-                        <TableCell align="right">Stock Antes</TableCell>
-                        <TableCell align="right">Stock Después</TableCell>
-                        <TableCell align="right">Costo Promedio</TableCell>
-                        <TableCell>Proveedor</TableCell>
-                        <TableCell>Notas</TableCell>
-                        <TableCell>Acciones</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {itemMovements.map((movement, index) => (
-                        <TableRow key={movement.id || index}>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {(() => {
-                                const [year, month, day] = movement.created_at.split('T')[0].split('-');
-                                return `${day}-${month}-${year}`;
-                              })()}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={movement.movement_type || 'compra'}
-                              color={movement.movement_type === 'purchase' ? 'success' : 'default'}
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="body2" color={movement.quantity > 0 ? 'success.main' : 'error.main'}>
-                              {movement.quantity > 0 ? '+' : ''}{movement.quantity} {movement.unit}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="body2">
-                              {formatCurrency(movement.cost_per_unit)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="body2">
-                              {movement.stock_before ? formatStock(movement.stock_before) : 'N/A'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="body2">
-                              {movement.stock_after ? formatStock(movement.stock_after) : 'N/A'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="body2" fontWeight="bold" color="primary">
-                              {safeFormatCost(movement.avg_cost_after, movement.cost_per_unit)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {movement.supplier || 'N/A'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {movement.notes || '-'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            {movement.movement_type === 'waste' && !movement.reverted && (
-                              <Tooltip title="Revertir merma (devolver al inventario)">
-                                <IconButton
-                                  size="small"
-                                  color="info"
-                                  onClick={() => handleRevertWaste(movement.id)}
-                                >
-                                  <Undo fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                            {movement.reverted && (
-                              <Chip
-                                label="Revertida"
-                                size="small"
-                                color="default"
-                                variant="outlined"
-                              />
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -2504,6 +2285,104 @@ const InventoryManagement = () => {
             setNutritionMatches([])
           }}>
             Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Movements History Dialog ── */}
+      <Dialog
+        open={movementsDialog}
+        onClose={handleCloseMovementsDialog}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          Historial de Movimientos — {viewingItem?.name}
+        </DialogTitle>
+        <DialogContent>
+          {loadingItemMovements ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <LinearProgress sx={{ width: '100%' }} />
+            </Box>
+          ) : itemMovements.length === 0 ? (
+            <Alert severity="info">No hay movimientos registrados para este producto.</Alert>
+          ) : (
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Fecha</TableCell>
+                    <TableCell>Tipo</TableCell>
+                    <TableCell align="right">Cantidad</TableCell>
+                    <TableCell align="right">Costo/Unidad</TableCell>
+                    <TableCell align="right">Stock Antes</TableCell>
+                    <TableCell align="right">Stock Después</TableCell>
+                    <TableCell align="right">Costo Promedio</TableCell>
+                    <TableCell>Notas</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {itemMovements.map((movement, index) => (
+                    <TableRow key={movement.id || index}>
+                      <TableCell>
+                        {(() => {
+                          const [year, month, day] = movement.created_at.split('T')[0].split('-')
+                          return `${day}-${month}-${year}`
+                        })()}
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={movement.movement_type || 'compra'}
+                          color={movement.movement_type === 'purchase' ? 'success' : movement.movement_type === 'waste' ? 'error' : 'default'}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" color={movement.quantity > 0 ? 'success.main' : 'error.main'}>
+                          {movement.quantity > 0 ? '+' : ''}{movement.quantity} {movement.unit}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">{formatCurrency(movement.cost_per_unit)}</TableCell>
+                      <TableCell align="right">{movement.stock_before ?? 'N/A'}</TableCell>
+                      <TableCell align="right">{movement.stock_after ?? 'N/A'}</TableCell>
+                      <TableCell align="right">{formatCurrency(movement.avg_cost_after)}</TableCell>
+                      <TableCell>
+                        <Typography variant="caption" color="text.secondary">{movement.notes || '—'}</Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseMovementsDialog}>Cerrar</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Confirm Dialog ── */}
+      <Dialog
+        open={confirmDialog.open}
+        onClose={() => setConfirmDialog(d => ({ ...d, open: false }))}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>{confirmDialog.title}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{confirmDialog.message}</DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setConfirmDialog(d => ({ ...d, open: false }))}>
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color={confirmDialog.severity === 'error' ? 'error' : 'warning'}
+            onClick={confirmDialog.onConfirm}
+            autoFocus
+          >
+            Confirmar
           </Button>
         </DialogActions>
       </Dialog>
