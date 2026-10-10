@@ -608,6 +608,8 @@ Rama `claude/ai-agent-phase4-pablito`. Orquestación: Opus 5.5 diseña y revisa,
 ### Deuda detectada
 - [ ] Al importar `main.py` se imprime `Error loading nutrition database: could not convert string to float: 'Vegetales'`: `load_nutrition_database()` falla leyendo el CSV, así que `/api/inventory/nutrition-lookup` queda con base vacía (preexistente, sin tocar)
 - [ ] `POST /api/inventory/` sin validación (KeyError → 500) ni chequeo de duplicados
+- [✅] **Cerrado (10/10/2026):** `/api/scheduler/check-overdue-events` era PÚBLICO (calculaba el token pero nunca lo comparaba): cualquiera podía hacer `GET ?force=true` para auto-cerrar eventos y disparar recordatorios de WhatsApp. Ahora exige `X-Scheduler-Token` (secreto en `SCHEDULER_AUTH_TOKEN`, ya en el job de Cloud Scheduler) o un admin con sesión; sin secreto fuerte configurado queda cerrado. Logs de 30 días: sin uso indebido. `?dry_run=true` verifica el acceso sin ejecutar nada
+- [ ] **Deuda grande de autenticación (recuento 10/10/2026):** de 116 rutas, **60 escriben/borran sin ningún control** (bookings 9, expenses 7, inventory 7, contacts 6, vacuum-sales 6, production-batches 5, events 4, recipes 4, gallery 3, customers 3, payments 2, event-supplies 2, settings 1, event-consumption 1) y 48 de lectura (algunas deben seguir públicas: crear reserva/contacto/reseña, galería pública, comunas, webhook y preferencia de pago). Plan: clasificar pública/admin, hacer que el frontend mande el token de Firebase, exigir `@require_admin` ruta por ruta con tests de caracterización y probando las públicas
 - [ ] `isAdmin()` del frontend es "usuario con email"; backend sin verificación de token en el resto de rutas (aplicar `@require_admin` ruta por ruta, cuidando las rutas públicas: reservas, contacto)
 
 ---
