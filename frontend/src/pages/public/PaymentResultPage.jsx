@@ -26,6 +26,35 @@ export default function PaymentResultPage({ status }) {
   const navigate = useNavigate()
   const bookingId = searchParams.get('booking_id')
   const [pollStatus, setPollStatus] = useState(status)
+  const [cardMounted, setCardMounted] = useState(false)
+  const [iconMounted, setIconMounted] = useState(false)
+
+  // Trigger entrance transitions one frame after mount, so the browser
+  // paints the initial (faded/scaled-down) state before animating to rest.
+  useEffect(() => {
+    let raf2
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setCardMounted(true))
+    })
+    return () => {
+      cancelAnimationFrame(raf1)
+      if (raf2) cancelAnimationFrame(raf2)
+    }
+  }, [])
+
+  // Re-trigger the icon's entrance whenever the resolved status changes
+  // (e.g. polling flips pending -> success), so it doesn't just teleport.
+  useEffect(() => {
+    setIconMounted(false)
+    let raf2
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setIconMounted(true))
+    })
+    return () => {
+      cancelAnimationFrame(raf1)
+      if (raf2) cancelAnimationFrame(raf2)
+    }
+  }, [pollStatus])
 
   // Polling para estado "pending"
   useEffect(() => {
@@ -114,9 +143,28 @@ export default function PaymentResultPage({ status }) {
             background: cfg.bgColor,
             border: `1px solid ${cfg.border}`,
             textAlign: 'center',
+            opacity: cardMounted ? 1 : 0,
+            transform: cardMounted ? 'scale(1) translateY(0)' : 'scale(0.96) translateY(8px)',
+            transition: 'opacity 400ms cubic-bezier(0.23, 1, 0.32, 1), transform 400ms cubic-bezier(0.23, 1, 0.32, 1)',
+            '@media (prefers-reduced-motion: reduce)': {
+              transform: 'none',
+              transition: 'opacity 200ms ease',
+            },
           }}
         >
-          <Box sx={{ mb: 3 }}>
+          <Box
+            sx={{
+              mb: 3,
+              display: 'inline-flex',
+              opacity: iconMounted ? 1 : 0,
+              transform: iconMounted ? 'scale(1)' : 'scale(0.5)',
+              transition: 'opacity 300ms cubic-bezier(0.23, 1, 0.32, 1) 100ms, transform 300ms cubic-bezier(0.23, 1, 0.32, 1) 100ms',
+              '@media (prefers-reduced-motion: reduce)': {
+                transform: 'none',
+                transition: 'opacity 200ms ease 50ms',
+              },
+            }}
+          >
             {pollStatus === 'pending' && status === 'pending' ? (
               <Box sx={{ position: 'relative', display: 'inline-flex', mb: 1 }}>
                 {cfg.icon}
