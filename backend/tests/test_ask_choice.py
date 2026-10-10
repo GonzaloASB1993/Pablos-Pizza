@@ -9,6 +9,8 @@ from flask import Flask, g
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from utils.clock import today_cl  # noqa: E402
+
 from routes import ai_chat_routes as routes  # noqa: E402
 from services import booking_search as bs  # noqa: E402
 from tests.fakes import FakeFirestore  # noqa: E402
@@ -16,7 +18,7 @@ from tests.test_ai_chat_routes import _admin, _auth, client  # noqa: E402,F401
 
 
 def _day(offset):
-    return (date.today() + timedelta(days=offset)).isoformat()
+    return (today_cl() + timedelta(days=offset)).isoformat()
 
 
 @pytest.fixture

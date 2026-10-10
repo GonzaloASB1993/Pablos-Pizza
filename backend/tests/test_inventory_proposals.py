@@ -8,13 +8,15 @@ from pydantic import ValidationError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from utils.clock import today_cl  # noqa: E402
+
 from services import inventory_proposals as ip  # noqa: E402
 from services import inventory_service as inv  # noqa: E402
 from services import pending_actions_service as pas  # noqa: E402
 from tests.fakes import FakeFirestore  # noqa: E402
 
 USER = {'uid': 'u1', 'email': 'admin@example.com'}
-TODAY = date.today().isoformat()
+TODAY = today_cl().isoformat()
 
 
 @pytest.fixture(autouse=True)

@@ -22,6 +22,7 @@ from services import expense_proposals, inventory_search
 from services import expenses_service as expenses
 from services import inventory_service as inv
 from services import pending_actions_service as pending
+from utils.clock import today_cl
 from utils.text_matching import normalize_text
 
 RECEIPT_TYPE = 'inventory_receipt'
@@ -105,7 +106,7 @@ class ReceiptLine(BaseModel):
 
 class ReceiptPayload(BaseModel):
     supplier: Optional[str] = Field(default=None, max_length=120)
-    date: Date = Field(default_factory=Date.today)
+    date: Date = Field(default_factory=today_cl)
     total: Optional[int] = Field(default=None, ge=0, le=100_000_000)
     document_type: Literal['boleta', 'factura', 'otro'] = 'boleta'
     folio: Optional[str] = Field(default=None, max_length=40)
@@ -332,7 +333,7 @@ def propose_receipt(db, tool_input, user, attachments=None):
     if payload.total is not None and abs(payload.total - payload.lines_total) > expense_proposals.LINES_TOLERANCE_CLP:
         warnings.append(f"El total ({_clp(payload.total)}) no cuadra con la suma de las líneas ({_clp(payload.lines_total)}). "
                         "Revisa la boleta antes de confirmar.")
-    if payload.date > date.today():
+    if payload.date > today_cl():
         warnings.append('La fecha del documento es futura.')
     if payload.document_type == 'factura':
         warnings.append('Factura: los montos de las líneas suelen venir netos; el IVA (19 %) es crédito fiscal. '
@@ -370,7 +371,7 @@ def propose_inventory_item(db, tool_input, user, attachments=None):
         'min_stock': tool_input.get('min_stock', 0), 'max_stock': tool_input.get('max_stock', 0),
     }
     return propose_receipt(db, {
-        'supplier': tool_input.get('supplier'), 'date': tool_input.get('date') or date.today().isoformat(),
+        'supplier': tool_input.get('supplier'), 'date': tool_input.get('date') or today_cl().isoformat(),
         'folio': tool_input.get('folio'), 'notes': tool_input.get('notes', ''), 'lines': [line],
     }, user, attachments)
 
@@ -384,7 +385,7 @@ def propose_inventory_purchase(db, tool_input, user, attachments=None):
         'amount': tool_input.get('total_cost'),
     }
     return propose_receipt(db, {
-        'supplier': tool_input.get('supplier'), 'date': tool_input.get('date') or date.today().isoformat(),
+        'supplier': tool_input.get('supplier'), 'date': tool_input.get('date') or today_cl().isoformat(),
         'folio': tool_input.get('folio'), 'notes': tool_input.get('notes', ''), 'lines': [line],
     }, user, attachments)
 

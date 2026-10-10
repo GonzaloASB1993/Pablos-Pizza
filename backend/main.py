@@ -1,4 +1,4 @@
-from firebase_functions import https_fn, firestore_fn, options
+from firebase_functions import https_fn, firestore_fn, options, scheduler_fn
 import os
 import csv
 import unicodedata
@@ -26,7 +26,7 @@ import asyncio
 from twilio.rest import Client
 
 # Reports service imports
-import pandas as pd
+# pandas is imported inside the report export (it costs ~0.6 s of every cold start)
 from io import BytesIO
 import calendar
 
@@ -1750,6 +1750,14 @@ def main(req: https_fn.Request) -> https_fn.Response:
 )
 def whatsapp_inbox_worker(event: firestore_fn.Event[firestore_fn.DocumentSnapshot]) -> None:
     process_inbox_message(app, event.params["message_sid"])
+
+# Keeps `main` and the WhatsApp worker warm during working hours (free: a few tiny invocations instead of a paid
+# minimum instance). See services/keep_warm.py. Declared in functions.yaml too (the CLI manifest).
+@scheduler_fn.on_schedule(schedule="*/4 7-23 * * *", timezone=scheduler_fn.Timezone("America/Santiago"), timeout_sec=60)
+def keep_warm(event: scheduler_fn.ScheduledEvent) -> None:
+    from services import keep_warm as keep_warm_service
+    print(f"keep_warm: {keep_warm_service.keep_warm(get_db())}")
+
 
 # ===================== INVENTORY ENDPOINTS =====================
 
@@ -4540,6 +4548,7 @@ def export_monthly_report(year: int, month: int):
             ]
         }
 
+        import pandas as pd
         df = pd.DataFrame(data)
 
         # Crear archivo Excel en memoria

@@ -324,10 +324,10 @@ const ChatAssistant = ({ open, onClose }) => {
           <BotIcon />
           <Box minWidth={0}>
             <Typography id="ai-chat-title" variant="subtitle1" component="h2" fontWeight={700} color="inherit" noWrap>
-              Asistente de Pablo's Pizza
+              Pablito
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.85 }} noWrap component="div">
-              {model ? `Claude · ${model.replace(/^claude-/, '')}` : 'Claude'}
+              {model ? `Asistente de Pablo's Pizza · ${model.replace(/^claude-/, '')}` : "Asistente de Pablo's Pizza"}
             </Typography>
           </Box>
         </Stack>
@@ -366,9 +366,9 @@ const ChatAssistant = ({ open, onClose }) => {
         {messages.length === 0 && (
           <Stack alignItems="center" justifyContent="center" flex={1} gap={2} textAlign="center" py={3}>
             <BotIcon sx={{ fontSize: 56, color: 'primary.main', opacity: 0.6 }} />
-            <Typography variant="h6" component="p">¡Hola! ¿En qué te ayudo?</Typography>
+            <Typography variant="h6" component="p">¡Hola! Soy Pablito 🍕 ¿En qué te ayudo?</Typography>
             <Typography variant="body2" color="text.secondary" maxWidth={440}>
-              Consulta reservas, inventario y finanzas, o súbeme la foto de una boleta para dejarte lista la propuesta de gasto.
+              Pregúntame por reservas, inventario y finanzas, o mándame la foto de una boleta y te dejo lista la propuesta.
             </Typography>
           </Stack>
         )}

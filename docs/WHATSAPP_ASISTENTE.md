@@ -1,6 +1,6 @@
-# Asistente por WhatsApp
+# Pablito: el asistente por WhatsApp
 
-El mismo asistente del panel, pero por WhatsApp: le escribes (texto o foto) al número de Pablo's Pizza y te responde.
+Pablito es el mismo asistente del panel, pero por WhatsApp: le escribes (texto o foto) al número de Pablo's Pizza y te responde.
 **Solo propone; nunca guarda nada hasta que respondas SI a esa propuesta.**
 
 ## Cómo se usa
@@ -13,6 +13,14 @@ El mismo asistente del panel, pero por WhatsApp: le escribes (texto o foto) al n
   - Si quieres cambiar algo, dilo con tus palabras ("mejor son 6 kg") y deja una propuesta nueva; las anteriores se cancelan solas.
 - Una propuesta vence a las 24 horas. La conversación se reinicia si pasan más de 6 horas sin escribir.
 - "SI" y "NO" solo valen como confirmación cuando hay una propuesta pendiente; si no, el asistente los lee como texto normal.
+
+## Rapidez y mensajes cortos
+- **Saludos y "ayuda" se responden al instante** (menos de un segundo, sin modelo ni cola).
+- **"Escribiendo…"**: apenas llega tu mensaje, Twilio muestra que Pablito está escribiendo (función beta de Twilio; si tu cuenta no la tiene, simplemente no aparece).
+- **Respuestas de 3 o 4 líneas**, sin tablas ni listas largas, una pregunta a la vez, y solo las advertencias que cambian la decisión.
+- **"SI" / "NO" no pasan por el modelo**: se atienden en menos de un segundo.
+- **Arranque en frío**: la librería de IA y pandas se cargan solo cuando se necesitan (arranque de 4,7 s a 1,6 s en las pruebas) y una función programada (`keep_warm`, cada 4 minutos de 7 a 23 h, hora de Santiago) mantiene calientes `main` y el procesador, gratis.
+- **Diagnóstico**: cada mensaje procesado guarda en `whatsapp_inbox/{sid}.timings` cuánto tardó cada etapa (`queue_ms`, `media_ms`, `agent_ms`, `send_ms`, `total_ms`).
 
 ## Seguridad
 - **Solo responde a números autorizados**: por defecto `ADMIN_WHATSAPP_NUMBER` y `PARTNER_WHATSAPP_NUMBER`
@@ -45,6 +53,8 @@ El mismo asistente del panel, pero por WhatsApp: le escribes (texto o foto) al n
 | `AI_WHATSAPP_ENABLED` | `false` | interruptor general |
 | `AI_WHATSAPP_ALLOWED` | admin + socio | números autorizados, separados por coma |
 | `AI_WHATSAPP_DAILY_LIMIT` | `100` | mensajes por número y día |
+| `AI_WHATSAPP_TYPING` | `true` | muestra "escribiendo…" mientras prepara la respuesta |
+| `KEEP_WARM_URL` | URL de `main` | a qué dirección hace ping la función programada `keep_warm` |
 | `AI_WHATSAPP_MODE` | `trigger` | `inline` procesa dentro del webhook (plan B si el trigger de Firestore no se puede usar) |
 | `WHATSAPP_WEBHOOK_URL` | (la URL de la petición) | solo si Twilio firma una URL distinta a la que ve la función |
 

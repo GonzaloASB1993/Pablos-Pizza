@@ -10,6 +10,8 @@ from pydantic import ValidationError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from utils.clock import today_cl  # noqa: E402
+
 from routes import ai_chat_routes  # noqa: E402
 from services import expense_proposals as ep  # noqa: E402
 from services import expenses_service as svc  # noqa: E402
@@ -18,7 +20,7 @@ from tests.fakes import FakeFirestore  # noqa: E402
 from tests.test_ai_chat_routes import _admin, _auth, client  # noqa: E402,F401
 
 USER = {'uid': 'u1', 'email': 'admin@example.com'}
-TODAY = date.today().isoformat()
+TODAY = today_cl().isoformat()
 
 
 @pytest.fixture(autouse=True)
@@ -144,8 +146,8 @@ def test_matching_lines_do_not_warn(db):
 
 
 def test_date_and_document_warnings(db):
-    future = ep.propose_expense(db, _input(date=(date.today() + timedelta(days=3)).isoformat()), USER)
-    old = ep.propose_expense(db, _input(date=(date.today() - timedelta(days=400)).isoformat()), USER)
+    future = ep.propose_expense(db, _input(date=(today_cl() + timedelta(days=3)).isoformat()), USER)
+    old = ep.propose_expense(db, _input(date=(today_cl() - timedelta(days=400)).isoformat()), USER)
     factura = ep.propose_expense(db, _input(document_type='factura', folio=None), USER)
     assert any('futura' in w for w in future['warnings'])
     assert any('más de un año' in w for w in old['warnings'])

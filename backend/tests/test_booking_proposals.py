@@ -8,6 +8,8 @@ from pydantic import ValidationError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from utils.clock import today_cl  # noqa: E402
+
 from routes import ai_chat_routes as routes  # noqa: E402
 from services import booking_proposals as bp  # noqa: E402
 from services import booking_service as bks  # noqa: E402
@@ -19,7 +21,7 @@ USER = {'uid': 'u1', 'email': 'admin@example.com'}
 
 
 def _day(offset=10):
-    return (date.today() + timedelta(days=offset)).isoformat()
+    return (today_cl() + timedelta(days=offset)).isoformat()
 
 
 @pytest.fixture(autouse=True)

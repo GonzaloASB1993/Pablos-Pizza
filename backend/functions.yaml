@@ -1,4 +1,7 @@
 specVersion: v1alpha1
+requiredAPIs:
+  - api: cloudscheduler.googleapis.com
+    reason: Needed for scheduled functions (keep_warm).
 endpoints:
   main:
     region:
@@ -32,3 +35,18 @@ endpoints:
     availableMemoryMb: 512
     minInstances: 0
     maxInstances: 10
+  # Keeps main and the WhatsApp worker warm in working hours for free (services/keep_warm.py)
+  keep_warm:
+    region:
+      - us-central1
+    platform: gcfv2
+    entryPoint: keep_warm
+    scheduleTrigger:
+      schedule: '*/4 7-23 * * *'
+      timeZone: America/Santiago
+      retryConfig: {}
+    cpu: 1
+    timeoutSeconds: 60
+    availableMemoryMb: 512
+    minInstances: 0
+    maxInstances: 1

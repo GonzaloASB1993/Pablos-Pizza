@@ -104,7 +104,7 @@ def hook(db, monkeypatch):
     return post
 
 
-def _form(sender=ADMIN, body='hola', sid='SM100', **extra):
+def _form(sender=ADMIN, body='registra un gasto de bencina', sid='SM100', **extra):
     return {'From': f'whatsapp:{sender}', 'To': 'whatsapp:+12017620171', 'Body': body, 'MessageSid': sid, 'NumMedia': '0', **extra}
 
 
@@ -112,13 +112,13 @@ def test_webhook_stores_a_signed_message_from_an_allowed_number(hook, db):
     res = hook(_form())
     assert res.status_code == 200 and res.mimetype == 'text/xml' and b'<Response>' in res.data
     stored = db.store['whatsapp_inbox']['SM100']
-    assert stored['from'] == ADMIN and stored['body'] == 'hola' and stored['status'] == 'received'
+    assert stored['from'] == ADMIN and stored['body'] == 'registra un gasto de bencina' and stored['status'] == 'received'
 
 
 def test_webhook_is_idempotent_per_message_sid(hook, db):
     hook(_form())
     hook(_form(body='cambiado'))
-    assert len(db.store['whatsapp_inbox']) == 1 and db.store['whatsapp_inbox']['SM100']['body'] == 'hola'
+    assert len(db.store['whatsapp_inbox']) == 1 and db.store['whatsapp_inbox']['SM100']['body'] == 'registra un gasto de bencina'
 
 
 def test_webhook_rejects_unsigned_and_badly_signed_requests(hook, db):
@@ -344,7 +344,7 @@ def test_a_proposal_is_described_and_waits_for_si(db):
     sent = Sent()
     wa.process_inbox(db, _inbox(db, body='boleta de copec'), _deps(_proposing(db, 'Copec'), sent))
     text = '\n'.join(sent.bodies)
-    assert 'Copec' in text and 'Responde *SI* para confirmar o *NO* para cancelar' in text
+    assert 'Copec' in text and '¿La guardo? *SI* / *NO*' in text
     assert 'variable_expenses' not in db.store  # nothing written yet
 
 
@@ -375,7 +375,7 @@ def test_no_cancels_without_writing(db):
 def test_with_several_proposals_si_alone_asks_which_one(db):
     sent = Sent()
     wa.process_inbox(db, _inbox(db, 'SM1', body='dos boletas'), _deps(_proposing(db, 'Copec', 'Jumbo'), sent))
-    assert 'Propuesta 1' in '\n'.join(sent.bodies) and 'Propuesta 2' in '\n'.join(sent.bodies)
+    assert '*1*:' in '\n'.join(sent.bodies) and '*2*:' in '\n'.join(sent.bodies) and '¿Cuál guardo?' in '\n'.join(sent.bodies)
 
     wa.process_inbox(db, _inbox(db, 'SM2', body='SI'), _deps(_answer(), sent))
     assert 'varias propuestas' in sent.bodies[-1] and 'variable_expenses' not in db.store
@@ -486,10 +486,184 @@ def test_end_to_end_through_the_real_assistant_core(db, monkeypatch):
     wa.store_inbound(db, {'MessageSid': 'SM900', 'From': f'whatsapp:{ADMIN}', 'Body': 'registra la boleta de Copec por 25 mil', 'NumMedia': '0'})
     assert routes.process_inbox_message(app, 'SM900') == 'answered'
     assert 'variable_expenses' not in db.store                       # the agent only proposed
-    assert 'Responde *SI*' in '\n'.join(b for _, b in sent) and 'Copec' in '\n'.join(b for _, b in sent)
+    assert '¿La guardo?' in '\n'.join(b for _, b in sent) and 'Copec' in '\n'.join(b for _, b in sent)
 
     wa.store_inbound(db, {'MessageSid': 'SM901', 'From': f'whatsapp:{ADMIN}', 'Body': 'SI', 'NumMedia': '0'})
     assert routes.process_inbox_message(app, 'SM901') == 'command'
     expense, = db.store['variable_expenses'].values()
     assert expense['amount'] == 25000.0 and expense['folio'] == '555' and expense['source'] == 'ai_agent'
     assert len(model.calls) == 2  # the SI never reached the model
+
+
+# ============ block A: speed and brevity ============
+
+@pytest.mark.parametrize('text', ['hola', 'Hola!', 'HOLA 👋', 'wena', 'buenas tardes', 'Hola Pablito', 'holi', '  buenos días  '])
+def test_greetings_get_an_instant_answer(text):
+    assert wa.quick_reply(text) == wa.GREETING and 'Pablito' in wa.GREETING
+
+
+@pytest.mark.parametrize('text', ['ayuda', 'Menú', '¿qué puedes hacer?'])
+def test_help_gets_an_instant_answer(text):
+    assert wa.quick_reply(text) == wa.HELP
+
+
+@pytest.mark.parametrize('text', ['hola, registra una boleta', 'SI', '', 'cuántos eventos tengo', 'hola pablito cómo va el inventario'])
+def test_everything_else_goes_to_the_agent(text):
+    assert wa.quick_reply(text) is None
+
+
+def test_webhook_answers_a_greeting_by_itself_without_waking_the_worker(hook, db):
+    res = hook(_form(body='hola'))
+    assert res.status_code == 200 and res.mimetype == 'text/xml' and 'Soy Pablito' in res.get_data(as_text=True)
+    assert 'whatsapp_inbox' not in db.store  # nothing queued: no cold start, no model call
+
+
+def test_a_greeting_with_a_photo_is_not_a_greeting(hook, db):
+    hook(_form(body='hola', sid='SM300', NumMedia='1', MediaUrl0='https://api.twilio.com/m/1', MediaContentType0='image/jpeg'))
+    assert 'SM300' in db.store['whatsapp_inbox']
+
+
+def test_greeting_xml_is_escaped(hook, monkeypatch):
+    monkeypatch.setattr(wa, 'GREETING', 'Hola <b>&</b>')
+    assert 'Hola &lt;b&gt;&amp;&lt;/b&gt;' in hook(_form(body='hola')).get_data(as_text=True)
+
+
+def test_webhook_asks_for_the_typing_indicator_for_real_messages_only(hook, monkeypatch):
+    asked = []
+    monkeypatch.setattr(wa, 'send_typing', lambda sid: asked.append(sid) or True)
+    hook(_form(body='hola', sid='SM400'))                       # greeting: instant, no indicator needed
+    hook(_form(body='cuánto gasté este mes', sid='SM401'))
+    assert asked == ['SM401']
+
+
+def test_typing_indicator_never_breaks_the_message(monkeypatch):
+    import requests
+    monkeypatch.setattr(requests, 'post', lambda *a, **k: (_ for _ in ()).throw(requests.Timeout()))
+    assert wa.send_typing('SM1') is False
+    monkeypatch.setenv('AI_WHATSAPP_TYPING', 'false')
+    assert wa.send_typing('SM1') is False
+
+
+def test_typing_indicator_request_shape(monkeypatch):
+    import requests
+    captured = {}
+    monkeypatch.setattr(requests, 'post', lambda url, **kw: captured.update(url=url, **kw) or SimpleNamespace(ok=True, status_code=200))
+    assert wa.send_typing('SM77') is True
+    assert captured['url'].endswith('/Indicators/Typing.json') and captured['data'] == {'messageId': 'SM77', 'channel': 'whatsapp'}
+
+
+def test_the_worker_asks_for_typing_again_when_it_starts(db):
+    asked = []
+    deps = wa.Deps(send=Sent(), run_chat=_answer(), download_media=lambda u: b'', now=lambda: NOW, typing=asked.append)
+    wa.process_inbox(db, _inbox(db, 'SM500'), deps)
+    assert asked == ['SM500']
+
+
+def test_stage_timings_are_stored_for_diagnosis(db):
+    wa.process_inbox(db, _inbox(db, 'SM600'), _deps(_answer()))
+    timings = db.store['whatsapp_inbox']['SM600']['timings']
+    assert {'queue_ms', 'media_ms', 'agent_ms', 'send_ms', 'total_ms'} <= set(timings) and timings['total_ms'] >= 0
+
+
+def test_a_proposal_message_is_short_and_keeps_only_the_warnings_that_matter(db):
+    action = pas.serialize(expense_proposals.propose_expense(db, {'supplier': 'Copec', 'date': '2026-10-10', 'total': 25000,
+                                                                  'category': 'otros'}, wa.user_for(ADMIN)))
+    action['warnings'] = ['Sin folio: la detección de duplicados es menos confiable.', 'Factura: el IVA (19 %) es crédito fiscal.',
+                          'Posible duplicado: ya hay una propuesta confirmada con el mismo proveedor.',
+                          'El total ($25.000) no cuadra con la suma de las líneas ($23.000). Revisa la boleta.']
+    text = wa.proposals_message([action])
+    assert text.count('⚠️') == 2 and 'Posible duplicado' in text and 'no cuadra' in text
+    assert 'Sin folio' not in text and 'IVA' not in text and text.endswith('¿La guardo? *SI* / *NO*')
+    assert len(text.split('\n')) <= 6
+
+
+def test_long_proposals_are_cut_to_four_lines(db):
+    action = {'type': 'inventory_receipt', 'summary': 'Compra: …', 'warnings': [], 'context': {},
+              'payload': {'lines': [{'classification': 'new', 'name': f'Insumo {i}', 'quantity': 1, 'unit': 'kg',
+                                     'amount': 1000, 'description': 'x'} for i in range(7)]}}
+    text = wa.describe_action(action)
+    assert text.count('• Insumo') == 4 and '… y 3 más' in text
+
+
+def test_the_agents_chatter_next_to_a_proposal_is_trimmed(db):
+    wordy = 'Te dejé la propuesta para que la confirmes. ' + 'Esto es mucho texto que el sistema ya muestra. ' * 10 + '\n\nOtro párrafo.'
+    sent = Sent()
+    run = lambda m, u: {'response': wordy, 'choices': [], 'pending_actions': [pas.serialize(_proposal(db))]}  # noqa: E731
+    wa.process_inbox(db, _inbox(db), _deps(run, sent))
+    assert 'Otro párrafo' not in sent.bodies[0] and len(sent.bodies[0]) < 500
+
+
+def test_confirmation_messages_are_one_line():
+    for kind, result in [('expense', {}), ('booking', {}), ('event_consumption', {'total_cost': 8000}),
+                         ('event_supplies', {'estimated_total_cost': 5000}), ('inventory_receipt', {'inventory_lines': 2, 'expense_lines': 1}),
+                         ('stock_adjustment', {})]:
+        text = wa.result_message({'type': kind, 'payload': {'supplier': 'Copec', 'total': 25000}, 'result': result})
+        assert text.startswith('✅') and '\n' not in text and len(text) < 100
+
+
+def test_the_whatsapp_style_rules_reach_the_model_only_on_that_channel(db, monkeypatch):
+    from flask import Flask
+    seen = []
+
+    class Model:
+        def create(self, **params):
+            seen.append(params['system'][0]['text'])
+            return SimpleNamespace(content=[SimpleNamespace(type='text', text='ok')], stop_reason='end_turn',
+                                   usage=SimpleNamespace(input_tokens=1, output_tokens=1), model='m')
+
+    monkeypatch.setattr(ai_chat_routes, 'anthropic_client', SimpleNamespace(messages=Model()))
+    monkeypatch.setattr(ai_chat_routes, 'AI_CHAT_SERVER_FALLBACK', False)
+    with Flask(__name__).test_request_context():
+        ai_chat_routes.run_chat([{'role': 'user', 'content': 'hola'}], wa.user_for(ADMIN))
+    with Flask(__name__).test_request_context():
+        ai_chat_routes.run_chat([{'role': 'user', 'content': 'hola'}], wa.user_for(ADMIN), channel='whatsapp')
+    assert 'CANAL: WHATSAPP' not in seen[0] and 'CANAL: WHATSAPP' in seen[1] and 'Máximo 3 o 4 líneas' in seen[1]
+    assert seen[0].startswith('\nEres Pablito') or 'Eres Pablito' in seen[0]
+
+
+def test_the_system_prompt_and_tools_are_cached():
+    seen = {}
+
+    class Model:
+        def create(self, **params):
+            seen.update(params)
+            return SimpleNamespace(content=[], stop_reason='end_turn', usage=SimpleNamespace(input_tokens=1, output_tokens=1), model='m')
+
+    ai_chat_routes.anthropic_client = SimpleNamespace(messages=Model())
+    ai_chat_routes.AI_CHAT_SERVER_FALLBACK = False
+    try:
+        ai_chat_routes.create_ai_message('system text', [{'role': 'user', 'content': 'x'}])
+    finally:
+        ai_chat_routes.anthropic_client = None
+        ai_chat_routes.AI_CHAT_SERVER_FALLBACK = True
+    assert seen['system'] == [{'type': 'text', 'text': 'system text', 'cache_control': {'type': 'ephemeral'}}]
+    assert seen['tools'][-1]['cache_control'] == {'type': 'ephemeral'} and 'cache_control' not in seen['tools'][0]
+    assert 'cache_control' not in ai_chat_routes.TOOLS[-1]  # the module-level list is never mutated
+
+
+# ============ the history must show what really happened (otherwise the model doubts itself) ============
+
+def test_history_keeps_the_proposal_the_person_saw_and_the_si_exchange(db):
+    seen = []
+
+    def run(messages, user):
+        seen.append(messages)
+        if len(seen) == 1:
+            return {'response': 'Listo, revísala.', 'choices': [], 'pending_actions': [pas.serialize(_proposal(db, 'Copec'))]}
+        return {'response': 'ok', 'choices': [], 'pending_actions': []}
+
+    deps = _deps(run)
+    wa.process_inbox(db, _inbox(db, 'SM1', body='registra la boleta'), deps)
+    wa.process_inbox(db, _inbox(db, 'SM2', body='SI'), deps)           # confirmed by the code, not by the agent
+    wa.process_inbox(db, _inbox(db, 'SM3', body='y cuánto llevo gastado'), deps)
+
+    texts = [m['content'] if isinstance(m['content'], str) else m['content'][0]['text'] for m in seen[1]]
+    assert texts[0] == 'registra la boleta'
+    assert 'Copec' in texts[1] and '¿La guardo?' in texts[1]            # the agent can answer "cámbialo" with the details
+    assert texts[2] == 'SI' and texts[3].startswith('✅ Guardado')       # and knows it was saved
+    assert texts[4] == 'y cuánto llevo gastado'
+
+
+def test_the_prompt_tells_the_agent_not_to_doubt_earlier_answers():
+    prompt = ai_chat_routes.WHATSAPP_STYLE
+    assert 'no te "corrijas"' in prompt and 'SÍ ocurrieron' in prompt and 'nada de resúmenes' in prompt

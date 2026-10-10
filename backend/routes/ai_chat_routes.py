@@ -4,7 +4,6 @@ import os
 import logging
 import json
 from datetime import datetime, timedelta
-from anthropic import Anthropic
 from database import get_db, get_storage_bucket
 from firebase_admin import firestore
 from utils.auth import require_admin
@@ -12,6 +11,7 @@ from pydantic import ValidationError
 from services import (booking_proposals, booking_search, event_proposals, expense_proposals, inventory_proposals,
                       inventory_search)
 from services import pending_actions_service as pending
+from utils import clock
 from services.ai_chat_history import InvalidMessages, sanitize_messages
 from services.ai_uploads import InvalidImage, extract_images, store_images
 
@@ -21,7 +21,17 @@ ai_chat_bp = Blueprint('ai_chat', __name__, url_prefix='/api/ai-chat')
 
 # Initialize Anthropic client
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
-anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
+# Created on first use: importing the SDK costs ~2.5 s of every cold start, and most requests never need it.
+# (Tests replace this attribute with a fake.)
+anthropic_client = None
+
+
+def get_anthropic_client():
+    global anthropic_client
+    if anthropic_client is None and ANTHROPIC_API_KEY:
+        from anthropic import Anthropic
+        anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
+    return anthropic_client
 
 # Model configuration (override per environment without redeploying code).
 # Claude Sonnet 5.5 notes: sampling parameters (temperature/top_p/top_k) are not sent -
@@ -47,22 +57,26 @@ STOP_REASON_NOTES = {
 
 def create_ai_message(system_prompt, messages):
     """Single place that builds the Messages API request for the assistant"""
+    # The system prompt and the tool list (~10k tokens) are identical on every call: cache them
+    # (reads cost a tenth of normal input, and the prefix is not reprocessed)
+    tools = [dict(tool) for tool in TOOLS]
+    tools[-1]["cache_control"] = {"type": "ephemeral"}
     params = {
         "model": AI_CHAT_MODEL,
         "max_tokens": AI_CHAT_MAX_TOKENS,
-        "system": system_prompt,
-        "tools": TOOLS,
+        "system": [{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}],
+        "tools": tools,
         "messages": messages,
     }
     if AI_CHAT_EFFORT:
         params["output_config"] = {"effort": AI_CHAT_EFFORT}
     if AI_CHAT_SERVER_FALLBACK:
-        return anthropic_client.beta.messages.create(betas=[FALLBACK_BETA], fallbacks="default", **params)
-    return anthropic_client.messages.create(**params)
+        return get_anthropic_client().beta.messages.create(betas=[FALLBACK_BETA], fallbacks="default", **params)
+    return get_anthropic_client().messages.create(**params)
 
 # System prompt for Pablo's Pizza AI Assistant
 SYSTEM_PROMPT = """
-Eres un asistente AI para Pablo's Pizza, un negocio de talleres de pizza y eventos ("Pizzeros en Acción" y "Pizza Party").
+Eres Pablito, el asistente de Pablo's Pizza, un negocio de talleres de pizza y eventos ("Pizzeros en Acción" y "Pizza Party"). Así te llama el equipo: responde con naturalidad, cercano y directo, como un compañero de trabajo chileno (sin formalismos, sin sermones). Preséntate como Pablito solo cuando te saluden.
 
 CONTEXTO DEL NEGOCIO:
 - Servicios principales:
@@ -183,6 +197,21 @@ RECUERDA:
 - Prioriza información accionable
 - Sugiere próximos pasos cuando sea relevante
 """
+
+# Appended to the system prompt when the conversation happens on WhatsApp: the person is on the move
+# and reads at a glance, so the answer must be short.
+WHATSAPP_STYLE = """
+CANAL: WHATSAPP (quien te escribe está en terreno y lee de reojo):
+- Máximo 3 o 4 líneas por respuesta. Sin tablas, sin encabezados, sin listas largas (hasta 4 viñetas). 1 o 2 emojis como mucho.
+- Una sola pregunta a la vez, la más importante. No repitas lo que la persona ya te dijo ni expliques lo obvio.
+- Cuando dejes una propuesta NO la describas: el sistema ya le muestra el resumen y pregunta si la guarda. Di solo una frase corta ("Listo, revísala").
+- Menciona un problema solo si cambia la decisión (duplicado, total que no cuadra, stock insuficiente, choque de fecha) y en una línea. Nada de advertencias menores.
+- Responde lo que te preguntaron y para: nada de resúmenes de lo que viste ni ofertas al final ("¿quieres que revise…?"), salvo que falte un dato para seguir.
+- Tono de compañero: "Listo", "Dale", "Ojo con...".
+
+HISTORIAL EN WHATSAPP: de la conversación te llegan solo los textos de cada mensaje. Tus consultas a herramientas y las fotos de turnos anteriores no aparecen, pero SÍ ocurrieron y fueron reales. No dudes de tus respuestas anteriores, no te "corrijas" ni digas que no consultaste el sistema, salvo que la persona te diga que algo está mal. Si una propuesta ya se confirmó o canceló, el mensaje siguiente del historial lo dice.
+"""
+
 
 # Tool definitions for Anthropic API
 TOOLS = [
@@ -997,10 +1026,11 @@ class ChatInputError(ValueError):
     """The conversation sent by a channel is invalid (HTTP 400 on the web endpoint)"""
 
 
-def run_chat(raw_messages, user=None):
+def run_chat(raw_messages, user=None, channel='web'):
     """Core of the assistant, shared by the web endpoint and the WhatsApp channel.
 
     Needs a Flask context (it keeps per-request state in `g`); `user` is {'uid', 'email'}.
+    `channel` ('web' | 'whatsapp') adjusts the style of the answers.
     Returns the response dict; raises ChatInputError for an invalid conversation.
     """
     if user is not None:
@@ -1030,7 +1060,7 @@ def run_chat(raw_messages, user=None):
             logger.error(f"Could not store chat images: {e}", exc_info=True)
 
     # Prepare system prompt with current date and time context
-    now = datetime.now()
+    now = clock.now_cl()  # Chile's "today" (the server runs in UTC)
     current_date = now.strftime("%Y-%m-%d")
     current_year = str(now.year)
     last_year = str(now.year - 1)
@@ -1063,6 +1093,8 @@ def run_chat(raw_messages, user=None):
     system_prompt = system_prompt.replace("{current_month}", current_month)
     system_prompt = system_prompt.replace("{current_month_name}", current_month_name)
     system_prompt = system_prompt.replace("{last_month_name}", last_month_name)
+    if channel == 'whatsapp':
+        system_prompt += WHATSAPP_STYLE
 
     # Initial API call with tools
     logger.info(f"Sending request to Claude API with {len(messages)} messages and {len(TOOLS)} tools")
@@ -1072,6 +1104,8 @@ def run_chat(raw_messages, user=None):
     # Track total usage
     total_input_tokens = response.usage.input_tokens
     total_output_tokens = response.usage.output_tokens
+    cache_read = getattr(response.usage, 'cache_read_input_tokens', 0) or 0
+    cache_write = getattr(response.usage, 'cache_creation_input_tokens', 0) or 0
     tools_used = []
 
     # Handle tool use loop (bounded)
@@ -1120,6 +1154,8 @@ def run_chat(raw_messages, user=None):
         # Accumulate usage
         total_input_tokens += response.usage.input_tokens
         total_output_tokens += response.usage.output_tokens
+        cache_read += getattr(response.usage, 'cache_read_input_tokens', 0) or 0
+        cache_write += getattr(response.usage, 'cache_creation_input_tokens', 0) or 0
         stop_reason = response.stop_reason
 
     # Extract final response text
@@ -1146,7 +1182,10 @@ def run_chat(raw_messages, user=None):
         "response": response_text,
         "usage": {
             "input_tokens": total_input_tokens,
-            "output_tokens": total_output_tokens
+            "output_tokens": total_output_tokens,
+            # with prompt caching, input_tokens only counts the part that was NOT served from the cache
+            "cache_read_tokens": cache_read,
+            "cache_write_tokens": cache_write,
         },
         "tools_used": tools_used,
         "pending_actions": g.ai_pending_actions,
@@ -1178,7 +1217,7 @@ def chat():
     """
     try:
         # Validate Anthropic client
-        if not anthropic_client:
+        if not get_anthropic_client():
             logger.error("Anthropic API key not configured")
             return jsonify({
                 "error": "AI service not configured. Please add ANTHROPIC_API_KEY to environment variables."
@@ -1251,7 +1290,7 @@ def cancel_pending_action(action_id):
 def health_check():
     """Health check endpoint for AI service"""
     try:
-        api_configured = bool(ANTHROPIC_API_KEY and anthropic_client)
+        api_configured = bool(ANTHROPIC_API_KEY)  # do not build the client just for a health check
 
         return jsonify({
             "status": "ok" if api_configured else "error",

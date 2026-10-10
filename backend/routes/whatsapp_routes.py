@@ -10,6 +10,7 @@ and, if Twilio signs a different URL than the one this function sees, set WHATSA
 """
 import logging
 import os
+from xml.sax.saxutils import escape as xml_escape
 
 import requests
 from flask import Blueprint, Response, request
@@ -24,8 +25,12 @@ whatsapp_bp = Blueprint('whatsapp', __name__, url_prefix='/api/whatsapp')
 EMPTY_TWIML = '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
 
 
-def _twiml():
-    return Response(EMPTY_TWIML, status=200, mimetype='text/xml')
+def _twiml(text=None):
+    """Empty TwiML, or one that makes Twilio answer with `text` right away"""
+    if not text:
+        return Response(EMPTY_TWIML, status=200, mimetype='text/xml')
+    body = f'<?xml version="1.0" encoding="UTF-8"?><Response><Message>{xml_escape(text)}</Message></Response>'
+    return Response(body, status=200, mimetype='text/xml')
 
 
 def candidate_urls():
@@ -54,8 +59,16 @@ def webhook():
         logger.warning('WhatsApp webhook: sender not allowed (%s)', phone[-4:] or '?')
         return _twiml()
 
+    # Greetings and "ayuda" are answered right here: no queue, no cold start, no model
+    if not int(form.get('NumMedia') or 0):
+        instant = wa.quick_reply(form.get('Body'))
+        if instant:
+            return _twiml(instant)
+
     db = get_db()
     is_new = wa.store_inbound(db, form)
+    if is_new:
+        wa.send_typing(form.get('MessageSid') or form.get('SmsMessageSid'))
     if is_new and wa.processing_mode() == 'inline':
         # No Firestore trigger available: answer inside this request (Twilio will time out at 15 s, but
         # the reply still goes out through the REST API as long as the function keeps running)
@@ -87,12 +100,17 @@ def _download(url):
 def process_inbox_message(app, sid):
     """Run the assistant for one stored message inside a Flask context (it keeps per-request state in `g`)"""
     from routes import ai_chat_routes
+    from services import keep_warm
+
+    if keep_warm.is_warmup(sid):  # created by the scheduled keep-warm: load the SDK and go back to sleep
+        keep_warm.prewarm()
+        return 'warm'
 
     def run_chat(messages, user):
         with app.test_request_context():
-            return ai_chat_routes.run_chat(messages, user)
+            return ai_chat_routes.run_chat(messages, user, channel='whatsapp')
 
-    deps = wa.Deps(send=_send, run_chat=run_chat, download_media=_download)
+    deps = wa.Deps(send=_send, run_chat=run_chat, download_media=_download, typing=wa.send_typing)
     status = wa.process_inbox(get_db(), sid, deps)
     logger.info('WhatsApp message %s: %s', sid, status)
     return status

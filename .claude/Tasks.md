@@ -584,6 +584,22 @@ Rama `claude/ai-agent-phase1-services` (sin PR, sin deploy). 119 tests backend e
 - [ ] Lección de deploy: `backend/functions.yaml` es el manifiesto que usa el CLI (no descubre funciones solo): una función nueva DEBE agregarse ahí. Además `timeout_sec` en el decorador de `main` no se aplica (manda el yaml: 540 s). `firebase deploy --debug` imprime las variables de entorno: no usarlo sin filtrar
 - [ ] Futuro: notas de voz (transcripción), edición de propuestas campo a campo, avisos proactivos con plantillas aprobadas (ventana de 24 h)
 
+### Fase 4: Pablito - experiencia en WhatsApp (feedback del dueño tras la primera prueba, 10/10/2026)
+Rama `claude/ai-agent-phase4-pablito`. Orquestación: Opus 5.5 diseña y revisa, Sonnet 5.5 programa. Mediciones: el modelo tarda ~2 s para un "hola" con cualquier configuración; el tiempo se iba en arranque en frío + vueltas de herramientas + envío (procesador: 8,7 s, 7,6 s y 35 s en las pruebas).
+**Bloque A — rápido, corto y con nombre** (sin costo)
+- [✅] `anthropic` y `pandas` perezosos: `import main` de 4,70 s a 1,57 s (beneficia también al panel web); caché del prompt (system + tools)
+- [✅] Saludos y "ayuda" respondidos por el propio webhook con TwiML (sin cola ni modelo); indicador "escribiendo…" de Twilio (beta; se confirma con un mensaje real); "SI/NO" sin modelo
+- [✅] Mensajes cortos: regla `WHATSAPP_STYLE` (3-4 líneas, sin ofertas al final), propuestas compactas (solo avisos que cambian la decisión, máx. 4 líneas de detalle, "¿La guardo? SI / NO"), confirmaciones de una línea
+- [✅] Persona **Pablito** (system prompt, saludo, encabezado del panel)
+- [✅] Tiempos por etapa en `whatsapp_inbox/{sid}.timings`
+- [✅] Corregido: el historial guarda lo que la persona vio y el intercambio SI/NO (antes el modelo dudaba de sí mismo: "no te fíes de esos datos")
+- [✅] `keep_warm` programada (cada 4 min, 7-23 h Santiago, gratis) para `main` y el procesador
+- [ ] Revisión de Opus del bloque A, deploy y prueba real (tiempos, "escribiendo…")
+**Bloque B — que entienda cómo hablo** (diseño: Opus)
+- [ ] B1 notas de voz (Google Speech-to-Text, es-CL) · B2 agrupar ráfagas de fotos · B3 "deshacer" · B4 memoria de ~24 h
+**Bloque C — avisos proactivos sin spam** (diseño: Opus)
+- [ ] Estado de alertas (avisar solo cuando cambia), 1 mensaje/día, silenciar, plantilla de Meta para fuera de la ventana de 24 h
+
 ### UI/UX del asistente (transversal)
 - [ ] Rediseño del chat: markdown en respuestas, tarjetas de acción, estados de tool ("consultando inventario…"), adjuntar foto, sugerencias rápidas, layout móvil (fullscreen), historial persistente, accesibilidad
 

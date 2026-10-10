@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from services import booking_service
 from services import pending_actions_service as pending
 from services.inventory_proposals import ProposalError
+from utils.clock import today_cl
 from utils.text_matching import normalize_text
 
 ACTION_TYPE = 'booking'
@@ -153,7 +154,7 @@ def _clp(n):
 
 def propose_booking(db, tool_input, user, attachments=None):
     payload = BookingPayload.model_validate(tool_input)
-    if payload.event_date < Date.today():
+    if payload.event_date < today_cl():
         raise ProposalError(f"La fecha {payload.event_date.isoformat()} ya pasó. Pide al usuario una fecha futura.")
 
     price = estimate(db, payload)

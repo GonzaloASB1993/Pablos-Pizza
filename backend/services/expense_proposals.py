@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from services import expenses_service as expenses
 from services import pending_actions_service as pending
+from utils.clock import today_cl
 from utils.text_matching import normalize_text
 
 # Same options as the expense dialog in the admin (ReportsPage): anything else
@@ -131,9 +132,9 @@ def collect_warnings(db, p, h, exclude_action_id=None):
             warnings.append(
                 f"El total ({_clp(p.total)}) no cuadra con la suma de las líneas ({_clp(lines_total)}). "
                 "Revisa la boleta antes de confirmar.")
-    if p.date > date.today():
+    if p.date > today_cl():
         warnings.append('La fecha del documento es futura.')
-    elif (date.today() - p.date).days > 365:
+    elif (today_cl() - p.date).days > 365:
         warnings.append('La fecha del documento tiene más de un año.')
     if p.document_type == 'factura':
         warnings.append('Factura: el IVA (19 %) es crédito fiscal; el gasto se registra por el total con IVA.')

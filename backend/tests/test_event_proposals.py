@@ -9,6 +9,8 @@ from pydantic import ValidationError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from utils.clock import today_cl  # noqa: E402
+
 from routes import ai_chat_routes as routes  # noqa: E402
 from services import event_inventory_service as ev  # noqa: E402
 from services import event_proposals as ep  # noqa: E402
@@ -28,7 +30,7 @@ def _env(monkeypatch):
 @pytest.fixture
 def db():
     fake = FakeFirestore()
-    when = (date.today() + timedelta(days=5)).isoformat()
+    when = (today_cl() + timedelta(days=5)).isoformat()
     fake.store['bookings'] = {
         'b1': {'client_name': 'Martina', 'status': 'confirmed', 'event_date': when, 'participants': 12, 'financials': {'income': 100000}},
         'done': {'client_name': 'Colegio', 'status': 'completed', 'event_date': when},
