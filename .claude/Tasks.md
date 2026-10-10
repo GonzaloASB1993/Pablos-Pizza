@@ -594,7 +594,9 @@ Rama `claude/ai-agent-phase4-pablito`. Orquestación: Opus 5.5 diseña y revisa,
 - [✅] Tiempos por etapa en `whatsapp_inbox/{sid}.timings`
 - [✅] Corregido: el historial guarda lo que la persona vio y el intercambio SI/NO (antes el modelo dudaba de sí mismo: "no te fíes de esos datos")
 - [✅] `keep_warm` programada (cada 4 min, 7-23 h Santiago, gratis) para `main` y el procesador
-- [ ] Revisión de Opus del bloque A, deploy y prueba real (tiempos, "escribiendo…")
+- [✅] Revisión de Opus 5.5 aplicada (avisos que fallan seguro, SI sobre propuesta ya resuelta, reloj de Chile en vez de UTC, tokens de caché en `usage`, `requiredAPIs`) y **desplegado** (10/10/2026, `main` en `7dbc941`+; `keep_warm` creada aparte). Verificado en producción: saludo firmado responde en ~0,55 s, sin firma 403, número ajeno ignorado
+- [ ] Prueba real del dueño: tiempos (`whatsapp_inbox/{sid}.timings`), "escribiendo…" (beta de Twilio) y mensajes cortos
+- [ ] Pendiente de seguimiento (revisión): `send_typing` síncrono en el webhook (1,5 s máx.), resumen de propuesta con texto de la foto queda en el historial 6 h (recortar), respuestas rápidas sin cuota/historial
 **Bloque B — que entienda cómo hablo** (diseño: Opus)
 - [ ] B1 notas de voz (Google Speech-to-Text, es-CL) · B2 agrupar ráfagas de fotos · B3 "deshacer" · B4 memoria de ~24 h
 **Bloque C — avisos proactivos sin spam** (diseño: Opus)
