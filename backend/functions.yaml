@@ -12,3 +12,23 @@ endpoints:
     minInstances: 0
     maxInstances: 100
     concurrency: 80
+  # WhatsApp assistant worker: runs when the webhook stores a message in whatsapp_inbox
+  # (this file is the source of truth for the CLI: new functions MUST be listed here too)
+  whatsapp_inbox_worker:
+    region:
+      - us-central1
+    platform: gcfv2
+    entryPoint: whatsapp_inbox_worker
+    eventTrigger:
+      eventType: google.cloud.firestore.document.v1.created
+      retry: false
+      eventFilters:
+        database: (default)
+        namespace: (default)
+      eventFilterPathPatterns:
+        document: whatsapp_inbox/{message_sid}
+    cpu: 1
+    timeoutSeconds: 300
+    availableMemoryMb: 512
+    minInstances: 0
+    maxInstances: 10

@@ -577,8 +577,11 @@ Rama `claude/ai-agent-phase1-services` (sin PR, sin deploy). 119 tests backend e
 - [✅] Fotos: descarga con auth de Twilio, compresión a 1600 px, nunca se guardan en el historial; audios/documentos reciben respuesta explicativa
 - [✅] Confirmación por respuesta: SI / NO / SI 2 / SI todas, solo mientras hay propuesta pendiente; propuestas nuevas cancelan las viejas; ask_choice como lista numerada
 - [✅] Estado de conversación por teléfono (solo texto, se reinicia a las 6 h), límite diario por número, auditoría con `source: ai_agent` y el número
-- [ ] Deploy (función nueva `whatsapp_inbox_worker`: puede fallar si la región no coincide con la de Firestore; plan B `inline`), poner `AI_WHATSAPP_ENABLED=true` en `backend/.env` y configurar el webhook en la consola de Twilio
-- [ ] Probar a mano: "hola", una consulta, una foto de boleta → SI, y desde un número NO autorizado (debe ignorarlo)
+- [✅] Desplegado (10/10/2026): `main` + `whatsapp_inbox_worker` (trigger Firestore, us-central1, 300 s, 512 MB); `AI_WHATSAPP_ENABLED=true` y `AI_WHATSAPP_ALLOWED` = número admin + `+56998960858` (el del dueño, para pruebas; el socio quedó fuera a propósito); webhook del remitente `whatsapp:+12017620171` configurado por la API de Twilio (estaba vacío) hacia `https://main-4kqeqojbsq-uc.a.run.app/api/whatsapp/webhook`
+- [ ] Probar a mano: "hola", una consulta, una foto de boleta → SI, y desde un número NO autorizado (debe ignorarlo). Si algo falla, mirar `whatsapp_inbox/{sid}` en Firestore (`status`, `error`)
+- [ ] Decidir si el socio (`PARTNER_WHATSAPP_NUMBER`) también puede usarlo: agregarlo a `AI_WHATSAPP_ALLOWED` en `backend/.env` y redesplegar
+- [ ] Limpieza: `ENVIRONMENT=development`, `DEBUG=true`, `LOG_LEVEL=DEBUG` y `SKIP_NOTIFICATIONS=true` están en el entorno de PRODUCCIÓN (`SKIP_NOTIFICATIONS` solo afecta a los avisos de pagos MercadoPago); revisar si es intencional
+- [ ] Lección de deploy: `backend/functions.yaml` es el manifiesto que usa el CLI (no descubre funciones solo): una función nueva DEBE agregarse ahí. Además `timeout_sec` en el decorador de `main` no se aplica (manda el yaml: 540 s). `firebase deploy --debug` imprime las variables de entorno: no usarlo sin filtrar
 - [ ] Futuro: notas de voz (transcripción), edición de propuestas campo a campo, avisos proactivos con plantillas aprobadas (ventana de 24 h)
 
 ### UI/UX del asistente (transversal)
