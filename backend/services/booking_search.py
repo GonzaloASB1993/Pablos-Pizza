@@ -11,9 +11,14 @@ NAME_THRESHOLD = 0.7
 MAX_SCANNED = 300
 
 
+def event_day(event_date):
+    """'2026-10-20T16:00:00' or '2026-10-20' -> '2026-10-20' (the public form stores the first kind)"""
+    return str(event_date)[:10] if event_date else None
+
+
 def _day_of_week(event_date):
     try:
-        return DAY_NAMES[datetime.strptime(event_date, '%Y-%m-%d').weekday()]
+        return DAY_NAMES[datetime.strptime(event_day(event_date), '%Y-%m-%d').weekday()]
     except (TypeError, ValueError):
         return None
 
@@ -27,7 +32,7 @@ def _name_matches(needle, name):
 def _proximity(event_date, today):
     """Upcoming events first (soonest first), then past ones (most recent first)"""
     try:
-        delta = (datetime.strptime(event_date, '%Y-%m-%d').date() - today).days
+        delta = (datetime.strptime(event_day(event_date), '%Y-%m-%d').date() - today).days
     except (TypeError, ValueError):
         return (2, 0)
     return (0, delta) if delta >= 0 else (1, -delta)
@@ -44,7 +49,8 @@ def search_bookings(db, client_name=None, date_from=None, date_to=None, status=N
         if date_from:
             query = query.where('event_date', '>=', date_from)
         if date_to:
-            query = query.where('event_date', '<=', date_to)
+            # '~' sorts after any time suffix, so "2026-10-25T16:00:00" still falls inside date_to="2026-10-25"
+            query = query.where('event_date', '<=', date_to + '~')
     elif status:
         query = query.where('status', '==', status)
     query = query.limit(MAX_SCANNED)
@@ -75,7 +81,7 @@ def search_bookings(db, client_name=None, date_from=None, date_to=None, status=N
             'id': booking_id,
             'client_name': booking.get('client_name'),
             'service_type': booking.get('service_type'),
-            'event_date': booking.get('event_date'),
+            'event_date': event_day(booking.get('event_date')),
             'day_of_week': _day_of_week(booking.get('event_date')),
             'event_time': booking.get('event_time'),
             'participants': booking.get('participants'),

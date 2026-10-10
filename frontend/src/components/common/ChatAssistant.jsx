@@ -31,6 +31,7 @@ import ExpenseActionCard from './chat/ExpenseActionCard'
 import ReceiptActionCard from './chat/ReceiptActionCard'
 import SimpleActionCard from './chat/SimpleActionCard'
 import EventInventoryCard from './chat/EventInventoryCard'
+import BookingActionCard from './chat/BookingActionCard'
 import { describeError, sendChat } from './chat/chatApi'
 import { compressImage, MAX_IMAGES } from './chat/imageUtils'
 
@@ -54,7 +55,8 @@ const TOOL_LABELS = {
   propose_stock_adjustment: 'propuesta de ajuste',
   search_bookings: 'reservas',
   propose_event_supplies: 'propuesta de insumos del evento',
-  propose_event_consumption: 'propuesta de consumo del evento'
+  propose_event_consumption: 'propuesta de consumo del evento',
+  propose_booking: 'propuesta de reserva'
 }
 
 // action.type -> card component (unknown types fall back to a plain confirm/cancel card)
@@ -64,7 +66,8 @@ const ACTION_CARDS = {
   inventory_update: SimpleActionCard,
   stock_adjustment: SimpleActionCard,
   event_supplies: EventInventoryCard,
-  event_consumption: EventInventoryCard
+  event_consumption: EventInventoryCard,
+  booking: BookingActionCard
 }
 
 const SUGGESTIONS = [
@@ -72,6 +75,7 @@ const SUGGESTIONS = [
   { label: '¿Qué tengo esta semana?', text: '¿Qué eventos y reservas tengo esta semana?' },
   { label: 'Estado del inventario', text: '¿Cómo está el inventario? ¿Qué debo reponer?' },
   { label: 'Hacer un conteo', text: 'Quiero registrar un conteo de stock de un insumo' },
+  { label: 'Nueva reserva', text: 'Quiero crear una reserva nueva' },
   { label: 'Gastos del mes', text: '¿Cuánto he gastado este mes, por categoría?' }
 ]
 

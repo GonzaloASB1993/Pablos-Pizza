@@ -1,0 +1,154 @@
+"""Booking creation and pricing, shared by the public HTTP endpoint and the AI agent.
+
+`calculate_estimated_price` used to exist twice (main.py and routes/bookings_routes.py); this is the single
+copy (a test proves both old versions agree with it). Creating a booking keeps every behavior of the public
+endpoint: customer linking, `pending` status, the WhatsApp/e-mail notification to the admin side.
+
+What a created booking triggers (documented on purpose, see tests/test_booking_service.py):
+  * creating (always `pending`): WhatsApp template `new_booking` to the ADMIN and PARTNER numbers + e-mail to the admin.
+  * NOTHING goes to the customer. Customer notifications only happen when a booking becomes `confirmed`
+    (update_booking in routes/bookings_routes.py) and the AI agent has no way to confirm a booking.
+"""
+import asyncio
+import os
+import uuid
+from datetime import datetime
+
+from firebase_admin import firestore
+
+from services.email_service import send_admin_email_notification
+from services.whatsapp_service import send_whatsapp_template
+
+try:
+    from config import PricingConfig
+except Exception:  # noqa: BLE001 - same fallback the routes always had
+    class PricingConfig:
+        PIZZEROS_MINIMUM = 135000
+        PIZZA_PARTY_BASE_PRICE = 11990
+
+        @staticmethod
+        def get_pizzeros_price(p):
+            return 13500 if p <= 10 else (10500 if p <= 14 else (9500 if p <= 19 else 9000))
+
+        @staticmethod
+        def get_pizza_party_price(pizzas):
+            return round(PricingConfig.PIZZA_PARTY_BASE_PRICE * 0.9) if pizzas >= 20 else PricingConfig.PIZZA_PARTY_BASE_PRICE
+
+VALID_SOURCES = {'website', 'instagram', 'tiktok', 'word_of_mouth', 'other'}
+
+
+class BookingError(Exception):
+    """Carries the message and HTTP status the public endpoint answered with"""
+
+    def __init__(self, message, status_code=400):
+        super().__init__(message)
+        self.message = message
+        self.status_code = status_code
+
+
+def calculate_estimated_price(service_types, pizzeros_participants=0, party_participants=0, participants=0,
+                              pizza_quantity=0, comuna_lejana_extra=0):
+    """Price from the services (comma separated: workshop|pizzeros, pizza_party|party), people / pizzas and
+    the distant-commune surcharge. Pizzeros: tiered per child, with a minimum up to 10. Pizza Party: per pizza."""
+    total = 0
+    for service in [x.strip() for x in service_types.split(',') if x.strip()]:
+        if service in ["workshop", "pizzeros"]:
+            people = pizzeros_participants or participants
+            if people > 0:
+                total += max(PricingConfig.PIZZEROS_MINIMUM if people <= 10 else 0, people * PricingConfig.get_pizzeros_price(people))
+        elif service in ["pizza_party", "party"]:
+            pizzas = pizza_quantity or party_participants or participants
+            if pizzas > 0:
+                total += pizzas * PricingConfig.get_pizza_party_price(pizzas)
+    total += comuna_lejana_extra
+    return round(total, 2)
+
+
+def notify_new_booking(booking):
+    """WhatsApp (admin + partner) and e-mail (admin). Best effort: a notification failure never fails a booking."""
+    try:
+        for phone in [os.getenv('ADMIN_WHATSAPP_NUMBER', '+56998960858'), os.getenv('PARTNER_WHATSAPP_NUMBER', '+56998960858')]:
+            asyncio.run(send_whatsapp_template(phone, 'new_booking', booking))
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        send_admin_email_notification(booking)
+    except Exception as exc:  # noqa: BLE001
+        print(f"Error sending admin email: {exc}")
+
+
+def create_booking(db, data, booking_id=None, notify=True):
+    """Create a `pending` booking, linking or creating its customer. Returns the stored booking.
+
+    With an explicit `booking_id` the call is idempotent: an existing booking is returned untouched
+    and nobody is notified twice.
+    """
+    if not data:
+        raise BookingError('No data', 400)
+    for field in ['service_type', 'source']:
+        if not data.get(field):
+            raise BookingError(f'Missing {field}', 400)
+    if data['source'] not in VALID_SOURCES:
+        raise BookingError(f"Invalid source. Must be one of: {', '.join(VALID_SOURCES)}", 400)
+
+    data = dict(data)
+    if data.get('source') != 'other':
+        data['source_other'] = ''
+
+    booking_id = booking_id or str(uuid.uuid4())
+    ref = db.collection('bookings').document(booking_id)
+    existing = ref.get()
+    if existing.exists:
+        stored = existing.to_dict()
+        stored.setdefault('id', booking_id)
+        return stored
+
+    comuna_lejana_extra = int(data.get('comuna_lejana_extra', 0))
+    estimated_price = calculate_estimated_price(
+        data.get('service_type', ''), data.get('pizzeros_participants', 0), data.get('party_participants', 0),
+        data.get('participants', 0), data.get('pizza_quantity', 0), comuna_lejana_extra)
+
+    # Customer linking / creation
+    customer_id = data.get('customer_id')
+    client_email = (data.get('client_email') or '').strip().lower()
+    if not customer_id and client_email:
+        matches = list(db.collection("customers").where("email", "==", client_email).limit(1).get())
+        if matches:
+            customer_id = matches[0].id
+            print(f"🔗 Linking booking to existing customer: {customer_id}")
+        else:
+            customer_id = str(uuid.uuid4())
+            now = datetime.now()
+            db.collection("customers").document(customer_id).set({
+                "id": customer_id,
+                "name": (data.get('client_name') or '').strip(),
+                "email": client_email,
+                "phone": (data.get('client_phone') or '').strip(),
+                "address": data.get('location'),
+                "notes": None,
+                "total_bookings": 1,
+                "last_booking_date": data.get('event_date'),
+                "created_at": now,
+                "updated_at": now,
+                "is_active": True,
+            })
+            print(f"✅ New customer created: {customer_id}")
+
+    notes = data.get('special_requests') or data.get('notes', '')
+    booking = {"id": booking_id, **data, "customer_id": customer_id, "notes": notes, "status": "pending",
+               "created_at": datetime.now(), "estimated_price": estimated_price}
+    ref.set(booking)
+
+    if customer_id:
+        try:
+            db.collection("customers").document(customer_id).update({
+                "total_bookings": firestore.Increment(1),
+                "last_booking_date": data.get('event_date'),
+                "updated_at": datetime.now(),
+            })
+        except Exception:  # noqa: BLE001
+            pass
+
+    if notify:
+        notify_new_booking(booking)
+    return booking

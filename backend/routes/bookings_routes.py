@@ -6,120 +6,22 @@ from database import get_db
 from firebase_admin import firestore
 from utils.pagination import paginate_query, create_pagination_response
 from services.whatsapp_service import send_whatsapp_template
+from services import booking_service
 from services.email_service import send_admin_email_notification
 
 bookings_bp = Blueprint('bookings', __name__, url_prefix='/api/bookings')
 
-try:
-    from config import PricingConfig
-except:
-    class PricingConfig:
-        PIZZEROS_MINIMUM = 135000
-        PIZZA_PARTY_BASE_PRICE = 11990
-        @staticmethod
-        def get_pizzeros_price(p): return 13500 if p<=10 else (10500 if p<=14 else (9500 if p<=19 else 9000))
-        @staticmethod
-        def get_pizza_party_price(pizzas): return round(PricingConfig.PIZZA_PARTY_BASE_PRICE*0.9) if pizzas>=20 else PricingConfig.PIZZA_PARTY_BASE_PRICE
-
-def calculate_estimated_price(service_types, pizzeros_participants=0, party_participants=0, participants=0, pizza_quantity=0, comuna_lejana_extra=0):
-    total = 0
-    for s in [x.strip() for x in service_types.split(',') if x.strip()]:
-        if s in ["workshop","pizzeros"]:
-            sp = pizzeros_participants or participants
-            if sp > 0:
-                total += max(PricingConfig.PIZZEROS_MINIMUM if sp<=10 else 0, sp*PricingConfig.get_pizzeros_price(sp))
-        elif s in ["pizza_party","party"]:
-            pz = pizza_quantity or party_participants or participants
-            if pz > 0: total += pz*PricingConfig.get_pizza_party_price(pz)
-    # Agregar cargo por comuna lejana (Quilicura, Lampa, Colina, Huechuraba)
-    total += comuna_lejana_extra
-    return round(total, 2)
+# Pricing and creation live in services/booking_service.py (shared with the AI agent)
+calculate_estimated_price = booking_service.calculate_estimated_price
 
 @bookings_bp.route('/', methods=['POST'])
 def create_booking():
-    """Create new booking with automatic customer linking/creation"""
+    """Create new booking with automatic customer linking/creation (PUBLIC: the website posts here)"""
     try:
         data = request.get_json()
-        if not data: return jsonify({"error": "No data"}), 400
-        for f in ['service_type','source']:
-            if not data.get(f): return jsonify({"error": f"Missing {f}"}), 400
-
-        valid_sources = {'website','instagram','tiktok','word_of_mouth','other'}
-        if data['source'] not in valid_sources:
-            return jsonify({"error": f"Invalid source. Must be one of: {', '.join(valid_sources)}"}), 400
-
-        # Clear source_other unless source is 'other'
-        if data.get('source') != 'other':
-            data['source_other'] = ''
-
-        db = get_db()
-        bid = str(uuid.uuid4())
-        comuna_lejana_extra = int(data.get('comuna_lejana_extra', 0))
-        ep = calculate_estimated_price(data.get('service_type',''),data.get('pizzeros_participants',0),data.get('party_participants',0),data.get('participants',0),data.get('pizza_quantity',0),comuna_lejana_extra)
-
-        # Handle customer linking/creation
-        customer_id = data.get('customer_id')
-        client_email = data.get('client_email', '').strip().lower()
-
-        if not customer_id and client_email:
-            # Check if customer exists by email
-            existing = db.collection("customers").where("email", "==", client_email).limit(1).get()
-            existing_docs = list(existing)
-
-            if existing_docs:
-                # Link to existing customer
-                customer_id = existing_docs[0].id
-                print(f"🔗 Linking booking to existing customer: {customer_id}")
-            else:
-                # Create new customer
-                customer_id = str(uuid.uuid4())
-                now = datetime.now()
-                customer_doc = {
-                    "id": customer_id,
-                    "name": data.get('client_name', '').strip(),
-                    "email": client_email,
-                    "phone": data.get('client_phone', '').strip(),
-                    "address": data.get('location'),
-                    "notes": None,
-                    "total_bookings": 1,
-                    "last_booking_date": data.get('event_date'),
-                    "created_at": now,
-                    "updated_at": now,
-                    "is_active": True
-                }
-                db.collection("customers").document(customer_id).set(customer_doc)
-                print(f"✅ New customer created: {customer_id}")
-
-        # Create booking with customer reference
-        # Map special_requests to notes for admin panel compatibility
-        notes = data.get('special_requests') or data.get('notes', '')
-        bd = {"id":bid,**data,"customer_id":customer_id,"notes":notes,"status":"pending","created_at":datetime.now(),"estimated_price":ep}
-        db.collection("bookings").document(bid).set(bd)
-
-        # Update customer stats if customer exists
-        if customer_id:
-            try:
-                customer_ref = db.collection("customers").document(customer_id)
-                customer_ref.update({
-                    "total_bookings": firestore.Increment(1),
-                    "last_booking_date": data.get('event_date'),
-                    "updated_at": datetime.now()
-                })
-            except: pass
-
-        # Send notifications
-        try:
-            for ph in [os.getenv('ADMIN_WHATSAPP_NUMBER','+56998960858'),os.getenv('PARTNER_WHATSAPP_NUMBER','+56998960858')]:
-                asyncio.run(send_whatsapp_template(ph,'new_booking',bd))
-        except: pass
-
-        # Send email notification to admin
-        try:
-            send_admin_email_notification(bd)
-        except Exception as e:
-            print(f"Error sending admin email: {e}")
-
-        return jsonify(bd), 201
+        return jsonify(booking_service.create_booking(get_db(), data)), 201
+    except booking_service.BookingError as e:
+        return jsonify({"error": e.message}), e.status_code
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @bookings_bp.route('/', methods=['GET'])

@@ -201,63 +201,8 @@ def get_db():
         _db = firestore.client()
     return _db
 
-def calculate_estimated_price(service_types: str, pizzeros_participants: int = 0, party_participants: int = 0, participants: int = 0, pizza_quantity: int = 0) -> float:
-    """
-    Calculate estimated price based on service types and participants count per service
-
-    Args:
-        service_types: Comma-separated service types (e.g., "workshop", "pizza_party", or "workshop,pizza_party")
-        pizzeros_participants: Number of participants for Pizzeros en Acción
-        party_participants: Number of PIZZAS for Pizza Party (for pricing)
-        pizza_quantity: Number of pizzas for Pizza Party (new field)
-        participants: Legacy field for backward compatibility
-    """
-    logger.info(f"[CALCULATE] Starting calculation: service_types='{service_types}', "
-                f"pizzeros_participants={pizzeros_participants}, party_participants={party_participants}, "
-                f"pizza_quantity={pizza_quantity}, participants={participants}")
-
-    total_price = 0
-    services = [s.strip() for s in service_types.split(',') if s.strip()]
-
-    for service in services:
-        if service == "workshop" or service == "pizzeros":
-            # Pizzeros en Acción pricing with tiered structure
-            service_participants = pizzeros_participants if pizzeros_participants > 0 else participants
-            if service_participants <= 0:
-                logger.debug(f"Skipping Pizzeros en Acción: no participants")
-                continue
-
-            price_per_child = PricingConfig.get_pizzeros_price(service_participants)
-            service_total = service_participants * price_per_child
-
-            # Apply minimum for 0-10 range
-            if service_participants <= 10:
-                service_total = max(PricingConfig.PIZZEROS_MINIMUM, service_total)
-                logger.info(f"Pizzeros en Acción (0-10): {service_participants} niños x ${price_per_child} = ${service_total} (mínimo ${PricingConfig.PIZZEROS_MINIMUM})")
-            else:
-                logger.info(f"Pizzeros en Acción: {service_participants} niños x ${price_per_child} = ${service_total}")
-
-            total_price += service_total
-
-        elif service == "pizza_party" or service == "party":
-            # Pizza Party pricing logic - usa PIZZAS, no personas
-            pizzas = pizza_quantity if pizza_quantity > 0 else (party_participants if party_participants > 0 else participants)
-            if pizzas <= 0:
-                logger.debug(f"Skipping Pizza Party: no pizzas specified")
-                continue
-
-            price_per_pizza = PricingConfig.get_pizza_party_price(pizzas)
-            service_total = pizzas * price_per_pizza
-
-            logger.info(f"Pizza Party: {pizzas} pizzas x ${price_per_pizza} = ${service_total}")
-            total_price += service_total
-
-        else:
-            logger.warning(f"Unknown service type: {service}")
-
-    result = round(total_price, 2)
-    logger.info(f"[CALCULATE] Final total: ${result}")
-    return result
+# calculate_estimated_price lives in services/booking_service.py (single copy, shared with the routes and the AI agent)
+from services.booking_service import calculate_estimated_price  # noqa: E402,F401
 
 def create_event_from_booking(booking_data: dict) -> bool:
     """Create an event automatically when a booking is completed with costs"""

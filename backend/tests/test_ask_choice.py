@@ -168,3 +168,36 @@ def test_user_said_only_sees_what_the_user_wrote(client, db, monkeypatch):
         {'role': 'assistant', 'content': 'Opciones: b-other'},          # model output does not count
         {'role': 'user', 'content': 'Martina · en 5 días [id: b-martina]'}]}, headers=_auth())
     assert seen['guard'] == (True, False, False)
+
+
+# ---------- bookings stored by the public form: event_date is "YYYY-MM-DDTHH:MM:00" ----------
+
+@pytest.fixture
+def web_db():
+    fake = FakeFirestore()
+    fake.store['bookings'] = {
+        'w1': {'client_name': 'Ana', 'status': 'confirmed', 'event_date': f'{_day(5)}T16:00:00', 'event_time': '16:00'},
+        'w2': {'client_name': 'Beto', 'status': 'confirmed', 'event_date': f'{_day(9)}T12:00:00'},
+        'plain': {'client_name': 'Carla', 'status': 'confirmed', 'event_date': _day(5)},
+    }
+    return fake
+
+
+def test_search_understands_datetime_event_dates(web_db):
+    found = {b['id']: b for b in bs.search_bookings(web_db)}
+    assert found['w1']['event_date'] == _day(5) and found['w1']['day_of_week'] in bs.DAY_NAMES
+    ordered = [b['id'] for b in bs.search_bookings(web_db)]
+    assert ordered.index('w1') < ordered.index('w2')  # proximity works for both formats
+
+
+def test_date_to_includes_events_that_day_with_a_time(web_db):
+    ids = {b['id'] for b in bs.search_bookings(web_db, date_from=_day(5), date_to=_day(5))}
+    assert ids == {'w1', 'plain'}
+    assert 'w2' not in {b['id'] for b in bs.search_bookings(web_db, date_from=_day(5), date_to=_day(8))}
+
+
+def test_get_bookings_tool_includes_the_last_day_with_a_time(web_db, monkeypatch):
+    monkeypatch.setattr(routes, 'get_db', lambda: web_db)
+    result = routes.get_bookings_data(date_from=_day(5), date_to=_day(5))
+    assert {b['id'] for b in result['bookings']} == {'w1', 'plain'}
+    assert next(b for b in result['bookings'] if b['id'] == 'w1')['day_of_week'] in bs.DAY_NAMES

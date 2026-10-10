@@ -559,8 +559,17 @@ Rama `claude/ai-agent-phase1-services` (sin PR, sin deploy). 119 tests backend e
 - [ ] Pendiente de producto: `POST /api/event-supplies/` sigue permitiendo crear varias estimaciones por booking desde la API directa (el agente siempre actualiza la existente)
 
 ### Fase 3: Reservas y canal
-- [ ] `propose_booking` (usa `calculate_estimated_price`)
-- [ ] Canal WhatsApp (Twilio media inbound + allowlist de números) sobre las mismas tools
+**3.1 — `propose_booking`** (rama `claude/ai-agent-phase3-bookings`, 340 tests, sin PR ni deploy)
+- [✅] Tests de caracterización de `POST /api/bookings/` (endpoint PÚBLICO) y de las dos copias de `calculate_estimated_price`; `services/booking_service.py` con UNA sola copia del precio (main.py y routes la importan) y `create_booking` compartido (idempotente con `booking_id`)
+- [✅] Contrato de notificaciones documentado y cubierto con tests (envíos mockeados): crear una reserva (siempre `pending`) avisa por WhatsApp `new_booking` al admin y al socio + correo al admin; el CLIENTE no recibe nada. El agente no tiene tools para confirmar/cancelar/editar reservas (confirmar, que notifica al cliente, sigue siendo manual en el panel)
+- [✅] `propose_booking`: mismos campos y formatos que el sitio web (`event_date` ISO con hora, `service_type` workshop/pizza_party, `services_selected`...), precio con cargo de comuna lejana leído de `settings/comunas_lejanas`, avisos (choque de fecha ese día, cliente existente, sin contacto, mínimos, duplicado), `created_via: ai_agent`
+- [✅] Arreglo: `event_date` guardado como `YYYY-MM-DDTHH:MM:00` (lo que manda el sitio) ahora lo entienden `search_bookings` y `get_bookings` (el último día de un rango quedaba fuera)
+- [✅] UI: `BookingActionCard`
+- [ ] Deploy 3.1 y prueba manual (reserva de prueba: confirmar la propuesta y verificar que llegan los avisos al admin/socio y NO al cliente)
+- [ ] Deuda: un cliente nuevo se crea con `total_bookings: 1` y luego `Increment(1)`: su primera reserva cuenta 2 (preexistente en `POST /api/bookings/`, fijado en un test; corregirlo cambia estadísticas del panel)
+
+**3.2 — Canal WhatsApp** (pendiente: requiere decisiones, ver propuesta)
+- [ ] Webhook entrante con validación de firma `X-Twilio-Signature`, allowlist de números, descarga de media (`MediaUrl0`, auth básica Twilio), estado de conversación por teléfono en Firestore, confirmación por respuesta ("SI"/"NO") sobre `pending_actions`, ventana de 24 h
 
 ### UI/UX del asistente (transversal)
 - [ ] Rediseño del chat: markdown en respuestas, tarjetas de acción, estados de tool ("consultando inventario…"), adjuntar foto, sugerencias rápidas, layout móvil (fullscreen), historial persistente, accesibilidad

@@ -37,7 +37,12 @@ class FakeDocRef:
         coll = self._store.setdefault(self._name, {})
         if self.id not in coll:
             raise KeyError(f"No document to update: {self._name}/{self.id}")
-        coll[self.id].update(copy.deepcopy(data))
+        document = coll[self.id]
+        for key, value in data.items():
+            if type(value).__name__ == 'Increment':  # firestore.Increment(n): server-side add
+                document[key] = (document.get(key) or 0) + value.value
+            else:
+                document[key] = copy.deepcopy(value)
 
     def delete(self):
         self._store.get(self._name, {}).pop(self.id, None)
