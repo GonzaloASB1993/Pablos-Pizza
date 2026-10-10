@@ -169,3 +169,11 @@ web-build/
 # Package-lock files (optional, uncomment if you prefer)
 # package-lock.json
 # yarn.lock
+# Local AI tooling / per-machine config
+.agents/
+.claude/skills/
+.claude/worktrees/
+.claude/settings.local.json
+.claude/launch.json
+.playwright-mcp/
+skills-lock.json

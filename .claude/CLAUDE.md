@@ -2,10 +2,10 @@
 
 ## 📋 Protocolo de Inicio de Sesión
 ### INSTRUCCIONES OBLIGATORIAS PARA CLAUDE:
-1. **SIEMPRE lee el archivo `planning.md`** al inicio de cada conversación
-2. **Checkea `task.md`** antes de empezar a trabajar en cualquier tarea
+1. **SIEMPRE lee el archivo `Planning.md`** al inicio de cada conversación
+2. **Checkea `Tasks.md`** antes de empezar a trabajar en cualquier tarea
 3. **Marca como completado** cada tarea inmediatamente después de finalizarla
-4. **Agrega nuevas tareas descubiertas** al archivo `task.md` durante el desarrollo
+4. **Agrega nuevas tareas descubiertas** al archivo `Tasks.md` durante el desarrollo
 
 ## 🏗️ Project Structure
 ```
@@ -14,14 +14,14 @@ Pablos Pizza/
 ├── backend/           # Python Flask API + Firebase
 ├── docs/              # API documentation
 └── .claude/           # Claude configuration
-    ├── planning.md    # Project vision, architecture, tech stack
-    ├── task.md        # Task management and milestones
-    └── claude.md      # This file - project overview
+    ├── Planning.md    # Project vision, architecture, tech stack
+    ├── Tasks.md        # Task management and milestones
+    └── CLAUDE.md      # This file - project overview
 ```
 
 ## 🔗 Related Documentation Files
-- **[planning.md](./planning.md)** - Project vision, architecture, technology stack, tools
-- **[task.md](./task.md)** - Complete task breakdown by milestones with status tracking
+- **[Planning.md](./Planning.md)** - Project vision, architecture, technology stack, tools
+- **[Tasks.md](./Tasks.md)** - Complete task breakdown by milestones with status tracking
 - [Frontend Documentation](./CLAUDE-FRONTEND.md) - React components, routing, state management
 - [Backend Documentation](./CLAUDE-BACKEND.md) - API endpoints, database models, business logic
 - [API Reference](./docs/API_DOCUMENTATION.md) - Complete API specification
@@ -65,8 +65,8 @@ firebase deploy
 
 ## 🎯 Development Focus Areas
 **Before starting any work, always:**
-1. Read `planning.md` for project context and architecture
-2. Check `task.md` for current milestone and specific tasks
+1. Read `Planning.md` for project context and architecture
+2. Check `Tasks.md` for current milestone and specific tasks
 3. Use specific documentation files for detailed work:
    - Frontend components → See CLAUDE-FRONTEND.md
    - API endpoints → See CLAUDE-BACKEND.md
@@ -99,11 +99,11 @@ firebase deploy
 3. **Maintain consistency** with existing architecture
 4. **Prioritize performance** and user experience
 5. **Document technical decisions** in relevant files
-6. **Update task.md** with progress and new discoveries
+6. **Update Tasks.md** with progress and new discoveries
 
 ## 🔍 Quick Reference Links
 - **Frontend Dev Server**: http://localhost:3000
-- **Backend Dev Server**: http://localhost:5000  
+- **Backend Dev Server**: http://localhost:8000  
 - **Production Frontend**: https://pablospizza.web.app
 - **Production Backend**: https://main-4kqeqojbsq-uc.a.run.app
 - **Firebase Console**: Console for database and hosting management
