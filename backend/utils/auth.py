@@ -69,6 +69,10 @@ def require_admin(view):
                 logger.warning(f"Non-admin user tried to access {request.path}: {email}")
                 return jsonify({"error": "Forbidden"}), 403
         else:
+            if os.getenv('ENVIRONMENT', '').strip().lower() == 'production':
+                # fail closed: never accept "any Firebase user" as admin in production
+                logger.error("ADMIN_EMAILS is not set in production: admin endpoints are closed")
+                return jsonify({"error": "Admin access is not configured"}), 503
             global _warned_open_allowlist
             if not _warned_open_allowlist:
                 logger.warning(
@@ -80,6 +84,7 @@ def require_admin(view):
         g.current_user = {'uid': decoded.get('uid'), 'email': email}
         return view(*args, **kwargs)
 
+    wrapper._requires_admin = True
     return wrapper
 
 
@@ -114,4 +119,5 @@ def require_scheduler_or_admin(view):
         # no (or wrong) secret: the only other way in is a verified admin session
         return require_admin(view)(*args, **kwargs)
 
+    wrapper._requires_admin = True
     return wrapper
