@@ -156,16 +156,9 @@ print("  [OK] WhatsApp assistant routes registered")
 print("[SUCCESS] All blueprints registered successfully!")
 
 
-# Flask-Limiter configuration for rate limiting
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=["10000 per day", "1000 per hour"],  # More reasonable limits for admin operations
-    storage_uri="memory://",  # In-memory storage (sufficient for single instance)
-)
+# Flask-Limiter configuration for rate limiting (shared instance in utils/limiter.py)
+from utils.limiter import limiter, init_limiter
+init_limiter(app)
 
 # Rate limit error handler
 @app.errorhandler(429)
