@@ -13,6 +13,7 @@ from twilio.request_validator import RequestValidator
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import main  # noqa: E402,F401  (imported at collection time: it loads backend/.env, which must not happen mid-test)
 from routes import ai_chat_routes  # noqa: E402
 from routes import whatsapp_routes as routes  # noqa: E402
 from services import expense_proposals  # noqa: E402
@@ -147,7 +148,6 @@ def test_inline_mode_processes_inside_the_webhook(hook, db, monkeypatch):
     monkeypatch.setenv('AI_WHATSAPP_MODE', 'inline')
     seen = []
     monkeypatch.setattr(routes, 'process_inbox_message', lambda app, sid: seen.append(sid))
-    import main  # noqa: F401  (the inline path imports the app from main)
     hook(_form())
     hook(_form())  # duplicate delivery: processed once
     assert seen == ['SM100']
@@ -238,7 +238,7 @@ def test_an_old_conversation_starts_fresh(db):
     seen = []
     run = lambda m, u: seen.append(m) or {'response': 'ok', 'pending_actions': [], 'choices': []}  # noqa: E731
     wa.process_inbox(db, _inbox(db, 'SM1', body='ayer'), _deps(run, now=NOW))
-    wa.process_inbox(db, _inbox(db, 'SM2', body='hoy'), _deps(run, now=NOW + timedelta(hours=7)))
+    wa.process_inbox(db, _inbox(db, 'SM2', body='hoy'), _deps(run, now=NOW + timedelta(hours=25)))
     assert len(seen[1]) == 1
 
 
@@ -667,3 +667,95 @@ def test_history_keeps_the_proposal_the_person_saw_and_the_si_exchange(db):
 def test_the_prompt_tells_the_agent_not_to_doubt_earlier_answers():
     prompt = ai_chat_routes.WHATSAPP_STYLE
     assert 'no te "corrijas"' in prompt and 'SÍ ocurrieron' in prompt and 'nada de resúmenes' in prompt
+
+
+# ============ B0: the pipeline others build on ============
+
+def test_the_webhook_remembers_when_an_allowed_number_last_wrote_even_for_instant_answers(hook, db):
+    hook(_form(body='hola', sid='SM700'))                          # instant greeting, nothing queued
+    assert 'whatsapp_inbox' not in db.store
+    assert db.store['whatsapp_contacts'][ADMIN]['last_user_message_at'] is not None
+    first = db.store['whatsapp_contacts'][ADMIN]['last_user_message_at']
+
+    hook(_form(body='registra un gasto', sid='SM701'))
+    assert db.store['whatsapp_contacts'][ADMIN]['last_user_message_at'] >= first
+
+
+def test_strangers_and_unsigned_requests_leave_no_contact_record(hook, db):
+    hook(_form(sender=STRANGER))
+    hook(_form(), signed=False)
+    assert 'whatsapp_contacts' not in db.store
+
+
+def test_touch_contact_merges_and_never_raises():
+    db = FakeFirestore()
+    db.store['whatsapp_contacts'] = {ADMIN: {'alert_prefs': {'paused': True}}}
+    wa.touch_contact(db, ADMIN, NOW)
+    assert db.store['whatsapp_contacts'][ADMIN] == {'alert_prefs': {'paused': True}, 'last_user_message_at': NOW, 'updated_at': NOW}
+
+    class Broken:
+        def collection(self, name):
+            raise RuntimeError('firestore down')
+
+    wa.touch_contact(Broken(), ADMIN, NOW)  # must not raise
+
+
+def test_forwarded_and_button_payload_are_stored_for_later_features(db):
+    wa.store_inbound(db, {'MessageSid': 'SM710', 'From': f'whatsapp:{ADMIN}', 'Body': 'Ver', 'NumMedia': '0',
+                          'Forwarded': 'true', 'ButtonPayload': 'digest_ver'})
+    stored = db.store['whatsapp_inbox']['SM710']
+    assert stored['forwarded'] is True and stored['button_payload'] == 'digest_ver'
+    wa.store_inbound(db, {'MessageSid': 'SM711', 'From': f'whatsapp:{ADMIN}', 'Body': 'hola', 'NumMedia': '0'})
+    assert db.store['whatsapp_inbox']['SM711']['forwarded'] is False and db.store['whatsapp_inbox']['SM711']['button_payload'] is None
+
+
+def test_saving_the_conversation_keeps_fields_other_features_added(db):
+    db.store['whatsapp_conversations'] = {ADMIN: {'history': [], 'pending': [], 'choices': [], 'last_inbound_at': NOW, 'summary': 'kept'}}
+    wa.process_inbox(db, _inbox(db, 'SM720', body='hola de nuevo'), _deps(_answer()))
+    assert db.store['whatsapp_conversations'][ADMIN]['summary'] == 'kept'
+    assert db.store['whatsapp_conversations'][ADMIN]['history'][0]['content'] == 'hola de nuevo'
+
+
+def _stored(db, sid, body='', media=(), forwarded=False, button=None):
+    wa.store_inbound(db, {'MessageSid': sid, 'From': f'whatsapp:{ADMIN}', 'Body': body, 'NumMedia': str(len(media)),
+                          'Forwarded': 'true' if forwarded else 'false', **({'ButtonPayload': button} if button else {}),
+                          **{k: v for i, m in enumerate(media) for k, v in ((f'MediaUrl{i}', m[0]), (f'MediaContentType{i}', m[1]))}})
+    return db.store['whatsapp_inbox'][sid]
+
+
+def test_gather_joins_a_whole_burst_into_one_inbound(db):
+    jpeg = ('https://api.twilio.com/m', 'image/jpeg')
+    burst = [_stored(db, 'A', 'registra estas', [jpeg]), _stored(db, 'B', '', [jpeg]), _stored(db, 'C', 'son de ayer', [jpeg, jpeg], forwarded=True,
+                                                                                               button='x')]
+    deps = _deps(_answer())
+    inbound = wa._gather(db, deps, burst)
+    assert inbound.phone == ADMIN and inbound.sids == ['A', 'B', 'C']
+    assert inbound.text == 'registra estas\nson de ayer'
+    assert len(inbound.image_blocks) == wa.MAX_IMAGES and inbound.unsupported is True   # the 4th photo is left out and flagged
+    assert inbound.forwarded is True and inbound.button_payload == 'x'
+
+
+def test_gather_flags_unsupported_media_without_downloading_it(db):
+    downloaded = []
+    deps = wa.Deps(send=Sent(), run_chat=_answer(), download_media=lambda u: downloaded.append(u) or b'', now=lambda: NOW)
+    inbound = wa._gather(db, deps, [_stored(db, 'D', '', [('https://api.twilio.com/m', 'application/pdf')])])
+    assert inbound.unsupported and not inbound.image_blocks and downloaded == []
+
+
+def test_a_new_command_handler_is_one_line_and_skips_the_model(db, monkeypatch):
+    seen = []
+    monkeypatch.setattr(wa, 'COMMAND_HANDLERS', list(wa.COMMAND_HANDLERS))
+    wa.COMMAND_HANDLERS.insert(0, (lambda ctx: ctx.inbound.text.lower() == 'ping' or None,
+                                   lambda ctx, matched: (seen.append(ctx.phone), 'pong')[1]))
+    sent, ran = Sent(), []
+    deps = _deps(lambda m, u: ran.append(1) or {'response': 'x', 'pending_actions': [], 'choices': []}, sent)
+    assert wa.process_inbox(db, _inbox(db, 'SM730', body='ping'), deps) == 'command'
+    assert seen == [ADMIN] and ran == [] and db.store['whatsapp_conversations'][ADMIN]['history'][-1] == {'role': 'assistant', 'content': 'pong'}
+    assert wa.process_inbox(db, _inbox(db, 'SM731', body='otra cosa'), deps) == 'answered' and ran == [1]
+
+
+def test_a_handler_that_declines_lets_the_next_one_and_the_agent_run(db, monkeypatch):
+    monkeypatch.setattr(wa, 'COMMAND_HANDLERS', [(lambda ctx: True, lambda ctx, matched: None)] + list(wa.COMMAND_HANDLERS))
+    ran = []
+    deps = _deps(lambda m, u: ran.append(1) or {'response': 'ok', 'pending_actions': [], 'choices': []})
+    assert wa.process_inbox(db, _inbox(db, 'SM740', body='hola'), deps) == 'answered' and ran == [1]

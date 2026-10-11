@@ -10,12 +10,14 @@ and, if Twilio signs a different URL than the one this function sees, set WHATSA
 """
 import logging
 import os
+from datetime import datetime
 from xml.sax.saxutils import escape as xml_escape
 
 import requests
 from flask import Blueprint, Response, request
 
 from database import get_db
+from services import recent_activity
 from services import whatsapp_agent as wa
 
 logger = logging.getLogger(__name__)
@@ -59,6 +61,14 @@ def webhook():
         logger.warning('WhatsApp webhook: sender not allowed (%s)', phone[-4:] or '?')
         return _twiml()
 
+    wa.touch_contact(get_db(), phone)  # every message of an allowed number, instant answers included
+
+    # "Ver" (the digest's button, or the word) is answered here too, from the detail saved when the digest went out
+    from services import proactive_service
+    detail = proactive_service.view_reply(get_db(), phone, form.get('ButtonPayload'), form.get('Body'))
+    if detail:
+        return _twiml(detail)
+
     # Greetings and "ayuda" are answered right here: no queue, no cold start, no model
     if not int(form.get('NumMedia') or 0):
         instant = wa.quick_reply(form.get('Body'))
@@ -86,14 +96,20 @@ def _send(phone, body):
     twilio_client.messages.create(from_=TWILIO_WHATSAPP_FROM, to=f'whatsapp:{phone}', body=body)
 
 
-def _download(url):
-    """Twilio media needs basic auth (account SID + token); redirects to its CDN"""
-    response = requests.get(url, auth=(os.getenv('TWILIO_ACCOUNT_SID', ''), os.getenv('TWILIO_AUTH_TOKEN', '')),
-                            timeout=20, stream=True)
-    response.raise_for_status()
-    data = response.raw.read(wa.MAX_MEDIA_BYTES + 1, decode_content=True)
-    if len(data) > wa.MAX_MEDIA_BYTES:
-        raise ValueError('La imagen es demasiado grande')
+def _download(url, max_bytes=None):
+    """Twilio media needs basic auth (account SID + token); redirects to its CDN.
+    `max_bytes` (default MAX_MEDIA_BYTES) caps what is read: a voice note is limited to what the STT accepts.
+    Errors never carry the URL: it contains the Account SID and ends up in logs and in the inbox document."""
+    limit = max_bytes or wa.MAX_MEDIA_BYTES
+    try:
+        response = requests.get(url, auth=(os.getenv('TWILIO_ACCOUNT_SID', ''), os.getenv('TWILIO_AUTH_TOKEN', '')),
+                                timeout=20, stream=True)
+        response.raise_for_status()
+        data = response.raw.read(limit + 1, decode_content=True)
+    except requests.RequestException as exc:
+        raise RuntimeError(f'media download failed: {wa.safe_error(exc)}') from None
+    if len(data) > limit:
+        raise wa.MediaTooLarge('El archivo es demasiado grande')
     return data
 
 
@@ -107,10 +123,19 @@ def process_inbox_message(app, sid):
         return 'warm'
 
     def run_chat(messages, user):
+        try:  # recent proposals as reference data: the agent must still work without them
+            activity = recent_activity.build(get_db(), datetime.utcnow())
+        except Exception:  # noqa: BLE001
+            logger.warning('Could not build the recent activity', exc_info=True)
+            activity = ''
         with app.test_request_context():
-            return ai_chat_routes.run_chat(messages, user, channel='whatsapp')
+            return ai_chat_routes.run_chat(messages, user, channel='whatsapp', extra_system=activity or None)
 
-    deps = wa.Deps(send=_send, run_chat=run_chat, download_media=_download, typing=wa.send_typing)
+    def transcribe(data, content_type):
+        from services import speech_service  # lazy: only voice notes pay for it
+        return speech_service.transcribe(data, content_type, phrases=speech_service.phrase_list(get_db()))
+
+    deps = wa.Deps(send=_send, run_chat=run_chat, download_media=_download, typing=wa.send_typing, transcribe=transcribe)
     status = wa.process_inbox(get_db(), sid, deps)
     logger.info('WhatsApp message %s: %s', sid, status)
     return status

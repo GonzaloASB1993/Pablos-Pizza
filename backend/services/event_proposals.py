@@ -90,19 +90,35 @@ def _supplies_request(payload):
     }
 
 
+def _booking_financials(db, booking_id):
+    snapshot = db.collection(ev.BOOKINGS).document(booking_id).get()
+    return ((snapshot.to_dict() or {}).get('financials') or {}) if snapshot.exists else {}
+
+
 def _execute_supplies(db, payload, user, action_id):
     request = _supplies_request(payload)
     existing = ev.get_supplies_for_booking(db, payload.booking_id)
+    own_id = _id(action_id, 'supplies')
+    # What undo needs to put things back as they were. When this confirmation is a retry of one that already wrote
+    # (our own document exists) the "before" is gone: those keys are left out and undo answers "antigua".
+    undo_data = {}
+    if existing is None or existing['id'] != own_id:
+        undo_data = {
+            'created': existing is None,
+            'previous': None if existing is None else {
+                key: existing.get(key) for key in ('items', 'notes', 'estimated_total_cost')},
+            'prev_estimated_supply_cost': _booking_financials(db, payload.booking_id).get('estimated_supply_cost'),
+        }
     try:
         if existing:
             supplies = ev.update_supplies(db, existing['id'], request)
             supplies_id = existing['id']
         else:
-            supplies_id, supplies = ev.create_supplies(db, request, supplies_id=_id(action_id, 'supplies'))
+            supplies_id, supplies = ev.create_supplies(db, request, supplies_id=own_id)
     except ev.EventInventoryError as exc:
         raise RuntimeError(exc.message)
     return {'supplies_id': supplies_id, 'estimated_total_cost': supplies['estimated_total_cost'],
-            'replaced': existing is not None and existing['id'] != _id(action_id, 'supplies')}
+            'replaced': existing is not None and existing['id'] != own_id, **undo_data}
 
 
 def _consumption_request(payload):
@@ -117,16 +133,30 @@ def _consumption_request(payload):
     return items
 
 
+FINANCIAL_KEYS = ('total_expenses', 'supply_cost', 'other_expenses', 'profit')
+
+
 def _execute_consumption(db, payload, user, action_id):
+    own_id = _id(action_id, 'consumption')
+    existing = ev.get_consumption_for_booking(db, payload.booking_id)
+    # Undo data (see _execute_supplies): skipped when this is a retry of a confirmation that already wrote
+    undo_data = {}
+    if existing is None or existing['id'] != own_id:
+        before = _booking_financials(db, payload.booking_id)
+        undo_data = {'replaced': existing is not None,
+                     'prev_financials': {key: before[key] for key in FINANCIAL_KEYS if key in before}}
     try:
         consumption_id, saved = ev.save_consumption(
             db, payload.booking_id, _consumption_request(payload), payload.total_other_expenses,
-            notes=payload.notes, consumption_id=_id(action_id, 'consumption'),
+            notes=payload.notes, consumption_id=own_id,
             movement_ids=lambda index: _id(action_id, f'movement:{index}'))
     except ev.EventInventoryError as exc:
         raise RuntimeError(exc.message)
+    count = len(saved['items_consumed'])
+    if undo_data:
+        undo_data['movement_ids'] = [_id(action_id, f'movement:{index}') for index in range(count)]
     return {'consumption_id': consumption_id, 'total_cost': saved['total_cost'],
-            'total_supply_cost': saved['total_supply_cost'], 'items': len(saved['items_consumed'])}
+            'total_supply_cost': saved['total_supply_cost'], 'items': count, **undo_data}
 
 
 pending.register_action_type(SUPPLIES_TYPE, SuppliesPayload, _execute_supplies)

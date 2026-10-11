@@ -140,9 +140,16 @@ def _execute(db, payload, user, action_id):
     """Runs only from pending_actions.confirm(). Creates a PENDING booking (the website does the same)."""
     data = _booking_data(db, payload)
     data.update({'created_via': 'ai_agent', 'created_by': user.get('email')})
+    # Did this booking create its customer (no one with that e-mail yet)? Stored on the booking itself so a retry of a
+    # confirmation that already wrote (the booking exists, so `data` is ignored) still reports the first answer.
+    if payload.client_email:
+        found = list(db.collection('customers').where('email', '==', payload.client_email).limit(1).stream())
+        data['customer_created'] = not found
+    else:
+        data['customer_created'] = False
     booking = booking_service.create_booking(db, data, booking_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f'{action_id}:booking')), notify=True)
     return {'booking_id': booking['id'], 'estimated_price': booking['estimated_price'], 'customer_id': booking.get('customer_id'),
-            'status': booking['status']}
+            'status': booking['status'], 'customer_created': booking.get('customer_created')}
 
 
 pending.register_action_type(ACTION_TYPE, BookingPayload, _execute)

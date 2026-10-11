@@ -50,3 +50,18 @@ endpoints:
     availableMemoryMb: 512
     minInstances: 0
     maxInstances: 1
+  # Daily WhatsApp digest for the admin, 10:00 Chile time (services/proactive_service.py)
+  whatsapp_daily_digest:
+    region:
+      - us-central1
+    platform: gcfv2
+    entryPoint: whatsapp_daily_digest
+    scheduleTrigger:
+      schedule: '0 10 * * *'
+      timeZone: America/Santiago
+      retryConfig: {}
+    cpu: 1
+    timeoutSeconds: 120
+    availableMemoryMb: 512
+    minInstances: 0
+    maxInstances: 1

@@ -28,10 +28,13 @@ class FakeDocRef:
 
     def set(self, data, merge=False):
         coll = self._store.setdefault(self._name, {})
-        if merge and self.id in coll:
-            coll[self.id].update(copy.deepcopy(data))
-        else:
-            coll[self.id] = copy.deepcopy(data)
+        document = coll.setdefault(self.id, {}) if merge else {}
+        for key, value in data.items():
+            if type(value).__name__ == 'Increment':  # firestore.Increment(n) in set(merge=True): adds, creating the field
+                document[key] = (document.get(key) or 0) + value.value
+            else:
+                document[key] = copy.deepcopy(value)
+        coll[self.id] = document
 
     def update(self, data):
         coll = self._store.setdefault(self._name, {})
@@ -100,8 +103,11 @@ class FakeTransaction:
     def update(self, ref, data):
         ref.update(data)
 
-    def set(self, ref, data):
-        ref.set(data)
+    def set(self, ref, data, merge=False):
+        ref.set(data, merge=merge)
+
+    def delete(self, ref):
+        ref.delete()
 
 
 class FakeBatch:

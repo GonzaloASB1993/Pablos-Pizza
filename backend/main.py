@@ -1761,6 +1761,15 @@ def keep_warm(event: scheduler_fn.ScheduledEvent) -> None:
     print(f"keep_warm: {keep_warm_service.keep_warm(get_db())}")
 
 
+# Daily WhatsApp digest for the admin (services/proactive_service.py): 10:00 Chile time, at most one message a day and
+# only when something is new. Sends nothing until AI_WHATSAPP_PROACTIVE_TO is set; dry run by default.
+# Declared in functions.yaml too (the CLI manifest).
+@scheduler_fn.on_schedule(schedule="0 10 * * *", timezone=scheduler_fn.Timezone("America/Santiago"), timeout_sec=120)
+def whatsapp_daily_digest(event: scheduler_fn.ScheduledEvent) -> None:
+    from services import proactive_service
+    print(f"whatsapp_daily_digest: {proactive_service.run_scheduled(get_db())}")
+
+
 # ===================== INVENTORY ENDPOINTS =====================
 
 @app.route('/api/inventory/', methods=['GET'])

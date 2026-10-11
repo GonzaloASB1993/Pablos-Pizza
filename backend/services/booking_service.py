@@ -152,3 +152,26 @@ def create_booking(db, data, booking_id=None, notify=True):
     if notify:
         notify_new_booking(booking)
     return booking
+
+
+def cancel_pending_booking(db, booking_id, reason, batch=None, now=None):
+    """Cancel a booking that is still `pending` WITHOUT notifying anyone (not the customer, not the admin side).
+
+    Used by undo: the customer never heard of a pending booking, so there is nothing to tell them. A booking that
+    is already confirmed / completed is refused: the customer was told, cancelling it is a decision for the panel.
+    With a `batch` the write is only queued (the caller commits it together with its other writes).
+    Returns the booking as it will be stored."""
+    ref = db.collection('bookings').document(booking_id)
+    snapshot = ref.get()
+    if not snapshot.exists:
+        raise BookingError('Booking not found', 404)
+    booking = snapshot.to_dict()
+    if booking.get('status') != 'pending':
+        raise BookingError(f"Only a pending booking can be cancelled here (it is {booking.get('status')})", 409)
+    now = now or datetime.now()
+    fields = {'status': 'cancelled', 'cancel_reason': reason, 'cancelled_at': now, 'updated_at': now}
+    if batch is not None:
+        batch.update(ref, fields)
+    else:
+        ref.update(fields)
+    return {**booking, **fields}

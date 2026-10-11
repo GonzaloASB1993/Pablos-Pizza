@@ -227,8 +227,12 @@ def _execute_receipt(db, payload, user, action_id):
 
 def _execute_update(db, payload, user, action_id):
     changes = payload.changes.model_dump(exclude_none=True)
+    snapshot = db.collection(inv.INVENTORY).document(payload.item_id).get()
+    stored = snapshot.to_dict() if snapshot.exists else {}
     item = inv.update_item(db, payload.item_id, changes)
-    return {'item_id': item['id'], 'changed': sorted(changes)}
+    # before / after of the touched fields: what undo needs to put them back (and to know nobody changed them since)
+    return {'item_id': item['id'], 'changed': sorted(changes),
+            'before': {key: stored.get(key) for key in changes}, 'after': {key: item.get(key) for key in changes}}
 
 
 def _execute_adjustment(db, payload, user, action_id):
