@@ -595,12 +595,21 @@ Rama `claude/ai-agent-phase4-pablito`. Orquestación: Opus 5.5 diseña y revisa,
 - [✅] Corregido: el historial guarda lo que la persona vio y el intercambio SI/NO (antes el modelo dudaba de sí mismo: "no te fíes de esos datos")
 - [✅] `keep_warm` programada (cada 4 min, 7-23 h Santiago, gratis) para `main` y el procesador
 - [✅] Revisión de Opus 5.5 aplicada (avisos que fallan seguro, SI sobre propuesta ya resuelta, reloj de Chile en vez de UTC, tokens de caché en `usage`, `requiredAPIs`) y **desplegado** (10/10/2026, `main` en `7dbc941`+; `keep_warm` creada aparte). Verificado en producción: saludo firmado responde en ~0,55 s, sin firma 403, número ajeno ignorado
-- [ ] Prueba real del dueño: tiempos (`whatsapp_inbox/{sid}.timings`), "escribiendo…" (beta de Twilio) y mensajes cortos
-- [ ] Pendiente de seguimiento (revisión): `send_typing` síncrono en el webhook (1,5 s máx.), resumen de propuesta con texto de la foto queda en el historial 6 h (recortar), respuestas rápidas sin cuota/historial
-**Bloque B — que entienda cómo hablo** (diseño: Opus)
-- [ ] B1 notas de voz (Google Speech-to-Text, es-CL) · B2 agrupar ráfagas de fotos · B3 "deshacer" · B4 memoria de ~24 h
-**Bloque C — avisos proactivos sin spam** (diseño: Opus)
-- [ ] Estado de alertas (avisar solo cuando cambia), 1 mensaje/día, silenciar, plantilla de Meta para fuera de la ventana de 24 h
+- [✅] Prueba real del dueño (10-11/10/2026): "escribiendo…" funciona; mensajes cortos bien
+- [ ] Pendiente de seguimiento (revisión): `send_typing` síncrono en el webhook (1,5 s máx.), respuestas rápidas sin cuota/historial, el "ver" del resumen no queda en el historial del agente, límite de 3 fotos por ráfaga (no por mensaje)
+**Bloque B — que entienda cómo hablo** (diseño: `docs/DISENO_PABLITO_B_C.md`, Opus; código: Sonnet; revisión: Opus) — ✅ **desplegado 11/10/2026**
+- [✅] B1 notas de voz (Google STT v2, modelo `long`, idioma **es-US**: `es-CL` da HTTP 400), tope diario, "sí" por voz solo con confianza ≥ 0,85 (`AI_WHATSAPP_VOICE_CONFIRM`); funciona en prueba real
+- [✅] B2 ráfagas de fotos (una respuesta por álbum) + candado por número; audios solos no esperan la ráfaga
+- [✅] B3 "deshacer" exacto o nada (transacción, ventana 24 h WhatsApp / 7 días panel) + endpoints del panel
+- [✅] B4 memoria de 24 h (historial compacto + actividad reciente de 48 h como datos)
+- [✅] Revisión Opus aplicada: SI vs propuestas más nuevas, candado nunca robado, cuota por mensaje, tope STT, undo transaccional
+- [ ] Pruebas reales pendientes: "sí" por voz, audio reenviado (¿Twilio manda `Forwarded`?), ¿Google entrega `confidence`?, deshacer, álbum de 3-5 fotos
+**Velocidad (11/10/2026)**
+- [✅] Diagnóstico: los mensajes de 15-19 s eran caché de prompt frío. Esfuerzo `low` y 2048 tokens en WhatsApp, sin vuelta extra al modelo tras una propuesta, caché de 1 h y refresco cada 45 min desde `keep_warm`
+- [ ] Medir en producción tras el último deploy; si la cola de Firestore (1-4 s) molesta, procesar en el propio webhook
+**Bloque C — avisos proactivos sin spam** (código desplegado, **apagado**)
+- [✅] Estado de alertas (solo cuando cambia, histéresis, 72 h de enfriamiento), 1 mensaje/día solo al admin a las 10:00 Chile, "Ver", silenciar, dry-run por defecto
+- [ ] Crear y aprobar la plantilla de Meta (`backend/scripts/create_whatsapp_template.py`), configurar `TEMPLATE_PABLITO_DIGEST_SID` y `AI_WHATSAPP_PROACTIVE_TO`; unos días en dry-run (`/api/ai-chat/proactive/preview`) y luego activar
 
 ### UI/UX del asistente (transversal)
 - [ ] Rediseño del chat: markdown en respuestas, tarjetas de acción, estados de tool ("consultando inventario…"), adjuntar foto, sugerencias rápidas, layout móvil (fullscreen), historial persistente, accesibilidad
