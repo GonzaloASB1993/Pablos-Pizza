@@ -41,6 +41,11 @@ class AudioTooLong(SpeechError):
         self.seconds, self.size = seconds, size
 
 
+def stt_language():
+    # verified against the API: the `long` model does not accept es-CL (HTTP 400); es-US works for Chilean Spanish
+    return os.getenv('AI_WHATSAPP_STT_LANGUAGE', 'es-US').strip() or 'es-US'
+
+
 def stt_model():
     return os.getenv('AI_WHATSAPP_STT_MODEL', 'long').strip() or 'long'
 
@@ -100,7 +105,7 @@ def phrase_list(db=None, now=None):
 def build_request(data, phrases=None):
     config = {
         'autoDecodingConfig': {},
-        'languageCodes': ['es-CL'],
+        'languageCodes': [stt_language()],
         'model': stt_model(),
         'features': {'enableAutomaticPunctuation': True},
     }

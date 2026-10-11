@@ -137,7 +137,7 @@ Solo se envía entre las 08:00 y las 21:00 de Chile.
 
 ## Notas de voz
 Las notas de voz (`audio/ogg`, `opus`, `mpeg`, `mp4`, `aac`, `amr`) se transcriben con Google Speech-to-Text (API v2 por REST, modelo `long`,
-`es-CL`, con los nombres de insumos como vocabulario). El audio **nunca se guarda ni se registra**: solo queda el texto (`transcript`,
+`es-US` (Google no acepta `es-CL` con el modelo `long`; verificado), con los nombres de insumos como vocabulario). El audio **nunca se guarda ni se registra**: solo queda el texto (`transcript`,
 `stt_confidence`, `audio_seconds` en el doc de `whatsapp_inbox`). El agente recibe `(nota de voz) <texto>` y el historial guarda `🎤 <texto>`;
 varias notas seguidas se juntan en orden. El texto transcrito es un dato de la persona, nunca instrucciones del sistema.
 - Eco `🎤 _"…"_` (máx. 100 caracteres) antes de la respuesta solo si el turno dejó una propuesta o un comando, o si la confianza es < 0,80.

@@ -84,7 +84,7 @@ def test_request_has_the_exact_shape_google_expects():
     body = call['json']
     assert body['content'] == base64.b64encode(data).decode()
     assert body['config'] == {
-        'autoDecodingConfig': {}, 'languageCodes': ['es-CL'], 'model': 'long',
+        'autoDecodingConfig': {}, 'languageCodes': ['es-US'], 'model': 'long',
         'features': {'enableAutomaticPunctuation': True},
         'adaptation': {'phraseSets': [{'inlinePhraseSet': {'phrases': [
             {'value': 'pizzeros', 'boost': 10}, {'value': 'harina 000', 'boost': 10}]}}]},
