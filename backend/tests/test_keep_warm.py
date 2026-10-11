@@ -82,3 +82,40 @@ def test_the_sdk_client_is_built_once_and_only_on_demand(monkeypatch):
     monkeypatch.setattr(ai_chat_routes, 'ANTHROPIC_API_KEY', 'sk-test')
     first = ai_chat_routes.get_anthropic_client()
     assert first is not None and ai_chat_routes.get_anthropic_client() is first
+
+
+def test_prewarm_refreshes_the_prompt_cache_at_most_once_per_interval(monkeypatch):
+    from routes import ai_chat_routes
+    sent = []
+    monkeypatch.setattr(ai_chat_routes, 'get_anthropic_client', lambda: object())
+    monkeypatch.setattr(ai_chat_routes, 'warm_prompt_cache', lambda: sent.append(1))
+    monkeypatch.setattr(kw, '_last_cache_warm', 0.0)
+    t = [100000.0]
+    monkeypatch.setattr(kw.time, 'time', lambda: t[0])
+    kw.prewarm()
+    kw.prewarm()
+    assert len(sent) == 1
+    t[0] += kw.CACHE_WARM_EVERY + 1
+    kw.prewarm()
+    assert len(sent) == 2
+
+
+def test_a_failing_cache_refresh_never_breaks_the_warmup(monkeypatch):
+    from routes import ai_chat_routes
+    monkeypatch.setattr(ai_chat_routes, 'get_anthropic_client', lambda: object())
+    monkeypatch.setattr(ai_chat_routes, 'warm_prompt_cache', lambda: 1 / 0)
+    monkeypatch.setattr(kw, '_last_cache_warm', 0.0)
+    kw.prewarm()  # must not raise
+
+
+def test_warm_prompt_cache_sends_the_whatsapp_prefix_with_a_tiny_budget(monkeypatch):
+    from routes import ai_chat_routes
+    seen = {}
+
+    def fake_create(system_prompt, messages, extra_system=None, channel='web', max_tokens=None):
+        seen.update(system=system_prompt, channel=channel, max_tokens=max_tokens)
+
+    monkeypatch.setattr(ai_chat_routes, 'create_ai_message', fake_create)
+    ai_chat_routes.warm_prompt_cache()
+    assert seen['channel'] == 'whatsapp' and seen['max_tokens'] <= 32
+    assert seen['system'] == ai_chat_routes.build_system_prompt('whatsapp')

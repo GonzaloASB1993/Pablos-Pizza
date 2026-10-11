@@ -75,7 +75,7 @@ def _cache_control():
     return {"type": "ephemeral", "ttl": AI_CACHE_TTL} if AI_CACHE_TTL == '1h' else {"type": "ephemeral"}
 
 
-def create_ai_message(system_prompt, messages, extra_system=None, channel='web'):
+def create_ai_message(system_prompt, messages, extra_system=None, channel='web', max_tokens=None):
     """Single place that builds the Messages API request for the assistant"""
     # The system prompt and the tool list (~10k tokens) are identical on every call: cache them
     # (reads cost a tenth of normal input, and the prefix is not reprocessed)
@@ -85,7 +85,7 @@ def create_ai_message(system_prompt, messages, extra_system=None, channel='web')
     effort = AI_WHATSAPP_EFFORT if whatsapp else AI_CHAT_EFFORT
     params = {
         "model": AI_CHAT_MODEL,
-        "max_tokens": AI_WHATSAPP_MAX_TOKENS if whatsapp else AI_CHAT_MAX_TOKENS,
+        "max_tokens": max_tokens or (AI_WHATSAPP_MAX_TOKENS if whatsapp else AI_CHAT_MAX_TOKENS),
         "system": [{"type": "text", "text": system_prompt, "cache_control": _cache_control()}],
         "tools": tools,
         "messages": messages,
@@ -1052,41 +1052,8 @@ class ChatInputError(ValueError):
     """The conversation sent by a channel is invalid (HTTP 400 on the web endpoint)"""
 
 
-def run_chat(raw_messages, user=None, channel='web', extra_system=None):
-    """Core of the assistant, shared by the web endpoint and the WhatsApp channel.
-
-    Needs a Flask context (it keeps per-request state in `g`); `user` is {'uid', 'email'}.
-    `channel` ('web' | 'whatsapp') adjusts the style of the answers.
-    `extra_system`: reference data (recent activity) for a second, uncached system block; it is never added to
-    the messages, so it cannot reach `g.ai_user_text` nor the history.
-    Returns the response dict; raises ChatInputError for an invalid conversation.
-    """
-    if user is not None:
-        g.current_user = user
-    # The history comes from the browser: never trust it as-is
-    try:
-        messages = sanitize_messages(raw_messages)
-    except InvalidMessages as e:
-        raise ChatInputError(str(e))
-
-    # Keep the originals of attached images (private storage) as evidence for proposals
-    g.ai_attachments = []
-    g.ai_pending_actions = []
-    g.ai_choice = None
-    # Everything the USER wrote or tapped (never model output): proposals about a specific
-    # event are only accepted for ids that appear here, so the agent cannot pick one on its own
-    g.ai_user_text = "\n".join(
-        block['text'] for m in messages if m['role'] == 'user' for block in m['content'] if block['type'] == 'text')
-    try:
-        images = extract_images(messages)
-    except InvalidImage as e:
-        raise ChatInputError(str(e))
-    if images:
-        try:
-            g.ai_attachments = store_images(get_storage_bucket(), g.current_user['uid'], images)
-        except Exception as e:
-            logger.error(f"Could not store chat images: {e}", exc_info=True)
-
+def build_system_prompt(channel='web'):
+    """The system prompt with today's date (Chile) and, for WhatsApp, the style rules. Identical text = prompt cache hit"""
     # Prepare system prompt with current date and time context
     now = clock.now_cl()  # Chile's "today" (the server runs in UTC)
     current_date = now.strftime("%Y-%m-%d")
@@ -1123,6 +1090,51 @@ def run_chat(raw_messages, user=None, channel='web', extra_system=None):
     system_prompt = system_prompt.replace("{last_month_name}", last_month_name)
     if channel == 'whatsapp':
         system_prompt += WHATSAPP_STYLE
+    return system_prompt
+
+
+def warm_prompt_cache():
+    """One tiny request with the exact WhatsApp prefix (system + tools) so the next real message reads it from the cache
+    instead of re-processing ~11k tokens (15+ s). Costs a cache read (a fraction of a cent)."""
+    create_ai_message(build_system_prompt('whatsapp'), [{"role": "user", "content": "ping"}], channel='whatsapp', max_tokens=16)
+
+
+def run_chat(raw_messages, user=None, channel='web', extra_system=None):
+    """Core of the assistant, shared by the web endpoint and the WhatsApp channel.
+
+    Needs a Flask context (it keeps per-request state in `g`); `user` is {'uid', 'email'}.
+    `channel` ('web' | 'whatsapp') adjusts the style of the answers.
+    `extra_system`: reference data (recent activity) for a second, uncached system block; it is never added to
+    the messages, so it cannot reach `g.ai_user_text` nor the history.
+    Returns the response dict; raises ChatInputError for an invalid conversation.
+    """
+    if user is not None:
+        g.current_user = user
+    # The history comes from the browser: never trust it as-is
+    try:
+        messages = sanitize_messages(raw_messages)
+    except InvalidMessages as e:
+        raise ChatInputError(str(e))
+
+    # Keep the originals of attached images (private storage) as evidence for proposals
+    g.ai_attachments = []
+    g.ai_pending_actions = []
+    g.ai_choice = None
+    # Everything the USER wrote or tapped (never model output): proposals about a specific
+    # event are only accepted for ids that appear here, so the agent cannot pick one on its own
+    g.ai_user_text = "\n".join(
+        block['text'] for m in messages if m['role'] == 'user' for block in m['content'] if block['type'] == 'text')
+    try:
+        images = extract_images(messages)
+    except InvalidImage as e:
+        raise ChatInputError(str(e))
+    if images:
+        try:
+            g.ai_attachments = store_images(get_storage_bucket(), g.current_user['uid'], images)
+        except Exception as e:
+            logger.error(f"Could not store chat images: {e}", exc_info=True)
+
+    system_prompt = build_system_prompt(channel)
 
     # Initial API call with tools
     logger.info(f"Sending request to Claude API with {len(messages)} messages and {len(TOOLS)} tools")

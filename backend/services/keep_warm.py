@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 DEFAULT_URL = 'https://main-4kqeqojbsq-uc.a.run.app'
 KEEP_FOR = timedelta(minutes=30)
 WARMUP_PREFIX = 'warmup-'
+CACHE_WARM_EVERY = 45 * 60   # the prompt cache lives 1 h; refresh it before it expires
+_last_cache_warm = 0.0
 
 
 def keep_warm(db, http_get=None, now=None):
@@ -59,3 +61,13 @@ def prewarm():
     """Load the heavy bits (assistant SDK client) ahead of the first real message"""
     from routes import ai_chat_routes
     ai_chat_routes.get_anthropic_client()
+
+    global _last_cache_warm
+    if os.getenv('AI_WHATSAPP_CACHE_WARM', 'true').strip().lower() == 'false':
+        return
+    if time.time() - _last_cache_warm >= CACHE_WARM_EVERY:
+        _last_cache_warm = time.time()
+        try:
+            ai_chat_routes.warm_prompt_cache()
+        except Exception as exc:  # noqa: BLE001 - cosmetic speed-up: never fail the warm-up
+            logger.warning('keep_warm: prompt cache refresh failed: %s', exc)
