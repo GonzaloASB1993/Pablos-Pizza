@@ -1,5 +1,7 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
+import { auth } from './firebase'
+import { isPublicRequest, shouldRedirectToLogin } from './authPolicy'
 
 
 // API Configuration
@@ -261,10 +263,18 @@ const mockAPI = {
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+  async (config) => {
+    // Attach a fresh Firebase ID token only for logged-in users on non-public routes.
+    // getIdToken() refreshes automatically (tokens last 1h); never persisted.
+    if (!isPublicRequest(config.method, config.url)) {
+      try {
+        const token = await auth.currentUser?.getIdToken()
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`
+        }
+      } catch (err) {
+        console.error('Error getting auth token:', err)
+      }
     }
     return config
   },
@@ -286,9 +296,11 @@ api.interceptors.response.use(
       
       switch (status) {
         case 401:
-          toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.')
-          localStorage.removeItem('authToken')
-          window.location.href = '/admin/login'
+          // Only the admin panel redirects to login; public pages just surface the error
+          if (shouldRedirectToLogin(window.location.pathname)) {
+            toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.')
+            window.location.href = '/admin/login'
+          }
           break
         case 403:
           toast.error('No tienes permisos para realizar esta acción')

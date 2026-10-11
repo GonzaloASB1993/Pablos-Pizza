@@ -148,21 +148,6 @@ export const createPaymentPreference = async ({ booking_id, amount, description 
   }
 }
 
-export const getBookings = async () => {
-  try {
-    const response = await fetch(`${API_BASE}/bookings/`)
-
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`)
-    }
-
-    return await response.json()
-  } catch (error) {
-    console.error('Error fetching bookings:', error)
-    throw error
-  }
-}
-
 // Instrucciones para el entorno backend (no es parte del código)
 // 1. Abrir terminal y navegar a la carpeta del backend:
 //    cd "C:\Users\gonza\OneDrive\Escritorio\Pablos Pizza\backend"
