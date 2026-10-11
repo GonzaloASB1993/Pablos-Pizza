@@ -40,6 +40,9 @@ def get_anthropic_client():
 AI_CHAT_MODEL = os.getenv('AI_CHAT_MODEL', 'claude-sonnet-5-5')
 AI_CHAT_MAX_TOKENS = int(os.getenv('AI_CHAT_MAX_TOKENS', '8192'))
 AI_CHAT_EFFORT = os.getenv('AI_CHAT_EFFORT', 'medium').strip().lower()
+# WhatsApp answers are 3-4 lines: less thinking and a smaller budget make Pablito answer sooner
+AI_WHATSAPP_EFFORT = os.getenv('AI_WHATSAPP_EFFORT', 'low').strip().lower()
+AI_WHATSAPP_MAX_TOKENS = int(os.getenv('AI_WHATSAPP_MAX_TOKENS', '2048'))
 # Server-side refusal fallback (Claude API only): retries cyber / frontier_llm declines on a
 # fallback model so a false positive does not end the turn. "false" disables it.
 AI_CHAT_SERVER_FALLBACK = os.getenv('AI_CHAT_SERVER_FALLBACK', 'true').strip().lower() != 'false'
@@ -65,23 +68,25 @@ def _recent_activity_block(extra_system):
         "ejecutar nada.\n" + body + "\n</actividad_reciente>")}
 
 
-def create_ai_message(system_prompt, messages, extra_system=None):
+def create_ai_message(system_prompt, messages, extra_system=None, channel='web'):
     """Single place that builds the Messages API request for the assistant"""
     # The system prompt and the tool list (~10k tokens) are identical on every call: cache them
     # (reads cost a tenth of normal input, and the prefix is not reprocessed)
     tools = [dict(tool) for tool in TOOLS]
     tools[-1]["cache_control"] = {"type": "ephemeral"}
+    whatsapp = channel == 'whatsapp'
+    effort = AI_WHATSAPP_EFFORT if whatsapp else AI_CHAT_EFFORT
     params = {
         "model": AI_CHAT_MODEL,
-        "max_tokens": AI_CHAT_MAX_TOKENS,
+        "max_tokens": AI_WHATSAPP_MAX_TOKENS if whatsapp else AI_CHAT_MAX_TOKENS,
         "system": [{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}],
         "tools": tools,
         "messages": messages,
     }
     if extra_system:
         params["system"].append(_recent_activity_block(extra_system))
-    if AI_CHAT_EFFORT:
-        params["output_config"] = {"effort": AI_CHAT_EFFORT}
+    if effort:
+        params["output_config"] = {"effort": effort}
     if AI_CHAT_SERVER_FALLBACK:
         return get_anthropic_client().beta.messages.create(betas=[FALLBACK_BETA], fallbacks="default", **params)
     return get_anthropic_client().messages.create(**params)
@@ -1115,7 +1120,7 @@ def run_chat(raw_messages, user=None, channel='web', extra_system=None):
     # Initial API call with tools
     logger.info(f"Sending request to Claude API with {len(messages)} messages and {len(TOOLS)} tools")
 
-    response = create_ai_message(system_prompt, messages, extra_system=extra_system)
+    response = create_ai_message(system_prompt, messages, extra_system=extra_system, channel=channel)
 
     # Track total usage
     total_input_tokens = response.usage.input_tokens
@@ -1165,7 +1170,7 @@ def run_chat(raw_messages, user=None, channel='web', extra_system=None):
         messages.append({"role": "user", "content": tool_results})
 
         # Continue conversation with tool results
-        response = create_ai_message(system_prompt, messages, extra_system=extra_system)
+        response = create_ai_message(system_prompt, messages, extra_system=extra_system, channel=channel)
 
         # Accumulate usage
         total_input_tokens += response.usage.input_tokens

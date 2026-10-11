@@ -300,3 +300,16 @@ def test_confirm_with_invalid_edit_is_422(pending_env):
 def test_unknown_pending_action_is_404(pending_env):
     client, _, _ = pending_env
     assert client.get("/api/ai-chat/pending/nope", headers=_auth()).status_code == 404
+
+
+def test_whatsapp_channel_uses_its_own_lower_effort_and_budget(fake_client, monkeypatch):
+    monkeypatch.setattr(ai_chat_routes, "AI_CHAT_EFFORT", "medium")
+    monkeypatch.setattr(ai_chat_routes, "AI_CHAT_MAX_TOKENS", 8192)
+    monkeypatch.setattr(ai_chat_routes, "AI_WHATSAPP_EFFORT", "low")
+    monkeypatch.setattr(ai_chat_routes, "AI_WHATSAPP_MAX_TOKENS", 2048)
+    with Flask(__name__).app_context():
+        ai_chat_routes.run_chat([{"role": "user", "content": "hola"}], None, channel="whatsapp")
+        ai_chat_routes.run_chat([{"role": "user", "content": "hola"}], None, channel="web")
+    whatsapp, web = fake_client.messages.calls[0], fake_client.messages.calls[1]
+    assert whatsapp["output_config"] == {"effort": "low"} and whatsapp["max_tokens"] == 2048
+    assert web["output_config"] == {"effort": "medium"} and web["max_tokens"] == 8192
