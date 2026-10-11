@@ -15,8 +15,17 @@ def _key(headers=None, addr='9.9.9.9'):
         return lim.client_key()
 
 
-def test_uses_first_forwarded_hop():
-    assert _key({'X-Forwarded-For': '1.2.3.4, 10.0.0.1, 10.0.0.2'}) == '1.2.3.4'
+def test_the_last_forwarded_hop_is_the_key():
+    assert _key({'X-Forwarded-For': '6.6.6.6, 1.2.3.4'}) == '1.2.3.4'
+
+
+def test_a_spoofed_left_entry_does_not_change_the_key():
+    assert _key({'X-Forwarded-For': '1.1.1.1, 1.2.3.4'}) == _key({'X-Forwarded-For': '2.2.2.2, 1.2.3.4'})
+
+
+def test_trusted_hops_is_configurable(monkeypatch):
+    monkeypatch.setenv('TRUSTED_PROXY_HOPS', '2')
+    assert _key({'X-Forwarded-For': '6.6.6.6, 1.2.3.4, 10.0.0.1'}) == '1.2.3.4'
 
 
 def test_single_forwarded_value_is_stripped():
