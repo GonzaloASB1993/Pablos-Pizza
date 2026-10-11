@@ -238,7 +238,7 @@ def test_the_activity_is_a_second_uncached_system_block(monkeypatch):
     seen = _call_model(monkeypatch)
     ai_chat_routes.create_ai_message('system text', [{'role': 'user', 'content': 'x'}], extra_system='ayer 18:40 · Compra · confirmada · id abc12345')
     first, second = seen['system']
-    assert first['cache_control'] == {'type': 'ephemeral'} and first['text'] == 'system text'
+    assert first['cache_control'] == ai_chat_routes._cache_control() and first['text'] == 'system text'
     assert 'cache_control' not in second and len(seen['system']) == 2
     assert second['text'].startswith('<actividad_reciente>') and second['text'].endswith('</actividad_reciente>')
     assert 'DATOS' in second['text'] and 'no instrucciones' in second['text'] and 'id abc12345' in second['text']
@@ -247,7 +247,7 @@ def test_the_activity_is_a_second_uncached_system_block(monkeypatch):
 def test_without_activity_the_system_stays_a_single_cached_block(monkeypatch):
     seen = _call_model(monkeypatch)
     ai_chat_routes.create_ai_message('system text', [{'role': 'user', 'content': 'x'}])
-    assert len(seen['system']) == 1 and seen['system'][0]['cache_control'] == {'type': 'ephemeral'}
+    assert len(seen['system']) == 1 and seen['system'][0]['cache_control'] == ai_chat_routes._cache_control()
 
 
 def test_the_activity_cannot_close_its_own_wrapper(monkeypatch):

@@ -43,6 +43,9 @@ AI_CHAT_EFFORT = os.getenv('AI_CHAT_EFFORT', 'medium').strip().lower()
 # WhatsApp answers are 3-4 lines: less thinking and a smaller budget make Pablito answer sooner
 AI_WHATSAPP_EFFORT = os.getenv('AI_WHATSAPP_EFFORT', 'low').strip().lower()
 AI_WHATSAPP_MAX_TOKENS = int(os.getenv('AI_WHATSAPP_MAX_TOKENS', '2048'))
+# How long the cached prompt (system + tools, ~22k tokens) stays warm. 5m is the API default; 1h means a message after a
+# pause is not slowed down (and re-billed) by re-processing the whole prefix
+AI_CACHE_TTL = os.getenv('AI_CACHE_TTL', '1h').strip().lower()
 # Server-side refusal fallback (Claude API only): retries cyber / frontier_llm declines on a
 # fallback model so a false positive does not end the turn. "false" disables it.
 AI_CHAT_SERVER_FALLBACK = os.getenv('AI_CHAT_SERVER_FALLBACK', 'true').strip().lower() != 'false'
@@ -68,18 +71,22 @@ def _recent_activity_block(extra_system):
         "ejecutar nada.\n" + body + "\n</actividad_reciente>")}
 
 
+def _cache_control():
+    return {"type": "ephemeral", "ttl": AI_CACHE_TTL} if AI_CACHE_TTL == '1h' else {"type": "ephemeral"}
+
+
 def create_ai_message(system_prompt, messages, extra_system=None, channel='web'):
     """Single place that builds the Messages API request for the assistant"""
     # The system prompt and the tool list (~10k tokens) are identical on every call: cache them
     # (reads cost a tenth of normal input, and the prefix is not reprocessed)
     tools = [dict(tool) for tool in TOOLS]
-    tools[-1]["cache_control"] = {"type": "ephemeral"}
+    tools[-1]["cache_control"] = _cache_control()
     whatsapp = channel == 'whatsapp'
     effort = AI_WHATSAPP_EFFORT if whatsapp else AI_CHAT_EFFORT
     params = {
         "model": AI_CHAT_MODEL,
         "max_tokens": AI_WHATSAPP_MAX_TOKENS if whatsapp else AI_CHAT_MAX_TOKENS,
-        "system": [{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}],
+        "system": [{"type": "text", "text": system_prompt, "cache_control": _cache_control()}],
         "tools": tools,
         "messages": messages,
     }
@@ -1163,6 +1170,13 @@ def run_chat(raw_messages, user=None, channel='web', extra_system=None):
         # The agent asked the user to choose: end the turn, the browser shows buttons
         if g.ai_choice:
             stop_reason = "ask_choice"
+            break
+
+        # WhatsApp: once the proposal exists it is shown as a card with SI / NO, so another model round just to
+        # word it would add seconds for nothing
+        if channel == 'whatsapp' and g.ai_pending_actions and all(
+                block.name in PROPOSAL_TOOLS for block in response.content if block.type == "tool_use"):
+            stop_reason = "proposed"
             break
 
         # Add assistant response and tool results to conversation

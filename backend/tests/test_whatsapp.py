@@ -492,7 +492,7 @@ def test_end_to_end_through_the_real_assistant_core(db, monkeypatch):
     assert routes.process_inbox_message(app, 'SM901') == 'command'
     expense, = db.store['variable_expenses'].values()
     assert expense['amount'] == 25000.0 and expense['folio'] == '555' and expense['source'] == 'ai_agent'
-    assert len(model.calls) == 2  # the SI never reached the model
+    assert len(model.calls) == 1  # one round for the proposal, and the SI never reached the model
 
 
 # ============ block A: speed and brevity ============
@@ -636,8 +636,8 @@ def test_the_system_prompt_and_tools_are_cached():
     finally:
         ai_chat_routes.anthropic_client = None
         ai_chat_routes.AI_CHAT_SERVER_FALLBACK = True
-    assert seen['system'] == [{'type': 'text', 'text': 'system text', 'cache_control': {'type': 'ephemeral'}}]
-    assert seen['tools'][-1]['cache_control'] == {'type': 'ephemeral'} and 'cache_control' not in seen['tools'][0]
+    assert seen['system'] == [{'type': 'text', 'text': 'system text', 'cache_control': ai_chat_routes._cache_control()}]
+    assert seen['tools'][-1]['cache_control'] == ai_chat_routes._cache_control() and 'cache_control' not in seen['tools'][0]
     assert 'cache_control' not in ai_chat_routes.TOOLS[-1]  # the module-level list is never mutated
 
 

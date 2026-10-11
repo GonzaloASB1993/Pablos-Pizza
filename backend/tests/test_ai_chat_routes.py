@@ -313,3 +313,46 @@ def test_whatsapp_channel_uses_its_own_lower_effort_and_budget(fake_client, monk
     whatsapp, web = fake_client.messages.calls[0], fake_client.messages.calls[1]
     assert whatsapp["output_config"] == {"effort": "low"} and whatsapp["max_tokens"] == 2048
     assert web["output_config"] == {"effort": "medium"} and web["max_tokens"] == 8192
+
+
+def _tool_use_response(name):
+    block = SimpleNamespace(type="tool_use", name=name, input={}, id="tu1")
+    return SimpleNamespace(content=[block], stop_reason="tool_use", model="m",
+                           usage=SimpleNamespace(input_tokens=1, output_tokens=1))
+
+
+def _run_with_tool(monkeypatch, tool_name, channel):
+    calls = []
+
+    def fake_create(system_prompt, messages, extra_system=None, channel="web"):
+        calls.append(1)
+        if len(calls) == 1:
+            return _tool_use_response(tool_name)
+        return SimpleNamespace(content=[SimpleNamespace(type="text", text="listo")], stop_reason="end_turn",
+                               model="m", usage=SimpleNamespace(input_tokens=1, output_tokens=1))
+
+    def fake_execute(name, tool_input):
+        if name.startswith("propose_"):
+            from flask import g
+            g.ai_pending_actions.append({"id": "a1"})
+        return {"ok": True}
+
+    monkeypatch.setattr(ai_chat_routes, "create_ai_message", fake_create)
+    monkeypatch.setattr(ai_chat_routes, "execute_tool", fake_execute)
+    with Flask(__name__).app_context():
+        result = ai_chat_routes.run_chat([{"role": "user", "content": "x"}], None, channel=channel)
+    return result, len(calls)
+
+
+def test_whatsapp_stops_right_after_a_proposal_without_another_model_round(monkeypatch):
+    result, rounds = _run_with_tool(monkeypatch, "propose_expense", "whatsapp")
+    assert rounds == 1 and result["pending_actions"] == [{"id": "a1"}] and result["stop_reason"] == "proposed"
+
+
+def test_web_and_non_proposal_tools_still_get_the_final_model_round(monkeypatch):
+    assert _run_with_tool(monkeypatch, "propose_expense", "web")[1] == 2
+    assert _run_with_tool(monkeypatch, "search_bookings", "whatsapp")[1] == 2
+
+
+def test_prompt_cache_lasts_an_hour_by_default():
+    assert ai_chat_routes._cache_control() == {"type": "ephemeral", "ttl": "1h"}
