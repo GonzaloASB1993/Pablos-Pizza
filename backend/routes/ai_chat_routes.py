@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify, g
 import os
 import logging
 import json
+import time
 from datetime import datetime, timedelta
 from database import get_db, get_storage_bucket
 from firebase_admin import firestore
@@ -1139,7 +1140,18 @@ def run_chat(raw_messages, user=None, channel='web', extra_system=None):
     # Initial API call with tools
     logger.info(f"Sending request to Claude API with {len(messages)} messages and {len(TOOLS)} tools")
 
-    response = create_ai_message(system_prompt, messages, extra_system=extra_system, channel=channel)
+    rounds, tool_timings = [], []   # fine-grained timing (ms per model round and per tool): never changes behaviour
+
+    def timed_message():
+        started = time.perf_counter()
+        reply = create_ai_message(system_prompt, messages, extra_system=extra_system, channel=channel)
+        rounds.append({
+            'ms': round((time.perf_counter() - started) * 1000), 'in': reply.usage.input_tokens,
+            'out': reply.usage.output_tokens, 'cache_read': getattr(reply.usage, 'cache_read_input_tokens', 0) or 0,
+            'cache_write': getattr(reply.usage, 'cache_creation_input_tokens', 0) or 0, 'stop': reply.stop_reason})
+        return reply
+
+    response = timed_message()
 
     # Track total usage
     total_input_tokens = response.usage.input_tokens
@@ -1170,7 +1182,10 @@ def run_chat(raw_messages, user=None, channel='web', extra_system=None):
                 tools_used.append({"name": tool_name, "input": tool_input})
 
                 # Execute the tool
+                tool_started = time.perf_counter()
                 tool_result = execute_tool(tool_name, tool_input)
+                tool_timings.append({'name': tool_name, 'ms': round((time.perf_counter() - tool_started) * 1000),
+                                     'round': len(rounds)})
 
                 # Add result to messages
                 tool_results.append({
@@ -1196,7 +1211,7 @@ def run_chat(raw_messages, user=None, channel='web', extra_system=None):
         messages.append({"role": "user", "content": tool_results})
 
         # Continue conversation with tool results
-        response = create_ai_message(system_prompt, messages, extra_system=extra_system, channel=channel)
+        response = timed_message()
 
         # Accumulate usage
         total_input_tokens += response.usage.input_tokens
@@ -1238,7 +1253,8 @@ def run_chat(raw_messages, user=None, channel='web', extra_system=None):
         "pending_actions": g.ai_pending_actions,
         "choices": choices,
         "model": response.model,
-        "stop_reason": stop_reason
+        "stop_reason": stop_reason,
+        "trace": {"rounds": rounds, "tools": tool_timings},
     }
 
 

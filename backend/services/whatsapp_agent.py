@@ -1072,15 +1072,24 @@ def _count_images(messages):
                if (item.get('content_type') or '').split(';')[0] in ALLOWED_IMAGE_TYPES)
 
 
+def _lap(timings, key, since):
+    """Record how long a stage took (ms) and return the new reference instant. Timing only, never behaviour."""
+    now = time.perf_counter()
+    timings[key] = round((now - since) * 1000)
+    return now
+
+
 def process_inbox(db, sid, deps):
     """Handle one stored message. Returns a short status string (useful in logs and tests)."""
     ref = db.collection(INBOX).document(sid)
+    claim_started = time.perf_counter()
     message = _claim(db, ref)
     if message is None:
         return 'skipped'
 
     started = time.perf_counter()
     timings = {}
+    _lap(timings, 'claim_ms', claim_started)
     created = message.get('created_at')
     if created is not None:
         created = created.replace(tzinfo=None) if getattr(created, 'tzinfo', None) else created
@@ -1100,13 +1109,17 @@ def process_inbox(db, sid, deps):
             led = True
             messages = [message if s == sid else _stored_message(db, s) for s in sids]
             messages = [m for m in messages if m]
+        lap = time.perf_counter()
         if deps.typing:
             deps.typing(sid)
+        lap = _lap(timings, 'typing_ms', lap)
 
         if not is_allowed(phone):
             ref.update({'status': IGNORED})
             return 'ignored'
-        if not _within_quota(db, phone, cost=len(messages), now=deps.now()):   # a burst of N messages counts N
+        quota_ok = _within_quota(db, phone, cost=len(messages), now=deps.now())   # a burst of N messages counts N
+        lap = _lap(timings, 'quota_ms', lap)
+        if not quota_ok:
             _reply(deps, phone, 'Llegaste al límite de mensajes de hoy con el asistente. Mañana seguimos 🙂')
             ref.update({'status': DONE, 'finished_at': deps.now()})
             return 'quota'
@@ -1114,10 +1127,12 @@ def process_inbox(db, sid, deps):
         # one agent turn at a time per phone: the next one must see the history this one saves
         burst.acquire_lock(db, phone, sid, deps)
         locked = True
+        lap = _lap(timings, 'lock_ms', lap)
 
         now = deps.now()
         user = user_for(phone)
         inbound = _gather(db, deps, messages, timings)
+        lap = _lap(timings, 'gather_ms', lap)
         if _count_images(messages) > MAX_IMAGES:
             inbound.notice = f'Leí las primeras {MAX_IMAGES} fotos.'
         if inbound.audio_capped and inbound.transcripts:      # one note heard, another not: say so
@@ -1143,9 +1158,11 @@ def process_inbox(db, sid, deps):
             return 'unsupported'
 
         conv = _load_conversation(db, phone, now)
+        lap = _lap(timings, 'load_conv_ms', lap)
         ctx = Ctx(db=db, deps=deps, phone=phone, user=user, conv=conv, inbound=inbound, now=now)
 
         answered = _dispatch_commands(ctx)
+        lap = _lap(timings, 'commands_ms', lap)
         if answered is not None:
             conv['history'] += [{'role': 'user', 'content': compact_message(inbound.history_text())},
                                 {'role': 'assistant', 'content': compact_message(answered)}]
@@ -1154,8 +1171,17 @@ def process_inbox(db, sid, deps):
             return 'command'
 
         result = _agent_turn(ctx, timings)
-        timings['total_ms'] = round((time.perf_counter() - started) * 1000)
+        lap = time.perf_counter()
         _save_conversation(db, phone, conv, now)
+        _lap(timings, 'save_ms', lap)
+        timings['total_ms'] = round((time.perf_counter() - started) * 1000)
+        trace = result.get('trace') or {}      # per model round and per tool (see ai_chat_routes.run_chat)
+        if trace.get('rounds'):
+            timings['rounds'] = trace['rounds']
+        if trace.get('tools'):
+            timings['tools'] = trace['tools']
+        if trace.get('activity_ms') is not None:
+            timings['activity_ms'] = trace['activity_ms']
         ref.update({'status': DONE, 'finished_at': now, 'usage': result.get('usage'), 'timings': timings})
         logger.info('WhatsApp timings %s: %s', sid, timings)
         return 'answered'

@@ -10,6 +10,7 @@ and, if Twilio signs a different URL than the one this function sees, set WHATSA
 """
 import logging
 import os
+import time
 from datetime import datetime
 from xml.sax.saxutils import escape as xml_escape
 
@@ -123,13 +124,17 @@ def process_inbox_message(app, sid):
         return 'warm'
 
     def run_chat(messages, user):
+        activity_started = time.perf_counter()
         try:  # recent proposals as reference data: the agent must still work without them
             activity = recent_activity.build(get_db(), datetime.utcnow())
         except Exception:  # noqa: BLE001
             logger.warning('Could not build the recent activity', exc_info=True)
             activity = ''
+        activity_ms = round((time.perf_counter() - activity_started) * 1000)
         with app.test_request_context():
-            return ai_chat_routes.run_chat(messages, user, channel='whatsapp', extra_system=activity or None)
+            result = ai_chat_routes.run_chat(messages, user, channel='whatsapp', extra_system=activity or None)
+        result.setdefault('trace', {})['activity_ms'] = activity_ms
+        return result
 
     def transcribe(data, content_type):
         from services import speech_service  # lazy: only voice notes pay for it
