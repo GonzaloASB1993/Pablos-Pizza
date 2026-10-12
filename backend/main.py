@@ -46,7 +46,7 @@ if str(CURRENT_DIR) not in sys.path:
 # Utils imports - AFTER sys.path configuration
 from utils.pagination import paginate_query, create_pagination_response
 from utils.audit import log_audit, audit_log
-from utils.auth import require_scheduler_or_admin
+from utils.auth import require_admin, require_scheduler_or_admin
 from services import inventory_service
 from services import event_inventory_service
 
@@ -752,54 +752,57 @@ def upload_gallery_image():
         return response, 500
 
 # Contact System Endpoints
-@app.route('/api/contacts', methods=['GET', 'POST', 'OPTIONS'])
+@app.route('/api/contacts', methods=['GET'])
+@require_admin
+def list_contacts():
+    """Admin only: list contact messages (the public form creates them with POST)"""
+    try:
+        print("🔍 Getting contact messages...")
+        db = get_db()
+        if db is None:
+            return jsonify({"error": "Database connection failed"}), 500
+
+        # Query parameters for filtering
+        status = request.args.get('status')
+        priority = request.args.get('priority')
+        limit = int(request.args.get('limit', 50))
+
+        contacts_ref = db.collection("contacts")
+
+        # Apply filters
+        if status:
+            contacts_ref = contacts_ref.where("status", "==", status)
+        if priority:
+            contacts_ref = contacts_ref.where("priority", "==", priority)
+
+        contacts_ref = contacts_ref.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
+
+        contacts = []
+        for doc in contacts_ref.stream():
+            contact = doc.to_dict()
+            contact['id'] = doc.id
+            contacts.append(contact)
+
+        print(f"✅ Found {len(contacts)} contact messages")
+        response = jsonify(contacts)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
+
+    except Exception as e:
+        print(f"❌ Error getting contacts: {e}")
+        response = jsonify({"error": str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+@app.route('/api/contacts', methods=['POST', 'OPTIONS'])
 def handle_contacts():
-    """Handle contact messages - GET to retrieve, POST to create"""
+    """Public contact form: POST creates a message"""
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'OK'})
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
         response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
         return response
-
-    if request.method == 'GET':
-        try:
-            print("🔍 Getting contact messages...")
-            db = get_db()
-            if db is None:
-                return jsonify({"error": "Database connection failed"}), 500
-
-            # Query parameters for filtering
-            status = request.args.get('status')
-            priority = request.args.get('priority')
-            limit = int(request.args.get('limit', 50))
-
-            contacts_ref = db.collection("contacts")
-
-            # Apply filters
-            if status:
-                contacts_ref = contacts_ref.where("status", "==", status)
-            if priority:
-                contacts_ref = contacts_ref.where("priority", "==", priority)
-
-            contacts_ref = contacts_ref.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
-
-            contacts = []
-            for doc in contacts_ref.stream():
-                contact = doc.to_dict()
-                contact['id'] = doc.id
-                contacts.append(contact)
-
-            print(f"✅ Found {len(contacts)} contact messages")
-            response = jsonify(contacts)
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 200
-
-        except Exception as e:
-            print(f"❌ Error getting contacts: {e}")
-            response = jsonify({"error": str(e)})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 500
 
     if request.method == 'POST':
         try:
@@ -3954,6 +3957,7 @@ def get_monthly_report_data(year: int, month: int, ctx: dict = None):
     }
 
 @app.route('/api/reports/monthly/<int:year>/<int:month>', methods=['GET'])
+@require_admin
 def get_monthly_report(year: int, month: int):
     """Generar reporte mensual"""
     try:
@@ -3963,6 +3967,7 @@ def get_monthly_report(year: int, month: int):
         return jsonify({"error": f"Error al generar reporte mensual: {str(e)}"}), 500
 
 @app.route('/api/reports/annual/<int:year>', methods=['GET'])
+@require_admin
 def get_annual_summary(year: int):
     """Resumen anual por meses"""
     try:
@@ -4026,6 +4031,7 @@ def get_annual_summary(year: int):
         return jsonify({"error": f"Error al generar resumen anual: {str(e)}"}), 500
 
 @app.route('/api/reports/dashboard', methods=['GET'])
+@require_admin
 def get_dashboard_stats():
     """Estadísticas para el dashboard principal"""
     try:
@@ -4114,6 +4120,7 @@ def get_dashboard_stats():
         return jsonify({"error": f"Error al obtener estadísticas del dashboard: {str(e)}"}), 500
 
 @app.route('/api/reports/clients/top', methods=['GET'])
+@require_admin
 def get_top_clients():
     """Obtener clientes más frecuentes"""
     try:
@@ -4159,6 +4166,7 @@ def get_top_clients():
         return jsonify({"error": f"Error al obtener clientes top: {str(e)}"}), 500
 
 @app.route('/api/reports/export/monthly/<int:year>/<int:month>', methods=['GET'])
+@require_admin
 def export_monthly_report(year: int, month: int):
     """Exportar reporte mensual a Excel"""
     try:
@@ -4211,6 +4219,7 @@ def export_monthly_report(year: int, month: int):
         return jsonify({"error": f"Error al exportar reporte: {str(e)}"}), 500
 
 @app.route('/api/reports/waste-summary', methods=['GET'])
+@require_admin
 def get_waste_summary():
     """Get waste/mermas summary report"""
     try:

@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime
 from database import get_db
 from services import expenses_service as svc
+from utils.auth import require_admin
 
 expenses_bp = Blueprint('expenses', __name__, url_prefix='/api/expenses')
 
@@ -24,6 +25,7 @@ def _json_body():
 
 
 @expenses_bp.route('/fixed', methods=['GET'])
+@require_admin
 def get_fixed_expenses():
     """Get all fixed expenses"""
     return _handle(lambda: (jsonify(svc.list_fixed(get_db())), 200))
@@ -61,6 +63,7 @@ def delete_fixed_expense(expense_id):
 
 
 @expenses_bp.route('/variable', methods=['GET'])
+@require_admin
 def get_variable_expenses():
     """Get variable expenses with optional month/year filtering"""
     def run():
@@ -106,6 +109,7 @@ def delete_variable_expense(expense_id):
 
 # Tax endpoints
 @expenses_bp.route('/tax', methods=['GET'])
+@require_admin
 def get_tax():
     """Get tax for a specific month/year"""
     try:

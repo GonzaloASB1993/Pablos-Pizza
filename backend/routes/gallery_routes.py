@@ -4,10 +4,12 @@ from datetime import datetime
 from database import get_db
 from firebase_admin import firestore
 from utils.pagination import paginate_query, create_pagination_response
+from utils.auth import require_admin
 
 gallery_bp = Blueprint('gallery', __name__, url_prefix='/api/gallery')
 
 @gallery_bp.route('/', methods=['GET'])
+@require_admin
 def get_gallery_images():
     try:
         eid,page,limit = request.args.get('event_id'),int(request.args.get('page',1)),int(request.args.get('limit',30))
@@ -19,6 +21,7 @@ def get_gallery_images():
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @gallery_bp.route('/event/<event_id>', methods=['GET','OPTIONS'])
+@require_admin
 def get_gallery_by_event(event_id):
     if request.method == 'OPTIONS': return jsonify({'status':'OK'}), 200
     try:

@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 from database import get_db
 from firebase_admin import firestore
+from utils.auth import require_admin
 
 vacuum_sales_bp = Blueprint('vacuum_sales', __name__, url_prefix='/api/vacuum-sales')
 
@@ -207,6 +208,7 @@ def create_sale():
 
 
 @vacuum_sales_bp.route('/', methods=['GET'])
+@require_admin
 def get_sales():
     """Get all vacuum sales with optional filters"""
     try:
@@ -267,6 +269,7 @@ def get_sales():
 
 
 @vacuum_sales_bp.route('/<sale_id>', methods=['GET'])
+@require_admin
 def get_sale(sale_id):
     """Get a single vacuum sale by ID"""
     try:
@@ -561,6 +564,7 @@ def delete_payment(sale_id, payment_id):
 # ============== SUMMARY/REPORTS ==============
 
 @vacuum_sales_bp.route('/summary', methods=['GET'])
+@require_admin
 def get_summary():
     """Get vacuum sales summary for a specific month"""
     try:

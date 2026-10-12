@@ -5,6 +5,7 @@ from datetime import datetime
 from database import get_db
 from firebase_admin import firestore
 from utils.pagination import paginate_query, create_pagination_response
+from utils.auth import require_admin
 
 contacts_bp = Blueprint('contacts', __name__, url_prefix='/api/contacts')
 
@@ -22,6 +23,7 @@ def create_contact():
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @contacts_bp.route('/', methods=['GET'])
+@require_admin
 def get_contacts():
     try:
         db,page,limit = get_db(),int(request.args.get('page',1)),int(request.args.get('limit',20))
@@ -31,6 +33,7 @@ def get_contacts():
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @contacts_bp.route('/<contact_id>', methods=['GET'])
+@require_admin
 def get_contact(contact_id):
     try:
         doc = get_db().collection("contacts").document(contact_id).get()

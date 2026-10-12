@@ -5,6 +5,7 @@ from database import get_db
 from firebase_admin import firestore
 from utils.pagination import paginate_query, create_pagination_response
 import os
+from utils.auth import require_admin
 
 events_bp = Blueprint('events', __name__, url_prefix='/api/events')
 
@@ -19,6 +20,7 @@ def generate_basic_description(title, service_type, participants, pizzeros_parti
         return f"Pizza Party en {location} con pizzas artesanales recién horneadas para {party_guests} invitados. Celebración llena de sabor y alegría."
 
 @events_bp.route('/', methods=['GET'])
+@require_admin
 def get_events():
     try:
         db,page,limit = get_db(),int(request.args.get('page',1)),int(request.args.get('limit',20))
@@ -42,6 +44,7 @@ def create_event():
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @events_bp.route('/<event_id>', methods=['GET'])
+@require_admin
 def get_event(event_id):
     try:
         doc = get_db().collection("events").document(event_id).get()

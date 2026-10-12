@@ -9,6 +9,7 @@ from flask import Flask
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from routes import expenses_routes  # noqa: E402
+from tests.conftest import authenticate_as_admin  # noqa: E402
 from tests.fakes import FakeFirestore  # noqa: E402
 
 
@@ -20,10 +21,10 @@ def db(monkeypatch):
 
 
 @pytest.fixture
-def client(db):
+def client(db, monkeypatch):
     app = Flask(__name__)
     app.register_blueprint(expenses_routes.expenses_bp)
-    return app.test_client()
+    return authenticate_as_admin(monkeypatch, app.test_client())
 
 
 # ---------- fixed expenses ----------

@@ -8,6 +8,7 @@ from utils.pagination import paginate_query, create_pagination_response
 from services.whatsapp_service import send_whatsapp_template
 from services import booking_service
 from services.email_service import send_admin_email_notification
+from utils.auth import require_admin
 
 bookings_bp = Blueprint('bookings', __name__, url_prefix='/api/bookings')
 
@@ -25,6 +26,7 @@ def create_booking():
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @bookings_bp.route('/', methods=['GET'])
+@require_admin
 def get_bookings():
     try:
         db = get_db()
@@ -47,6 +49,7 @@ def get_bookings():
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @bookings_bp.route('/<booking_id>', methods=['GET'])
+@require_admin
 def get_booking(booking_id):
     try:
         db = get_db()

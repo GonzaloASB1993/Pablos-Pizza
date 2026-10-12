@@ -8,6 +8,7 @@ from utils.pagination import paginate_query, create_pagination_response
 from models.customer import CustomerCreate, CustomerUpdate, CustomerResponse, CustomerSearchResult
 from pydantic import ValidationError
 import logging
+from utils.auth import require_admin
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +85,7 @@ def create_customer():
 
 
 @customers_bp.route('/', methods=['GET'])
+@require_admin
 def get_customers():
     """Get all customers with pagination and optional filtering
 
@@ -155,6 +157,7 @@ def get_customers():
 
 
 @customers_bp.route('/search', methods=['GET'])
+@require_admin
 def search_customers():
     """Search customers by name, email, or phone (optimized for autocomplete)
 
@@ -219,6 +222,7 @@ def search_customers():
 
 
 @customers_bp.route('/<customer_id>', methods=['GET'])
+@require_admin
 def get_customer(customer_id):
     """Get a single customer by ID
 
@@ -362,6 +366,7 @@ def delete_customer(customer_id):
 
 
 @customers_bp.route('/<customer_id>/bookings', methods=['GET'])
+@require_admin
 def get_customer_bookings(customer_id):
     """Get all bookings for a specific customer
 
