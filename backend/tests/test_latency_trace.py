@@ -184,3 +184,39 @@ def test_prefetch_can_be_switched_off_and_a_missing_prefetch_still_works(db, mon
     monkeypatch.setattr(wa, 'send_typing', lambda sid: True)
     assert whatsapp_routes.process_inbox_message(Flask(__name__), _inbox(db, 'SM922')) == 'answered'
     assert reads == [1] and sent == ['actividad']
+
+
+# ============ webhook: the last-message bookkeeping overlaps the store ============
+
+def test_webhook_touch_contact_overlaps_the_store_and_is_done_before_the_response(hook, db, monkeypatch):
+    import threading
+    from services import whatsapp_agent as agent
+    release, done = threading.Event(), []
+    original_touch, original_store = agent.touch_contact, agent.store_inbound
+
+    def slow_touch(db_, phone, now=None):
+        release.wait(1.5)
+        original_touch(db_, phone)
+        done.append(phone)
+
+    def store(db_, form):
+        release.set()                      # the store is running while the contact write is still in flight
+        return original_store(db_, form)
+
+    monkeypatch.setattr(agent, 'touch_contact', slow_touch)
+    monkeypatch.setattr(agent, 'store_inbound', store)
+    assert hook(_form(body='cuánto gasté este mes', sid='SM930')).status_code == 200
+    assert done == ['+56911111111'] and 'last_user_message_at' in db.store['whatsapp_contacts']['+56911111111']
+
+
+def test_instant_replies_still_record_the_contact_and_the_flag_restores_the_sequential_order(hook, db, monkeypatch):
+    from services import whatsapp_agent as agent
+    hook(_form(body='hola', sid='SM931'))
+    assert 'last_user_message_at' in db.store['whatsapp_contacts']['+56911111111']
+    monkeypatch.setenv('AI_WHATSAPP_WEBHOOK_PARALLEL', 'false')
+    order = []
+    original = agent.store_inbound
+    monkeypatch.setattr(agent, 'touch_contact', lambda d, p, now=None: order.append('touch'))
+    monkeypatch.setattr(agent, 'store_inbound', lambda d, f: order.append('store') or original(d, f))
+    hook(_form(body='cuánto gasté este mes', sid='SM932'))
+    assert order == ['touch', 'store']

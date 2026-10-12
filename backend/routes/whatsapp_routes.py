@@ -62,8 +62,20 @@ def webhook():
         logger.warning('WhatsApp webhook: sender not allowed (%s)', phone[-4:] or '?')
         return _twiml()
 
-    wa.touch_contact(get_db(), phone)  # every message of an allowed number, instant answers included
+    # every message of an allowed number, instant answers included. It is bookkeeping: it runs next to the rest and is
+    # joined before the response (AI_WHATSAPP_WEBHOOK_PARALLEL=false: sequential, as before)
+    touching = None
+    if wa.webhook_parallel():
+        touching = wa.start_background(wa.touch_contact, get_db(), phone)
+    else:
+        wa.touch_contact(get_db(), phone)
+    try:
+        return _handle_allowed(form, phone)
+    finally:
+        wa.join_background(touching, timeout=3)
 
+
+def _handle_allowed(form, phone):
     # "Ver" (the digest's button, or the word) is answered here too, from the detail saved when the digest went out
     from services import proactive_service
     detail = proactive_service.view_reply(get_db(), phone, form.get('ButtonPayload'), form.get('Body'))

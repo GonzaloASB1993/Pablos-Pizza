@@ -412,6 +412,11 @@ def typing_async():
     return os.getenv('AI_WHATSAPP_TYPING_ASYNC', 'true').strip().lower() != 'false'
 
 
+def webhook_parallel():
+    """AI_WHATSAPP_WEBHOOK_PARALLEL=false: the webhook's bookkeeping write runs before the message is stored (sequential)"""
+    return os.getenv('AI_WHATSAPP_WEBHOOK_PARALLEL', 'true').strip().lower() != 'false'
+
+
 def prefetch_enabled():
     """AI_WHATSAPP_PREFETCH=false: the agent's reference data is read when the model is about to run, as before"""
     return os.getenv('AI_WHATSAPP_PREFETCH', 'true').strip().lower() != 'false'
