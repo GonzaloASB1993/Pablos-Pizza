@@ -44,12 +44,12 @@ def _events(db, today):
     lines = []
     for when, booking in rows[:MAX_EVENTS]:
         day = datetime.strptime(when[:10], '%Y-%m-%d').date() if len(when) >= 10 else None
-        label = f'{DAY_NAMES[day.weekday()][:3].lower()} {day.day}/{day.month}' if day else when
-        hour = (booking.get('event_time') or (when[11:16] if len(when) >= 16 else '')) or ''
+        label = f'{DAY_NAMES[day.weekday()][:3].lower()} {day.day}/{day.month}' if day else _clean(when, 20)
+        hour = _clean(booking.get('event_time') or (when[11:16] if len(when) >= 16 else ''), 8)
         parts = [f'{label} {hour}'.strip(), _clean(booking.get('client_name')) or 'sin nombre',
-                 service_label(booking.get('service_type')),
+                 _clean(service_label(booking.get('service_type')), 40),
                  _clean(booking.get('location')),
-                 f"{booking['participants']} pers." if booking.get('participants') else '',
+                 f"{_clean(booking['participants'], 6)} pers." if booking.get('participants') else '',
                  _STATUS_ES[booking['status']]]
         lines.append('- ' + ' · '.join(p for p in parts if p))
     if len(rows) > MAX_EVENTS:
