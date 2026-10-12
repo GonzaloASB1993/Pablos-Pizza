@@ -130,31 +130,46 @@ def process_inbox_message(app, sid):
         keep_warm.prewarm()
         return 'warm'
 
-    def run_chat(messages, user):
-        activity_started = time.perf_counter()
-        situation_thread = None
-        box = {}
-        try:  # recent proposals as reference data: the agent must still work without them
+    prefetched = {}
+
+    def build_context():
+        """Reference data for the agent: recent proposals (+ the situation snapshot when switched on). Never raises."""
+        started = time.perf_counter()
+        box, thread, activity = {}, None, ''
+        try:  # the agent must still work without them
             db, now = get_db(), datetime.utcnow()
-            if situation.enabled():   # its three small reads run next to the recent-activity one (the model waits for both)
-                situation_thread = wa.start_background(lambda: box.__setitem__('text', situation.build(db, now)))
+            if situation.enabled():   # its three small reads run next to the recent-activity one
+                thread = wa.start_background(lambda: box.__setitem__('situation', situation.build(db, now)))
             activity = recent_activity.build(db, now)
         except Exception:  # noqa: BLE001
             logger.warning('Could not build the recent activity', exc_info=True)
             activity = ''
-        wa.join_background(situation_thread, timeout=5)
-        activity_ms = round((time.perf_counter() - activity_started) * 1000)
+        wa.join_background(thread, timeout=5)
+        return {'activity': activity, 'situation': box.get('situation') or '',
+                'ms': round((time.perf_counter() - started) * 1000)}
+
+    def prefetch():
+        """Start reading that context while the worker does its own bookkeeping (quota, lock, conversation)"""
+        if wa.prefetch_enabled() and 'thread' not in prefetched:
+            prefetched['thread'] = wa.start_background(lambda: prefetched.__setitem__('data', build_context()))
+
+    def run_chat(messages, user):
+        wait_started = time.perf_counter()
+        wa.join_background(prefetched.get('thread'), timeout=10)
+        context = prefetched.get('data') or build_context()
+        context_wait_ms = round((time.perf_counter() - wait_started) * 1000)
         with app.test_request_context():
-            result = ai_chat_routes.run_chat(messages, user, channel='whatsapp', extra_system=activity or None,
-                                             **({'situation': box['text']} if box.get('text') else {}))
-        result.setdefault('trace', {})['activity_ms'] = activity_ms
+            result = ai_chat_routes.run_chat(messages, user, channel='whatsapp', extra_system=context['activity'] or None,
+                                             **({'situation': context['situation']} if context['situation'] else {}))
+        result.setdefault('trace', {})['activity_ms'] = context_wait_ms     # time the turn waited for the context
         return result
 
     def transcribe(data, content_type):
         from services import speech_service  # lazy: only voice notes pay for it
         return speech_service.transcribe(data, content_type, phrases=speech_service.phrase_list(get_db()))
 
-    deps = wa.Deps(send=_send, run_chat=run_chat, download_media=_download, typing=wa.send_typing, transcribe=transcribe)
+    deps = wa.Deps(send=_send, run_chat=run_chat, download_media=_download, typing=wa.send_typing, transcribe=transcribe,
+                   prefetch=prefetch)
     status = wa.process_inbox(get_db(), sid, deps)
     logger.info('WhatsApp message %s: %s', sid, status)
     return status

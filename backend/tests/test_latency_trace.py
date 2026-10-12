@@ -147,3 +147,40 @@ def test_a_twilio_retry_after_an_inline_turn_never_runs_the_agent_twice(db, monk
     assert wa.store_inbound(db, {'MessageSid': sid, 'From': f'whatsapp:{wa.normalize_phone("+56911111111")}', 'Body': 'otra vez',
                                  'NumMedia': '0'}) is False           # the retry is not "new": nothing is processed
     assert wa.process_inbox(db, sid, deps) == 'skipped' and len(calls) == 1
+
+
+# ============ the agent's reference data is read while the worker does its bookkeeping ============
+
+def test_prefetch_starts_for_allowed_senders_only_and_the_agent_reuses_it(db, monkeypatch):
+    from routes import whatsapp_routes
+    from services import recent_activity
+    reads, started = [], []
+    monkeypatch.setattr(recent_activity, 'build', lambda db_, now: reads.append(1) or 'actividad')
+    monkeypatch.setattr(whatsapp_routes, 'get_db', lambda: db)
+    seen = {}
+    monkeypatch.setattr(ai_chat_routes, 'run_chat', lambda messages, user, channel='web', extra_system=None, **kw:
+                        seen.update(extra=extra_system) or {'response': 'ok', 'pending_actions': [], 'choices': []})
+    monkeypatch.setattr(whatsapp_routes, '_send', lambda phone, body: None)
+    monkeypatch.setattr(wa, 'send_typing', lambda sid: True)
+    app = Flask(__name__)
+    monkeypatch.setattr(whatsapp_routes, 'get_db', lambda: db)
+    assert whatsapp_routes.process_inbox_message(app, _inbox(db, 'SM920')) == 'answered'
+    assert seen['extra'] == 'actividad' and reads == [1]               # read once, by the prefetch, and used
+    assert whatsapp_routes.process_inbox_message(app, _inbox(db, 'SM921', sender='+56933333333')) == 'ignored'
+    assert reads == [1]                                                # a stranger never triggers reads
+
+
+def test_prefetch_can_be_switched_off_and_a_missing_prefetch_still_works(db, monkeypatch):
+    from routes import whatsapp_routes
+    from services import recent_activity
+    monkeypatch.setenv('AI_WHATSAPP_PREFETCH', 'false')
+    reads = []
+    monkeypatch.setattr(recent_activity, 'build', lambda db_, now: reads.append(1) or 'actividad')
+    monkeypatch.setattr(whatsapp_routes, 'get_db', lambda: db)
+    monkeypatch.setattr(ai_chat_routes, 'run_chat', lambda messages, user, channel='web', extra_system=None, **kw:
+                        {'response': extra_system, 'pending_actions': [], 'choices': []})
+    sent = []
+    monkeypatch.setattr(whatsapp_routes, '_send', lambda phone, body: sent.append(body))
+    monkeypatch.setattr(wa, 'send_typing', lambda sid: True)
+    assert whatsapp_routes.process_inbox_message(Flask(__name__), _inbox(db, 'SM922')) == 'answered'
+    assert reads == [1] and sent == ['actividad']

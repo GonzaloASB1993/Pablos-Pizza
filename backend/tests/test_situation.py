@@ -31,13 +31,13 @@ def _seed(db):
     db.collection('contacts').document('c2').set({'name': 'Luis', 'subject': 'Gracias', 'status': 'resolved'})
 
 
-def test_off_by_default(monkeypatch):
-    monkeypatch.delenv('AI_WHATSAPP_CONTEXT', raising=False)
+def test_flag_switches_it_off(monkeypatch):
+    monkeypatch.setenv('AI_WHATSAPP_CONTEXT', 'false')
     assert situation.build(FakeFirestore(), NOW) == ''
 
 
 def test_snapshot_lists_active_events_low_stock_and_open_inquiries_without_ids(monkeypatch):
-    monkeypatch.setenv('AI_WHATSAPP_CONTEXT', 'true')
+    
     db = FakeFirestore()
     _seed(db)
     text = situation.build(db, NOW)
@@ -50,7 +50,7 @@ def test_snapshot_lists_active_events_low_stock_and_open_inquiries_without_ids(m
 
 
 def test_empty_sections_say_so_and_a_failure_means_no_snapshot(monkeypatch):
-    monkeypatch.setenv('AI_WHATSAPP_CONTEXT', 'true')
+    
     assert situation.build(FakeFirestore(), NOW).count('- ninguno') == 3
 
     class Broken(FakeFirestore):
@@ -77,7 +77,7 @@ def test_the_block_reaches_the_model_as_a_third_uncached_system_block_and_never_
     assert 'mar 13' not in str(captured['messages'])
 
 
-def test_the_worker_passes_the_snapshot_only_when_switched_on(monkeypatch):
+def test_the_worker_passes_the_snapshot_unless_switched_off(monkeypatch):
     from routes import whatsapp_routes
     from services import whatsapp_agent as wa
     db = FakeFirestore()
@@ -91,8 +91,8 @@ def test_the_worker_passes_the_snapshot_only_when_switched_on(monkeypatch):
 
     # the snapshot is computed for the real clock: shift the seeded dates to it
     monkeypatch.setattr(situation.clock, 'today_cl', lambda now=None: NOW.date())
-    monkeypatch.delenv('AI_WHATSAPP_CONTEXT', raising=False)
+    monkeypatch.setenv('AI_WHATSAPP_CONTEXT', 'false')
     whatsapp_routes.process_inbox_message(Flask(__name__), 'SM-a')
-    monkeypatch.setenv('AI_WHATSAPP_CONTEXT', 'true')
+    monkeypatch.delenv('AI_WHATSAPP_CONTEXT')                          # on by default
     whatsapp_routes.process_inbox_message(Flask(__name__), 'SM-b')
     assert captured[0] == {} and 'Carolina Soto' in captured[1]['situation']

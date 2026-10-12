@@ -5,7 +5,7 @@ tool call and a second model round (~1.2 s each). With this snapshot the model c
 (other dates, other periods, details) still goes through the tools. It carries NO ids: an event can only be chosen by the person
 (ask_choice / typed), exactly like before.
 
-Read only, three single-filter queries (no composite index), never raises. AI_WHATSAPP_CONTEXT=false switches it off.
+Read only, three single-filter queries (no composite index), never raises. On by default; AI_WHATSAPP_CONTEXT=false switches it off.
 """
 import logging
 import os
@@ -25,7 +25,7 @@ _STATUS_ES = {'pending': 'por confirmar', 'confirmed': 'confirmada'}
 
 
 def enabled():
-    return os.getenv('AI_WHATSAPP_CONTEXT', 'false').strip().lower() == 'true'
+    return os.getenv('AI_WHATSAPP_CONTEXT', 'true').strip().lower() != 'false'
 
 
 def _clean(value, limit=60):

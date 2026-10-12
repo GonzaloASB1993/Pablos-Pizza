@@ -174,7 +174,7 @@ def test_the_worker_passes_the_activity_and_it_is_never_stored_in_the_history(db
     _action(db, 'abc12345-aaaa', 'Compra Líder $23.450', 'confirmed', created=datetime.utcnow() - timedelta(hours=2))
     captured = {}
 
-    def fake_run_chat(messages, user, channel='web', extra_system=None):
+    def fake_run_chat(messages, user, channel='web', extra_system=None, **kwargs):
         captured['extra'] = extra_system
         captured['messages'] = messages
         return {'response': 'ok', 'pending_actions': [], 'choices': []}

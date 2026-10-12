@@ -18,6 +18,7 @@ Variants (module attributes of routes.ai_chat_routes that are overridden for the
   nofallback  AI_CHAT_SERVER_FALLBACK=false (plain messages endpoint instead of the beta server-side fallback)
   ctx       AI_WHATSAPP_CONTEXT=true (fresh situation snapshot in the system, see services/situation.py)
   noquick   AI_WHATSAPP_FAST_QUERIES=false (every question goes to the model)
+  noprefetch / ctx-noprefetch   AI_WHATSAPP_PREFETCH=false (the agent's reference data is read right before the model call)
 Any other `--set NAME=VALUE` is applied on top (e.g. AI_WHATSAPP_EFFORT=medium, ENV:AI_WHATSAPP_CONTEXT=true).
 """
 import argparse
@@ -41,6 +42,8 @@ VARIANTS = {
     'nofallback': {'AI_CHAT_SERVER_FALLBACK': False},
     'ctx': {'ENV:AI_WHATSAPP_CONTEXT': 'true'},
     'noquick': {'ENV:AI_WHATSAPP_FAST_QUERIES': 'false'},
+    'noprefetch': {'ENV:AI_WHATSAPP_PREFETCH': 'false'},
+    'ctx-noprefetch': {'ENV:AI_WHATSAPP_CONTEXT': 'true', 'ENV:AI_WHATSAPP_PREFETCH': 'false'},
 }
 
 SCENARIOS = {
@@ -59,6 +62,7 @@ SCENARIOS = {
     'sabado': 'tengo algo el sábado?',
     'faltan': 'qué falta comprar?',
     'consultas': 'hay consultas de clientes sin responder?',
+    'lejano': 'tengo algo el 3 de noviembre?',
 }
 
 
@@ -109,6 +113,7 @@ def _seed(db):
         ('b4', 'Carolina Soto', 'Pizza Party', f'{day(1)}T19:00:00', 20, 'confirmed', 150000, 'La Reina'),
         ('b5', 'Empresa Andes', 'Pizzeros en Acción', f'{day(-6)}T12:00:00', 25, 'completed', 275000, 'Santiago'),
         ('b6', 'Pedro Silva', 'Pizza Party', f'{day(-20)}T18:00:00', 15, 'completed', 120000, 'Maipú'),
+        ('b7', 'Cumple Sofía', 'Pizza Party', '2026-11-03T17:00:00', 18, 'confirmed', 140000, 'Vitacura'),
     ]
     for bid, name, service, when, people, status, price, place in bookings:
         db.collection('bookings').document(bid).set({

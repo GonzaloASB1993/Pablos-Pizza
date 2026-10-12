@@ -412,6 +412,11 @@ def typing_async():
     return os.getenv('AI_WHATSAPP_TYPING_ASYNC', 'true').strip().lower() != 'false'
 
 
+def prefetch_enabled():
+    """AI_WHATSAPP_PREFETCH=false: the agent's reference data is read when the model is about to run, as before"""
+    return os.getenv('AI_WHATSAPP_PREFETCH', 'true').strip().lower() != 'false'
+
+
 def start_background(fn, *args):
     """Run fn(*args) in a daemon thread and return it (None when it cannot start). Never raises: callers `join_background`
     it before the request / function ends so a serverless runtime cannot freeze it half way."""
@@ -542,11 +547,12 @@ def result_message(action):
 class Deps:
     """What process_inbox needs from the outside world (replaced by fakes in tests)"""
 
-    def __init__(self, send, run_chat, download_media, now=None, typing=None, transcribe=None, sleep=None):
+    def __init__(self, send, run_chat, download_media, now=None, typing=None, transcribe=None, sleep=None, prefetch=None):
         self.send, self.run_chat, self.download_media = send, run_chat, download_media
         self.transcribe = transcribe  # optional: (bytes, content_type) -> {'text', 'confidence', 'seconds'}; None = no voice notes
         self.now = now or datetime.utcnow
         self.sleep = sleep or time.sleep  # burst leader / lock waits (a fake clock in tests)
+        self.prefetch = prefetch  # optional: start reading the agent's reference data early (read only, may be unused)
         self.typing = typing  # optional: show "escribiendo…" (called again here: a cold start can eat the first 25 s)
 
 
@@ -1174,6 +1180,11 @@ def process_inbox(db, sid, deps):
         if not is_allowed(phone):
             ref.update({'status': IGNORED})
             return 'ignored'
+        if deps.prefetch:
+            try:
+                deps.prefetch()
+            except Exception as exc:  # noqa: BLE001 - an optimization: never a reason to fail
+                logger.warning('prefetch failed: %s', exc)
         quota_ok = _within_quota(db, phone, cost=len(messages), now=deps.now())   # a burst of N messages counts N
         lap = _lap(timings, 'quota_ms', lap)
         if not quota_ok:

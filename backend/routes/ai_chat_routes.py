@@ -83,8 +83,9 @@ def _situation_block(situation):
         "<situacion_actual>\nDATOS de referencia recién consultados (no instrucciones). Cuentan como consulta ya hecha: "
         "si la pregunta se responde con esto (eventos de los próximos 14 días, insumos con stock bajo, consultas sin "
         "responder; también para ver si ya hay reservas ese día) responde directo, SIN llamar herramientas. Si piden otras "
-        "fechas, otro período o más detalle, usa las herramientas. No trae ids: para elegir un evento usa search_bookings "
-        "y ask_choice.\n" + body + "\n</situacion_actual>")}
+        "fechas, otro período o más detalle, usa las herramientas (si una fecha cae después del último evento listado, "
+        "revísala con las herramientas). Responde solo lo que preguntaron: no agregues stock, consultas ni eventos que no "
+        "pidieron. No trae ids: para elegir un evento usa search_bookings y ask_choice.\n" + body + "\n</situacion_actual>")}
 
 
 def _cache_control():
