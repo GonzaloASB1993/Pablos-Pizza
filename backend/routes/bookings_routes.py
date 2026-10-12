@@ -19,8 +19,9 @@ calculate_estimated_price = booking_service.calculate_estimated_price
 def create_booking():
     """Create new booking with automatic customer linking/creation (PUBLIC: the website posts here)"""
     try:
-        data = request.get_json()
-        return jsonify(booking_service.create_booking(get_db(), data)), 201
+        db = get_db()
+        data = booking_service.sanitize_public_booking(request.get_json(silent=True), db)
+        return jsonify(booking_service.create_booking(db, data)), 201
     except booking_service.BookingError as e:
         return jsonify({"error": e.message}), e.status_code
     except Exception as e: return jsonify({"error":str(e)}), 500

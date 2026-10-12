@@ -90,11 +90,18 @@ def test_booking_is_created_pending_with_price_and_notes(client, db):
 
 
 def test_comuna_lejana_extra_is_added_to_the_price(client):
-    assert client.post('/api/bookings/', json=_form(comuna_lejana_extra=20000)).get_json()['estimated_price'] == 12 * 10500 + 20000
+    body = client.post('/api/bookings/', json=_form(comuna_lejana_extra=20000, selected_comuna='Quilicura')).get_json()
+    assert body['estimated_price'] == 12 * 10500 + 20000
 
 
-def test_notes_fall_back_to_notes_field(client):
-    assert client.post('/api/bookings/', json=_form(special_requests='', notes='del admin')).get_json()['notes'] == 'del admin'
+def test_notes_fall_back_to_notes_field_for_internal_callers(db, sent):
+    # the PUBLIC route drops `notes` (whitelist); the agent / panel path (create_booking) still honours it
+    body = booking_service.create_booking(db, _form(special_requests='', notes='del admin'))
+    assert body['notes'] == 'del admin'
+
+
+def test_public_route_ignores_a_notes_field(client):
+    assert client.post('/api/bookings/', json=_form(special_requests='', notes='del admin')).get_json()['notes'] == ''
 
 
 # ---------- customers ----------
@@ -163,3 +170,67 @@ def test_known_prices():
     assert price('workshop,pizza_party', pizzeros_participants=12, pizza_quantity=10) == 126000 + 119900
     assert price('workshop', participants=12) == 126000                  # legacy field
     assert price('workshop', pizzeros_participants=8, comuna_lejana_extra=20000) == 155000
+
+
+# ---------- public input hardening (sanitize_public_booking) ----------
+
+def _stored(client, db, **overrides):
+    res = client.post('/api/bookings/', json=_form(**overrides))
+    assert res.status_code == 201, res.get_json()
+    return db.store['bookings'][res.get_json()['id']]
+
+
+def test_injected_fields_are_dropped_silently(client, db):
+    stored = _stored(
+        client, db, payments=[{'amount': 999999}], payment_summary={'payment_status': 'paid'}, financials={'x': 1},
+        customer_id='someone-else', status='confirmed', estimated_price=1, id='forced-id', notes='hack',
+        cancel_reason='x', is_admin=True)
+    for key in ('payments', 'payment_summary', 'financials', 'cancel_reason', 'is_admin'):
+        assert key not in stored
+    assert stored['status'] == 'pending' and stored['estimated_price'] == 12 * 10500
+    assert stored['customer_id'] != 'someone-else' and stored['id'] != 'forced-id'
+    assert stored['notes'] == 'Sin gluten'
+
+
+def test_a_legitimate_form_payload_is_stored_with_every_field(client, db):
+    stored = _stored(client, db, services_selected=['pizzeros'], selected_comuna='Ñuñoa', event_type='birthday')
+    for key, value in {'client_name': 'Ana Pérez', 'client_phone': '+56912345678', 'event_time': '16:00', 'location': 'Ñuñoa',
+                       'duration_hours': 4, 'participants': 12, 'pizzeros_participants': 12, 'party_participants': 0,
+                       'pizza_quantity': 0, 'special_requests': 'Sin gluten', 'services_selected': ['pizzeros'],
+                       'selected_comuna': 'Ñuñoa', 'source': 'website', 'comuna_lejana_extra': 0}.items():
+        assert stored[key] == value, key
+
+
+def test_comuna_extra_only_counts_for_a_configured_distant_comuna(client, db):
+    assert _stored(client, db, selected_comuna='Quilicura', comuna_lejana_extra=20000)['estimated_price'] == 12 * 10500 + 20000
+    assert _stored(client, db, selected_comuna='quilicura', comuna_lejana_extra=0)['comuna_lejana_extra'] == 20000  # server decides
+    assert _stored(client, db, selected_comuna='Ñuñoa', comuna_lejana_extra=20000)['comuna_lejana_extra'] == 0
+    assert _stored(client, db, comuna_lejana_extra=-500000)['estimated_price'] == 12 * 10500
+    assert _stored(client, db, selected_comuna='Lampa', comuna_lejana_extra=1)['comuna_lejana_extra'] == 20000
+
+
+def test_comuna_extra_uses_the_configured_charge_and_list(client, db):
+    db.collection('settings').document('comunas_lejanas').set({'comunas': ['Peñalolén'], 'cargo': 35000})
+    assert _stored(client, db, selected_comuna='Peñalolén')['comuna_lejana_extra'] == 35000
+    assert _stored(client, db, selected_comuna='Quilicura')['comuna_lejana_extra'] == 0
+
+
+@pytest.mark.parametrize('field,value', [
+    ('client_name', 'x' * 101), ('client_name', ''), ('client_email', 'no-es-email'), ('client_email', 'a@b.cl' + 'x' * 120),
+    ('client_phone', '1' * 21), ('special_requests', 'x' * 1001), ('participants', 501), ('participants', -1),
+    ('pizza_quantity', 501), ('pizzeros_participants', -3), ('participants', 'muchos'), ('event_date', 'mañana'),
+    ('event_type', 'fiesta-rara'), ('service_type', 'workshop,hacker'), ('location', 'x' * 1001), ('source_other', 'x' * 101),
+    ('duration_hours', 99), ('services_selected', 'pizzeros'),
+], ids=lambda v: str(v)[:20])
+def test_invalid_values_are_rejected_with_a_clear_400(client, field, value):
+    res = client.post('/api/bookings/', json=_form(**{field: value}))
+    assert res.status_code == 400 and res.get_json()['error']
+
+
+def test_limits_are_inclusive(client, db):
+    _stored(client, db, client_name='x' * 100, special_requests='y' * 1000, participants=500, pizza_quantity=500,
+            client_phone='1' * 20)
+
+
+def test_a_body_that_is_not_an_object_is_a_400(client):
+    assert client.post('/api/bookings/', json=['a']).status_code == 400
