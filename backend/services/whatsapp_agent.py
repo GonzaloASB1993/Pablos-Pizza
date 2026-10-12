@@ -79,7 +79,8 @@ def enabled():
 
 
 def processing_mode():
-    """'trigger' (default, robust) or 'inline' (answer inside the webhook request)"""
+    """'trigger' (default, robust), 'inline' (answer inside the webhook request) or 'inline_text' (inline only for messages
+    without media: they finish well inside Twilio's 15 s; photos / voice notes keep the trigger)"""
     return os.getenv('AI_WHATSAPP_MODE', 'trigger').strip().lower()
 
 
@@ -1223,7 +1224,8 @@ def process_inbox(db, sid, deps):
             conv['history'] += [{'role': 'user', 'content': compact_message(inbound.history_text())},
                                 {'role': 'assistant', 'content': compact_message(answered)}]
             _save_conversation(db, phone, conv, now)
-            ref.update({'status': DONE, 'finished_at': now})
+            timings['total_ms'] = round((time.perf_counter() - started) * 1000)
+            ref.update({'status': DONE, 'finished_at': now, 'timings': timings})
             return 'command'
 
         result = _agent_turn(ctx, timings)

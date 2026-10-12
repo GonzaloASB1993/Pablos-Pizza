@@ -86,7 +86,8 @@ def webhook():
         wa.join_background(typing)
     elif is_new:
         wa.send_typing(message_sid)
-    if is_new and wa.processing_mode() == 'inline':
+    mode = wa.processing_mode()
+    if is_new and (mode == 'inline' or (mode == 'inline_text' and not int(form.get('NumMedia') or 0))):
         # No Firestore trigger available: answer inside this request (Twilio will time out at 15 s, but
         # the reply still goes out through the REST API as long as the function keeps running)
         from main import app

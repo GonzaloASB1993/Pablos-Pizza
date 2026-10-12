@@ -124,3 +124,26 @@ def test_tool_results_with_timestamps_do_not_break_the_turn(monkeypatch):
     with Flask(__name__).test_request_context():
         result = ai_chat_routes.run_chat([{'role': 'user', 'content': 'consultas'}], {'uid': 'u', 'email': 'e'}, channel='whatsapp')
     assert result['response'] == 'hay 1' and '2026-10-12 09:30:00' in sent[-1]['content'][0]['content']
+
+
+# ============ inline_text mode (opt-in): text answered inside the webhook, media still through the trigger ============
+
+def test_inline_text_mode_processes_text_inline_once_and_leaves_media_to_the_trigger(hook, db, monkeypatch):
+    from routes import whatsapp_routes as routes
+    monkeypatch.setenv('AI_WHATSAPP_MODE', 'inline_text')
+    seen = []
+    monkeypatch.setattr(routes, 'process_inbox_message', lambda app, sid: seen.append(sid))
+    hook(_form(sid='SM910'))
+    hook(_form(sid='SM910'))                      # Twilio retry of the same message: stored once, processed once
+    hook(_form(sid='SM911', NumMedia='1', MediaUrl0='https://x/p.jpg', MediaContentType0='image/jpeg'))
+    assert seen == ['SM910']
+
+
+def test_a_twilio_retry_after_an_inline_turn_never_runs_the_agent_twice(db, monkeypatch):
+    calls = []
+    deps = _deps(lambda m, u: calls.append(m) or {'response': 'ok', 'pending_actions': [], 'choices': []})
+    sid = _inbox(db, 'SM912')
+    assert wa.process_inbox(db, sid, deps) == 'answered'
+    assert wa.store_inbound(db, {'MessageSid': sid, 'From': f'whatsapp:{wa.normalize_phone("+56911111111")}', 'Body': 'otra vez',
+                                 'NumMedia': '0'}) is False           # the retry is not "new": nothing is processed
+    assert wa.process_inbox(db, sid, deps) == 'skipped' and len(calls) == 1
