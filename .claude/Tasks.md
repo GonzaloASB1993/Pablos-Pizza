@@ -623,6 +623,12 @@ Rama `claude/ai-agent-phase4-pablito`. Orquestación: Opus 5.5 diseña y revisa,
 
 ---
 
+### Pablito: latencia (12/10/2026, commits locales en main, sin deploy). Detalle y números: `docs/PABLITO_RENDIMIENTO.md`
+- [✅] Instrumentación fina en `whatsapp_inbox.timings` (etapas, rondas de modelo, herramientas) + `backend/scripts/bench_pablito.py`
+- [✅] Snapshot de situación sin caché (`AI_WHATSAPP_CONTEXT`), respuestas instantáneas stock/eventos (`AI_WHATSAPP_FAST_QUERIES`), typing/touch en paralelo, prefetch
+- [✅] Fix: `get_contacts` con timestamps rompía el turno
+- [ ] Verificar a mano en WhatsApp real y revisar `timings` de producción tras el deploy; decidir `AI_WHATSAPP_MODE=inline_text` con datos reales
+
 **Última actualización**: Marzo 2026
 **Total tareas activas**: 55+ items
 **Estado del proyecto**: M0 ✅, M1 ✅, M2 ✅, M3 ✅, M4 ✅, M_NUT ✅ COMPLETADO

@@ -74,6 +74,13 @@ def test_events_answer_lists_active_bookings_of_the_day_in_chile(db):
     assert qq.answer(FakeFirestore(), 'eventos de hoy', NOW) == 'Hoy (lunes 12): no tienes eventos 🙌'
 
 
+def test_service_labels_follow_how_bookings_store_them():
+    from services.booking_search import service_label
+    assert service_label('workshop') == 'Pizzeros en Acción' and service_label('pizza_party') == 'Pizza Party'
+    assert service_label('pizzeros, party') == 'Pizzeros en Acción + Pizza Party' and service_label(None) == ''
+    assert service_label('Pizza Party') == 'Pizza Party'
+
+
 def test_a_failure_means_the_agent_answers(db, monkeypatch):
     monkeypatch.setattr(qq.inventory_search, 'scored_items', lambda *a, **k: (_ for _ in ()).throw(RuntimeError('boom')))
     assert qq.answer(db, 'stock de queso', NOW) is None

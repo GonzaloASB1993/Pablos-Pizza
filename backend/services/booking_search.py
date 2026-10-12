@@ -11,6 +11,16 @@ NAME_THRESHOLD = 0.7
 MAX_SCANNED = 300
 
 
+_SERVICE_NAMES = {'workshop': 'Pizzeros en Acción', 'pizzeros': 'Pizzeros en Acción', 'pizza_party': 'Pizza Party',
+                  'party': 'Pizza Party'}
+
+
+def service_label(service_type):
+    """'workshop' / 'pizza_party' / 'pizzeros,party' (how bookings store it) -> 'Pizzeros en Acción + Pizza Party'; anything else as is"""
+    parts = [p.strip() for p in str(service_type or '').split(',') if p.strip()]
+    return ' + '.join(dict.fromkeys(_SERVICE_NAMES.get(p.lower(), p[:40]) for p in parts))
+
+
 def event_day(event_date):
     """'2026-10-20T16:00:00' or '2026-10-20' -> '2026-10-20' (the public form stores the first kind)"""
     return str(event_date)[:10] if event_date else None

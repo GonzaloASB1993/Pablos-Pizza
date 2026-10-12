@@ -1,0 +1,1823 @@
+{
+ "meta": {
+  "when": "2026-10-12T04:03:01.110613",
+  "overrides": {
+   "ENV:AI_WHATSAPP_FAST_QUERIES": "false"
+  },
+  "fs_latency_ms": 0,
+  "model": "claude-sonnet-5-5",
+  "git": "0640174"
+ },
+ "results": [
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 2349,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 3,
+    "agent_ms": 2342,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2348,
+    "rounds": [
+     {
+      "ms": 1393,
+      "in": 222,
+      "out": 84,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 944,
+      "in": 439,
+      "out": 61,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 4,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, mañana martes tienes una Pizza Party confirmada: Carolina Soto, 19:00 en La Reina, para 20 personas ($150.000). 🍕",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 1366,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1364,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1366,
+    "rounds": [
+     {
+      "ms": 1362,
+      "in": 779,
+      "out": 63,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Sí, mañana martes 13/10 a las 19:00 tienes la Pizza Party de Carolina Soto en La Reina, para 20 personas. Está confirmada ✅",
+   "tools_called": [],
+   "error": null,
+   "variant": "ctx",
+   "rep": 0
+  },
+  {
+   "scenario": "faltan",
+   "status": "answered",
+   "wall_ms": 2620,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2617,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2619,
+    "rounds": [
+     {
+      "ms": 1318,
+      "in": 221,
+      "out": 30,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1298,
+      "in": 752,
+      "out": 99,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_inventory_status",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Faltan 2 cosas ⚠️\n• Queso mozzarella: tienes 3,2 kg y el mínimo es 5 kg.\n• Pepperoni: tienes 1,5 kg y el mínimo es 3 kg.\n\nLo demás está sobre el mínimo.",
+   "tools_called": [
+    {
+     "name": "get_inventory_status",
+     "input": {}
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "faltan",
+   "status": "answered",
+   "wall_ms": 1672,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1669,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1672,
+    "rounds": [
+     {
+      "ms": 1667,
+      "in": 778,
+      "out": 116,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Falta reponer dos cosas:\n• Queso mozzarella: tienes 3,2 kg y el mínimo es 5 kg.\n• Pepperoni: tienes 1,5 kg y el mínimo es 3 kg.\n\n⚠️ Mañana hay Pizza Party en La Reina, así que conviene comprar hoy.",
+   "tools_called": [],
+   "error": null,
+   "variant": "ctx",
+   "rep": 0
+  },
+  {
+   "scenario": "lejano",
+   "status": "answered",
+   "wall_ms": 2551,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 1,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2549,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2551,
+    "rounds": [
+     {
+      "ms": 1322,
+      "in": 228,
+      "out": 84,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1226,
+      "in": 454,
+      "out": 79,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, el martes 3 de noviembre tienes el Cumple Sofía: Pizza Party a las 17:00 en Vitacura, para 18 personas. Está confirmado. Todavía no tiene insumos estimados.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-11-03",
+      "date_to": "2026-11-03"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "lejano",
+   "status": "answered",
+   "wall_ms": 2546,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2544,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2546,
+    "rounds": [
+     {
+      "ms": 1466,
+      "in": 785,
+      "out": 84,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1076,
+      "in": 1011,
+      "out": 77,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Sí, el martes 3/11 tienes una reserva confirmada: Cumple Sofía, Pizza Party a las 17:00 en Vitacura, para 18 personas. Todavía no tiene insumos estimados.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-11-03",
+      "date_to": "2026-11-03"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "ctx",
+   "rep": 0
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 3639,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3637,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3639,
+    "rounds": [
+     {
+      "ms": 2207,
+      "in": 240,
+      "out": 210,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1430,
+      "in": 598,
+      "out": 117,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Ojo: ya hay una reserva confirmada de Juan Pérez para este sábado 17 a las 16:00 en Ñuñoa (Pizzeros en Acción, 12 participantes). ¿Es el mismo evento o quieres agendar uno nuevo aparte? Si es nuevo, pásame la dirección y comuna.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-10-17",
+      "date_to": "2026-10-17"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 3228,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 10,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3226,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3228,
+    "rounds": [
+     {
+      "ms": 3224,
+      "in": 797,
+      "out": 328,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Ojo: el sábado 17/10 a las 16:00 ya hay una reserva confirmada de Juan Pérez, Pizzeros en Acción en Ñuñoa con 12 personas. ¿Esta es otra reserva (Pizza Party de 12 pizzas) o es la misma? Si es otra, pásame el apellido, el lugar y la comuna.",
+   "tools_called": [],
+   "error": null,
+   "variant": "ctx",
+   "rep": 0
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 3361,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3359,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3361,
+    "rounds": [
+     {
+      "ms": 1818,
+      "in": 225,
+      "out": 113,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1540,
+      "in": 702,
+      "out": 167,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes 3 eventos esta semana:\n• Martes 13, 19:00: Carolina Soto, Pizza Party, 20 personas, La Reina ✅ confirmada\n• Miércoles 14, 13:00: María González, Pizza Party, 30 personas, Providencia ⚠️ pendiente de confirmar\n• Sábado 17, 16:00: Juan Pérez, Pizzeros en Acción, 12 personas, Ñuñoa ✅ confirmada",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 1777,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1775,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1777,
+    "rounds": [
+     {
+      "ms": 1773,
+      "in": 782,
+      "out": 172,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Esta semana (hasta el domingo 18/10) tienes:\n• Mar 13/10 19:00 · Carolina Soto · Pizza Party · La Reina · 20 pers. · confirmada\n• Mié 14/10 13:00 · María González · Pizza Party · Providencia · 30 pers. · ⚠️ por confirmar\n• Sáb 17/10 16:00 · Juan Pérez · Pizzeros en Acción · Ñuñoa · 12 pers. · confirmada",
+   "tools_called": [],
+   "error": null,
+   "variant": "ctx",
+   "rep": 0
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 2643,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2640,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2643,
+    "rounds": [
+     {
+      "ms": 1233,
+      "in": 223,
+      "out": 50,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1406,
+      "in": 496,
+      "out": 70,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes dos quesos en stock:\n• Mozzarella: 3,2 kg\n• Parmesano: 2 kg\n\nOjo, la mozzarella está justita si tienes eventos pronto.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 3218,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3216,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3218,
+    "rounds": [
+     {
+      "ms": 1808,
+      "in": 780,
+      "out": 114,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1405,
+      "in": 1117,
+      "out": 89,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Hay dos quesos en inventario:\n• Mozzarella: 3,2 kg ⚠️ (bajo el mínimo de 5)\n• Parmesano: 2 kg\n\nOjo que la mozzarella está justa para los eventos de esta semana.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "ctx",
+   "rep": 0
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 2520,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2518,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2520,
+    "rounds": [
+     {
+      "ms": 1560,
+      "in": 222,
+      "out": 109,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 957,
+      "in": 464,
+      "out": 60,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, mañana tienes una Pizza Party confirmada con Carolina Soto a las 19:00 en La Reina, para 20 personas ($150.000). 🍕",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 1482,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1480,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1482,
+    "rounds": [
+     {
+      "ms": 1479,
+      "in": 779,
+      "out": 63,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Sí, mañana martes 13/10 a las 19:00 tienes la Pizza Party de Carolina Soto en La Reina, para 20 personas. Está confirmada ✅",
+   "tools_called": [],
+   "error": null,
+   "variant": "ctx",
+   "rep": 1
+  },
+  {
+   "scenario": "faltan",
+   "status": "answered",
+   "wall_ms": 2945,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2943,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2945,
+    "rounds": [
+     {
+      "ms": 1144,
+      "in": 221,
+      "out": 30,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1797,
+      "in": 752,
+      "out": 83,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_inventory_status",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Faltan 2 cosas, bajo el mínimo:\n• Queso mozzarella: 3,2 kg (mínimo 5)\n• Pepperoni: 1,5 kg (mínimo 3)\n\nEl resto está bien de stock.",
+   "tools_called": [
+    {
+     "name": "get_inventory_status",
+     "input": {}
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "faltan",
+   "status": "answered",
+   "wall_ms": 1645,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1643,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1645,
+    "rounds": [
+     {
+      "ms": 1642,
+      "in": 778,
+      "out": 106,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Ojo con dos insumos bajo el mínimo:\n• Queso mozzarella: 3,2 kg (mínimo 5)\n• Pepperoni: 1,5 kg (mínimo 3)\n\nCon el evento de mañana (Carolina Soto, 20 pers.) conviene reponer antes.",
+   "tools_called": [],
+   "error": null,
+   "variant": "ctx",
+   "rep": 1
+  },
+  {
+   "scenario": "lejano",
+   "status": "answered",
+   "wall_ms": 3337,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3335,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3337,
+    "rounds": [
+     {
+      "ms": 2124,
+      "in": 228,
+      "out": 84,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1210,
+      "in": 454,
+      "out": 79,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, el martes 3 de noviembre tienes el Cumple Sofía: Pizza Party a las 17:00 en Vitacura, 18 personas, confirmada ✅. Todavía no tiene insumos estimados.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-11-03",
+      "date_to": "2026-11-03"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "lejano",
+   "status": "answered",
+   "wall_ms": 2626,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2624,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2626,
+    "rounds": [
+     {
+      "ms": 1414,
+      "in": 785,
+      "out": 84,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1209,
+      "in": 1011,
+      "out": 77,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Sí, el martes 3/11 tienes el Cumple Sofía a las 17:00 en Vitacura. Es una Pizza Party para 18 personas y está confirmada. Todavía no tiene insumos cargados.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-11-03",
+      "date_to": "2026-11-03"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "ctx",
+   "rep": 1
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 4437,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 3,
+    "quota_ms": 4,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 4430,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 4437,
+    "rounds": [
+     {
+      "ms": 2613,
+      "in": 240,
+      "out": 220,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1816,
+      "in": 608,
+      "out": 176,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Ojo, ya hay una reserva confirmada de Juan Pérez para el sábado 17 a las 16:00 en Ñuñoa: Pizzeros en Acción, 12 participantes. ¿Es la misma, o es otro evento (Pizza Party de 12 pizzas)? Si es otro, dime lugar y comuna.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-10-17",
+      "date_to": "2026-10-17"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 2913,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2911,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2912,
+    "rounds": [
+     {
+      "ms": 2910,
+      "in": 797,
+      "out": 328,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Ojo, ya hay una reserva confirmada de Juan Pérez para el sábado 17/10 a las 16:00 en Ñuñoa (Pizzeros en Acción, 12 pers.). ¿Esta es otra reserva distinta, una Pizza Party de 12 pizzas? Si es así, pásame el lugar y la comuna.",
+   "tools_called": [],
+   "error": null,
+   "variant": "ctx",
+   "rep": 1
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 3225,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3223,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3225,
+    "rounds": [
+     {
+      "ms": 1413,
+      "in": 225,
+      "out": 118,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1809,
+      "in": 707,
+      "out": 178,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Esta semana tienes 3 eventos:\n• Martes 13, 19:00: Carolina Soto, Pizza Party, 20 personas, La Reina (confirmado)\n• Miércoles 14, 13:00: María González, Pizza Party, 30 personas, Providencia (⚠️ pendiente)\n• Sábado 17, 16:00: Juan Pérez, Pizzeros en Acción, 12 niños, Ñuñoa (confirmado)\n\nLa de María falta por confirmar y es en 2 días.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 1824,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1822,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1824,
+    "rounds": [
+     {
+      "ms": 1821,
+      "in": 782,
+      "out": 203,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Esta semana (hasta el domingo 18/10) tienes:\n• Mar 13/10, 19:00 · Carolina Soto · Pizza Party · La Reina · 20 pers. ✅ confirmada\n• Mié 14/10, 13:00 · María González · Pizza Party · Providencia · 30 pers. ⚠️ por confirmar\n• Sáb 17/10, 16:00 · Juan Pérez · Pizzeros en Acción · Ñuñoa · 12 pers. ✅ confirmada\n\nEl de María todavía está sin confirmar y es pasado mañana.",
+   "tools_called": [],
+   "error": null,
+   "variant": "ctx",
+   "rep": 1
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 2477,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2475,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2477,
+    "rounds": [
+     {
+      "ms": 1180,
+      "in": 223,
+      "out": 50,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1294,
+      "in": 496,
+      "out": 71,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes dos quesos en stock:\n• Mozzarella: 3,2 kg\n• Parmesano: 2 kg\n\n⚠️ La mozzarella está bajita si tienes eventos cerca.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 3034,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3032,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3034,
+    "rounds": [
+     {
+      "ms": 1520,
+      "in": 780,
+      "out": 110,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1511,
+      "in": 1113,
+      "out": 98,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes dos quesos:\n• Mozzarella: 3,2 kg ⚠️ (bajo el mínimo de 5)\n• Parmesano: 2 kg\n\nOjo que el martes hay Pizza Party para 20 personas, así que conviene reponer mozzarella.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "ctx",
+   "rep": 1
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 3046,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3044,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3046,
+    "rounds": [
+     {
+      "ms": 1839,
+      "in": 222,
+      "out": 129,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1205,
+      "in": 484,
+      "out": 70,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, mañana martes tienes una Pizza Party confirmada. Es de Carolina Soto, a las 19:00 en La Reina, para 20 personas, y el precio estimado es $150.000.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 1528,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1526,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1527,
+    "rounds": [
+     {
+      "ms": 1525,
+      "in": 779,
+      "out": 63,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Sí, mañana martes 13/10 a las 19:00 tienes la Pizza Party de Carolina Soto en La Reina, para 20 personas. Está confirmada ✅",
+   "tools_called": [],
+   "error": null,
+   "variant": "ctx",
+   "rep": 2
+  },
+  {
+   "scenario": "faltan",
+   "status": "answered",
+   "wall_ms": 2458,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2457,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2458,
+    "rounds": [
+     {
+      "ms": 1303,
+      "in": 221,
+      "out": 30,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1154,
+      "in": 752,
+      "out": 80,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_inventory_status",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Faltan dos cosas ⚠️\n• Queso mozzarella: quedan 3,2 kg (mínimo 5)\n• Pepperoni: quedan 1,5 kg (mínimo 3)\n\nEl resto está bien.",
+   "tools_called": [
+    {
+     "name": "get_inventory_status",
+     "input": {}
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "faltan",
+   "status": "answered",
+   "wall_ms": 1803,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1802,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1803,
+    "rounds": [
+     {
+      "ms": 1801,
+      "in": 778,
+      "out": 123,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Falta reponer dos cosas:\n• Queso mozzarella: tienes 3,2 kg y el mínimo es 5.\n• Pepperoni: tienes 1,5 kg y el mínimo es 3.\n\nOjo que el martes 13 tienes la Pizza Party de Carolina Soto, con 20 personas, así que conviene comprar antes.",
+   "tools_called": [],
+   "error": null,
+   "variant": "ctx",
+   "rep": 2
+  },
+  {
+   "scenario": "lejano",
+   "status": "answered",
+   "wall_ms": 2516,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2515,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2516,
+    "rounds": [
+     {
+      "ms": 1422,
+      "in": 228,
+      "out": 84,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1092,
+      "in": 454,
+      "out": 78,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, el martes 3 de noviembre tienes el Cumple Sofía: Pizza Party a las 17:00 en Vitacura, para 18 personas. Está confirmado y todavía no tiene insumos estimados.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-11-03",
+      "date_to": "2026-11-03"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "lejano",
+   "status": "answered",
+   "wall_ms": 2322,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2320,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2322,
+    "rounds": [
+     {
+      "ms": 1086,
+      "in": 785,
+      "out": 84,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1233,
+      "in": 1011,
+      "out": 80,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, el martes 3 de noviembre tienes el Cumple Sofía a las 17:00 en Vitacura. Es una Pizza Party para 18 personas y está confirmada. Todavía no tiene insumos estimados.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-11-03",
+      "date_to": "2026-11-03"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "ctx",
+   "rep": 2
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 2144,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 1,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2142,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2144,
+    "rounds": [
+     {
+      "ms": 2142,
+      "in": 240,
+      "out": 162,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Dale, Pizza Party de 12 pizzas para Juan el sábado 17 a las 16:00. ¿Dónde es el evento (dirección y comuna)?",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 3041,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3039,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3041,
+    "rounds": [
+     {
+      "ms": 3038,
+      "in": 797,
+      "out": 319,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Ojo: el sábado 17/10 a las 16:00 ya hay una reserva confirmada de Juan Pérez, Pizzeros en Acción en Ñuñoa, con 12 personas. ¿Esta que me pides es otra reserva (Pizza Party, 12 pizzas) o es la misma?",
+   "tools_called": [],
+   "error": null,
+   "variant": "ctx",
+   "rep": 2
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 3511,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3509,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3511,
+    "rounds": [
+     {
+      "ms": 1614,
+      "in": 225,
+      "out": 120,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1895,
+      "in": 709,
+      "out": 182,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Esta semana tienes 3 eventos:\n• Martes 13, 19:00: Carolina Soto, Pizza Party, 20 personas, La Reina (confirmado)\n• Miércoles 14, 13:00: María González, Pizza Party, 30 personas, Providencia ⚠️ sigue pendiente\n• Sábado 17, 16:00: Juan Pérez, Pizzeros en Acción, 12 niños, Ñuñoa (confirmado)\n\nFalta confirmar el de María, que es pasado mañana.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 1755,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 1,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1754,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1755,
+    "rounds": [
+     {
+      "ms": 1753,
+      "in": 782,
+      "out": 203,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Esta semana (hasta el domingo 18/10) tienes:\n• Mar 13/10, 19:00 · Carolina Soto · Pizza Party · La Reina · 20 pers. ✅ confirmada\n• Mié 14/10, 13:00 · María González · Pizza Party · Providencia · 30 pers. ⚠️ por confirmar\n• Sáb 17/10, 16:00 · Juan Pérez · Pizzeros en Acción · Ñuñoa · 12 pers. ✅ confirmada\n\nEl de María todavía está sin confirmar y es pasado mañana.",
+   "tools_called": [],
+   "error": null,
+   "variant": "ctx",
+   "rep": 2
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 2542,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2541,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2542,
+    "rounds": [
+     {
+      "ms": 1307,
+      "in": 223,
+      "out": 50,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1233,
+      "in": 496,
+      "out": 71,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes dos quesos en stock:\n• Mozzarella: 3,2 kg\n• Parmesano: 2 kg\n\n⚠️ La mozzarella está bajita si tienes eventos cerca.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 2685,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2682,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2684,
+    "rounds": [
+     {
+      "ms": 1288,
+      "in": 780,
+      "out": 50,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1392,
+      "in": 1053,
+      "out": 106,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Tienes dos quesos:\n• Mozzarella: 3,2 kg ⚠️ (bajo el mínimo de 5)\n• Parmesano: 2 kg\n\nOjo que el mozzarella está justo antes de la Pizza Party de mañana en La Reina, así que conviene reponerlo.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "ctx",
+   "rep": 2
+  }
+ ]
+}

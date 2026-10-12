@@ -1,0 +1,1994 @@
+{
+ "meta": {
+  "when": "2026-10-12T04:05:50.564201",
+  "overrides": {},
+  "fs_latency_ms": 0,
+  "model": "claude-sonnet-5-5",
+  "git": "1997d9b"
+ },
+ "results": [
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 1535,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 3,
+    "agent_ms": 1529,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1534,
+    "rounds": [
+     {
+      "ms": 1527,
+      "in": 785,
+      "out": 48,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 2
+   },
+   "reply": "¡Hola! Todo bien por acá 🍕 ¿Y tú, cómo va el día? Dime en qué te ayudo.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "stock",
+   "status": "command",
+   "wall_ms": 1,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "total_ms": 1
+   },
+   "reply": "📦 Stock:\n• Queso mozzarella: 3,2 kg (mínimo 5) ⚠️ bajo\n• Queso parmesano: 2 kg",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 3236,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3235,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3236,
+    "rounds": [
+     {
+      "ms": 3234,
+      "in": 797,
+      "out": 348,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Ojo, Juan Pérez ya tiene el sábado 17/10 a las 16:00 un Pizzeros en Acción en Ñuñoa (12 pers.). ¿La Pizza Party de 12 pizzas es para él, en el mismo lugar? Si es otro Juan, dime el apellido y la dirección con comuna.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 1964,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1962,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1963,
+    "rounds": [
+     {
+      "ms": 1961,
+      "in": 783,
+      "out": 158,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Dale. ¿En qué estación cargaste (Copec, Shell…) y fue hoy?",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 2558,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2554,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2558,
+    "rounds": [
+     {
+      "ms": 1385,
+      "in": 781,
+      "out": 73,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1166,
+      "in": 951,
+      "out": 70,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Este mes (octubre) llevamos $695.000 en ventas, con 3 eventos. 💰\nLos costos son $250.000, así que la utilidad queda en $445.000 (margen de 64%).",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 2090,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2089,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2090,
+    "rounds": [
+     {
+      "ms": 2088,
+      "in": 782,
+      "out": 206,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Esta semana (hasta el domingo 18/10) tienes:\n• Mar 13/10 19:00 · Carolina Soto · Pizza Party · La Reina · 20 pers. ✅ confirmada\n• Mié 14/10 13:00 · María González · Pizza Party · Providencia · 30 pers. ⚠️ por confirmar\n• Sáb 17/10 16:00 · Juan Pérez · Pizzeros en Acción · Ñuñoa · 12 pers. ✅ confirmada\n\nOjo: lo de María González sigue sin confirmar y es pasado mañana.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "pendiente",
+   "status": "answered",
+   "wall_ms": 1937,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1935,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1937,
+    "rounds": [
+     {
+      "ms": 1934,
+      "in": 778,
+      "out": 165,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Pendiente esta semana:\n• ⚠️ María González (mié 14, Providencia, 30 pers.) sigue por confirmar.\n• Ana pidió una cotización (prioridad alta) y no tiene respuesta.\n• Stock bajo: mozzarella (3,2 kg, mínimo 5) y pepperoni (1,5 kg, mínimo 3).\n\nMañana a las 19:00 tienes la Pizza Party de Carolina Soto en La Reina.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 1,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 1,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "total_ms": 1
+   },
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 2993,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2992,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2993,
+    "rounds": [
+     {
+      "ms": 1287,
+      "in": 797,
+      "out": 50,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1703,
+      "in": 986,
+      "out": 203,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_inventory_purchase",
+      "ms": 1,
+      "round": 2
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_inventory_purchase",
+     "input": {
+      "item_id": "i1",
+      "quantity": 50,
+      "total_cost": 56000,
+      "unit": "kg",
+      "date": "2026-10-12"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1438,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1436,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1437,
+    "rounds": [
+     {
+      "ms": 1434,
+      "in": 778,
+      "out": 64,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Dale, ¿qué quieres registrar? Puede ser una boleta o factura (mándame la foto), una reserva nueva, insumos de un evento, o un ajuste de stock.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "manana",
+   "status": "command",
+   "wall_ms": 1,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "total_ms": 1
+   },
+   "reply": "📅 Mañana (martes 13):\n• 19:00 Carolina Soto — La Reina · 20 pers. (confirmada)",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "compra2",
+   "status": "answered",
+   "wall_ms": 3519,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 1,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3517,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3518,
+    "rounds": [
+     {
+      "ms": 1684,
+      "in": 821,
+      "out": 154,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1831,
+      "in": 1475,
+      "out": 138,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Me falta cuánto costó cada línea. El total que me diste es $61.000, pero necesito saber cuánto pagaste por la harina, por el queso y por la salsa. ¿Me los pasas?",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso mozzarella"
+     }
+    },
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "salsa de tomate"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "sabado",
+   "status": "answered",
+   "wall_ms": 1652,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1650,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1652,
+    "rounds": [
+     {
+      "ms": 1649,
+      "in": 780,
+      "out": 68,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Sí, el sábado 17/10 a las 16:00 tienes a Juan Pérez con Pizzeros en Acción en Ñuñoa, 12 personas. Está confirmada ✅",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "faltan",
+   "status": "answered",
+   "wall_ms": 1584,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 2,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1580,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1583,
+    "rounds": [
+     {
+      "ms": 1578,
+      "in": 778,
+      "out": 106,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Ojo con dos insumos bajo el mínimo:\n• Queso mozzarella: 3,2 kg (mínimo 5)\n• Pepperoni: 1,5 kg (mínimo 3)\n\nTienes la Pizza Party de Carolina Soto mañana, así que conviene reponer antes.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "consultas",
+   "status": "answered",
+   "wall_ms": 1426,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1424,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1426,
+    "rounds": [
+     {
+      "ms": 1423,
+      "in": 784,
+      "out": 47,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Sí, hay una: Ana pidió una cotización y está marcada como prioridad alta ⚠️. Es la única sin responder.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "lejano",
+   "status": "answered",
+   "wall_ms": 2687,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2686,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2687,
+    "rounds": [
+     {
+      "ms": 1633,
+      "in": 785,
+      "out": 84,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1052,
+      "in": 1011,
+      "out": 76,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, el martes 3 de noviembre tienes el cumple de Sofía: Pizza Party a las 17:00 en Vitacura, 18 personas, confirmada. Todavía no tiene insumos estimados.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-11-03",
+      "date_to": "2026-11-03"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 1406,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1404,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1406,
+    "rounds": [
+     {
+      "ms": 1403,
+      "in": 785,
+      "out": 41,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "¡Hola! Todo bien por acá, listo para ayudarte 🍕 ¿Qué necesitas?",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "stock",
+   "status": "command",
+   "wall_ms": 1,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "total_ms": 1
+   },
+   "reply": "📦 Stock:\n• Queso mozzarella: 3,2 kg (mínimo 5) ⚠️ bajo\n• Queso parmesano: 2 kg",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 2967,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2966,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2967,
+    "rounds": [
+     {
+      "ms": 2965,
+      "in": 797,
+      "out": 299,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Ojo: el sábado 17/10 a las 16:00 ya tiene a Juan Pérez con Pizzeros en Acción en Ñuñoa (12 niños, confirmada). ¿Este es otro evento, una Pizza Party de 12 pizzas, y en qué dirección y comuna sería?",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 2402,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2400,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2402,
+    "rounds": [
+     {
+      "ms": 2399,
+      "in": 783,
+      "out": 184,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Dale, ¿en qué estación la cargaste (Copec, Shell…) y fue hoy?",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 2512,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2511,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2512,
+    "rounds": [
+     {
+      "ms": 1493,
+      "in": 781,
+      "out": 73,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1017,
+      "in": 951,
+      "out": 62,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Este mes llevamos $695.000 en ventas, con 3 eventos. 💰 Los costos son $250.000, así que la utilidad es $445.000 (margen 64%).",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 1926,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1924,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1925,
+    "rounds": [
+     {
+      "ms": 1923,
+      "in": 782,
+      "out": 206,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Esta semana (hasta el domingo 18/10) tienes:\n• Mar 13/10 19:00 · Carolina Soto · Pizza Party · La Reina · 20 pers. ✅ confirmada\n• Mié 14/10 13:00 · María González · Pizza Party · Providencia · 30 pers. ⚠️ por confirmar\n• Sáb 17/10 16:00 · Juan Pérez · Pizzeros en Acción · Ñuñoa · 12 pers. ✅ confirmada\n\nOjo: lo de María González sigue sin confirmar y es pasado mañana.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "pendiente",
+   "status": "answered",
+   "wall_ms": 1860,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1858,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1859,
+    "rounds": [
+     {
+      "ms": 1857,
+      "in": 778,
+      "out": 154,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Esto es lo pendiente:\n• ⚠️ La consulta de Ana (cotización) tiene prioridad alta y sigue sin respuesta.\n• La reserva de María González del mié 14/10 (Pizza Party, Providencia, 30 personas) está por confirmar.\n• Hay stock bajo en mozzarella (3,2 kg, el mínimo es 5) y en pepperoni (1,5 kg, el mínimo es 3).",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 2,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "total_ms": 2
+   },
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 2568,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2567,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2567,
+    "rounds": [
+     {
+      "ms": 1209,
+      "in": 797,
+      "out": 50,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1356,
+      "in": 986,
+      "out": 154,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_inventory_purchase",
+      "ms": 0,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_inventory_purchase",
+     "input": {
+      "item_id": "i1",
+      "quantity": 50,
+      "total_cost": 56000,
+      "unit": "kg",
+      "date": "2026-10-12"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1680,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1679,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1680,
+    "rounds": [
+     {
+      "ms": 1678,
+      "in": 778,
+      "out": 68,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Dale, ¿qué quieres registrar? Puedes mandarme la foto de una boleta o factura, o decirme si es una reserva nueva, insumos de un evento o una compra de inventario.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "manana",
+   "status": "command",
+   "wall_ms": 2,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "total_ms": 2
+   },
+   "reply": "📅 Mañana (martes 13):\n• 19:00 Carolina Soto — La Reina · 20 pers. (confirmada)",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "compra2",
+   "status": "answered",
+   "wall_ms": 3406,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3404,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3406,
+    "rounds": [
+     {
+      "ms": 1633,
+      "in": 821,
+      "out": 154,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1770,
+      "in": 1475,
+      "out": 112,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Me falta cuánto pagaste por cada producto: me diste solo el total de $61.000. ¿Me pasas el monto de la harina, el del queso y el de la salsa?",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso mozzarella"
+     }
+    },
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "salsa de tomate"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "sabado",
+   "status": "answered",
+   "wall_ms": 1385,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1384,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1385,
+    "rounds": [
+     {
+      "ms": 1383,
+      "in": 780,
+      "out": 67,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, el sábado 17/10 a las 16:00 tienes Pizzeros en Acción con Juan Pérez en Ñuñoa, 12 personas. Está confirmada ✅",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "faltan",
+   "status": "answered",
+   "wall_ms": 1717,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1715,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1717,
+    "rounds": [
+     {
+      "ms": 1714,
+      "in": 778,
+      "out": 133,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Falta reponer dos cosas, ambas bajo el mínimo:\n• Queso mozzarella: tienes 3,2 kg y el mínimo es 5 kg.\n• Pepperoni: tienes 1,5 kg y el mínimo es 3 kg.\n\nOjo: el martes 13 hay Pizza Party para 20 personas, así que conviene comprar antes de eso.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "consultas",
+   "status": "answered",
+   "wall_ms": 1377,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1376,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1377,
+    "rounds": [
+     {
+      "ms": 1375,
+      "in": 784,
+      "out": 49,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Sí, una: Ana pidió una cotización y está marcada como prioridad alta ⚠️. Todavía no tiene respuesta.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "lejano",
+   "status": "answered",
+   "wall_ms": 2888,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2887,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2888,
+    "rounds": [
+     {
+      "ms": 1737,
+      "in": 785,
+      "out": 84,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1148,
+      "in": 1011,
+      "out": 79,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, el martes 3 de noviembre tienes el Cumple Sofía: Pizza Party a las 17:00 en Vitacura, 18 personas, confirmada ✅. Todavía no tiene insumos estimados.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-11-03",
+      "date_to": "2026-11-03"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 1481,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1479,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1481,
+    "rounds": [
+     {
+      "ms": 1478,
+      "in": 785,
+      "out": 39,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "¡Hola! Todo bien por acá, listo para la semana 💪 ¿En qué te ayudo?",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "stock",
+   "status": "command",
+   "wall_ms": 2,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 1,
+    "total_ms": 2
+   },
+   "reply": "📦 Stock:\n• Queso mozzarella: 3,2 kg (mínimo 5) ⚠️ bajo\n• Queso parmesano: 2 kg",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 3692,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3691,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3692,
+    "rounds": [
+     {
+      "ms": 3690,
+      "in": 797,
+      "out": 391,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Ojo, Juan Pérez ya tiene un Pizzeros en Acción confirmado el sábado 17/10 a las 16:00 en Ñuñoa (12 personas). ¿Es el mismo Juan y la Pizza Party de 12 pizzas va en esa misma dirección? Si no, pásame el apellido y el lugar.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 1583,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1581,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1583,
+    "rounds": [
+     {
+      "ms": 1580,
+      "in": 783,
+      "out": 67,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Me faltan dos datos para dejar la propuesta: ¿en qué estación o proveedor cargaste (Copec, Shell, otra)? ¿Y fue hoy, 12/10?",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 2485,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2483,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2484,
+    "rounds": [
+     {
+      "ms": 1351,
+      "in": 781,
+      "out": 73,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1131,
+      "in": 951,
+      "out": 68,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Este mes (octubre) llevamos $695.000 en ventas con 3 eventos. 💰 Los costos son $250.000, así que la utilidad queda en $445.000 (64% de margen).",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 1780,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1778,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1779,
+    "rounds": [
+     {
+      "ms": 1777,
+      "in": 782,
+      "out": 172,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Esta semana (hasta el domingo 18/10) tienes:\n• Mar 13/10 19:00 · Carolina Soto · Pizza Party · La Reina · 20 pers. · confirmada\n• Mié 14/10 13:00 · María González · Pizza Party · Providencia · 30 pers. · ⚠️ por confirmar\n• Sáb 17/10 16:00 · Juan Pérez · Pizzeros en Acción · Ñuñoa · 12 pers. · confirmada",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "pendiente",
+   "status": "answered",
+   "wall_ms": 1970,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1969,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1970,
+    "rounds": [
+     {
+      "ms": 1968,
+      "in": 778,
+      "out": 181,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Esto es lo pendiente:\n• ⚠️ María González (mié 14/10, Pizza Party, Providencia, 30 pers.) sigue por confirmar.\n• Ana te escribió una cotización con prioridad alta y no tiene respuesta.\n• Hay poco stock de mozzarella (3,2 kg, el mínimo es 5) y de pepperoni (1,5 kg, el mínimo es 3).\n\nMañana a las 19:00 tienes a Carolina Soto en La Reina, ya confirmada.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 1,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "total_ms": 1
+   },
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 3404,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3402,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3404,
+    "rounds": [
+     {
+      "ms": 1942,
+      "in": 797,
+      "out": 50,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1458,
+      "in": 986,
+      "out": 154,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_inventory_purchase",
+      "ms": 0,
+      "round": 2
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_inventory_purchase",
+     "input": {
+      "item_id": "i1",
+      "quantity": 50,
+      "total_cost": 56000,
+      "unit": "kg",
+      "date": "2026-10-12"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1392,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1390,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1392,
+    "rounds": [
+     {
+      "ms": 1390,
+      "in": 778,
+      "out": 63,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Dale, ¿qué quieres registrar? Puede ser una boleta o factura (mándame la foto), una compra de insumos, el consumo de un evento o una reserva nueva.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "manana",
+   "status": "command",
+   "wall_ms": 2,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "total_ms": 1
+   },
+   "reply": "📅 Mañana (martes 13):\n• 19:00 Carolina Soto — La Reina · 20 pers. (confirmada)",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "compra2",
+   "status": "answered",
+   "wall_ms": 4064,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 4062,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 4063,
+    "rounds": [
+     {
+      "ms": 1997,
+      "in": 821,
+      "out": 154,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 2063,
+      "in": 1475,
+      "out": 178,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Me falta cuánto pagaste por cada línea, porque solo tengo el total de $61.000. ¿Cuánto fue por la harina, cuánto por el queso y cuánto por la salsa? Si tienes la boleta, mándame la foto y la leo de ahí.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso mozzarella"
+     }
+    },
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "salsa de tomate"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "sabado",
+   "status": "answered",
+   "wall_ms": 1407,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1405,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1407,
+    "rounds": [
+     {
+      "ms": 1404,
+      "in": 780,
+      "out": 69,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Sí, el sábado 17/10 a las 16:00 tienes a Juan Pérez, Pizzeros en Acción en Ñuñoa, con 12 personas. Está confirmada ✅",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "faltan",
+   "status": "answered",
+   "wall_ms": 1708,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1706,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1708,
+    "rounds": [
+     {
+      "ms": 1705,
+      "in": 778,
+      "out": 114,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Ojo con dos insumos bajo el mínimo:\n• Queso mozzarella: 3,2 kg (mínimo 5)\n• Pepperoni: 1,5 kg (mínimo 3)\n\nCon el evento de mañana (Carolina Soto, 20 pers.) y el del sábado, conviene reponer pronto.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "consultas",
+   "status": "answered",
+   "wall_ms": 1356,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 1,
+    "typing_ms": 1,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1354,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1356,
+    "rounds": [
+     {
+      "ms": 1352,
+      "in": 784,
+      "out": 52,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 1
+   },
+   "reply": "Sí, hay una: Ana, pidió una cotización y está marcada como prioridad alta ⚠️. Todavía no tiene respuesta.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "lejano",
+   "status": "answered",
+   "wall_ms": 2495,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 1,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2493,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2495,
+    "rounds": [
+     {
+      "ms": 1396,
+      "in": 785,
+      "out": 84,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1096,
+      "in": 1011,
+      "out": 76,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, el martes 3 de noviembre tienes el Cumple Sofía: Pizza Party a las 17:00 en Vitacura, 18 personas, confirmada. Todavía no tiene insumos estimados.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-11-03",
+      "date_to": "2026-11-03"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  }
+ ]
+}

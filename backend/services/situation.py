@@ -11,7 +11,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-from services.booking_search import DAY_NAMES
+from services.booking_search import DAY_NAMES, service_label
 from utils import clock
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,6 @@ HORIZON_DAYS = 14
 MAX_EVENTS = 15
 MAX_STOCK = 12
 MAX_CONTACTS = 5
-_SERVICE_ES = {'workshop': 'Pizzeros en Acción', 'pizza_party': 'Pizza Party', 'pizzeros': 'Pizzeros en Acción', 'party': 'Pizza Party'}
 _STATUS_ES = {'pending': 'por confirmar', 'confirmed': 'confirmada'}
 
 
@@ -48,7 +47,7 @@ def _events(db, today):
         label = f'{DAY_NAMES[day.weekday()][:3].lower()} {day.day}/{day.month}' if day else when
         hour = (booking.get('event_time') or (when[11:16] if len(when) >= 16 else '')) or ''
         parts = [f'{label} {hour}'.strip(), _clean(booking.get('client_name')) or 'sin nombre',
-                 _SERVICE_ES.get(str(booking.get('service_type') or '').strip(), _clean(booking.get('service_type'))),
+                 service_label(booking.get('service_type')),
                  _clean(booking.get('location')),
                  f"{booking['participants']} pers." if booking.get('participants') else '',
                  _STATUS_ES[booking['status']]]

@@ -10,6 +10,7 @@ import re
 from datetime import timedelta
 
 from services import inventory_search
+from services.booking_search import service_label
 from utils import clock
 from utils.text_matching import normalize_text
 
@@ -33,7 +34,6 @@ _EVENTS = [re.compile(p) for p in (
     rf'^tengo (?:algun )?(?:evento|algo|reserva) {_DAY}$',
     rf'^que (?:tengo|hay|tenemos) {_DAY}$',
 )]
-_SERVICE_ES = {'workshop': 'Pizzeros en Acción', 'pizza_party': 'Pizza Party', 'pizzeros': 'Pizzeros en Acción', 'party': 'Pizza Party'}
 _STATUS_ES = {'pending': 'por confirmar', 'confirmed': 'confirmada', 'completed': 'completada'}
 _DAYS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
 
@@ -113,7 +113,7 @@ def answer_events(db, day, now):
     for booking in rows[:8]:
         when = str(booking.get('event_date') or '')
         time_part = (booking.get('event_time') or (when[11:16] if len(when) >= 16 else '')) or ''
-        service = _SERVICE_ES.get(str(booking.get('service_type') or '').strip(), '')
+        service = service_label(booking.get('service_type'))
         details = ' · '.join(p for p in (service, booking.get('location'),
                                          f"{booking['participants']} pers." if booking.get('participants') else '') if p)
         status = _STATUS_ES.get(booking.get('status'), '')

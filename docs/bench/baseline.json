@@ -1,0 +1,6220 @@
+{
+ "meta": {
+  "when": "2026-10-12T03:49:33.412549",
+  "overrides": {},
+  "fs_latency_ms": 0,
+  "model": "claude-sonnet-5-5",
+  "git": "810bdd1"
+ },
+ "results": [
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 2279,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 2,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2276,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2277,
+    "rounds": [
+     {
+      "ms": 2275,
+      "in": 228,
+      "out": 44,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¡Hola! Todo bien por acá, listo para ayudarte 🍕 ¿Qué necesitas hoy?",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 1674,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1673,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1674,
+    "rounds": [
+     {
+      "ms": 1672,
+      "in": 228,
+      "out": 41,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¡Hola! Todo bien por acá, listo para ayudarte 🍕 ¿Qué necesitas?",
+   "tools_called": [],
+   "error": null,
+   "variant": "nothink",
+   "rep": 0
+  },
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 1003,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1003,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1003,
+    "rounds": [
+     {
+      "ms": 1001,
+      "in": 228,
+      "out": 70,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¡Hola! Pablito aquí, todo bien por acá. ¿Y tú cómo estás? ¿En qué te ayudo hoy: eventos, inventario, contactos o algún gasto?",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku",
+   "rep": 0
+  },
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 1206,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1206,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1206,
+    "rounds": [
+     {
+      "ms": 1205,
+      "in": 228,
+      "out": 63,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Hola! Bien por acá, gracias. ¿Y tú cómo andas? ¿En qué te ayudo hoy: eventos, inventario, contactos o algún gasto?",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 0
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 2364,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2363,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2364,
+    "rounds": [
+     {
+      "ms": 1195,
+      "in": 223,
+      "out": 50,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1167,
+      "in": 496,
+      "out": 84,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes dos quesos en stock:\n• Mozzarella: 3,2 kg\n• Parmesano: 2 kg\n\nOjo, la mozzarella es la que más se usa y 3,2 kg alcanza para pocas pizzas.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 3318,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3317,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3318,
+    "rounds": [
+     {
+      "ms": 1825,
+      "in": 223,
+      "out": 63,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1491,
+      "in": 509,
+      "out": 75,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes poco de ambos:\n• Mozzarella: 3,2 kg\n• Parmesano: 2 kg\n\nOjo con la mozzarella si tienes eventos esta semana, porque es la que más se va.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 0
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 2162,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2162,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2162,
+    "rounds": [
+     {
+      "ms": 902,
+      "in": 223,
+      "out": 50,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1259,
+      "in": 496,
+      "out": 104,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes dos quesos en inventario:\n• *Queso mozzarella:* 3,2 kg\n• *Queso parmesano:* 2 kg\n\nNo veo alerta de stock bajo en ninguno, pero si quieres saber si alcanza para un evento específico, dime cuál y lo reviso.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 0
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 2307,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 2,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2306,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2307,
+    "rounds": [
+     {
+      "ms": 1134,
+      "in": 223,
+      "out": 77,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1171,
+      "in": 1076,
+      "out": 121,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "get_inventory_status",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Queso en stock:\n• ⚠️ *Queso mozzarella*: 3,2 kg (mínimo 5 kg), bajo el mínimo, hay que reponer.\n• *Queso parmesano*: 2 kg (mínimo 1 kg), ok.\n\n¿Quieres que te deje lista una propuesta de compra de mozzarella?",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    },
+    {
+     "name": "get_inventory_status",
+     "input": {}
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 0
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 3758,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 2,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3758,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3758,
+    "rounds": [
+     {
+      "ms": 2191,
+      "in": 240,
+      "out": 196,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1563,
+      "in": 584,
+      "out": 121,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 4,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Ojo: ya hay una reserva confirmada de Juan Pérez para el sábado 17 a las 16:00 en Ñuñoa. Es Pizzeros en Acción con 12 participantes. ¿Es el mismo Juan y quieres otra reserva aparte (Pizza Party de 12 pizzas), o ya estaba agendado?",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-10-17",
+      "date_to": "2026-10-17"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 1981,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1981,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1981,
+    "rounds": [
+     {
+      "ms": 1980,
+      "in": 240,
+      "out": 114,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Me falta el lugar (y comuna) para dejarte la reserva. Con eso la armo.\n\nOjo: asumo Pizza Party de 12 pizzas, el sábado 17 de octubre a las 16:00. ¿Me pasas dirección y comuna? Si tienes un teléfono o correo de Juan, mejor.",
+   "tools_called": [],
+   "error": null,
+   "variant": "nothink",
+   "rep": 0
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 4082,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 4081,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 4082,
+    "rounds": [
+     {
+      "ms": 1722,
+      "in": 240,
+      "out": 329,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 2357,
+      "in": 915,
+      "out": 445,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "ask_choice",
+      "ms": 0,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "*Esto es lo que leí:*\nPedido: evento para Juan, sábado 17/10/2026 a las 16:00, 12 pizzas (Pizza Party). Falta lugar/comuna y contacto (correo o teléfono) si se crea.\n\nOjo: ya hay una reserva confirmada de Juan Pérez el sábado 17/10 a las 16:00 (Pizzeros en Acción, 12 participantes, Ñuñoa). ¿Qué hacemos?\n\n1) Es la misma, no crear nada\n2) Es otro evento distinto, sí crear\nResponde con el número.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-10-17",
+      "date_to": "2026-10-17"
+     }
+    },
+    {
+     "name": "search_bookings",
+     "input": {
+      "client_name": "Juan"
+     }
+    },
+    {
+     "name": "ask_choice",
+     "input": {
+      "question": "Ojo: ya hay una reserva confirmada de Juan Pérez el sábado 17/10 a las 16:00 (Pizzeros en Acción, 12 participantes, Ñuñoa). ¿Qué hacemos?",
+      "options": [
+       {
+        "id": "same",
+        "label": "Es la misma, no crear nada"
+       },
+       {
+        "id": "new",
+        "label": "Es otro evento distinto, sí crear"
+       }
+      ],
+      "context": "Pedido: evento para Juan, sábado 17/10/2026 a las 16:00, 12 pizzas (Pizza Party). Falta lugar/comuna y contacto (correo o teléfono) si se crea."
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 0
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 1137,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 1,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1136,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1136,
+    "rounds": [
+     {
+      "ms": 1135,
+      "in": 240,
+      "out": 99,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Para proponer la reserva me falta un dato: ¿dónde es el evento (dirección y comuna) y cómo contacto a Juan (correo o teléfono)?\n\nAdemás, ¿es Pizza Party (12 pizzas) como servicio? Si es así, lo dejo con eso.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 0
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 3318,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3317,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3317,
+    "rounds": [
+     {
+      "ms": 3316,
+      "in": 226,
+      "out": 298,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¿En qué bencinera cargaste, Copec u otra? Lo dejo con fecha de hoy (12-10) por $20.000.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 1664,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1663,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1664,
+    "rounds": [
+     {
+      "ms": 1663,
+      "in": 226,
+      "out": 51,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Me falta la fecha y el proveedor. ¿Es la bencina de hoy (12-10) y en qué estación fue, Copec u otra?",
+   "tools_called": [],
+   "error": null,
+   "variant": "nothink",
+   "rep": 0
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 1996,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1996,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1996,
+    "rounds": [
+     {
+      "ms": 1995,
+      "in": 226,
+      "out": 236,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¿En qué bencinera fue, y la compra fue hoy? Con eso te dejo la propuesta de $20.000 como gasto variable para que la confirmes.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku",
+   "rep": 0
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 1309,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1309,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1309,
+    "rounds": [
+     {
+      "ms": 1308,
+      "in": 226,
+      "out": 105,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Para registrar el gasto necesito un par de datos de la boleta, así que te pregunto lo más importante primero: ¿de qué comercio o proveedor es la boleta de bencina (Copec, Shell, Petrobras, etc.)? Y si la tienes a mano, dime la fecha y el folio.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 0
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 2385,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2384,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2384,
+    "rounds": [
+     {
+      "ms": 1307,
+      "in": 224,
+      "out": 73,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1076,
+      "in": 394,
+      "out": 63,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "En octubre llevamos $695.000 en ventas, con 3 eventos. 💰 Los costos son $250.000, así que la utilidad es $445.000 (margen de 64%).",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 3421,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3420,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3421,
+    "rounds": [
+     {
+      "ms": 1745,
+      "in": 224,
+      "out": 90,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1674,
+      "in": 411,
+      "out": 70,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Este mes (octubre) llevamos $695.000 en ventas, con 3 eventos. 💰\n\nLos costos son $250.000, así que la utilidad queda en $445.000 (margen de 64%).",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 0
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 2181,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2180,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2180,
+    "rounds": [
+     {
+      "ms": 1221,
+      "in": 224,
+      "out": 73,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 959,
+      "in": 394,
+      "out": 62,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Este mes llevas *$695.000* en ingresos, con 3 eventos completados.\n• Costos: $250.000\n• Utilidad: $445.000 (margen 64 %)",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 0
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 2121,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2120,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2121,
+    "rounds": [
+     {
+      "ms": 1126,
+      "in": 224,
+      "out": 96,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 993,
+      "in": 417,
+      "out": 64,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "En octubre llevamos *$695.000* en ventas, con 3 eventos realizados.\n• Costos: $250.000\n• Utilidad: $445.000 (margen de 64 %)",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 0
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 3385,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3384,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3385,
+    "rounds": [
+     {
+      "ms": 1649,
+      "in": 225,
+      "out": 117,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1734,
+      "in": 706,
+      "out": 195,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes 3 eventos esta semana:\n• Martes 13, 19:00: Carolina Soto, Pizza Party, 20 personas, La Reina (confirmado)\n• Miércoles 14, 13:00: María González, Pizza Party, 30 personas, Providencia (⚠️ pendiente)\n• Sábado 17, 16:00: Juan Pérez, Pizzeros en Acción, 12 niños, Ñuñoa (confirmado)\n\nLa reserva de María sigue pendiente y es en 2 días. Hay que confirmarla en el panel.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 3813,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3812,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3812,
+    "rounds": [
+     {
+      "ms": 1628,
+      "in": 225,
+      "out": 118,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 2183,
+      "in": 707,
+      "out": 213,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes 3 eventos esta semana:\n• *Martes 13, 19:00*: Carolina Soto, Pizza Party, 20 personas, La Reina ✅ confirmado\n• *Miércoles 14, 13:00*: María González, Pizza Party, 30 personas, Providencia ⚠️ pendiente de confirmar\n• *Sábado 17, 16:00*: Juan Pérez, Pizzeros en Acción, 12 niños, Ñuñoa ✅ confirmado\n\nLa de María es en 2 días y sigue pendiente, así que conviene confirmarla pronto en el panel.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 0
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 2679,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2678,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2679,
+    "rounds": [
+     {
+      "ms": 1205,
+      "in": 225,
+      "out": 140,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1472,
+      "in": 729,
+      "out": 224,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Esta semana tienes 3 eventos:\n• *Mar 13, 19:00* · Carolina Soto · Pizza Party · 20 personas · La Reina · ✅ confirmado ($150.000)\n• *Mié 14, 13:00* · María González · Pizza Party · 30 personas · Providencia · ⚠️ pendiente ($240.000)\n• *Sáb 17, 16:00* · Juan Pérez · Pizzeros en Acción · 12 personas · Ñuñoa · ✅ confirmado ($180.000)\n\nOjo con María González: está pendiente y es para el miércoles, así que conviene confirmarla pronto.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 0
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 2787,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2786,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2786,
+    "rounds": [
+     {
+      "ms": 1324,
+      "in": 225,
+      "out": 146,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1461,
+      "in": 735,
+      "out": 226,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes 3 eventos esta semana:\n• *Martes 13, 19:00*: Carolina Soto, Pizza Party, 20 personas, La Reina. ✅ Confirmado ($150.000)\n• *Miércoles 14, 13:00*: María González, Pizza Party, 30 personas, Providencia. ⚡ Pendiente ($240.000)\n• *Sábado 17, 16:00*: Juan Pérez, Pizzeros en Acción, 12 personas, Ñuñoa. ✅ Confirmado ($180.000)\n\n⚠️ El de María González sigue pendiente, conviene confirmarlo antes del miércoles.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18",
+      "limit": 50
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 0
+  },
+  {
+   "scenario": "pendiente",
+   "status": "failed",
+   "wall_ms": 1593,
+   "timings": {},
+   "reply": "No pude procesar tu mensaje 😕 Intenta de nuevo en un momento.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "status": "pending"
+     }
+    },
+    {
+     "name": "get_contacts",
+     "input": {
+      "status": "pending"
+     }
+    }
+   ],
+   "error": "Object of type datetime is not JSON serializable",
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "pendiente",
+   "status": "failed",
+   "wall_ms": 1901,
+   "timings": {},
+   "reply": "No pude procesar tu mensaje 😕 Intenta de nuevo en un momento.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "status": "pending"
+     }
+    },
+    {
+     "name": "get_contacts",
+     "input": {
+      "status": "pending"
+     }
+    }
+   ],
+   "error": "Object of type datetime is not JSON serializable",
+   "variant": "nothink",
+   "rep": 0
+  },
+  {
+   "scenario": "pendiente",
+   "status": "failed",
+   "wall_ms": 1258,
+   "timings": {},
+   "reply": "No pude procesar tu mensaje 😕 Intenta de nuevo en un momento.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "status": "pending"
+     }
+    },
+    {
+     "name": "get_contacts",
+     "input": {
+      "status": "pending"
+     }
+    }
+   ],
+   "error": "Object of type datetime is not JSON serializable",
+   "variant": "haiku",
+   "rep": 0
+  },
+  {
+   "scenario": "pendiente",
+   "status": "failed",
+   "wall_ms": 1517,
+   "timings": {},
+   "reply": "No pude procesar tu mensaje 😕 Intenta de nuevo en un momento.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "status": "pending",
+      "limit": 50
+     }
+    },
+    {
+     "name": "get_contacts",
+     "input": {
+      "status": "pending",
+      "limit": 20
+     }
+    }
+   ],
+   "error": "Object of type datetime is not JSON serializable",
+   "variant": "haiku-nt",
+   "rep": 0
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 0,
+   "timings": {},
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 0,
+   "timings": {},
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "nothink",
+   "rep": 0
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 0,
+   "timings": {},
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku",
+   "rep": 0
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 0,
+   "timings": {},
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 0
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 3609,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3609,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3609,
+    "rounds": [
+     {
+      "ms": 1493,
+      "in": 240,
+      "out": 50,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 2114,
+      "in": 429,
+      "out": 154,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_inventory_purchase",
+      "ms": 1,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_inventory_purchase",
+     "input": {
+      "item_id": "i1",
+      "quantity": 50,
+      "total_cost": 56000,
+      "unit": "kg",
+      "date": "2026-10-12"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 5057,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 5056,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 5056,
+    "rounds": [
+     {
+      "ms": 2729,
+      "in": 240,
+      "out": 71,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 2325,
+      "in": 450,
+      "out": 192,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_inventory_purchase",
+      "ms": 1,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Hay un solo insumo de harina, así que dejo la compra propuesta: 50 kg por $56.000.\n\n📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_inventory_purchase",
+     "input": {
+      "item_id": "i1",
+      "quantity": 50,
+      "total_cost": 56000,
+      "unit": "kg",
+      "date": "2026-10-12"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 0
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 3423,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3422,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3423,
+    "rounds": [
+     {
+      "ms": 1481,
+      "in": 240,
+      "out": 144,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1939,
+      "in": 523,
+      "out": 330,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_inventory_purchase",
+      "ms": 1,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_inventory_purchase",
+     "input": {
+      "item_id": "i1",
+      "quantity": 50,
+      "total_cost": 56000,
+      "unit": "kg",
+      "date": "2026-10-12",
+      "notes": "2 sacos de 25 kg a $28.000 c/u"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 0
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 2550,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2549,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2550,
+    "rounds": [
+     {
+      "ms": 1089,
+      "in": 240,
+      "out": 76,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1458,
+      "in": 455,
+      "out": 237,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_inventory_purchase",
+      "ms": 1,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Encontré \"Harina 000\" en el inventario (kg, stock actual 60). Te dejo la propuesta de compra: 2 sacos × 25 kg = 50 kg, $56.000 total.\n\n📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_inventory_purchase",
+     "input": {
+      "item_id": "i1",
+      "quantity": 50,
+      "total_cost": 56000,
+      "unit": "kg",
+      "notes": "2 sacos de 25 kg a $28.000 c/u"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 0
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1324,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1323,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1324,
+    "rounds": [
+     {
+      "ms": 1323,
+      "in": 221,
+      "out": 66,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Dale, ¿qué quieres registrar? Puedes mandarme la foto de una boleta o factura, o decirme si es una reserva, una compra de insumos o el consumo de un evento.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1471,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 2,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1470,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1471,
+    "rounds": [
+     {
+      "ms": 1469,
+      "in": 221,
+      "out": 68,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Dale, ¿qué quieres registrar? Puede ser una boleta o factura (mándame la foto), una compra de insumos, un gasto, el consumo de un evento o una reserva nueva.",
+   "tools_called": [],
+   "error": null,
+   "variant": "nothink",
+   "rep": 0
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1286,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1285,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1285,
+    "rounds": [
+     {
+      "ms": 1284,
+      "in": 221,
+      "out": 81,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Dale, ¿qué quieres registrar? Puede ser una boleta o factura (gasto o compra de insumos), un consumo o estimación de un evento, o una reserva nueva. Mándame la foto o cuéntame los datos.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku",
+   "rep": 0
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1179,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1179,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1179,
+    "rounds": [
+     {
+      "ms": 1178,
+      "in": 221,
+      "out": 80,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Dale, ¿qué quieres registrar? Puede ser una boleta o factura (gasto o compra de insumos), consumo o insumos de un evento, o una reserva nueva. Mándame la foto o cuéntame los datos.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 0
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 2812,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2811,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2811,
+    "rounds": [
+     {
+      "ms": 1549,
+      "in": 222,
+      "out": 84,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1260,
+      "in": 439,
+      "out": 69,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, mañana martes tienes una Pizza Party confirmada con Carolina Soto. Es a las 19:00 en La Reina, para 20 personas, y el precio estimado es $150.000.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 0
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 3088,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3088,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3088,
+    "rounds": [
+     {
+      "ms": 1598,
+      "in": 222,
+      "out": 108,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1489,
+      "in": 463,
+      "out": 68,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, mañana tienes 1 evento 🍕\n\nCarolina Soto, Pizza Party a las 19:00 en La Reina, para 20 personas. Está confirmado, $150.000.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 0
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 2244,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2243,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2244,
+    "rounds": [
+     {
+      "ms": 1193,
+      "in": 222,
+      "out": 116,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1050,
+      "in": 471,
+      "out": 75,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, tienes 1 evento mañana, martes 13:\n• 19:00 · Pizza Party con Carolina Soto\n• 20 participantes, en La Reina\n• Confirmado, $150.000 estimados",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 0
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 2155,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 2,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2154,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2155,
+    "rounds": [
+     {
+      "ms": 1213,
+      "in": 222,
+      "out": 112,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 940,
+      "in": 467,
+      "out": 75,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, tienes 1 evento mañana:\n• *Carolina Soto*, Pizza Party, 19:00 hrs\n• 20 participantes, en La Reina\n• Confirmado, $150.000 estimado",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 0
+  },
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 1244,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1243,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1244,
+    "rounds": [
+     {
+      "ms": 1242,
+      "in": 228,
+      "out": 44,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¡Hola! Todo bien por acá, listo para ayudarte 🍕 ¿Qué necesitas hoy?",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 1411,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1411,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1411,
+    "rounds": [
+     {
+      "ms": 1410,
+      "in": 228,
+      "out": 41,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¡Hola! Todo bien por acá, listo para ayudarte 🍕 ¿Qué necesitas?",
+   "tools_called": [],
+   "error": null,
+   "variant": "nothink",
+   "rep": 1
+  },
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 1145,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1144,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1145,
+    "rounds": [
+     {
+      "ms": 1144,
+      "in": 228,
+      "out": 79,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Hola! Bien, gracias por preguntar. Soy Pablito, el asistente de Pablo's Pizza. ¿Qué necesitas hoy? Puedo revisar reservas, inventario, contactos o gastos.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku",
+   "rep": 1
+  },
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 1242,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1241,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1242,
+    "rounds": [
+     {
+      "ms": 1241,
+      "in": 228,
+      "out": 69,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¡Hola! Bien, gracias por preguntar 🍕 ¿Y tú cómo va el día? ¿Necesitas algo de eventos, inventario o alguna boleta para registrar?",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 1
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 2448,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2448,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2448,
+    "rounds": [
+     {
+      "ms": 1314,
+      "in": 223,
+      "out": 50,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1132,
+      "in": 496,
+      "out": 62,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes:\n• Mozzarella: 3,2 kg\n• Parmesano: 2 kg\n\nOjo, la mozzarella está justita si tienes eventos pronto.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 3064,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3064,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3064,
+    "rounds": [
+     {
+      "ms": 1519,
+      "in": 223,
+      "out": 67,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1544,
+      "in": 513,
+      "out": 71,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Quedan dos tipos de queso:\n• Mozzarella: 3,2 kg\n• Parmesano: 2 kg\n\n⚠️ La mozzarella está bajita si tienes eventos cerca.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 1
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 2319,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2318,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2319,
+    "rounds": [
+     {
+      "ms": 1072,
+      "in": 223,
+      "out": 77,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1245,
+      "in": 1076,
+      "out": 128,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "get_inventory_status",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "⚠️ Queso mozzarella está bajo: quedan 3,2 kg y el mínimo es 5 kg, así que hay que reponer.\n• Queso parmesano: 2 kg (mínimo 1 kg), está OK.\n\n¿Quieres que te arme la propuesta de compra de mozzarella? Dime cuánto compraste o cuánto pagaste.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    },
+    {
+     "name": "get_inventory_status",
+     "input": {}
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 1
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 2373,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2372,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2373,
+    "rounds": [
+     {
+      "ms": 1196,
+      "in": 223,
+      "out": 90,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1175,
+      "in": 1089,
+      "out": 115,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "get_inventory_status",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Queso en stock:\n• ⚠️ *Queso mozzarella*: 3,2 kg (mínimo 5 kg), está bajo y hay que reponer.\n• *Queso parmesano*: 2 kg (mínimo 1 kg), bien.\n\n¿Quieres que te deje una propuesta de compra de mozzarella?",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    },
+    {
+     "name": "get_inventory_status",
+     "input": {}
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 1
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 3936,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3936,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3936,
+    "rounds": [
+     {
+      "ms": 1882,
+      "in": 240,
+      "out": 181,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 2053,
+      "in": 569,
+      "out": 123,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Ojo: ya hay una reserva confirmada para Juan Pérez el sábado 17 a las 16:00 en Ñuñoa, Pizzeros en Acción con 12 participantes. ¿Es la misma que quieres agendar, o es otro evento (Pizza Party de 12 pizzas)? Si es otro, dime lugar y comuna.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-10-17",
+      "date_to": "2026-10-17"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 3343,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3343,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3343,
+    "rounds": [
+     {
+      "ms": 1659,
+      "in": 240,
+      "out": 116,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1683,
+      "in": 504,
+      "out": 97,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Ojo: ya hay una reserva confirmada para Juan Pérez el sábado 17 a las 16:00 en Ñuñoa (Pizzeros en Acción, 12 participantes). ¿Es la misma o quieres agendar otro evento aparte para otro Juan?",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-10-17",
+      "date_to": "2026-10-17"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 1
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 4230,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 4230,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 4230,
+    "rounds": [
+     {
+      "ms": 1837,
+      "in": 240,
+      "out": 282,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 2391,
+      "in": 670,
+      "out": 483,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "ask_choice",
+      "ms": 0,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Ojo: ya existe una reserva confirmada de *Juan Pérez* el sábado 17 a las 16:00 (Pizzeros en Acción, 12 participantes, Ñuñoa). ¿Qué hago?\n\n*Esto es lo que leí:*\nPedido: Juan, sábado 17-10-2026 16:00, Pizza Party de 12 pizzas. Reserva existente: b1, Juan Pérez, Pizzeros en Acción, 12 participantes, Ñuñoa, confirmada.\n\n¿Es un evento nuevo o es lo mismo que ya está confirmado?\n\n1) Evento nuevo (Pizza Party, 12 pizzas)\n2) Es el mismo, no crear nada\n3) Agregar Pizza Party a la reserva existente\nResponde con el número.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-10-17",
+      "date_to": "2026-10-17"
+     }
+    },
+    {
+     "name": "ask_choice",
+     "input": {
+      "question": "¿Es un evento nuevo o es lo mismo que ya está confirmado?",
+      "options": [
+       {
+        "id": "nuevo",
+        "label": "Evento nuevo (Pizza Party, 12 pizzas)"
+       },
+       {
+        "id": "mismo",
+        "label": "Es el mismo, no crear nada"
+       },
+       {
+        "id": "agregar",
+        "label": "Agregar Pizza Party a la reserva existente"
+       }
+      ],
+      "context": "Pedido: Juan, sábado 17-10-2026 16:00, Pizza Party de 12 pizzas. Reserva existente: b1, Juan Pérez, Pizzeros en Acción, 12 participantes, Ñuñoa, confirmada."
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 1
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 1121,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1121,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1121,
+    "rounds": [
+     {
+      "ms": 1120,
+      "in": 240,
+      "out": 75,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Para proponer la reserva me falta un dato clave: ¿dónde es el evento (dirección y comuna)? También necesito un contacto de Juan (correo o teléfono) para que el administrador pueda avisarle.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 1
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 1231,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1230,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1231,
+    "rounds": [
+     {
+      "ms": 1230,
+      "in": 226,
+      "out": 45,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Me falta la fecha y el proveedor. ¿Es de hoy y la compraste en Copec, o en otra bencinera?",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 1472,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1471,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1472,
+    "rounds": [
+     {
+      "ms": 1470,
+      "in": 226,
+      "out": 60,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Me falta la fecha y el proveedor: ¿es la bencina de hoy (12-10) y en qué estación la echaste (Copec, Shell, Petrobras)?",
+   "tools_called": [],
+   "error": null,
+   "variant": "nothink",
+   "rep": 1
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 2547,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2546,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2547,
+    "rounds": [
+     {
+      "ms": 2546,
+      "in": 226,
+      "out": 444,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "ask_choice",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¿En qué bencinera cargaste? Así lo dejo con el proveedor correcto.\n\n¿Dónde cargaste la bencina de $20.000?\n\n1) Copec\n2) Shell\n3) Petrobras\n4) Otra (te escribo cuál)\nResponde con el número.",
+   "tools_called": [
+    {
+     "name": "ask_choice",
+     "input": {
+      "question": "¿Dónde cargaste la bencina de $20.000?",
+      "options": [
+       {
+        "id": "copec",
+        "label": "Copec"
+       },
+       {
+        "id": "shell",
+        "label": "Shell"
+       },
+       {
+        "id": "petrobras",
+        "label": "Petrobras"
+       },
+       {
+        "id": "otro",
+        "label": "Otra (te escribo cuál)"
+       }
+      ]
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 1
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 1470,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1469,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1470,
+    "rounds": [
+     {
+      "ms": 1469,
+      "in": 226,
+      "out": 106,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Para registrar el gasto necesito un par de datos para no adivinar:\n\n¿Tienes la boleta o factura a mano? Si es así, mándame la foto, o dime el proveedor (Copec, Shell, etc.) y la fecha. Si no hay fecha, asumo hoy (2026-10-12).",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 1
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 2803,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2802,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2803,
+    "rounds": [
+     {
+      "ms": 1415,
+      "in": 224,
+      "out": 73,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1386,
+      "in": 394,
+      "out": 66,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "En octubre llevamos $695.000 en ventas, con 3 eventos. 💰\nLos costos fueron $250.000, así que la utilidad queda en $445.000 (margen 64%).",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 2829,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2828,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2828,
+    "rounds": [
+     {
+      "ms": 1485,
+      "in": 224,
+      "out": 93,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1342,
+      "in": 414,
+      "out": 61,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Este mes llevamos $695.000 en ventas, con 3 eventos. 💰\n\nLa utilidad va en $445.000, con un margen de 64% (costos de $250.000).",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 1
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 1830,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1829,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1829,
+    "rounds": [
+     {
+      "ms": 901,
+      "in": 224,
+      "out": 73,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 927,
+      "in": 394,
+      "out": 69,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Este mes (octubre 2026) llevamos *$695.000* en ingresos, con 3 eventos.\n• Costos: $250.000\n• Utilidad: $445.000 (margen 64 %)",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 1
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 2090,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2089,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2089,
+    "rounds": [
+     {
+      "ms": 1147,
+      "in": 224,
+      "out": 96,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 940,
+      "in": 417,
+      "out": 59,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Este mes llevas *$695.000* en ventas, de 3 eventos.\n• Costos: $250.000\n• Utilidad: $445.000 (margen de 64%)",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 1
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 3315,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3314,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3315,
+    "rounds": [
+     {
+      "ms": 1542,
+      "in": 225,
+      "out": 119,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1771,
+      "in": 708,
+      "out": 195,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes 3 eventos esta semana:\n• Martes 13, 19:00: Carolina Soto, Pizza Party, 20 personas, La Reina (confirmada)\n• Miércoles 14, 13:00: María González, Pizza Party, 30 personas, Providencia (⚠️ pendiente)\n• Sábado 17, 16:00: Juan Pérez, Pizzeros en Acción, 12 niños, Ñuñoa (confirmada)\n\nLa de María sigue sin confirmar y es pasado mañana. Hay que confirmarla en el panel.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 3841,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3840,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3841,
+    "rounds": [
+     {
+      "ms": 1657,
+      "in": 225,
+      "out": 112,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 2181,
+      "in": 701,
+      "out": 204,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes 3 eventos esta semana:\n• Martes 13, 19:00: Carolina Soto, Pizza Party, 20 personas, La Reina ✅ confirmado\n• Miércoles 14, 13:00: María González, Pizza Party, 30 personas, Providencia ⚠️ pendiente de confirmar\n• Sábado 17, 16:00: Juan Pérez, Pizzeros en Acción, 12 niños, Ñuñoa ✅ confirmado\n\nLa de María es en 2 días y sigue pendiente, así que conviene confirmarla pronto en el panel.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 1
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 2836,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2835,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2836,
+    "rounds": [
+     {
+      "ms": 1359,
+      "in": 225,
+      "out": 140,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1475,
+      "in": 729,
+      "out": 219,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Esta semana tienes 3 eventos:\n• *Mar 13, 19:00*: Carolina Soto · Pizza Party · 20 personas · La Reina · ✅ confirmado ($150.000)\n• *Mié 14, 13:00*: María González · Pizza Party · 30 personas · Providencia · ⚡ pendiente ($240.000)\n• *Sáb 17, 16:00*: Juan Pérez · Pizzeros en Acción · 12 personas · Ñuñoa · ✅ confirmado ($180.000)\n\n⚡ La de María González sigue pendiente: conviene confirmarla antes del miércoles.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 1
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 3131,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3130,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3130,
+    "rounds": [
+     {
+      "ms": 1523,
+      "in": 225,
+      "out": 147,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1606,
+      "in": 736,
+      "out": 227,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes 3 eventos esta semana:\n• *Martes 13, 19:00*: Carolina Soto, Pizza Party, 20 personas, La Reina. ✅ Confirmado ($150.000)\n• *Miércoles 14, 13:00*: María González, Pizza Party, 30 personas, Providencia. ⚡ Pendiente ($240.000)\n• *Sábado 17, 16:00*: Juan Pérez, Pizzeros en Acción, 12 personas, Ñuñoa. ✅ Confirmado ($180.000)\n\n⚠️ El de María González aún no está confirmado; conviene cerrarlo antes del miércoles.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18",
+      "limit": 50
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 1
+  },
+  {
+   "scenario": "pendiente",
+   "status": "failed",
+   "wall_ms": 1461,
+   "timings": {},
+   "reply": "No pude procesar tu mensaje 😕 Intenta de nuevo en un momento.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "status": "pending"
+     }
+    },
+    {
+     "name": "get_contacts",
+     "input": {
+      "status": "pending"
+     }
+    }
+   ],
+   "error": "Object of type datetime is not JSON serializable",
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "pendiente",
+   "status": "failed",
+   "wall_ms": 1865,
+   "timings": {},
+   "reply": "No pude procesar tu mensaje 😕 Intenta de nuevo en un momento.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "status": "pending"
+     }
+    },
+    {
+     "name": "get_contacts",
+     "input": {
+      "status": "pending"
+     }
+    }
+   ],
+   "error": "Object of type datetime is not JSON serializable",
+   "variant": "nothink",
+   "rep": 1
+  },
+  {
+   "scenario": "pendiente",
+   "status": "failed",
+   "wall_ms": 1437,
+   "timings": {},
+   "reply": "No pude procesar tu mensaje 😕 Intenta de nuevo en un momento.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "status": "pending"
+     }
+    },
+    {
+     "name": "get_contacts",
+     "input": {
+      "status": "pending"
+     }
+    }
+   ],
+   "error": "Object of type datetime is not JSON serializable",
+   "variant": "haiku",
+   "rep": 1
+  },
+  {
+   "scenario": "pendiente",
+   "status": "failed",
+   "wall_ms": 1322,
+   "timings": {},
+   "reply": "No pude procesar tu mensaje 😕 Intenta de nuevo en un momento.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "status": "pending"
+     }
+    },
+    {
+     "name": "get_contacts",
+     "input": {
+      "status": "pending"
+     }
+    }
+   ],
+   "error": "Object of type datetime is not JSON serializable",
+   "variant": "haiku-nt",
+   "rep": 1
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 0,
+   "timings": {},
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 0,
+   "timings": {},
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "nothink",
+   "rep": 1
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 0,
+   "timings": {},
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku",
+   "rep": 1
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 0,
+   "timings": {},
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 1
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 2639,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2638,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2639,
+    "rounds": [
+     {
+      "ms": 1255,
+      "in": 240,
+      "out": 50,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1381,
+      "in": 429,
+      "out": 154,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_inventory_purchase",
+      "ms": 1,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_inventory_purchase",
+     "input": {
+      "item_id": "i1",
+      "quantity": 50,
+      "total_cost": 56000,
+      "unit": "kg",
+      "date": "2026-10-12"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 4003,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 4002,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 4003,
+    "rounds": [
+     {
+      "ms": 1635,
+      "in": 240,
+      "out": 76,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 2365,
+      "in": 455,
+      "out": 195,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_inventory_purchase",
+      "ms": 1,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Hay un solo match claro (Harina 000, en kg), así que propongo la compra: 50 kg por $56.000.\n\n📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_inventory_purchase",
+     "input": {
+      "item_id": "i1",
+      "quantity": 50,
+      "total_cost": 56000,
+      "unit": "kg",
+      "date": "2026-10-12"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 1
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 2342,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2341,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2342,
+    "rounds": [
+     {
+      "ms": 1298,
+      "in": 240,
+      "out": 119,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1041,
+      "in": 498,
+      "out": 128,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_inventory_purchase",
+      "ms": 1,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_inventory_purchase",
+     "input": {
+      "item_id": "i1",
+      "quantity": 50,
+      "total_cost": 56000,
+      "unit": "kg"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 1
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 2556,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 1,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2555,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2555,
+    "rounds": [
+     {
+      "ms": 1126,
+      "in": 240,
+      "out": 70,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1427,
+      "in": 449,
+      "out": 243,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_inventory_purchase",
+      "ms": 1,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Hay un insumo existente: \"Harina 000\" (kg). Como tu compra es de 2 sacos de 25 kg, son 50 kg en total, y pagaste $28.000 por saco, el total es $56.000.\n\n📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_inventory_purchase",
+     "input": {
+      "item_id": "i1",
+      "quantity": 50,
+      "total_cost": 56000,
+      "unit": "kg",
+      "notes": "2 sacos de 25 kg a $28.000 c/u"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 1
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1397,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1396,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1397,
+    "rounds": [
+     {
+      "ms": 1396,
+      "in": 221,
+      "out": 78,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Dale, ¿qué quieres registrar? Cuéntame o mándame la foto de la boleta si es una compra o gasto. También puedo anotar una reserva nueva, consumo de un evento o un ajuste de stock.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1547,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1547,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1547,
+    "rounds": [
+     {
+      "ms": 1546,
+      "in": 221,
+      "out": 63,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Dale, ¿qué quieres registrar? Puede ser una boleta o factura (mándame la foto), una compra de insumos, el consumo de un evento o una reserva nueva.",
+   "tools_called": [],
+   "error": null,
+   "variant": "nothink",
+   "rep": 1
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1278,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1278,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1278,
+    "rounds": [
+     {
+      "ms": 1277,
+      "in": 221,
+      "out": 85,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¡Dale! ¿Qué quieres registrar? Puede ser una boleta o factura (de gasto o de compra de insumos), consumo o insumos de un evento, o una reserva nueva. Mándame la foto o cuéntame los datos.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku",
+   "rep": 1
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1968,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1968,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1968,
+    "rounds": [
+     {
+      "ms": 1967,
+      "in": 221,
+      "out": 91,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Dale, ¿qué quieres registrar? Puede ser una boleta o factura (gasto o compra de insumos), consumo o estimación de un evento, una reserva nueva, o una merma/conteo de stock. Mándame la foto o cuéntame los datos.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 1
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 2618,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2617,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2618,
+    "rounds": [
+     {
+      "ms": 1606,
+      "in": 222,
+      "out": 84,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1010,
+      "in": 439,
+      "out": 66,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, mañana martes tienes una Pizza Party confirmada con Carolina Soto a las 19:00 en La Reina. Son 20 personas y el precio estimado es $150.000.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 1
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 3096,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3095,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3096,
+    "rounds": [
+     {
+      "ms": 1545,
+      "in": 222,
+      "out": 109,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1549,
+      "in": 464,
+      "out": 65,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, mañana martes tienes una Pizza Party confirmada 🍕\n\nEs con Carolina Soto a las 19:00 en La Reina, para 20 personas ($150.000).",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 1
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 2150,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2149,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2150,
+    "rounds": [
+     {
+      "ms": 1293,
+      "in": 222,
+      "out": 139,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 855,
+      "in": 494,
+      "out": 66,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, mañana martes tienes 1 evento:\n• 19:00 · Pizza Party con Carolina Soto\n• 20 personas · La Reina\n• Confirmado · $150.000",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 1
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 2325,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2324,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2324,
+    "rounds": [
+     {
+      "ms": 1226,
+      "in": 222,
+      "out": 107,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1097,
+      "in": 462,
+      "out": 75,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, tienes 1 evento mañana:\n• 🍕 *Pizza Party* con Carolina Soto\n• 19:00 hrs, La Reina\n• 20 participantes, confirmado ($150.000)",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 1
+  },
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 1682,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1681,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1682,
+    "rounds": [
+     {
+      "ms": 1681,
+      "in": 228,
+      "out": 44,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¡Hola! Todo bien por acá, listo para ayudarte 🍕 ¿Qué necesitas hoy?",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 1807,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1807,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1807,
+    "rounds": [
+     {
+      "ms": 1806,
+      "in": 228,
+      "out": 44,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¡Hola! Todo bien por acá, listo para ayudarte 🍕 ¿Qué necesitas hoy?",
+   "tools_called": [],
+   "error": null,
+   "variant": "nothink",
+   "rep": 2
+  },
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 1212,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1211,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1212,
+    "rounds": [
+     {
+      "ms": 1211,
+      "in": 228,
+      "out": 70,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¡Hola! Pablito aquí, todo bien por acá. ¿Y tú cómo estás? ¿En qué te ayudo hoy: eventos, inventario, contactos o algún gasto?",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku",
+   "rep": 2
+  },
+  {
+   "scenario": "saludo",
+   "status": "answered",
+   "wall_ms": 1545,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 2,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1545,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1545,
+    "rounds": [
+     {
+      "ms": 1544,
+      "in": 228,
+      "out": 67,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¡Hola! Bien, gracias por preguntar 😊 Aquí, listo para lo que necesites: eventos, inventario, reservas o boletas. ¿Cómo va tu día?",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 2
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 2198,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2198,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2198,
+    "rounds": [
+     {
+      "ms": 1280,
+      "in": 223,
+      "out": 50,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 917,
+      "in": 496,
+      "out": 36,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Tienes:\n• Mozzarella: 3,2 kg\n• Parmesano: 2 kg",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 3081,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3080,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3081,
+    "rounds": [
+     {
+      "ms": 1437,
+      "in": 223,
+      "out": 67,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1643,
+      "in": 513,
+      "out": 71,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Esto es lo que hay de queso:\n• Mozzarella: 3,2 kg\n• Parmesano: 2 kg\n\n⚠️ La mozzarella está bajita si tienes eventos cerca.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 2
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 2232,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2231,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2232,
+    "rounds": [
+     {
+      "ms": 1075,
+      "in": 223,
+      "out": 77,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1155,
+      "in": 1076,
+      "out": 114,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "get_inventory_status",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Queso mozzarella: ⚠️ 3,2 kg, bajo el mínimo (5 kg). Hay que reponer.\n\nQueso parmesano: 2 kg, sobre su mínimo (1 kg), así que está bien por ahora.\n\n¿Quieres que te deje lista una propuesta de compra de mozzarella?",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    },
+    {
+     "name": "get_inventory_status",
+     "input": {}
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 2
+  },
+  {
+   "scenario": "stock",
+   "status": "answered",
+   "wall_ms": 2488,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2487,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2487,
+    "rounds": [
+     {
+      "ms": 1125,
+      "in": 223,
+      "out": 77,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1361,
+      "in": 1076,
+      "out": 125,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "get_inventory_status",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "⚠️ Queso mozzarella está bajo: quedan 3,2 kg y el mínimo es 5 kg, así que hay que reponer.\n• Queso parmesano: 2 kg (mínimo 1 kg), OK.\n\n¿Quieres que te deje lista una compra de mozzarella? Solo pásame la boleta o el monto y la cantidad.",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "queso"
+     }
+    },
+    {
+     "name": "get_inventory_status",
+     "input": {}
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 2
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 3357,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3357,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3357,
+    "rounds": [
+     {
+      "ms": 2024,
+      "in": 240,
+      "out": 197,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1332,
+      "in": 585,
+      "out": 114,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Ojo: ya hay una reserva confirmada de Juan Pérez para el sábado 17 a las 16:00 en Ñuñoa (Pizzeros en Acción, 12 participantes). ¿Es el mismo Juan, o quieres agendar uno nuevo igual (Pizza Party de 12 pizzas)?",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-10-17",
+      "date_to": "2026-10-17"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 3226,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3225,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3226,
+    "rounds": [
+     {
+      "ms": 1614,
+      "in": 240,
+      "out": 112,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1609,
+      "in": 500,
+      "out": 107,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Ojo: ya hay una reserva confirmada de Juan Pérez el sábado 17 a las 16:00 en Ñuñoa (Pizzeros en Acción, 12 participantes). ¿Es el mismo evento o quieres crear uno nuevo de Pizza Party con 12 pizzas?",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-10-17",
+      "date_to": "2026-10-17"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 2
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 4079,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 4078,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 4078,
+    "rounds": [
+     {
+      "ms": 1863,
+      "in": 240,
+      "out": 326,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 2214,
+      "in": 912,
+      "out": 437,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "search_bookings",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "ask_choice",
+      "ms": 0,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Ojo: ya existe una reserva de Juan Pérez el sábado 17 a las 16:00 (12 participantes, Pizzeros en Acción, confirmada en Ñuñoa). ¿Es la misma o es un evento nuevo?\n\n*Esto es lo que leí:*\nPedido: agendar evento para Juan, sábado 17/10/2026 16:00, 12 pizzas (Pizza Party). Reserva existente encontrada: Juan Pérez, Pizzeros en Acción, sábado 17/10 16:00, 12 participantes, confirmada, Ñuñoa.\n\n¿Qué hacemos con Juan?\n\n1) Es la misma, no agendar\n2) Es otro evento, agendar Pizza Party\nResponde con el número.",
+   "tools_called": [
+    {
+     "name": "search_bookings",
+     "input": {
+      "date_from": "2026-10-17",
+      "date_to": "2026-10-17"
+     }
+    },
+    {
+     "name": "search_bookings",
+     "input": {
+      "client_name": "Juan"
+     }
+    },
+    {
+     "name": "ask_choice",
+     "input": {
+      "question": "¿Qué hacemos con Juan?",
+      "options": [
+       {
+        "id": "same",
+        "label": "Es la misma, no agendar"
+       },
+       {
+        "id": "new",
+        "label": "Es otro evento, agendar Pizza Party"
+       }
+      ],
+      "context": "Pedido: agendar evento para Juan, sábado 17/10/2026 16:00, 12 pizzas (Pizza Party). Reserva existente encontrada: Juan Pérez, Pizzeros en Acción, sábado 17/10 16:00, 12 participantes, confirmada, Ñuñoa."
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 2
+  },
+  {
+   "scenario": "agendar",
+   "status": "answered",
+   "wall_ms": 1447,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1446,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1447,
+    "rounds": [
+     {
+      "ms": 1445,
+      "in": 240,
+      "out": 89,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Para proponer la reserva me faltan datos: ¿dónde es el evento (dirección y comuna) y qué contacto tiene Juan (correo o teléfono)? Con eso lo dejo listo como propuesta. El sábado es 2026-10-17.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 2
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 2639,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2638,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2639,
+    "rounds": [
+     {
+      "ms": 2637,
+      "in": 226,
+      "out": 226,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Dale, ¿fue hoy y en qué estación cargaste (Copec, Shell…)? Si no sabes, lo dejo como \"Bencina\" con fecha de hoy.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 1972,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1972,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1972,
+    "rounds": [
+     {
+      "ms": 1971,
+      "in": 226,
+      "out": 91,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Me falta un dato para armar la propuesta: ¿de qué fecha es la boleta (hoy lunes 12 o otro día)? Y si sabes el proveedor (¿Copec de nuevo?), dímelo; si no, la dejo como \"Bencina\".",
+   "tools_called": [],
+   "error": null,
+   "variant": "nothink",
+   "rep": 2
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 2069,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 2,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2068,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2069,
+    "rounds": [
+     {
+      "ms": 2067,
+      "in": 226,
+      "out": 251,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¿En qué bencinera cargaste y de qué fecha es la boleta? Con eso te dejo la propuesta de $20.000.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku",
+   "rep": 2
+  },
+  {
+   "scenario": "gasto",
+   "status": "answered",
+   "wall_ms": 1504,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1504,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1504,
+    "rounds": [
+     {
+      "ms": 1503,
+      "in": 226,
+      "out": 114,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Para registrar el gasto necesito algunos datos que no tengo:\n\n¿Me pasas la fecha del documento y el proveedor (por ejemplo, Copec)? Si tienes la boleta a mano, mándame la foto y la leo directo. Si no, dime si fue hoy y el total exacto (20 mil = $20.000).",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 2
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 2407,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2407,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2407,
+    "rounds": [
+     {
+      "ms": 1396,
+      "in": 224,
+      "out": 73,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1009,
+      "in": 394,
+      "out": 64,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "En octubre llevamos $695.000 en ventas, con 3 eventos. 💰 Los costos son $250.000, así que la utilidad es de $445.000 (margen de 64%).",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 3366,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3365,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3366,
+    "rounds": [
+     {
+      "ms": 1792,
+      "in": 224,
+      "out": 93,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1572,
+      "in": 414,
+      "out": 66,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Este mes (octubre) llevamos $695.000 en ventas con 3 eventos 📊\n\nLos costos son $250.000, así que la utilidad va en $445.000 (64% de margen).",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 2
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 2001,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2001,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2001,
+    "rounds": [
+     {
+      "ms": 1059,
+      "in": 224,
+      "out": 73,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 940,
+      "in": 394,
+      "out": 70,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Este mes (octubre 2026) llevamos *$695.000* en ingresos, de 3 eventos.\n• Costos: $250.000\n• Utilidad: $445.000 (margen de 64 %)",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 2
+  },
+  {
+   "scenario": "ventas",
+   "status": "answered",
+   "wall_ms": 2111,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2111,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2111,
+    "rounds": [
+     {
+      "ms": 1186,
+      "in": 224,
+      "out": 96,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 924,
+      "in": 417,
+      "out": 60,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_financial_summary",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Este mes llevamos *$695.000* en ventas, con 3 eventos.\n• Costos: $250.000\n• Utilidad: $445.000 (margen de 64%)",
+   "tools_called": [
+    {
+     "name": "get_financial_summary",
+     "input": {
+      "year": 2026,
+      "month": 10
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 2
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 3175,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 2,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3174,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3175,
+    "rounds": [
+     {
+      "ms": 1495,
+      "in": 225,
+      "out": 118,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1678,
+      "in": 707,
+      "out": 163,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Esta semana tienes 3 eventos:\n• Martes 13, 19:00: Carolina Soto, Pizza Party, 20 personas, La Reina (confirmado)\n• Miércoles 14, 13:00: María González, Pizza Party, 30 personas, Providencia ⚠️ pendiente de confirmar\n• Sábado 17, 16:00: Juan Pérez, Pizzeros en Acción, 12 niños, Ñuñoa (confirmado)",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 4141,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 2,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 4140,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 4140,
+    "rounds": [
+     {
+      "ms": 1939,
+      "in": 225,
+      "out": 113,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 2200,
+      "in": 702,
+      "out": 207,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Esta semana tienes 3 eventos:\n• *Martes 13, 19:00*: Carolina Soto, Pizza Party, 20 personas, La Reina ✅ confirmado\n• *Miércoles 14, 13:00*: María González, Pizza Party, 30 personas, Providencia ⚠️ pendiente\n• *Sábado 17, 16:00*: Juan Pérez, Pizzeros en Acción, 12 niños, Ñuñoa ✅ confirmado\n\nLa de María González sigue pendiente y es pasado mañana, así que conviene confirmarla pronto en el panel.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 2
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 2612,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2611,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2612,
+    "rounds": [
+     {
+      "ms": 1246,
+      "in": 225,
+      "out": 140,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1365,
+      "in": 729,
+      "out": 213,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Esta semana tienes 3 eventos:\n• *Martes 13, 19:00*: Carolina Soto, Pizza Party, 20 personas, La Reina. Confirmado ($150.000).\n• *Miércoles 14, 13:00*: María González, Pizza Party, 30 personas, Providencia. ⚠️ Pendiente de confirmar ($240.000).\n• *Sábado 17, 16:00*: Juan Pérez, Pizzeros en Acción, 12 personas, Ñuñoa. Confirmado ($180.000).\n\nLo más urgente es confirmar a María González antes del miércoles.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 2
+  },
+  {
+   "scenario": "semana",
+   "status": "answered",
+   "wall_ms": 2848,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2847,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2847,
+    "rounds": [
+     {
+      "ms": 1363,
+      "in": 225,
+      "out": 146,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1483,
+      "in": 735,
+      "out": 228,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Esta semana tienes 3 eventos:\n• *Martes 13, 19:00*: Carolina Soto, Pizza Party, 20 personas, La Reina. ✅ Confirmado ($150.000)\n• *Miércoles 14, 13:00*: María González, Pizza Party, 30 personas, Providencia. ⚡ Pendiente ($240.000)\n• *Sábado 17, 16:00*: Juan Pérez, Pizzeros en Acción, 12 personas, Ñuñoa. ✅ Confirmado ($180.000)\n\n⚡ Ojo con María González: está pendiente, así que conviene confirmarla antes del miércoles.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-12",
+      "date_to": "2026-10-18",
+      "limit": 50
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 2
+  },
+  {
+   "scenario": "pendiente",
+   "status": "failed",
+   "wall_ms": 1467,
+   "timings": {},
+   "reply": "No pude procesar tu mensaje 😕 Intenta de nuevo en un momento.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "status": "pending"
+     }
+    },
+    {
+     "name": "get_contacts",
+     "input": {
+      "status": "pending"
+     }
+    }
+   ],
+   "error": "Object of type datetime is not JSON serializable",
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "pendiente",
+   "status": "failed",
+   "wall_ms": 1865,
+   "timings": {},
+   "reply": "No pude procesar tu mensaje 😕 Intenta de nuevo en un momento.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "status": "pending"
+     }
+    },
+    {
+     "name": "get_contacts",
+     "input": {
+      "status": "pending"
+     }
+    }
+   ],
+   "error": "Object of type datetime is not JSON serializable",
+   "variant": "nothink",
+   "rep": 2
+  },
+  {
+   "scenario": "pendiente",
+   "status": "failed",
+   "wall_ms": 1614,
+   "timings": {},
+   "reply": "No pude procesar tu mensaje 😕 Intenta de nuevo en un momento.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "status": "pending"
+     }
+    },
+    {
+     "name": "get_contacts",
+     "input": {
+      "status": "pending"
+     }
+    }
+   ],
+   "error": "Object of type datetime is not JSON serializable",
+   "variant": "haiku",
+   "rep": 2
+  },
+  {
+   "scenario": "pendiente",
+   "status": "failed",
+   "wall_ms": 1429,
+   "timings": {},
+   "reply": "No pude procesar tu mensaje 😕 Intenta de nuevo en un momento.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "status": "pending",
+      "limit": 50
+     }
+    },
+    {
+     "name": "get_contacts",
+     "input": {
+      "status": "pending"
+     }
+    }
+   ],
+   "error": "Object of type datetime is not JSON serializable",
+   "variant": "haiku-nt",
+   "rep": 2
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 0,
+   "timings": {},
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 0,
+   "timings": {},
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "nothink",
+   "rep": 2
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 0,
+   "timings": {},
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku",
+   "rep": 2
+  },
+  {
+   "scenario": "deshacer",
+   "status": "command",
+   "wall_ms": 0,
+   "timings": {},
+   "reply": "No tengo nada reciente que deshacer. Solo puedo deshacer lo que confirmaste por aquí en las últimas 24 horas.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 2
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 2568,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2568,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2568,
+    "rounds": [
+     {
+      "ms": 1209,
+      "in": 240,
+      "out": 50,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1357,
+      "in": 429,
+      "out": 154,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_inventory_purchase",
+      "ms": 1,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_inventory_purchase",
+     "input": {
+      "item_id": "i1",
+      "quantity": 50,
+      "total_cost": 56000,
+      "unit": "kg",
+      "date": "2026-10-12"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 3916,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3915,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3916,
+    "rounds": [
+     {
+      "ms": 1854,
+      "in": 240,
+      "out": 69,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 2058,
+      "in": 448,
+      "out": 192,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_inventory_purchase",
+      "ms": 1,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Hay un solo insumo de harina y coincide, así que dejo la compra como 50 kg por $56.000.\n\n📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_inventory_purchase",
+     "input": {
+      "item_id": "i1",
+      "quantity": 50,
+      "total_cost": 56000,
+      "unit": "kg",
+      "date": "2026-10-12"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 2
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 2667,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2666,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2667,
+    "rounds": [
+     {
+      "ms": 1120,
+      "in": 240,
+      "out": 97,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1545,
+      "in": 476,
+      "out": 260,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_inventory_purchase",
+      "ms": 1,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_inventory_purchase",
+     "input": {
+      "item_id": "i1",
+      "quantity": 50,
+      "total_cost": 56000,
+      "unit": "kg",
+      "notes": "2 sacos de 25 kg a $28.000 c/u"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 2
+  },
+  {
+   "scenario": "compra",
+   "status": "answered",
+   "wall_ms": 2515,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2514,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2515,
+    "rounds": [
+     {
+      "ms": 1116,
+      "in": 240,
+      "out": 76,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1395,
+      "in": 455,
+      "out": 181,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     }
+    ],
+    "tools": [
+     {
+      "name": "search_inventory",
+      "ms": 0,
+      "round": 1
+     },
+     {
+      "name": "propose_receipt",
+      "ms": 1,
+      "round": 2
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Encontré \"Harina 000\" (kg, stock actual 60 kg). Como es el mismo insumo, sumo la compra a ese.\n\n📋 Compra: Boleta · 12-10-2026 · $56.000 · 1 compra de insumo\n• Harina 000: 50 kg $56.000\n\n¿La guardo? *SI* / *NO*",
+   "tools_called": [
+    {
+     "name": "search_inventory",
+     "input": {
+      "query": "harina"
+     }
+    },
+    {
+     "name": "propose_receipt",
+     "input": {
+      "lines": [
+       {
+        "description": "2 sacos harina 25 kg",
+        "amount": 56000,
+        "classification": "existing",
+        "item_id": "i1",
+        "quantity": 50,
+        "unit": "kg"
+       }
+      ],
+      "total": 56000
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 2
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1402,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1401,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1402,
+    "rounds": [
+     {
+      "ms": 1401,
+      "in": 221,
+      "out": 63,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Dale, ¿qué quieres registrar? Puede ser una boleta o factura (mándame la foto), una compra de insumos, el consumo de un evento o una reserva nueva.",
+   "tools_called": [],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1609,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1609,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1609,
+    "rounds": [
+     {
+      "ms": 1608,
+      "in": 221,
+      "out": 63,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Dale, ¿qué quieres registrar? Puede ser una boleta o factura (mándame la foto), una compra de insumos, el consumo de un evento o una reserva nueva.",
+   "tools_called": [],
+   "error": null,
+   "variant": "nothink",
+   "rep": 2
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1069,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1069,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1069,
+    "rounds": [
+     {
+      "ms": 1068,
+      "in": 221,
+      "out": 58,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Dale, ¿qué quieres registrar? Puede ser una boleta o factura (manda la foto o los datos), insumos de un evento, o una reserva nueva.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku",
+   "rep": 2
+  },
+  {
+   "scenario": "vago",
+   "status": "answered",
+   "wall_ms": 1204,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 1204,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 1204,
+    "rounds": [
+     {
+      "ms": 1203,
+      "in": 221,
+      "out": 68,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "¡Dale! ¿Qué quieres registrar? Puede ser una boleta o factura (sácale foto o dime los datos), una compra de insumos, un gasto, o una reserva nueva.",
+   "tools_called": [],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 2
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 2343,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2342,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2343,
+    "rounds": [
+     {
+      "ms": 1352,
+      "in": 222,
+      "out": 84,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 989,
+      "in": 439,
+      "out": 66,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, mañana martes tienes una Pizza Party confirmada con Carolina Soto a las 19:00 en La Reina. Son 20 personas y el precio estimado es $150.000.",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "current",
+   "rep": 2
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 3138,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 3137,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 3137,
+    "rounds": [
+     {
+      "ms": 1563,
+      "in": 222,
+      "out": 109,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1573,
+      "in": 464,
+      "out": 66,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, mañana martes tienes 1 evento confirmado 🍕\n\nCarolina Soto, Pizza Party a las 19:00 en La Reina, 20 personas ($150.000).",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "nothink",
+   "rep": 2
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 2473,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2472,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2473,
+    "rounds": [
+     {
+      "ms": 1134,
+      "in": 222,
+      "out": 116,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1337,
+      "in": 471,
+      "out": 70,
+      "cache_read": 11002,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, tienes 1 evento mañana, martes 13:\n• 19:00 · Pizza Party con Carolina Soto\n• 20 personas, en La Reina\n• Confirmado, $150.000",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku",
+   "rep": 2
+  },
+  {
+   "scenario": "manana",
+   "status": "answered",
+   "wall_ms": 2389,
+   "timings": {
+    "claim_ms": 0,
+    "queue_ms": 0,
+    "typing_ms": 0,
+    "quota_ms": 0,
+    "lock_ms": 0,
+    "media_ms": 0,
+    "gather_ms": 0,
+    "load_conv_ms": 0,
+    "commands_ms": 0,
+    "agent_ms": 2388,
+    "send_ms": 0,
+    "save_ms": 0,
+    "total_ms": 2389,
+    "rounds": [
+     {
+      "ms": 1319,
+      "in": 222,
+      "out": 120,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "tool_use"
+     },
+     {
+      "ms": 1068,
+      "in": 475,
+      "out": 64,
+      "cache_read": 11001,
+      "cache_write": 0,
+      "stop": "end_turn"
+     }
+    ],
+    "tools": [
+     {
+      "name": "get_bookings",
+      "ms": 0,
+      "round": 1
+     }
+    ],
+    "activity_ms": 0
+   },
+   "reply": "Sí, tienes 1 evento mañana:\n• 19:00 · Carolina Soto · Pizza Party\n• 20 personas · La Reina\n• Confirmado, $150.000",
+   "tools_called": [
+    {
+     "name": "get_bookings",
+     "input": {
+      "date_from": "2026-10-13",
+      "date_to": "2026-10-13"
+     }
+    }
+   ],
+   "error": null,
+   "variant": "haiku-nt",
+   "rep": 2
+  }
+ ]
+}
