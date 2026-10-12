@@ -157,6 +157,16 @@ def prepare_confirmed_booking_variables(booking_data: dict) -> dict:
     }
 
 
+def clean_template_variables(variables: dict) -> dict:
+    """WhatsApp rejects empty template variables and ones with line breaks, tabs or 4+ spaces in a row (Twilio answers
+    HTTP 400 "Content Variables invalid" and the notification is lost)"""
+    cleaned = {}
+    for key, value in variables.items():
+        text = ' '.join(str(value if value is not None else '').split())
+        cleaned[key] = text or '-'
+    return cleaned
+
+
 async def send_whatsapp_template(phone: str, template_type: str, booking_data: dict) -> bool:
     """
     Send WhatsApp using approved Twilio templates
@@ -197,7 +207,7 @@ async def send_whatsapp_template(phone: str, template_type: str, booking_data: d
         # Send using Twilio template
         # Twilio Content API expects variables as a JSON string
         # The format must match what's defined in the template
-        variables_json = json.dumps(template_vars)
+        variables_json = json.dumps(clean_template_variables(template_vars))
         print(f"📋 Variables JSON: {variables_json}")
 
         template_message = twilio_client.messages.create(
@@ -429,7 +439,7 @@ async def send_overdue_reminder(phone: str, admin_name: str, bookings: list, is_
         print(f"📋 Template variables: {template_vars}")
 
         # Send using Twilio template
-        variables_json = json.dumps(template_vars)
+        variables_json = json.dumps(clean_template_variables(template_vars))
 
         template_message = twilio_client.messages.create(
             from_=TWILIO_WHATSAPP_FROM,
