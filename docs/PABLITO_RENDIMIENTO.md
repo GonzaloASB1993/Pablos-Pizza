@@ -46,7 +46,7 @@ Todo lo de abajo sale de `backend/scripts/bench_pablito.py` (API real de Anthrop
 
 ### Tabla antes / después (p50 / p95 del turno completo del worker, ms; 3 repeticiones, Firestore simulado instantáneo)
 
-"Antes" = commit 810bdd1 (baseline) con la variante `current`; "después" = defaults nuevos.
+"Antes" = comportamiento de 54eec60 (solo instrumentado, `docs/bench/baseline.json`; el campo `git` de ese JSON dice 810bdd1 porque se leyó al terminar) con la variante `current`; "después" = defaults nuevos.
 
 | escenario | antes p50 | antes p95 | después p50 | después p95 | rondas a/d | llamadas antes -> después |
 |---|---|---|---|---|---|---|
