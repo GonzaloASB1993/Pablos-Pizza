@@ -1,4 +1,6 @@
 from firebase_functions import https_fn, firestore_fn, options, scheduler_fn
+from utils import scheduler_compat
+scheduler_compat.apply()  # Cloud Scheduler's time format crashed every scheduled function (see utils/scheduler_compat.py)
 import os
 import csv
 import unicodedata

@@ -108,6 +108,7 @@ def lead(db, phone, burst_id, sid, deps):
     Returns the ordered list of sids this worker must answer for, or None when it is `merged` into another worker's turn."""
     ref = db.collection(BURSTS).document(phone)
     started = deps.now()
+    waited = 0.0   # also counted by what we really slept: a clock that does not advance must not loop forever
     while True:
         snapshot = ref.get()
         data = snapshot.to_dict() if snapshot.exists else None
@@ -115,9 +116,11 @@ def lead(db, phone, burst_id, sid, deps):
             return None
         now = deps.now()
         remaining = _seconds(_naive(data['last_at']) + timedelta(seconds=data.get('window', burst_seconds())) - now)
-        if remaining <= 0 or _seconds(now - started) >= LEADER_MAX_WAIT:
+        if remaining <= 0 or _seconds(now - started) >= LEADER_MAX_WAIT or waited >= LEADER_MAX_WAIT:
             return _take_lead(db, ref, burst_id, sid)
-        deps.sleep(min(remaining, POLL_SECONDS))
+        step = min(remaining, POLL_SECONDS)
+        deps.sleep(step)
+        waited += step
 
 
 def _take_lead(db, ref, burst_id, sid):
@@ -178,14 +181,16 @@ def acquire_lock(db, phone, owner, deps):
     LOCK_TTL is the worker's timeout, so a holder that is still running is never robbed). After LOCK_MAX_WAIT it gives up
     with LockBusy: running next to a live turn would let two turns overwrite each other's history and proposals."""
     started = deps.now()
+    waited = 0
     while True:
         now = deps.now()
         if _try_lock(db, phone, owner, now):
             return
-        if _seconds(now - started) >= LOCK_MAX_WAIT:
+        if _seconds(now - started) >= LOCK_MAX_WAIT or waited >= LOCK_MAX_WAIT:
             logger.warning('WhatsApp lock for %s still held after %ss', phone[-4:], LOCK_MAX_WAIT)
             raise LockBusy(f'lock busy after {LOCK_MAX_WAIT}s')
         deps.sleep(1)
+        waited += 1
 
 
 def release_lock(db, phone, owner, now):

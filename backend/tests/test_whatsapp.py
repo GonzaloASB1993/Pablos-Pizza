@@ -199,8 +199,15 @@ class Sent(list):
 
 
 def _deps(run_chat, sent=None, download=None, now=NOW):
+    # a fake clock that moves when the worker "sleeps" (burst leader / lock waits): a frozen clock plus the real
+    # time.sleep looped forever once the real clock passed NOW
+    clock = [now]
+
+    def sleep(seconds):
+        clock[0] += timedelta(seconds=seconds)
+
     return wa.Deps(send=sent if sent is not None else Sent(), run_chat=run_chat,
-                   download_media=download or (lambda url: _jpeg()), now=lambda: now)
+                   download_media=download or (lambda url: _jpeg()), now=lambda: clock[0], sleep=sleep)
 
 
 def _answer(text='Hola, soy el asistente.', **extra):

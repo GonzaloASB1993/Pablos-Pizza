@@ -24,3 +24,10 @@ def _plain_messages_endpoint(monkeypatch):
     path has its own test (test_server_side_fallback_uses_the_beta_endpoint)."""
     from routes import ai_chat_routes
     monkeypatch.setattr(ai_chat_routes, "AI_CHAT_SERVER_FALLBACK", False)
+
+
+@pytest.fixture(autouse=True)
+def _no_real_sleep_in_whatsapp_waits(monkeypatch):
+    """The burst leader and the lock wait poll with deps.sleep (default time.sleep). Tests never need to wait for real."""
+    from services import whatsapp_agent
+    monkeypatch.setattr(whatsapp_agent.time, 'sleep', lambda seconds: None)
