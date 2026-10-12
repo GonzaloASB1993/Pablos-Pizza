@@ -39,6 +39,7 @@ def calculate_payment_summary(sale_data):
 
 
 @vacuum_sales_bp.route('/', methods=['POST'])
+@require_admin
 def create_sale():
     """Create a new vacuum pizza sale"""
     try:
@@ -291,6 +292,7 @@ def get_sale(sale_id):
 
 
 @vacuum_sales_bp.route('/<sale_id>', methods=['PUT'])
+@require_admin
 def update_sale(sale_id):
     """Update a vacuum sale"""
     try:
@@ -345,6 +347,7 @@ def update_sale(sale_id):
 
 
 @vacuum_sales_bp.route('/<sale_id>', methods=['DELETE'])
+@require_admin
 def delete_sale(sale_id):
     """Delete a vacuum sale and revert inventory movements"""
     try:
@@ -405,6 +408,7 @@ def delete_sale(sale_id):
 # ============== PAYMENTS ==============
 
 @vacuum_sales_bp.route('/<sale_id>/payments', methods=['POST'])
+@require_admin
 def add_payment(sale_id):
     """Add a payment to a vacuum sale"""
     try:
@@ -469,6 +473,7 @@ def add_payment(sale_id):
 
 
 @vacuum_sales_bp.route('/<sale_id>/payments/<payment_id>', methods=['PUT'])
+@require_admin
 def update_payment(sale_id, payment_id):
     """Update a payment"""
     try:
@@ -524,6 +529,7 @@ def update_payment(sale_id, payment_id):
 
 
 @vacuum_sales_bp.route('/<sale_id>/payments/<payment_id>', methods=['DELETE'])
+@require_admin
 def delete_payment(sale_id, payment_id):
     """Delete a payment"""
     try:

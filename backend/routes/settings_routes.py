@@ -2,6 +2,7 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 from database import get_db
+from utils.auth import require_admin
 
 settings_bp = Blueprint('settings', __name__, url_prefix='/api/settings')
 
@@ -36,6 +37,7 @@ def get_comunas_lejanas():
 
 
 @settings_bp.route('/comunas-lejanas', methods=['PUT'])
+@require_admin
 def update_comunas_lejanas():
     """Update distant communes configuration (admin only)"""
     try:

@@ -11,6 +11,7 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import main  # noqa: E402
+from tests.conftest import authenticate_as_admin  # noqa: E402
 from tests.fakes import FakeFirestore  # noqa: E402
 
 
@@ -22,10 +23,10 @@ def db(monkeypatch):
 
 
 @pytest.fixture
-def client(db):
+def client(db, monkeypatch):
     main.limiter.enabled = False
     main.app.config['TESTING'] = True
-    return main.app.test_client()
+    return authenticate_as_admin(monkeypatch, main.app.test_client())
 
 
 def _item(**overrides):

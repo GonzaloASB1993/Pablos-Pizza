@@ -30,6 +30,7 @@ def get_events():
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @events_bp.route('/', methods=['POST'])
+@require_admin
 def create_event():
     try:
         data = request.get_json()
@@ -56,6 +57,7 @@ def get_event(event_id):
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @events_bp.route('/<event_id>', methods=['PUT'])
+@require_admin
 def update_event(event_id):
     try:
         data = request.get_json()
@@ -71,6 +73,7 @@ def update_event(event_id):
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @events_bp.route('/<event_id>/publish', methods=['PUT','OPTIONS'])
+@require_admin
 def publish_event(event_id):
     if request.method == 'OPTIONS': return jsonify({'status':'OK'}), 200
     try:
@@ -87,6 +90,7 @@ def publish_event(event_id):
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @events_bp.route('/generate-description', methods=['POST','OPTIONS'])
+@require_admin
 def generate_description():
     """Generate AI description for event using Claude API"""
     if request.method == 'OPTIONS': return jsonify({'status':'OK'}), 200

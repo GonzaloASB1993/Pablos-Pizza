@@ -32,6 +32,7 @@ def get_fixed_expenses():
 
 
 @expenses_bp.route('/fixed', methods=['POST'])
+@require_admin
 def create_fixed_expense():
     """Create a new fixed expense"""
     def run():
@@ -43,6 +44,7 @@ def create_fixed_expense():
 
 
 @expenses_bp.route('/fixed/<expense_id>', methods=['PUT'])
+@require_admin
 def update_fixed_expense(expense_id):
     """Update a fixed expense"""
     def run():
@@ -54,6 +56,7 @@ def update_fixed_expense(expense_id):
 
 
 @expenses_bp.route('/fixed/<expense_id>', methods=['DELETE'])
+@require_admin
 def delete_fixed_expense(expense_id):
     """Delete a fixed expense"""
     def run():
@@ -77,6 +80,7 @@ def get_variable_expenses():
 
 
 @expenses_bp.route('/variable', methods=['POST'])
+@require_admin
 def create_variable_expense():
     """Create a new variable expense"""
     def run():
@@ -88,6 +92,7 @@ def create_variable_expense():
 
 
 @expenses_bp.route('/variable/<expense_id>', methods=['PUT'])
+@require_admin
 def update_variable_expense(expense_id):
     """Update a variable expense"""
     def run():
@@ -99,6 +104,7 @@ def update_variable_expense(expense_id):
 
 
 @expenses_bp.route('/variable/<expense_id>', methods=['DELETE'])
+@require_admin
 def delete_variable_expense(expense_id):
     """Delete a variable expense"""
     def run():
@@ -134,6 +140,7 @@ def get_tax():
         return jsonify({"error": str(e)}), 500
 
 @expenses_bp.route('/tax', methods=['POST'])
+@require_admin
 def save_tax():
     """Save tax for a specific month/year"""
     try:

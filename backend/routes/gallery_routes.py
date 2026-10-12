@@ -37,6 +37,7 @@ def get_gallery_by_event(event_id):
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @gallery_bp.route('/<photo_id>/publish', methods=['PUT','OPTIONS'])
+@require_admin
 def publish_gallery_photo(photo_id):
     if request.method == 'OPTIONS': return jsonify({'status':'OK'}), 200
     try:
@@ -51,6 +52,7 @@ def publish_gallery_photo(photo_id):
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @gallery_bp.route('/<photo_id>', methods=['DELETE'])
+@require_admin
 def delete_photo(photo_id):
     try:
         dr = get_db().collection("gallery").document(photo_id)

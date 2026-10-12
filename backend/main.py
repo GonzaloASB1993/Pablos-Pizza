@@ -622,16 +622,10 @@ def compress_image(image_file, max_width=1920, quality=85):
         image_file.seek(0)
         return image_file
 
-@app.route('/api/gallery/upload', methods=['POST', 'OPTIONS'])
+@app.route('/api/gallery/upload', methods=['POST'])
+@require_admin
 def upload_gallery_image():
     """Upload image to Firebase Storage and save metadata to Firestore"""
-    # Handle preflight OPTIONS request
-    if request.method == 'OPTIONS':
-        response = jsonify({'status': 'OK'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
-        return response
 
     try:
         print(f"📸 GALLERY UPLOAD - Form data: {dict(request.form)}")
@@ -641,18 +635,12 @@ def upload_gallery_image():
         if 'image' not in request.files:
             print("❌ No image file provided")
             response = jsonify({"error": "No image file provided", "received_files": list(request.files.keys())})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-            response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
             return response, 400
 
         file = request.files['image']
         if file.filename == '':
             print("❌ No file selected")
             response = jsonify({"error": "No file selected"})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-            response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
             return response, 400
 
         # Validate file type
@@ -661,9 +649,6 @@ def upload_gallery_image():
         if file_extension not in allowed_extensions:
             print(f"❌ Invalid file type: {file_extension}")
             response = jsonify({"error": f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-            response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
             return response, 400
 
         # Get form data
@@ -724,9 +709,6 @@ def upload_gallery_image():
         if db is None:
             print("❌ Database connection failed")
             response = jsonify({"error": "Database connection failed"})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-            response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
             return response, 500
 
         db.collection("gallery").document(image_id).set(image_data)
@@ -736,9 +718,6 @@ def upload_gallery_image():
         image_data['uploaded_at'] = image_data['uploaded_at'].isoformat()
 
         response = jsonify(image_data)
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
         return response, 201
 
     except Exception as e:
@@ -746,9 +725,6 @@ def upload_gallery_image():
         import traceback
         traceback.print_exc()
         response = jsonify({"error": str(e), "details": "Check server logs for more information"})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
         return response, 500
 
 # Contact System Endpoints
@@ -1411,6 +1387,7 @@ def whatsapp_daily_digest(event: scheduler_fn.ScheduledEvent) -> None:
 # ===================== INVENTORY ENDPOINTS =====================
 
 @app.route('/api/inventory/', methods=['GET'])
+@require_admin
 @limiter.limit("100 per minute")
 def get_inventory():
     """Get all inventory items with optional filters and pagination"""
@@ -1455,6 +1432,7 @@ def get_inventory():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/', methods=['POST'])
+@require_admin
 def create_inventory_item():
     """Create new inventory item"""
     try:
@@ -1470,6 +1448,7 @@ def create_inventory_item():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/<item_id>', methods=['GET'])
+@require_admin
 def get_inventory_item(item_id):
     """Get specific inventory item"""
     try:
@@ -1490,6 +1469,7 @@ def get_inventory_item(item_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/<item_id>', methods=['PUT'])
+@require_admin
 def update_inventory_item(item_id):
     """Update inventory item"""
     try:
@@ -1505,6 +1485,7 @@ def update_inventory_item(item_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/<item_id>', methods=['DELETE'])
+@require_admin
 def delete_inventory_item(item_id):
     """Delete inventory item"""
     try:
@@ -1525,6 +1506,7 @@ def delete_inventory_item(item_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/categories', methods=['GET'])
+@require_admin
 def get_inventory_categories():
     """Get all inventory categories"""
     try:
@@ -1772,6 +1754,7 @@ def calculate_similarity(s1, s2):
 
 
 @app.route('/api/inventory/nutrition-lookup', methods=['GET'])
+@require_admin
 def get_nutrition_lookup():
     """Get suggested nutritional values based on ingredient name"""
     try:
@@ -1854,6 +1837,7 @@ def get_nutrition_lookup():
 
 
 @app.route('/api/inventory/<item_id>/auto-nutrition', methods=['POST'])
+@require_admin
 def auto_fill_nutrition(item_id):
     """Auto-fill nutritional information for an inventory item based on its name"""
     try:
@@ -1923,6 +1907,7 @@ def auto_fill_nutrition(item_id):
 
 
 @app.route('/api/inventory/alerts', methods=['GET'])
+@require_admin
 def get_inventory_alerts():
     """Get items that need restocking"""
     try:
@@ -1951,6 +1936,7 @@ def get_inventory_alerts():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/<item_id>/stock', methods=['PUT'])
+@require_admin
 def update_inventory_stock(item_id):
     """Update stock of an inventory item"""
     try:
@@ -1972,6 +1958,7 @@ def update_inventory_stock(item_id):
 # ===================== INVENTORY MOVEMENTS ENDPOINTS =====================
 
 @app.route('/api/inventory/movements/', methods=['POST'])
+@require_admin
 def update_stock_with_movement():
     """Update stock with weighted average cost and create movement record"""
     try:
@@ -2037,6 +2024,7 @@ def safe_datetime_to_iso(dt_value):
     return None
 
 @app.route('/api/inventory-movements/', methods=['GET'])
+@require_admin
 def get_inventory_movements():
     """Get inventory movements with optional filters"""
     try:
@@ -2136,6 +2124,7 @@ def get_inventory_movements():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/movements/<movement_id>', methods=['GET'])
+@require_admin
 def get_inventory_movement(movement_id):
     """Get specific inventory movement"""
     try:
@@ -2168,6 +2157,7 @@ def get_inventory_movement(movement_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/movements/<movement_id>/revert', methods=['POST'])
+@require_admin
 def revert_waste_movement(movement_id):
     """Revert a waste movement - recover the wasted stock"""
     try:
@@ -2268,6 +2258,7 @@ def revert_waste_movement(movement_id):
 # ===================== RECIPES ENDPOINTS =====================
 
 @app.route('/api/recipes/', methods=['GET'])
+@require_admin
 def get_recipes():
     """Get all recipes"""
     try:
@@ -2288,6 +2279,7 @@ def get_recipes():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/recipes/', methods=['POST'])
+@require_admin
 def create_recipe():
     """Create new recipe with automatic cost calculation"""
     try:
@@ -2335,6 +2327,7 @@ def create_recipe():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/recipes/<recipe_id>', methods=['GET'])
+@require_admin
 def get_recipe(recipe_id):
     """Get specific recipe"""
     try:
@@ -2354,6 +2347,7 @@ def get_recipe(recipe_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/recipes/<recipe_id>', methods=['PUT'])
+@require_admin
 def update_recipe(recipe_id):
     """Update recipe and recalculate costs"""
     try:
@@ -2405,6 +2399,7 @@ def update_recipe(recipe_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/recipes/<recipe_id>', methods=['DELETE'])
+@require_admin
 def delete_recipe(recipe_id):
     """Delete recipe"""
     try:
@@ -2425,6 +2420,7 @@ def delete_recipe(recipe_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/recipes/<recipe_id>/calculate-cost', methods=['POST'])
+@require_admin
 def recalculate_recipe_cost(recipe_id):
     """Recalculate recipe cost based on current inventory prices"""
     try:
@@ -2472,6 +2468,7 @@ def recalculate_recipe_cost(recipe_id):
 
 
 @app.route('/api/recipes/<recipe_id>/nutrition', methods=['GET'])
+@require_admin
 def get_recipe_nutrition(recipe_id):
     """Calculate nutritional information for a recipe based on ingredients"""
     try:
@@ -2614,6 +2611,7 @@ def get_recipe_nutrition(recipe_id):
 # ===================== PRODUCTION BATCHES ENDPOINTS =====================
 
 @app.route('/api/production-batches/', methods=['GET'])
+@require_admin
 def get_production_batches():
     """Get all production batches"""
     try:
@@ -2634,6 +2632,7 @@ def get_production_batches():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/production-batches/', methods=['POST'])
+@require_admin
 def create_production_batch():
     """Create new production batch"""
     try:
@@ -2707,6 +2706,7 @@ def create_production_batch():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/production-batches/<batch_id>/complete', methods=['POST'])
+@require_admin
 def complete_production_batch(batch_id):
     """Complete production batch and update inventory"""
     try:
@@ -2817,6 +2817,7 @@ def complete_production_batch(batch_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/production-batches/<batch_id>/simple-complete', methods=['POST'])
+@require_admin
 def simple_complete_production_batch(batch_id):
     """Simple complete production batch - just mark as completed"""
     try:
@@ -2853,6 +2854,7 @@ def simple_complete_production_batch(batch_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/production-batches/<batch_id>/status', methods=['PUT'])
+@require_admin
 def update_production_batch_status(batch_id):
     """Update production batch status with weighted average cost movements"""
     try:
@@ -3125,6 +3127,7 @@ def update_production_batch_status(batch_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/production-batches/<batch_id>', methods=['DELETE'])
+@require_admin
 def cancel_production_batch(batch_id):
     """Cancel production batch"""
     try:
@@ -3156,6 +3159,7 @@ def cancel_production_batch(batch_id):
 
 
 @app.route('/api/production-batches/<batch_id>/label', methods=['GET'])
+@require_admin
 def get_production_batch_label(batch_id):
     """Generate label data for a production batch including nutrition info and barcode"""
     try:
@@ -3364,6 +3368,7 @@ def _event_inventory_error(e):
 
 
 @app.route('/api/event-supplies/', methods=['POST', 'OPTIONS'])
+@require_admin
 def create_event_supplies():
     """Crear estimación de insumos para un evento (Stock Estimado)"""
     if request.method == 'OPTIONS':
@@ -3388,6 +3393,7 @@ def create_event_supplies():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/event-supplies/booking/<booking_id>', methods=['GET', 'OPTIONS'])
+@require_admin
 def get_event_supplies_by_booking(booking_id):
     """Obtener supplies de un booking específico"""
     if request.method == 'OPTIONS':
@@ -3415,6 +3421,7 @@ def get_event_supplies_by_booking(booking_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/event-supplies/<supplies_id>', methods=['PUT', 'OPTIONS'])
+@require_admin
 def update_event_supplies(supplies_id):
     """Actualizar supplies estimadas"""
     if request.method == 'OPTIONS':
@@ -3451,6 +3458,7 @@ def update_event_supplies(supplies_id):
 # ==========================================
 
 @app.route('/api/event-consumption/', methods=['POST', 'OPTIONS'])
+@require_admin
 def create_event_consumption():
     """Registrar consumo real de insumos y descontar del stock (Stock Confirmado)"""
     if request.method == 'OPTIONS':
@@ -3488,6 +3496,7 @@ def create_event_consumption():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/event-consumption/event/<event_id>', methods=['GET', 'OPTIONS'])
+@require_admin
 def get_event_consumption(event_id):
     """Obtener registro de consumo de un evento"""
     if request.method == 'OPTIONS':
@@ -3520,6 +3529,7 @@ def get_event_consumption(event_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/event-supplies/status/<booking_id>', methods=['GET', 'OPTIONS'])
+@require_admin
 def get_consumption_status(booking_id):
     """Verificar si un booking tiene supplies y consumption registrados"""
     if request.method == 'OPTIONS':

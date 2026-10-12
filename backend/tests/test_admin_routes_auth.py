@@ -50,8 +50,68 @@ BATCH2 = [
     ('GET', '/api/gallery/event/<event_id>'),
 ]
 
+# ---- batch 3: low-traffic writes and the rest of the admin tools ----
+BATCH3 = [
+    ('POST', '/api/event-consumption/'),
+    ('GET', '/api/event-consumption/event/<event_id>'),
+    ('POST', '/api/event-supplies/'),
+    ('PUT', '/api/event-supplies/<supplies_id>'),
+    ('GET', '/api/event-supplies/booking/<booking_id>'),
+    ('GET', '/api/event-supplies/status/<booking_id>'),
+    ('POST', '/api/events/'),
+    ('PUT', '/api/events/<event_id>'),
+    ('PUT', '/api/events/<event_id>/publish'),
+    ('POST', '/api/events/generate-description'),
+    ('POST', '/api/expenses/fixed'),
+    ('DELETE', '/api/expenses/fixed/<expense_id>'),
+    ('PUT', '/api/expenses/fixed/<expense_id>'),
+    ('POST', '/api/expenses/tax'),
+    ('POST', '/api/expenses/variable'),
+    ('DELETE', '/api/expenses/variable/<expense_id>'),
+    ('PUT', '/api/expenses/variable/<expense_id>'),
+    ('DELETE', '/api/gallery/<photo_id>'),
+    ('PUT', '/api/gallery/<photo_id>/publish'),
+    ('POST', '/api/gallery/upload'),
+    ('GET', '/api/inventory-movements/'),
+    ('GET', '/api/inventory/'),
+    ('POST', '/api/inventory/'),
+    ('DELETE', '/api/inventory/<item_id>'),
+    ('GET', '/api/inventory/<item_id>'),
+    ('PUT', '/api/inventory/<item_id>'),
+    ('POST', '/api/inventory/<item_id>/auto-nutrition'),
+    ('PUT', '/api/inventory/<item_id>/stock'),
+    ('GET', '/api/inventory/alerts'),
+    ('GET', '/api/inventory/categories'),
+    ('POST', '/api/inventory/movements/'),
+    ('GET', '/api/inventory/movements/<movement_id>'),
+    ('POST', '/api/inventory/movements/<movement_id>/revert'),
+    ('GET', '/api/inventory/nutrition-lookup'),
+    ('GET', '/api/production-batches/'),
+    ('POST', '/api/production-batches/'),
+    ('DELETE', '/api/production-batches/<batch_id>'),
+    ('POST', '/api/production-batches/<batch_id>/complete'),
+    ('GET', '/api/production-batches/<batch_id>/label'),
+    ('POST', '/api/production-batches/<batch_id>/simple-complete'),
+    ('PUT', '/api/production-batches/<batch_id>/status'),
+    ('GET', '/api/recipes/'),
+    ('POST', '/api/recipes/'),
+    ('DELETE', '/api/recipes/<recipe_id>'),
+    ('GET', '/api/recipes/<recipe_id>'),
+    ('PUT', '/api/recipes/<recipe_id>'),
+    ('POST', '/api/recipes/<recipe_id>/calculate-cost'),
+    ('GET', '/api/recipes/<recipe_id>/nutrition'),
+    ('PUT', '/api/settings/comunas-lejanas'),
+    ('POST', '/api/vacuum-sales/'),
+    ('DELETE', '/api/vacuum-sales/<sale_id>'),
+    ('PUT', '/api/vacuum-sales/<sale_id>'),
+    ('POST', '/api/vacuum-sales/<sale_id>/payments'),
+    ('DELETE', '/api/vacuum-sales/<sale_id>/payments/<payment_id>'),
+    ('PUT', '/api/vacuum-sales/<sale_id>/payments/<payment_id>'),
+]
+
 BATCHES = {
     'batch2': BATCH2,
+    'batch3': BATCH3,
 }
 ALL_ADMIN = [pair for batch in BATCHES.values() for pair in batch]
 
@@ -195,3 +255,33 @@ def test_decorator_keeps_working_with_async_handlers(monkeypatch, handler_db_cal
         result = async_view()
         assert asyncio.iscoroutine(result)
         assert asyncio.run(result) == 'async-ok' and ran == [1]
+
+
+# ---------- CORS: the manual wildcard headers are gone from the upload view ----------
+
+def test_upload_preflight_answers_with_flask_cors_headers_not_a_wildcard(client):
+    origin = main.cors_origins[0].strip()
+    res = client.options('/api/gallery/upload', headers={
+        'Origin': origin,
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'authorization,content-type',
+    })
+    assert res.status_code == 200
+    assert res.headers.get_all('Access-Control-Allow-Origin') == [origin]       # exactly one value, the real origin
+    assert 'authorization' in res.headers['Access-Control-Allow-Headers'].lower()
+    assert 'POST' in res.headers['Access-Control-Allow-Methods']
+
+
+def test_upload_responses_carry_a_single_cors_origin_header(client, monkeypatch):
+    origin = main.cors_origins[0].strip()
+    _sign_in(monkeypatch, ADMIN)
+    res = client.post('/api/gallery/upload', headers={'Origin': origin, 'Authorization': 'Bearer good'})
+    assert res.status_code == 400   # no file: validation error from the handler
+    assert res.headers.get_all('Access-Control-Allow-Origin') == [origin]
+
+
+def test_unauthorized_upload_still_gets_cors_headers_so_the_browser_can_read_the_401(client):
+    origin = main.cors_origins[0].strip()
+    res = client.post('/api/gallery/upload', headers={'Origin': origin})
+    assert res.status_code == 401
+    assert res.headers.get_all('Access-Control-Allow-Origin') == [origin]
