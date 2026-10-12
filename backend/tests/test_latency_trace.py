@@ -111,3 +111,16 @@ def test_webhook_typing_keeps_the_old_order_when_async_is_off(hook, db, monkeypa
     monkeypatch.setattr(agent, 'store_inbound', lambda d, f: order.append('store') or original(d, f))
     hook(_form(body='cuánto gasté este mes', sid='SM711'))
     assert order == ['store', 'typing']
+
+
+def test_tool_results_with_timestamps_do_not_break_the_turn(monkeypatch):
+    """get_contacts returns Firestore timestamps: json.dumps used to raise and the whole turn failed"""
+    from datetime import datetime
+    tool = SimpleNamespace(type='tool_use', name='get_contacts', input={}, id='t1')
+    replies = iter([_reply([tool], 'tool_use'), _reply([SimpleNamespace(type='text', text='hay 1')], 'end_turn')])
+    sent = []
+    monkeypatch.setattr(ai_chat_routes, 'create_ai_message', lambda system, messages, **k: sent.append(messages[-1]) or next(replies))
+    monkeypatch.setattr(ai_chat_routes, 'execute_tool', lambda name, inp: {'contacts': [{'created_at': datetime(2026, 10, 12, 9, 30)}]})
+    with Flask(__name__).test_request_context():
+        result = ai_chat_routes.run_chat([{'role': 'user', 'content': 'consultas'}], {'uid': 'u', 'email': 'e'}, channel='whatsapp')
+    assert result['response'] == 'hay 1' and '2026-10-12 09:30:00' in sent[-1]['content'][0]['content']

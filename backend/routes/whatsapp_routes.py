@@ -18,7 +18,7 @@ import requests
 from flask import Blueprint, Response, request
 
 from database import get_db
-from services import recent_activity
+from services import recent_activity, situation
 from services import whatsapp_agent as wa
 
 logger = logging.getLogger(__name__)
@@ -131,14 +131,21 @@ def process_inbox_message(app, sid):
 
     def run_chat(messages, user):
         activity_started = time.perf_counter()
+        situation_thread = None
+        box = {}
         try:  # recent proposals as reference data: the agent must still work without them
-            activity = recent_activity.build(get_db(), datetime.utcnow())
+            db, now = get_db(), datetime.utcnow()
+            if situation.enabled():   # its three small reads run next to the recent-activity one (the model waits for both)
+                situation_thread = wa.start_background(lambda: box.__setitem__('text', situation.build(db, now)))
+            activity = recent_activity.build(db, now)
         except Exception:  # noqa: BLE001
             logger.warning('Could not build the recent activity', exc_info=True)
             activity = ''
+        wa.join_background(situation_thread, timeout=5)
         activity_ms = round((time.perf_counter() - activity_started) * 1000)
         with app.test_request_context():
-            result = ai_chat_routes.run_chat(messages, user, channel='whatsapp', extra_system=activity or None)
+            result = ai_chat_routes.run_chat(messages, user, channel='whatsapp', extra_system=activity or None,
+                                             **({'situation': box['text']} if box.get('text') else {}))
         result.setdefault('trace', {})['activity_ms'] = activity_ms
         return result
 

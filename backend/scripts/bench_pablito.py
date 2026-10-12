@@ -15,7 +15,10 @@ Variants (module attributes of routes.ai_chat_routes that are overridden for the
   nothink   AI_WHATSAPP_THINKING=between_tools (thinking off on Sonnet 5.5; the API has no effort 'minimal')
   haiku     AI_WHATSAPP_MODEL=claude-haiku-5-5
   haiku-nt  haiku + AI_WHATSAPP_THINKING=disabled
-Any other `--set NAME=VALUE` is applied on top (e.g. AI_WHATSAPP_EFFORT=medium, AI_WHATSAPP_TEXT_MODEL=claude-haiku-5-5).
+  nofallback  AI_CHAT_SERVER_FALLBACK=false (plain messages endpoint instead of the beta server-side fallback)
+  ctx       AI_WHATSAPP_CONTEXT=true (fresh situation snapshot in the system, see services/situation.py)
+  noquick   AI_WHATSAPP_FAST_QUERIES=false (every question goes to the model)
+Any other `--set NAME=VALUE` is applied on top (e.g. AI_WHATSAPP_EFFORT=medium, ENV:AI_WHATSAPP_CONTEXT=true).
 """
 import argparse
 import json
@@ -35,6 +38,9 @@ VARIANTS = {
     'nothink': {'AI_WHATSAPP_THINKING': 'between_tools'},
     'haiku': {'AI_WHATSAPP_MODEL': 'claude-haiku-5-5'},
     'haiku-nt': {'AI_WHATSAPP_MODEL': 'claude-haiku-5-5', 'AI_WHATSAPP_THINKING': 'disabled'},
+    'nofallback': {'AI_CHAT_SERVER_FALLBACK': False},
+    'ctx': {'ENV:AI_WHATSAPP_CONTEXT': 'true'},
+    'noquick': {'ENV:AI_WHATSAPP_FAST_QUERIES': 'false'},
 }
 
 SCENARIOS = {
@@ -49,6 +55,10 @@ SCENARIOS = {
     'compra': 'compré 2 sacos de harina de 25 kg a 28 mil cada uno',
     'vago': 'quiero registrar algo',
     'manana': 'tengo algo mañana?',
+    'compra2': 'compré en el Lider: 25 kg de harina, 3 kg de queso mozzarella y 6 kg de salsa de tomate, total 61 mil',
+    'sabado': 'tengo algo el sábado?',
+    'faltan': 'qué falta comprar?',
+    'consultas': 'hay consultas de clientes sin responder?',
 }
 
 
@@ -201,16 +211,33 @@ def cmd_run(args):
           f'cache_ttl={ai_chat_routes.AI_CACHE_TTL} fallback={ai_chat_routes.AI_CHAT_SERVER_FALLBACK} '
           f'fs_latency_ms={args.fs_latency_ms}', flush=True)
 
+    env_before = {}
+
     def apply(variant):
         for name, value in base.items():
             setattr(ai_chat_routes, name, value)
+        for key, old in env_before.items():          # undo the environment switches of the previous variant
+            if old is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = old
+        env_before.clear()
         for source in (VARIANTS[variant], overrides):
             for name, value in source.items():
+                if name.startswith('ENV:'):
+                    key = name[4:]
+                    env_before.setdefault(key, os.environ.get(key))
+                    os.environ[key] = str(value)
+                    continue
                 if not hasattr(ai_chat_routes, name):
                     print(f'  (note: {name} does not exist in this code version; ignored)')
                     continue
                 current = getattr(ai_chat_routes, name)
-                setattr(ai_chat_routes, name, int(value) if isinstance(current, int) else value)
+                if isinstance(current, bool):
+                    value = value if isinstance(value, bool) else str(value).lower() == 'true'
+                elif isinstance(current, int):
+                    value = int(value)
+                setattr(ai_chat_routes, name, value)
 
     results, counter = [], [0]
     # warm the prefix cache of every variant before measuring (the production keep-warm does the same)
