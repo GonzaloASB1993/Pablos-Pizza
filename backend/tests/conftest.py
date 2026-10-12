@@ -31,3 +31,10 @@ def _no_real_sleep_in_whatsapp_waits(monkeypatch):
     """The burst leader and the lock wait poll with deps.sleep (default time.sleep). Tests never need to wait for real."""
     from services import whatsapp_agent
     monkeypatch.setattr(whatsapp_agent.time, 'sleep', lambda seconds: None)
+
+
+@pytest.fixture(autouse=True)
+def _tests_do_not_inherit_the_real_environment(monkeypatch):
+    """backend/.env says ENVIRONMENT=production (so `require_admin` fails closed without ADMIN_EMAILS). Tests that want that
+    set it themselves; the rest must not depend on the developer's .env."""
+    monkeypatch.setenv('ENVIRONMENT', '')
