@@ -3,12 +3,19 @@ from flask import Blueprint, request, jsonify
 import uuid
 import os
 import asyncio
+import hashlib
+import hmac
+import logging
+import time
 from datetime import datetime
 from database import get_db
 import mercadopago
+from firebase_admin import firestore
 from utils.limiter import limiter
 
 payments_bp = Blueprint('payments', __name__, url_prefix='/api/payments')
+logger = logging.getLogger(__name__)
+_transactional = firestore.transactional
 
 # Usar el dominio estable de Firebase Hosting para el webhook (no cambia con cada deploy)
 PRODUCTION_BACKEND_URL = 'https://pablospizza.web.app'
@@ -57,6 +64,8 @@ def create_preference():
 
         if not booking_id:
             return jsonify({"error": "booking_id is required"}), 400
+        if not isinstance(description, str) or len(description) > MAX_DESCRIPTION:
+            return jsonify({"error": f"description must be text of at most {MAX_DESCRIPTION} characters"}), 400
         if amount is None:
             return jsonify({"error": "amount is required"}), 400
 
@@ -138,20 +147,139 @@ def create_preference():
         return jsonify({"error": str(e)}), 500
 
 
+MAX_DESCRIPTION = 200
+SIGNATURE_MAX_AGE_SECONDS = 300
+_secret_missing_logged = False
+
+
+def verify_mp_signature(headers, data_id, secret, now=None):
+    """Verify MercadoPago's `x-signature` header (`ts=...,v1=...`).
+
+    Manifest (MercadoPago docs): `id:{data.id};request-id:{x-request-id};ts:{ts};` where a field that is absent is
+    omitted and an alphanumeric data.id is lowercased. HMAC-SHA256 with the webhook secret, constant-time compare,
+    and a `ts` older (or newer) than 5 minutes is rejected. Returns (ok, reason); the reason never contains secrets."""
+    header = headers.get('x-signature', '')
+    if not header:
+        return False, 'missing x-signature header'
+    fields = {}
+    for part in header.split(','):
+        key, _, value = part.partition('=')
+        fields[key.strip()] = value.strip()
+    ts, received = fields.get('ts', ''), fields.get('v1', '')
+    if not ts or not received:
+        return False, 'malformed x-signature header'
+    try:
+        stamp = float(ts)
+    except ValueError:
+        return False, 'malformed ts'
+    if stamp > 1e11:  # MercadoPago sends milliseconds
+        stamp /= 1000
+    current = time.time() if now is None else now
+    if abs(current - stamp) > SIGNATURE_MAX_AGE_SECONDS:
+        return False, 'ts outside the 5 minute window'
+    manifest = ''
+    if data_id:
+        manifest += f"id:{data_id.lower() if data_id.isalnum() else data_id};"
+    request_id = headers.get('x-request-id', '')
+    if request_id:
+        manifest += f'request-id:{request_id};'
+    manifest += f'ts:{ts};'
+    expected = hmac.new(secret.encode('utf-8'), manifest.encode('utf-8'), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, received):
+        return False, 'signature mismatch'
+    return True, 'ok'
+
+
+def _append_mp_payment(db, booking_ref, payment_id, amount):
+    """Add the MercadoPago payment to the booking exactly once (checked and written in one transaction).
+    Returns (booking_data, True) when it was added, (booking_data, False) when it was already there."""
+    transaction = db.transaction()
+
+    @_transactional
+    def run(txn):
+        snapshot = booking_ref.get(transaction=txn)
+        if not snapshot.exists:
+            return None, False
+        booking_data = snapshot.to_dict()
+        payments = list(booking_data.get('payments') or [])
+        marker = f'#{payment_id}'
+        if any(str(p.get('mp_payment_id', '')) == str(payment_id) or marker in (p.get('notes') or '') for p in payments):
+            return booking_data, False
+        now = datetime.now()
+        payments.append({
+            "id": str(uuid.uuid4()),
+            "type": "abono",
+            "method": "mercadopago",
+            "amount": round(float(amount), 2),
+            "date": now.isoformat(),
+            "notes": f"Pago online MercadoPago #{payment_id}",
+            "mp_payment_id": str(payment_id),
+            "created_at": now,
+        })
+        summary = recalculate_payment_summary({**booking_data, 'payments': payments})
+        txn.update(booking_ref, {"payments": payments, "payment_summary": summary, "updated_at": now})
+        return booking_data, True
+
+    return run(transaction)
+
+
+def _notify_payment(booking_data, booking_id, mp_amount):
+    try:
+        admin_phone = os.environ.get('ADMIN_WHATSAPP_NUMBER', '')
+        partner_phone = os.environ.get('PARTNER_WHATSAPP_NUMBER', '')
+        amount_formatted = f"${round(float(mp_amount)):,}".replace(',', '.')
+        from services.whatsapp_service import send_whatsapp_notification
+        msg = (
+            f"💳 *Pago MercadoPago Recibido*\n"
+            f"Cliente: {booking_data.get('client_name', 'Cliente')}\n"
+            f"Monto: {amount_formatted} CLP\n"
+            f"Evento: {booking_data.get('event_date', '')}\n"
+            f"Booking: {booking_id[:8]}..."
+        )
+        if os.environ.get('SKIP_NOTIFICATIONS', 'false').lower() == 'true':
+            return
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(send_whatsapp_notification(admin_phone, msg, 'payment'))
+            if partner_phone:
+                loop.run_until_complete(send_whatsapp_notification(partner_phone, msg, 'payment'))
+        finally:
+            loop.close()
+    except Exception:  # noqa: BLE001 - WhatsApp errors don't fail the webhook
+        pass
+
+
 @payments_bp.route('/webhook', methods=['POST'])
 def webhook():
-    """MercadoPago webhook - always returns 200"""
+    """MercadoPago webhook - answers 200 on internal errors (MP would retry forever); 401 only for a bad signature
+    when MP_WEBHOOK_ENFORCE=true (default: log-only)."""
+    global _secret_missing_logged
     try:
-        print(f"[WEBHOOK] Received: args={dict(request.args)}, body={request.get_data(as_text=True)[:200]}")
-        # MP sends either query params or JSON body
+        # MP sends either query params or JSON body. The body is never logged (only ids).
         topic = request.args.get('topic') or request.args.get('type')
-        payment_id = request.args.get('id') or request.args.get('data.id')
-
-        # Also check JSON body
-        if not payment_id:
+        signed_id = request.args.get('data.id')
+        payment_id = request.args.get('id') or signed_id
+        body = None
+        if not payment_id or not signed_id:
             body = request.get_json(silent=True) or {}
+            data_block = body.get('data') if isinstance(body.get('data'), dict) else {}
             topic = topic or body.get('type', '')
-            payment_id = body.get('data', {}).get('id')
+            payment_id = payment_id or data_block.get('id')
+            signed_id = signed_id or (str(data_block['id']) if data_block.get('id') is not None else None)
+        logger.info("[WEBHOOK] received topic=%s payment_id=%s", topic, payment_id)
+
+        secret = os.environ.get('MP_WEBHOOK_SECRET', '')
+        if not secret:
+            if not _secret_missing_logged:
+                _secret_missing_logged = True
+                logger.warning("[WEBHOOK] MP_WEBHOOK_SECRET is not configured: x-signature is NOT being verified")
+        else:
+            valid, reason = verify_mp_signature(request.headers, signed_id, secret)
+            if not valid:
+                logger.warning("[WEBHOOK] invalid x-signature (%s) for payment_id=%s", reason, payment_id)
+                if os.environ.get('MP_WEBHOOK_ENFORCE', '').lower() == 'true':
+                    return jsonify({"status": "invalid signature"}), 401
 
         # Only process payment notifications
         if topic not in ('payment', 'merchant_order') and not payment_id:
@@ -159,6 +287,7 @@ def webhook():
 
         if not payment_id:
             return jsonify({"status": "no payment_id"}), 200
+        payment_id = str(payment_id)
 
         sdk = get_mp_sdk()
         payment_response = sdk.payment().get(payment_id)
@@ -166,118 +295,54 @@ def webhook():
 
         external_reference = payment_info.get("external_reference")  # booking_id
         mp_status = payment_info.get("status")
-        mp_amount = payment_info.get("transaction_amount", 0)
+        mp_amount = payment_info.get("transaction_amount", 0) or 0
 
-        print(f"[WEBHOOK] payment_id={payment_id}, status={mp_status}, external_ref={external_reference}, amount={mp_amount}")
+        logger.info("[WEBHOOK] payment_id=%s status=%s external_ref=%s amount=%s", payment_id, mp_status, external_reference, mp_amount)
 
         if not external_reference:
-            print("[WEBHOOK] ERROR: no external_reference in payment")
+            logger.warning("[WEBHOOK] payment_id=%s has no external_reference", payment_id)
             return jsonify({"status": "no external_reference"}), 200
 
         db = get_db()
-        booking_id = external_reference
+        booking_id = str(external_reference)
+        booking_ref = db.collection("bookings").document(booking_id)
+        mp_docs = list(db.collection("mp_payments").where("booking_id", "==", booking_id).get())
+        if not mp_docs or not booking_ref.get().exists:
+            logger.warning("[WEBHOOK] payment_id=%s references an unknown booking/preference (%s): ignored", payment_id, booking_id)
+            return jsonify({"status": "unknown reference"}), 200
 
-        # Idempotencia: verificar por mp_payment_id específico (un booking puede tener múltiples pagos)
-        existing_mp_payment = db.collection("mp_payments") \
-            .where("mp_payment_id", "==", str(payment_id)) \
-            .limit(1) \
-            .get()
+        def _amount(doc):
+            try:
+                return float(doc.to_dict().get("amount", 0) or 0)
+            except (TypeError, ValueError):
+                return 0.0
 
-        if list(existing_mp_payment) and mp_status == "approved":
-            print(f"[WEBHOOK] Payment #{payment_id} already processed, skipping")
-            return jsonify({"status": "already processed"}), 200
+        # The preference this payment belongs to: already linked to it, else a pending one with the same amount
+        linked = [d for d in mp_docs if str(d.to_dict().get("mp_payment_id", "")) == payment_id]
+        pending = [d for d in mp_docs if d.to_dict().get("status") == "pending"]
+        amount_matches = [d for d in mp_docs if abs(_amount(d) - float(mp_amount)) <= 1]
+        target = (linked or [d for d in pending if d in amount_matches] or pending or [None])[0]
 
-        # Update mp_payments record (sin order_by para evitar índice compuesto)
-        mp_payment_docs = db.collection("mp_payments") \
-            .where("booking_id", "==", booking_id) \
-            .where("status", "==", "pending") \
-            .limit(1) \
-            .get()
+        if mp_status == "approved" and not (linked or amount_matches):
+            logger.warning("[WEBHOOK] payment_id=%s amount %s matches no preference of booking %s: not registered",
+                           payment_id, mp_amount, booking_id)
+            return jsonify({"status": "amount mismatch"}), 200
 
-        mp_payment_docs_list = list(mp_payment_docs)
-        if mp_payment_docs_list:
-            mp_doc_ref = mp_payment_docs_list[0].reference
-            mp_doc_ref.update({
-                "status": mp_status,
-                "mp_payment_id": str(payment_id),
-                "updated_at": datetime.now()
-            })
+        if target is not None:
+            target.reference.update({"status": mp_status, "mp_payment_id": payment_id, "updated_at": datetime.now()})
 
-        print(f"[WEBHOOK] Processing payment: status={mp_status}, booking={booking_id}")
         if mp_status == "approved":
-            booking_ref = db.collection("bookings").document(booking_id)
-            booking_doc = booking_ref.get()
-
-            if booking_doc.exists:
-                booking_data = booking_doc.to_dict()
-                payments = booking_data.get('payments', [])
-
-                # Idempotencia por payment_id: evitar duplicados si MP manda múltiples notificaciones
-                already_registered = any(
-                    str(payment_id) in p.get('notes', '')
-                    for p in payments
-                )
-                if already_registered:
-                    print(f"[WEBHOOK] Payment #{payment_id} already registered, skipping duplicate")
-                    return jsonify({"status": "already processed"}), 200
-
-                new_payment = {
-                    "id": str(uuid.uuid4()),
-                    "type": "abono",
-                    "method": "mercadopago",
-                    "amount": round(float(mp_amount), 2),
-                    "date": datetime.now().isoformat(),
-                    "notes": f"Pago online MercadoPago #{payment_id}",
-                    "created_at": datetime.now()
-                }
-                payments.append(new_payment)
-
-                updated_booking = dict(booking_data)
-                updated_booking['payments'] = payments
-                payment_summary = recalculate_payment_summary(updated_booking)
-
-                booking_ref.update({
-                    "payments": payments,
-                    "payment_summary": payment_summary,
-                    "updated_at": datetime.now()
-                })
-
-                # Notify admin via WhatsApp
-                try:
-                    admin_phone = os.environ.get('ADMIN_WHATSAPP_NUMBER', '')
-                    partner_phone = os.environ.get('PARTNER_WHATSAPP_NUMBER', '')
-                    client_name = booking_data.get('client_name', 'Cliente')
-                    event_date = booking_data.get('event_date', '')
-                    amount_formatted = f"${round(float(mp_amount)):,}".replace(',', '.')
-
-                    from services.whatsapp_service import send_whatsapp_notification
-                    msg = (
-                        f"💳 *Pago MercadoPago Recibido*\n"
-                        f"Cliente: {client_name}\n"
-                        f"Monto: {amount_formatted} CLP\n"
-                        f"Evento: {event_date}\n"
-                        f"Booking: {booking_id[:8]}..."
-                    )
-                    skip = os.environ.get('SKIP_NOTIFICATIONS', 'false').lower() == 'true'
-                    if not skip:
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                        try:
-                            loop.run_until_complete(send_whatsapp_notification(admin_phone, msg, 'payment'))
-                            if partner_phone:
-                                loop.run_until_complete(send_whatsapp_notification(partner_phone, msg, 'payment'))
-                        finally:
-                            loop.close()
-                except Exception:
-                    pass  # WhatsApp errors don't fail the webhook
+            booking_data, added = _append_mp_payment(db, booking_ref, payment_id, mp_amount)
+            if not added:
+                logger.info("[WEBHOOK] payment_id=%s already registered, skipping", payment_id)
+                return jsonify({"status": "already processed"}), 200
+            _notify_payment(booking_data, booking_id, mp_amount)
 
         return jsonify({"status": "ok"}), 200
 
-    except Exception as e:
+    except Exception:  # noqa: BLE001
         # Webhook must always return 200
-        print(f"[WEBHOOK] ERROR: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("[WEBHOOK] internal error")
         return jsonify({"status": "ok"}), 200
 
 
