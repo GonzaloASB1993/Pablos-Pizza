@@ -16,6 +16,7 @@ customers_bp = Blueprint('customers', __name__, url_prefix='/api/customers')
 
 
 @customers_bp.route('/', methods=['POST'])
+@require_admin
 def create_customer():
     """Create a new customer
 
@@ -255,6 +256,7 @@ def get_customer(customer_id):
 
 
 @customers_bp.route('/<customer_id>', methods=['PUT'])
+@require_admin
 def update_customer(customer_id):
     """Update an existing customer
 
@@ -327,6 +329,7 @@ def update_customer(customer_id):
 
 
 @customers_bp.route('/<customer_id>', methods=['DELETE'])
+@require_admin
 def delete_customer(customer_id):
     """Delete a customer (soft delete by marking as inactive)
 

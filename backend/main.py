@@ -847,6 +847,7 @@ def handle_contacts():
             return response, 500
 
 @app.route('/api/contacts/<contact_id>', methods=['PUT', 'OPTIONS'])
+@require_admin
 def update_contact(contact_id):
     """Update contact message status, assignment, notes, etc."""
     if request.method == 'OPTIONS':
@@ -1151,6 +1152,7 @@ def send_contact_response_email(contact_data: dict, response_message: str) -> bo
         return False
 
 @app.route('/api/contacts/<contact_id>/respond', methods=['POST', 'OPTIONS'])
+@require_admin
 def respond_to_contact(contact_id):
     """Send response to contact via email or WhatsApp"""
     if request.method == 'OPTIONS':

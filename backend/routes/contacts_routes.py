@@ -10,6 +10,7 @@ from utils.auth import require_admin
 contacts_bp = Blueprint('contacts', __name__, url_prefix='/api/contacts')
 
 @contacts_bp.route('/', methods=['POST'])
+@require_admin
 def create_contact():
     try:
         data = request.get_json()
@@ -45,6 +46,7 @@ def get_contact(contact_id):
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @contacts_bp.route('/<contact_id>/respond', methods=['PUT'])
+@require_admin
 def respond_to_contact(contact_id):
     try:
         data = request.get_json()
@@ -58,6 +60,7 @@ def respond_to_contact(contact_id):
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @contacts_bp.route('/<contact_id>', methods=['DELETE'])
+@require_admin
 def delete_contact(contact_id):
     try:
         dr = get_db().collection("contacts").document(contact_id)

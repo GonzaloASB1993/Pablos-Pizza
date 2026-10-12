@@ -64,6 +64,7 @@ def get_booking(booking_id):
     except Exception as e: return jsonify({"error":str(e)}), 500
 
 @bookings_bp.route('/<booking_id>', methods=['PUT'])
+@require_admin
 def update_booking(booking_id):
     try:
         data = request.get_json()
@@ -172,6 +173,7 @@ def update_booking(booking_id):
         return jsonify({"error":str(e)}), 500
 
 @bookings_bp.route('/<booking_id>', methods=['DELETE'])
+@require_admin
 def delete_booking(booking_id):
     try:
         db = get_db()
@@ -217,6 +219,7 @@ def calculate_payment_summary(booking_doc):
     }
 
 @bookings_bp.route('/<booking_id>/payments', methods=['POST'])
+@require_admin
 def add_payment(booking_id):
     """Add a new payment to a booking"""
     try:
@@ -297,6 +300,7 @@ def add_payment(booking_id):
         return jsonify({"error": str(e)}), 500
 
 @bookings_bp.route('/<booking_id>/payments/<payment_id>', methods=['PUT'])
+@require_admin
 def update_payment(booking_id, payment_id):
     """Update an existing payment"""
     try:
@@ -370,6 +374,7 @@ def update_payment(booking_id, payment_id):
         return jsonify({"error": str(e)}), 500
 
 @bookings_bp.route('/<booking_id>/payments/<payment_id>', methods=['DELETE'])
+@require_admin
 def delete_payment(booking_id, payment_id):
     """Delete a payment from a booking"""
     try:
@@ -408,6 +413,7 @@ def delete_payment(booking_id, payment_id):
         return jsonify({"error": str(e)}), 500
 
 @bookings_bp.route('/migrate-source', methods=['POST'])
+@require_admin
 def migrate_source():
     """One-time migration: auto-detect source for historical bookings.
     Bookings with payment data -> 'website'. Others -> 'unknown'.

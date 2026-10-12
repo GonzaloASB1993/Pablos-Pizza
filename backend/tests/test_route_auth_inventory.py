@@ -26,22 +26,8 @@ PUBLIC_ALLOWED = {
     ('POST', '/api/whatsapp/webhook'),  # Twilio signature
 }
 
-KNOWN_OPEN = {
-    ('DELETE', '/api/bookings/<booking_id>'),
-    ('PUT', '/api/bookings/<booking_id>'),
-    ('POST', '/api/bookings/<booking_id>/payments'),
-    ('DELETE', '/api/bookings/<booking_id>/payments/<payment_id>'),
-    ('PUT', '/api/bookings/<booking_id>/payments/<payment_id>'),
-    ('POST', '/api/bookings/migrate-source'),
-    ('POST', '/api/contacts/'),
-    ('DELETE', '/api/contacts/<contact_id>'),
-    ('PUT', '/api/contacts/<contact_id>'),
-    ('POST', '/api/contacts/<contact_id>/respond'),
-    ('PUT', '/api/contacts/<contact_id>/respond'),
-    ('POST', '/api/customers/'),
-    ('DELETE', '/api/customers/<customer_id>'),
-    ('PUT', '/api/customers/<customer_id>'),
-}
+# Debt paid off: every non-public route is admin-protected. Keep empty; a new unprotected route must be public on purpose.
+KNOWN_OPEN = set()
 
 
 def _routes():
