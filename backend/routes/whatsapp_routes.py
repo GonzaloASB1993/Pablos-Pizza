@@ -77,9 +77,15 @@ def webhook():
             return _twiml(instant)
 
     db = get_db()
+    message_sid = form.get('MessageSid') or form.get('SmsMessageSid')
+    # "escribiendo…" goes out while the message is being stored (it only needs Twilio's sid): joined before answering
+    # so the runtime cannot freeze it. AI_WHATSAPP_TYPING_ASYNC=false: old order (store first, then ask, sequentially)
+    typing = wa.start_background(wa.send_typing, message_sid) if wa.typing_async() else None
     is_new = wa.store_inbound(db, form)
-    if is_new:
-        wa.send_typing(form.get('MessageSid') or form.get('SmsMessageSid'))
+    if typing is not None:
+        wa.join_background(typing)
+    elif is_new:
+        wa.send_typing(message_sid)
     if is_new and wa.processing_mode() == 'inline':
         # No Firestore trigger available: answer inside this request (Twilio will time out at 15 s, but
         # the reply still goes out through the REST API as long as the function keeps running)

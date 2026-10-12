@@ -44,6 +44,10 @@ AI_CHAT_EFFORT = os.getenv('AI_CHAT_EFFORT', 'medium').strip().lower()
 # WhatsApp answers are 3-4 lines: less thinking and a smaller budget make Pablito answer sooner
 AI_WHATSAPP_EFFORT = os.getenv('AI_WHATSAPP_EFFORT', 'low').strip().lower()
 AI_WHATSAPP_MAX_TOKENS = int(os.getenv('AI_WHATSAPP_MAX_TOKENS', '2048'))
+# Optional WhatsApp-only overrides (empty = same as the web chat / the API default). `effort` has no "minimal" value
+# (the API accepts low|medium|high|xhigh|max); on Sonnet 5.5 thinking is switched off with {"type": "between_tools"}.
+AI_WHATSAPP_MODEL = os.getenv('AI_WHATSAPP_MODEL', '').strip()
+AI_WHATSAPP_THINKING = os.getenv('AI_WHATSAPP_THINKING', '').strip().lower()
 # How long the cached prompt (system + tools, ~22k tokens) stays warm. 5m is the API default; 1h means a message after a
 # pause is not slowed down (and re-billed) by re-processing the whole prefix
 AI_CACHE_TTL = os.getenv('AI_CACHE_TTL', '1h').strip().lower()
@@ -76,7 +80,7 @@ def _cache_control():
     return {"type": "ephemeral", "ttl": AI_CACHE_TTL} if AI_CACHE_TTL == '1h' else {"type": "ephemeral"}
 
 
-def create_ai_message(system_prompt, messages, extra_system=None, channel='web', max_tokens=None):
+def create_ai_message(system_prompt, messages, extra_system=None, channel='web', max_tokens=None, model=None):
     """Single place that builds the Messages API request for the assistant"""
     # The system prompt and the tool list (~10k tokens) are identical on every call: cache them
     # (reads cost a tenth of normal input, and the prefix is not reprocessed)
@@ -85,7 +89,7 @@ def create_ai_message(system_prompt, messages, extra_system=None, channel='web',
     whatsapp = channel == 'whatsapp'
     effort = AI_WHATSAPP_EFFORT if whatsapp else AI_CHAT_EFFORT
     params = {
-        "model": AI_CHAT_MODEL,
+        "model": model or (whatsapp and AI_WHATSAPP_MODEL) or AI_CHAT_MODEL,
         "max_tokens": max_tokens or (AI_WHATSAPP_MAX_TOKENS if whatsapp else AI_CHAT_MAX_TOKENS),
         "system": [{"type": "text", "text": system_prompt, "cache_control": _cache_control()}],
         "tools": tools,
@@ -95,6 +99,8 @@ def create_ai_message(system_prompt, messages, extra_system=None, channel='web',
         params["system"].append(_recent_activity_block(extra_system))
     if effort:
         params["output_config"] = {"effort": effort}
+    if whatsapp and AI_WHATSAPP_THINKING:
+        params["thinking"] = {"type": AI_WHATSAPP_THINKING}
     if AI_CHAT_SERVER_FALLBACK:
         return get_anthropic_client().beta.messages.create(betas=[FALLBACK_BETA], fallbacks="default", **params)
     return get_anthropic_client().messages.create(**params)

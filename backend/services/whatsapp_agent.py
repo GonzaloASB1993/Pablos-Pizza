@@ -18,6 +18,7 @@ import io
 import logging
 import os
 import re
+import threading
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -402,6 +403,34 @@ def send_typing(message_sid):
     except Exception as exc:  # noqa: BLE001 - never let a cosmetic call break the message
         logger.warning('Typing indicator failed: %s', exc)
         return False
+
+
+def typing_async():
+    """The typing indicator is cosmetic: by default it runs next to the real work instead of in front of it
+    (AI_WHATSAPP_TYPING_ASYNC=false restores the old sequential call)"""
+    return os.getenv('AI_WHATSAPP_TYPING_ASYNC', 'true').strip().lower() != 'false'
+
+
+def start_background(fn, *args):
+    """Run fn(*args) in a daemon thread and return it (None when it cannot start). Never raises: callers `join_background`
+    it before the request / function ends so a serverless runtime cannot freeze it half way."""
+    def guarded():
+        try:
+            fn(*args)
+        except Exception as exc:  # noqa: BLE001 - cosmetic work must never break a message
+            logger.warning('background task failed: %s', exc)
+    try:
+        thread = threading.Thread(target=guarded, daemon=True)
+        thread.start()
+        return thread
+    except Exception as exc:  # noqa: BLE001
+        logger.warning('could not start a background task: %s', exc)
+        return None
+
+
+def join_background(thread, timeout=2.0):
+    if thread is not None:
+        thread.join(timeout)
 
 
 # ---------- describing proposals in plain text (short: it is read at a glance) ----------
@@ -1098,6 +1127,7 @@ def process_inbox(db, sid, deps):
     phone = message['from']
     burst_id = message.get('burst_id')
     led = locked = False
+    typing_thread = None
     try:
         messages = [message]
         if burst_id:
@@ -1111,7 +1141,10 @@ def process_inbox(db, sid, deps):
             messages = [m for m in messages if m]
         lap = time.perf_counter()
         if deps.typing:
-            deps.typing(sid)
+            if typing_async():
+                typing_thread = start_background(deps.typing, sid)     # joined in `finally`: the turn never waits for it
+            else:
+                deps.typing(sid)
         lap = _lap(timings, 'typing_ms', lap)
 
         if not is_allowed(phone):
@@ -1195,6 +1228,7 @@ def process_inbox(db, sid, deps):
         ref.update({'status': FAILED, 'error': safe_error(exc)})
         return 'failed'
     finally:
+        join_background(typing_thread)
         if locked:
             burst.release_lock(db, phone, sid, deps.now())
         if led:
