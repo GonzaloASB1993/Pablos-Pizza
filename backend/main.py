@@ -160,6 +160,7 @@ print("[SUCCESS] All blueprints registered successfully!")
 
 # Flask-Limiter configuration for rate limiting (shared instance in utils/limiter.py)
 from utils.limiter import limiter, init_limiter
+from utils.public_input import sanitize_public_contact
 init_limiter(app)
 
 # Rate limit error handler
@@ -785,15 +786,12 @@ def handle_contacts():
     if request.method == 'POST':
         try:
             print("📝 Creating new contact message...")
-            data = request.get_json()
-            if not data:
-                return jsonify({"error": "No data provided"}), 400
-
-            # Required fields validation
-            required_fields = ['name', 'email', 'subject', 'message']
-            for field in required_fields:
-                if field not in data:
-                    return jsonify({"error": f"Missing required field: {field}"}), 400
+            try:
+                data = sanitize_public_contact(request.get_json(silent=True))
+            except ValueError as invalid:
+                response = jsonify({"error": str(invalid)})
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 400
 
             # Generate contact ID
             contact_id = str(uuid.uuid4())
@@ -807,7 +805,7 @@ def handle_contacts():
                 "phone": data.get('phone'),
                 "subject": data['subject'],
                 "message": data['message'],
-                "priority": data.get('priority', 'normal'),
+                "priority": "normal",
                 "status": "pending",
                 "created_at": current_time,
                 "updated_at": current_time,
@@ -826,7 +824,7 @@ def handle_contacts():
                               f"*Email:* {data['email']}\n" \
                               f"*Asunto:* {data['subject']}\n" \
                               f"*Mensaje:* {data['message'][:100]}{'...' if len(data['message']) > 100 else ''}\n" \
-                              f"*Prioridad:* {data.get('priority', 'normal').upper()}\n\n" \
+                              f"*Prioridad:* NORMAL\n\n" \
                               f"Responde desde el panel de administración."
 
                 # Note: WhatsApp integration would go here
