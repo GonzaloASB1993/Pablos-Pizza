@@ -1029,6 +1029,29 @@ def _run_undo(ctx, matched):
 COMMAND_HANDLERS.append((_match_undo, _run_undo))
 
 
+# ---------- instant read-only answers (stock of X, today's / tomorrow's events): see services/quick_queries.py ----------
+
+def _match_quick_query(ctx):
+    """Typed text only, exactly one of the known shapes; never a photo, a forwarded message or a voice note"""
+    inbound = ctx.inbound
+    if inbound.image_blocks or inbound.forwarded or inbound.has_voice or not inbound.text:
+        return None
+    from services import quick_queries   # imported here: keeps the worker's cold start light
+    return inbound.text if quick_queries.enabled() and quick_queries.parse(inbound.text) else None
+
+
+def _run_quick_query(ctx, text):
+    from services import quick_queries
+    reply = quick_queries.answer(ctx.db, text, ctx.now)
+    if reply is None:
+        return None                     # any doubt: the agent answers as before
+    _reply(ctx.deps, ctx.phone, reply)
+    return reply
+
+
+COMMAND_HANDLERS.append((_match_quick_query, _run_quick_query))
+
+
 def _dispatch_commands(ctx):
     for matcher, handler in COMMAND_HANDLERS:
         matched = matcher(ctx)

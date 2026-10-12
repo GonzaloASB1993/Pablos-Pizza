@@ -27,8 +27,8 @@ def _summary(item_id, item, score):
     }
 
 
-def search_items(db, query, limit=5, threshold=SIMILAR_THRESHOLD):
-    """Best matches first. Accent- and case-insensitive."""
+def scored_items(db, query, threshold=SIMILAR_THRESHOLD):
+    """[(score, id, item dict)] best first (one read of the collection). Accent- and case-insensitive."""
     needle = normalize_text(query)
     if not needle:
         return []
@@ -39,7 +39,12 @@ def search_items(db, query, limit=5, threshold=SIMILAR_THRESHOLD):
         if score >= threshold:
             scored.append((score, snapshot.id, item))
     scored.sort(key=lambda row: (-row[0], normalize_text(row[2].get('name', ''))))
-    return [_summary(item_id, item, score) for score, item_id, item in scored[:limit]]
+    return scored
+
+
+def search_items(db, query, limit=5, threshold=SIMILAR_THRESHOLD):
+    """Best matches first. Accent- and case-insensitive."""
+    return [_summary(item_id, item, score) for score, item_id, item in scored_items(db, query, threshold)[:limit]]
 
 
 def find_duplicates(db, name):
