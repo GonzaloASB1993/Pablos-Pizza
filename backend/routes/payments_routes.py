@@ -6,6 +6,7 @@ import asyncio
 from datetime import datetime
 from database import get_db
 import mercadopago
+from utils.limiter import limiter
 
 payments_bp = Blueprint('payments', __name__, url_prefix='/api/payments')
 
@@ -42,6 +43,7 @@ def recalculate_payment_summary(booking_data):
 
 
 @payments_bp.route('/create-preference', methods=['POST'])
+@limiter.limit("10 per minute")
 def create_preference():
     """Create a MercadoPago payment preference for a booking"""
     try:
@@ -280,6 +282,7 @@ def webhook():
 
 
 @payments_bp.route('/status/<booking_id>', methods=['GET'])
+@limiter.limit("60 per minute")
 def get_payment_status(booking_id):
     """Get latest MercadoPago payment status for a booking"""
     try:

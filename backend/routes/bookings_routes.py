@@ -9,6 +9,7 @@ from services.whatsapp_service import send_whatsapp_template
 from services import booking_service
 from services.email_service import send_admin_email_notification
 from utils.auth import require_admin
+from utils.limiter import limiter
 
 bookings_bp = Blueprint('bookings', __name__, url_prefix='/api/bookings')
 
@@ -16,6 +17,8 @@ bookings_bp = Blueprint('bookings', __name__, url_prefix='/api/bookings')
 calculate_estimated_price = booking_service.calculate_estimated_price
 
 @bookings_bp.route('/', methods=['POST'])
+@limiter.limit("30 per day")
+@limiter.limit("5 per minute")
 def create_booking():
     """Create new booking with automatic customer linking/creation (PUBLIC: the website posts here)"""
     try:

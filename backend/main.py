@@ -774,6 +774,8 @@ def list_contacts():
         return response, 500
 
 @app.route('/api/contacts', methods=['POST', 'OPTIONS'])
+@limiter.limit("20 per day", methods=['POST'])
+@limiter.limit("5 per minute", methods=['POST'])
 def handle_contacts():
     """Public contact form: POST creates a message"""
     if request.method == 'OPTIONS':
