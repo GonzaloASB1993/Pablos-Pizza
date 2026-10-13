@@ -437,6 +437,8 @@
 ## 🐛 Known Issues & Bug Fixes
 
 ### High Priority Bugs
+- [✅] **Inventario truncado a 50 ítems**: las pantallas admin llamaban `GET /api/inventory/` sin paginar (default 50, tope 100), así que los insumos al final del orden alfabético no aparecían. Nuevo `inventoryAPI.listAll()` recorre todas las páginas
+- [ ] Revisar el mismo patrón en otros listados paginados usados como "todo" (ej. `customersAPI.getAll({ limit: 500 })` en VacuumSalesManagement: `paginate_query` corta en 100)
 - [ ] Investigar timeouts ocasionales en Cloud Run
 - [ ] Optimizar carga de galería con muchas fotos
 - [ ] Mejorar handling de errores en uploads

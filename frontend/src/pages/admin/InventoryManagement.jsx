@@ -136,9 +136,7 @@ const InventoryManagement = () => {
   const loadInventory = async () => {
     try {
       setLoading(true)
-      const response = await inventoryAPI.getAll()
-      // Handle paginated response format: {items: [], pagination: {}}
-      setInventory(response.data.items || response.data || [])
+      setInventory(await inventoryAPI.listAll())
     } catch (error) {
       console.error('Error loading inventory:', error)
       toast.error('Error al cargar inventario')

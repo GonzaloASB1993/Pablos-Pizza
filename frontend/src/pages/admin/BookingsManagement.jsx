@@ -507,9 +507,7 @@ const BookingsManagement = () => {
     // Load inventory items for supplies management
     const loadInventoryItems = async () => {
         try {
-            const response = await inventoryAPI.getAll()
-            // Handle paginated response format: {items: [], pagination: {}}
-            setInventoryItems(response.data.items || response.data || [])
+            setInventoryItems(await inventoryAPI.listAll())
         } catch (error) {
             console.error('Error loading inventory:', error)
             toast.error('Error al cargar inventario')

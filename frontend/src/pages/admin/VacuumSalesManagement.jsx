@@ -122,10 +122,10 @@ const VacuumSalesManagement = () => {
       setLoading(true)
       const [year, month] = selectedMonth.split('-').reverse()
 
-      const [salesRes, customersRes, inventoryRes, summaryRes] = await Promise.all([
+      const [salesRes, customersRes, inventoryItems, summaryRes] = await Promise.all([
         vacuumSalesAPI.getAll({ year, month }),
         customersAPI.getAll({ limit: 500 }),
-        inventoryAPI.getAll({ limit: 500 }),
+        inventoryAPI.listAll(),
         vacuumSalesAPI.getSummary(year, month)
       ])
 
@@ -133,7 +133,7 @@ const VacuumSalesManagement = () => {
       setCustomers(customersRes.data.items || customersRes.data || [])
 
       // Filter only finished products with stock > 0
-      const allProducts = inventoryRes.data.items || inventoryRes.data || []
+      const allProducts = inventoryItems
       setProducts(allProducts.filter(p =>
         (p.product_type === 'finished_good' || p.category === 'finished') &&
         (p.current_stock > 0)

@@ -81,16 +81,16 @@ const ProductionManagement = () => {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [batchesRes, recipesRes, inventoryRes] = await Promise.all([
+      const [batchesRes, recipesRes, inventoryItems] = await Promise.all([
         productionBatchesAPI.getAll(),
         recipesAPI.getAll(),
-        inventoryAPI.getAll()
+        inventoryAPI.listAll()
       ])
 
       // Handle paginated response format: {items: [], pagination: {}}
       setBatches(batchesRes.data.items || batchesRes.data || [])
       setRecipes(recipesRes.data.items || recipesRes.data || [])
-      setInventory(inventoryRes.data.items || inventoryRes.data || [])
+      setInventory(inventoryItems)
     } catch (error) {
       console.error('Error loading data:', error)
       toast.error('Error al cargar datos')

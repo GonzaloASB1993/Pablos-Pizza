@@ -395,21 +395,21 @@ export default function ReportsPage() {
   const loadStaticData = useCallback(async () => {
     try {
       // Parallel loading of static data
-      const [dashboardResponse, inventoryAlertsResponse, clientsResponse, inventoryResponse] =
+      const [dashboardResponse, inventoryAlertsResponse, clientsResponse, inventoryItems] =
         await Promise.all([
           reportsAPI.getDashboard(),
           inventoryAPI.getAlerts(),
           reportsAPI.getTopClients({ limit: 5 }),
-          inventoryAPI.getAll().catch(() => ({ data: { items: [] } }))
+          inventoryAPI.listAll().catch(() => [])
         ])
 
       setDashboardData(dashboardResponse.data)
       setInventoryAlerts(inventoryAlertsResponse.data.alerts || [])
       setTopClients(clientsResponse.data.clients || [])
 
-      const totalValue = inventoryResponse.data.items?.reduce((sum, item) => {
+      const totalValue = inventoryItems.reduce((sum, item) => {
         return sum + (item.total_value || 0)
-      }, 0) || 0
+      }, 0)
       setInventoryTotalValue(totalValue)
 
     } catch (error) {

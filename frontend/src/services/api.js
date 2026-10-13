@@ -398,9 +398,23 @@ export const reviewsAPI = {
   getFeatured: (params = {}) => api.get('/reviews/featured/top', { params }),
 }
 
+// The backend caps every page at 100 items, so a single getAll() silently drops the rest
+const MAX_PAGE_SIZE = 100
+const MAX_PAGES = 50
+
 export const inventoryAPI = {
   create: (data) => api.post('/inventory/', data),
   getAll: (params = {}) => api.get('/inventory/', { params }),
+  // Every item, walking the pages until the backend reports no more
+  listAll: async (params = {}) => {
+    const items = []
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const { data } = await api.get('/inventory/', { params: { ...params, page, limit: MAX_PAGE_SIZE } })
+      items.push(...(data.items || []))
+      if (!data.pagination?.has_more) break
+    }
+    return items
+  },
   getById: (id) => api.get(`/inventory/${id}`),
   update: (id, data) => api.put(`/inventory/${id}`, data),
   delete: (id) => api.delete(`/inventory/${id}`),
