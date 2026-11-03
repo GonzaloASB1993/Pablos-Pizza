@@ -70,7 +70,8 @@ import {
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { bookingsAPI, inventoryAPI, eventSuppliesAPI, eventConsumptionAPI, paymentsAPI } from '../../services/api'
+import { bookingsAPI, inventoryAPI, eventSuppliesAPI, eventConsumptionAPI, paymentsAPI, settingsAPI } from '../../services/api'
+import { DEFAULT_RECARGO_NOCTURNO_PCT, isNightTime, calcRecargoNocturno, formatEventTime } from '../../data/pricing'
 import { formatCurrency } from '../../utils/formatters'
 import toast from 'react-hot-toast'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
@@ -217,8 +218,20 @@ const BookingsManagement = () => {
     const [selectedCustomer, setSelectedCustomer] = useState(null)
     const [manualCustomerEntry, setManualCustomerEntry] = useState(false)
 
-    // Calculate estimated price based on service types and participants
-    const calculateEstimatedPrice = (serviceTypes, pizParams = 0, partyParams = 0, legacyParams = 0) => {
+    // Porcentaje de recargo nocturno configurado (el servidor es quien lo aplica al crear; esto solo lo muestra)
+    const [recargoNocturnoPct, setRecargoNocturnoPct] = useState(DEFAULT_RECARGO_NOCTURNO_PCT)
+    useEffect(() => {
+        settingsAPI.getRecargoNocturno()
+            .then(res => {
+                const pct = res.data?.porcentaje
+                if (Number.isFinite(pct)) setRecargoNocturnoPct(pct)
+            })
+            .catch(() => {})
+    }, [])
+
+    // Calculate estimated price based on service types and participants.
+    // `recargoPct`: porcentaje de recargo nocturno ya decidido para la reserva (0 = sin recargo); va sobre los servicios.
+    const calculateEstimatedPrice = (serviceTypes, pizParams = 0, partyParams = 0, legacyParams = 0, recargoPct = 0) => {
         let totalPrice = 0
         const services = serviceTypes ? serviceTypes.split(',').map(s => s.trim()).filter(s => s) : []
 
@@ -252,6 +265,7 @@ const BookingsManagement = () => {
             }
         }
 
+        totalPrice += calcRecargoNocturno(totalPrice, recargoPct)
         return Math.round(totalPrice)
     }
 
@@ -871,7 +885,9 @@ const BookingsManagement = () => {
             pizzeros_participants: booking.pizzeros_participants || 0,
             party_participants: booking.party_participants || 0,
             party_guests: booking.party_guests || booking.party_participants || 0,
-            pizza_quantity: booking.pizza_quantity || booking.party_participants || 10
+            pizza_quantity: booking.pizza_quantity || booking.party_participants || 10,
+            // Se conserva el recargo nocturno guardado al recalcular el precio (cambiar la hora no lo recalcula)
+            recargo_nocturno_pct: booking.recargo_nocturno_pct || 0
         })
         setEditDialog(true)
     }
@@ -1379,9 +1395,10 @@ const BookingsManagement = () => {
             newBookingData.service_type,
             parseInt(newBookingData.pizzeros_participants || 0, 10),
             parseInt(newBookingData.pizza_quantity || 0, 10),
-            parseInt(newBookingData.participants || 0, 10)
+            parseInt(newBookingData.participants || 0, 10),
+            isNightTime(newBookingData.event_time) ? recargoNocturnoPct : 0
         )
-    }, [newBookingData.service_type, newBookingData.pizzeros_participants, newBookingData.pizza_quantity, newBookingData.participants])
+    }, [newBookingData.service_type, newBookingData.pizzeros_participants, newBookingData.pizza_quantity, newBookingData.participants, newBookingData.event_time, recargoNocturnoPct])
 
     const handleCreateBooking = async () => {
         if (!newBookingData.source) {
@@ -1511,7 +1528,7 @@ const BookingsManagement = () => {
 
                 return {
                     id: booking.id,
-                    title: `${getServiceLabel(booking.service_type)} - ${booking.client_name}`,
+                    title: `${getServiceLabel(booking.service_type)} - ${booking.client_name}${booking.event_time === '00:00' ? ` - ${formatEventTime(booking.event_time, booking.event_date)}` : ''}`,
                     start: eventDate,
                     end: new Date(eventDate.getTime() + (2 * 60 * 60 * 1000)), // Add 2 hours for end time
                     resource: booking
@@ -1594,7 +1611,7 @@ const BookingsManagement = () => {
                         format(parseEventDate(booking.event_date), 'dd/MM/yyyy', { locale: es }) :
                         'Fecha inválida'
                     ) : 'Fecha por definir'}
-                    {booking.event_time && ` a las ${booking.event_time}`}
+                    {booking.event_time && ` a las ${formatEventTime(booking.event_time, booking.event_date)}`}
                 </Typography>
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
@@ -2086,7 +2103,7 @@ const BookingsManagement = () => {
                                                         format(parseEventDate(booking.event_date), 'dd/MM/yyyy') :
                                                         'Fecha inválida'
                                                     ) : 'Fecha por definir'}
-                                                    {booking.event_time && ` · ${booking.event_time}`}
+                                                    {booking.event_time && ` · ${formatEventTime(booking.event_time, booking.event_date)}`}
                                                 </Typography>
                                                 <Typography variant="body2" fontWeight="bold">
                                                     {booking.estimated_price ? formatCurrency(booking.estimated_price) : '-'}
@@ -2207,7 +2224,7 @@ const BookingsManagement = () => {
                                                     ) : '-'}
                                                     {booking.event_time && (
                                                         <Typography variant="caption" display="block">
-                                                            {booking.event_time}
+                                                            {formatEventTime(booking.event_time, booking.event_date)}
                                                         </Typography>
                                                     )}
                                                 </TableCell>
@@ -2502,7 +2519,8 @@ const BookingsManagement = () => {
                                             formData.service_type,
                                             participants,
                                             formData.pizza_quantity || formData.party_participants,
-                                            formData.participants
+                                            formData.participants,
+                                            formData.recargo_nocturno_pct
                                         )
                                         setFormData(prev => ({
                                             ...prev,
@@ -2531,7 +2549,8 @@ const BookingsManagement = () => {
                                                     prev.service_type,
                                                     prev.pizzeros_participants,
                                                     pizzaQuantity,
-                                                    prev.participants
+                                                    prev.participants,
+                                                    prev.recargo_nocturno_pct
                                                 )
                                                 return {
                                                     ...prev,
@@ -2558,7 +2577,8 @@ const BookingsManagement = () => {
                                                     prev.service_type,
                                                     prev.pizzeros_participants,
                                                     finalQuantity,
-                                                    prev.participants
+                                                    prev.participants,
+                                                    prev.recargo_nocturno_pct
                                                 )
                                                 return {
                                                     ...prev,
@@ -2634,6 +2654,13 @@ const BookingsManagement = () => {
                                 <option value="19:30">19:30</option>
                                 <option value="20:00">20:00</option>
                                 <option value="20:30">20:30</option>
+                                <option value="21:00">21:00</option>
+                                <option value="21:30">21:30</option>
+                                <option value="22:00">22:00 (+recargo nocturno)</option>
+                                <option value="22:30">22:30 (+recargo nocturno)</option>
+                                <option value="23:00">23:00 (+recargo nocturno)</option>
+                                <option value="23:30">23:30 (+recargo nocturno)</option>
+                                <option value="00:00">{formatEventTime('00:00', formData.event_date)} (+recargo nocturno)</option>
                             </TextField>
                         </Grid>
                         <Grid item xs={12} sm={6}>
@@ -3014,6 +3041,13 @@ const BookingsManagement = () => {
                                 <option value="19:30">19:30</option>
                                 <option value="20:00">20:00</option>
                                 <option value="20:30">20:30</option>
+                                <option value="21:00">21:00</option>
+                                <option value="21:30">21:30</option>
+                                <option value="22:00">22:00 (+recargo nocturno)</option>
+                                <option value="22:30">22:30 (+recargo nocturno)</option>
+                                <option value="23:00">23:00 (+recargo nocturno)</option>
+                                <option value="23:30">23:30 (+recargo nocturno)</option>
+                                <option value="00:00">{formatEventTime('00:00', newBookingData.event_date)} (+recargo nocturno)</option>
                             </TextField>
                         </Grid>
                         {/* Dynamic participant fields based on service type */}
@@ -3108,7 +3142,9 @@ const BookingsManagement = () => {
                                 label="Total a Cobrar"
                                 value={newEstimatedPrice}
                                 InputProps={{ readOnly: true, startAdornment: <Typography variant="body2" sx={{ mr: 1 }}>$</Typography> }}
-                                helperText="Calculado automáticamente según reglas de precios"
+                                helperText={isNightTime(newBookingData.event_time) && recargoNocturnoPct > 0
+                                    ? `Incluye recargo nocturno de ${recargoNocturnoPct}% sobre los servicios`
+                                    : 'Calculado automáticamente según reglas de precios'}
                             />
                         </Grid>
                         <Grid item xs={12} sm={6}>
@@ -3228,7 +3264,7 @@ const BookingsManagement = () => {
                                             <strong>Evento:</strong> {selectedBooking?.event_type} - {selectedBooking?.participants} participantes
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary">
-                                            <strong>Fecha:</strong> {selectedBooking?.event_date} {selectedBooking?.event_time}
+                                            <strong>Fecha:</strong> {selectedBooking?.event_date} {formatEventTime(selectedBooking?.event_time, selectedBooking?.event_date)}
                                         </Typography>
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
@@ -3665,7 +3701,7 @@ const BookingsManagement = () => {
                                                 <strong>Evento:</strong> {selectedBooking.event_type} - {selectedBooking.participants} participantes
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary">
-                                                <strong>Fecha:</strong> {selectedBooking.event_date} {selectedBooking.event_time}
+                                                <strong>Fecha:</strong> {selectedBooking.event_date} {formatEventTime(selectedBooking.event_time, selectedBooking.event_date)}
                                             </Typography>
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
@@ -4294,7 +4330,7 @@ const BookingsManagement = () => {
                                     <AccordionDetails>
                                         <Grid container spacing={1}>
                                             <Grid item xs={12} sm={6}><Typography variant="body2"><strong>Servicio:</strong> {getServiceLabel(selectedBooking.service_type)}</Typography></Grid>
-                                            <Grid item xs={12} sm={6}><Typography variant="body2"><strong>Fecha:</strong> {selectedBooking.event_date} {selectedBooking.event_time}</Typography></Grid>
+                                            <Grid item xs={12} sm={6}><Typography variant="body2"><strong>Fecha:</strong> {selectedBooking.event_date} {formatEventTime(selectedBooking.event_time, selectedBooking.event_date)}</Typography></Grid>
                                             {selectedBooking.pizzeros_participants > 0 && (
                                                 <Grid item xs={12}><Typography variant="body2"><strong>Pizzeros en Acción:</strong> {selectedBooking.pizzeros_participants} niños</Typography></Grid>
                                             )}

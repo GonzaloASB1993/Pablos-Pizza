@@ -48,10 +48,16 @@ class BookingError(Exception):
         self.status_code = status_code
 
 
+def night_surcharge_amount(subtotal, pct):
+    """CLP of the night surcharge: integer half-up rounding, same as JS Math.round (Python's round() goes to even)"""
+    return (int(subtotal) * int(pct) + 50) // 100 if pct else 0
+
+
 def calculate_estimated_price(service_types, pizzeros_participants=0, party_participants=0, participants=0,
-                              pizza_quantity=0, comuna_lejana_extra=0):
-    """Price from the services (comma separated: workshop|pizzeros, pizza_party|party), people / pizzas and
-    the distant-commune surcharge. Pizzeros: tiered per child, with a minimum up to 10. Pizza Party: per pizza."""
+                              pizza_quantity=0, comuna_lejana_extra=0, recargo_nocturno_pct=0):
+    """Price from the services (comma separated: workshop|pizzeros, pizza_party|party), people / pizzas, the night
+    surcharge and the distant-commune surcharge. Pizzeros: tiered per child, with a minimum up to 10. Pizza Party: per pizza.
+    The night surcharge is a percentage of the SERVICES subtotal only; the commune charge is added after it, unchanged."""
     total = 0
     for service in [x.strip() for x in service_types.split(',') if x.strip()]:
         if service in ["workshop", "pizzeros"]:
@@ -62,6 +68,7 @@ def calculate_estimated_price(service_types, pizzeros_participants=0, party_part
             pizzas = pizza_quantity or party_participants or participants
             if pizzas > 0:
                 total += pizzas * PricingConfig.get_pizza_party_price(pizzas)
+    total += night_surcharge_amount(total, recargo_nocturno_pct)
     total += comuna_lejana_extra
     return round(total, 2)
 
@@ -106,9 +113,14 @@ def create_booking(db, data, booking_id=None, notify=True):
         return stored
 
     comuna_lejana_extra = int(data.get('comuna_lejana_extra', 0))
+    recargo_nocturno_pct = int(data.get('recargo_nocturno_pct', 0))
+    services_only = calculate_estimated_price(
+        data.get('service_type', ''), data.get('pizzeros_participants', 0), data.get('party_participants', 0),
+        data.get('participants', 0), data.get('pizza_quantity', 0))
+    recargo_nocturno_extra = night_surcharge_amount(services_only, recargo_nocturno_pct)
     estimated_price = calculate_estimated_price(
         data.get('service_type', ''), data.get('pizzeros_participants', 0), data.get('party_participants', 0),
-        data.get('participants', 0), data.get('pizza_quantity', 0), comuna_lejana_extra)
+        data.get('participants', 0), data.get('pizza_quantity', 0), comuna_lejana_extra, recargo_nocturno_pct)
 
     # Customer linking / creation
     customer_id = data.get('customer_id')
@@ -138,7 +150,8 @@ def create_booking(db, data, booking_id=None, notify=True):
 
     notes = data.get('special_requests') or data.get('notes', '')
     booking = {"id": booking_id, **data, "customer_id": customer_id, "notes": notes, "status": "pending",
-               "created_at": datetime.now(), "estimated_price": estimated_price}
+               "created_at": datetime.now(), "estimated_price": estimated_price,
+               "recargo_nocturno_pct": recargo_nocturno_pct, "recargo_nocturno_extra": recargo_nocturno_extra}
     ref.set(booking)
 
     if customer_id:
@@ -166,6 +179,7 @@ MAX_NAME, MAX_EMAIL, MAX_PHONE, MAX_TEXT, MAX_SHORT = 100, 120, 20, 1000, 100
 MAX_PEOPLE = 500
 DEFAULT_COMUNAS_LEJANAS = ['Quilicura', 'Lampa', 'Colina', 'Huechuraba']
 DEFAULT_CARGO_COMUNA_LEJANA = 20000
+DEFAULT_RECARGO_NOCTURNO_PCT = 20
 _EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 
 
@@ -222,10 +236,59 @@ def _distant_surcharge(db, comuna):
     return cargo if wanted in {normalize_text(c) for c in comunas if isinstance(c, str)} else 0
 
 
+_HHMM_RE = re.compile(r'^([01]?\d|2[0-3]):([0-5]\d)$')
+
+
+def is_night_time(hhmm):
+    """True for 22:00-23:59 and 00:00-07:59. The form only offers 22:00-00:00 at night, but the panel and the AI agent
+    can book earlier hours and those carry the surcharge too. Invalid text is not night."""
+    if not isinstance(hhmm, str):
+        return False
+    match = _HHMM_RE.match(hhmm.strip())
+    if not match:
+        return False
+    hour = int(match.group(1))
+    return hour >= 22 or hour < 8
+
+
+def read_recargo_nocturno_setting(db):
+    """Configured night surcharge percentage (integer 0-100; 0 = off) from settings/recargo_nocturno, else the default"""
+    pct = DEFAULT_RECARGO_NOCTURNO_PCT
+    if db is not None:
+        try:
+            snapshot = db.collection('settings').document('recargo_nocturno').get()
+            if snapshot.exists:
+                pct = (snapshot.to_dict() or {}).get('porcentaje', pct)
+        except Exception:  # noqa: BLE001 - settings unreadable: fall back to the default the form uses
+            pass
+    if isinstance(pct, bool) or not isinstance(pct, int) or not 0 <= pct <= 100:
+        return DEFAULT_RECARGO_NOCTURNO_PCT
+    return pct
+
+
+def _hour_in_event_date(event_date):
+    """HH:MM carried by an ISO datetime; a date-only value (no `T`) carries no hour (it is NOT midnight)"""
+    if not isinstance(event_date, str) or 'T' not in event_date:
+        return None
+    try:
+        return datetime.fromisoformat(event_date.strip()).strftime('%H:%M')
+    except ValueError:
+        return None
+
+
+def recargo_nocturno_pct(db, event_date, event_time):
+    """Night surcharge percentage for a booking: the configured one if `event_time` OR the hour inside `event_date`
+    is a night hour (so sending different hours can't dodge it), else 0"""
+    if is_night_time(event_time) or is_night_time(_hour_in_event_date(event_date)):
+        return read_recargo_nocturno_setting(db)
+    return 0
+
+
 def sanitize_public_booking(data, db=None):
     """Whitelist + validate what the PUBLIC website may send. Unknown / privileged fields (payments, status,
     estimated_price, customer_id, id, notes...) are dropped silently; invalid values raise BookingError(400).
-    `comuna_lejana_extra` is decided here: the configured `cargo` only if the event comuna is a configured distant one."""
+    `comuna_lejana_extra` is decided here: the configured `cargo` only if the event comuna is a configured distant one.
+    `recargo_nocturno_pct` too: the configured percentage only for night hours; whatever the client sends is ignored."""
     if data is None or data == {}:
         return {}  # create_booking answers 'No data'
     if not isinstance(data, dict):
@@ -283,6 +346,8 @@ def sanitize_public_booking(data, db=None):
 
     clean['selected_comuna'] = _public_text(data, 'selected_comuna', MAX_SHORT, 'la comuna')
     clean['comuna_lejana_extra'] = _distant_surcharge(db, clean['selected_comuna'])
+
+    clean['recargo_nocturno_pct'] = recargo_nocturno_pct(db, clean['event_date'], clean['event_time'])
 
     clean['source'] = _public_text(data, 'source', MAX_SHORT, 'el origen')
     clean['source_other'] = _public_text(data, 'source_other', MAX_SHORT, 'el detalle del origen')

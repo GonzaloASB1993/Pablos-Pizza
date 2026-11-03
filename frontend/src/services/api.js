@@ -545,6 +545,8 @@ export const paymentsAPI = {
 export const settingsAPI = {
   getComunasLejanas: () => api.get('/settings/comunas-lejanas'),
   updateComunasLejanas: (data) => api.put('/settings/comunas-lejanas', data),
+  getRecargoNocturno: () => api.get('/settings/recargo-nocturno'),
+  updateRecargoNocturno: (data) => api.put('/settings/recargo-nocturno', data),
 }
 
 export default api

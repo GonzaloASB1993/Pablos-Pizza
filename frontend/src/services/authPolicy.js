@@ -8,6 +8,7 @@ const PUBLIC_RULES = [
   { method: 'POST', test: (p) => p === '/contacts' },
   { method: 'GET', test: (p) => p === '/gallery/public' },
   { method: 'GET', test: (p) => p === '/settings/comunas-lejanas' },
+  { method: 'GET', test: (p) => p === '/settings/recargo-nocturno' },
   { method: 'POST', test: (p) => p === '/payments/create-preference' },
   { method: 'GET', test: (p) => p.startsWith('/payments/status/') },
 ]

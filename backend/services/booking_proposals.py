@@ -28,6 +28,7 @@ SERVICE_CODES = {'pizzeros': 'workshop', 'party': 'pizza_party'}  # what the pub
 MIN_PARTY_PIZZAS = 10
 EMAIL = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 TIME = re.compile(r'^([01]?\d|2[0-3]):[0-5]\d$')
+WEEKDAYS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
 
 
 class BookingPayload(BaseModel):
@@ -99,6 +100,7 @@ def _surcharge(db, comuna):
 def _booking_data(db, payload):
     """The same fields (and formats) the public website posts, so the admin panel reads it identically"""
     extra, _ = _surcharge(db, payload.comuna)
+    night_pct = booking_service.recargo_nocturno_pct(db, payload.event_date.isoformat(), payload.event_time)
     total_people = payload.participants or payload.pizzeros_participants
     return {
         'client_name': payload.client_name,
@@ -117,6 +119,7 @@ def _booking_data(db, payload):
         'special_requests': payload.special_requests,
         'services_selected': list(payload.services),
         'comuna_lejana_extra': extra,
+        'recargo_nocturno_pct': night_pct,
         'selected_comuna': payload.comuna or '',
         'source': payload.source,
         'source_other': payload.source_other if payload.source == 'other' else '',
@@ -127,7 +130,15 @@ def estimate(db, payload):
     data = _booking_data(db, payload)
     return booking_service.calculate_estimated_price(
         data['service_type'], data['pizzeros_participants'], data['party_participants'], data['participants'],
-        data['pizza_quantity'], data['comuna_lejana_extra'])
+        data['pizza_quantity'], data['comuna_lejana_extra'], data['recargo_nocturno_pct'])
+
+
+def _night_extra(db, payload):
+    """(pct, CLP) of the night surcharge, which only applies to the services subtotal"""
+    data = _booking_data(db, payload)
+    services_only = booking_service.calculate_estimated_price(
+        data['service_type'], data['pizzeros_participants'], data['party_participants'], data['participants'], data['pizza_quantity'])
+    return data['recargo_nocturno_pct'], booking_service.night_surcharge_amount(services_only, data['recargo_nocturno_pct'])
 
 
 def dedupe_hash(payload):
@@ -165,6 +176,7 @@ def propose_booking(db, tool_input, user, attachments=None):
         raise ProposalError(f"La fecha {payload.event_date.isoformat()} ya pasó. Pide al usuario una fecha futura.")
 
     price = estimate(db, payload)
+    night_pct, night_extra = _night_extra(db, payload)
     _, distant = _surcharge(db, payload.comuna)
     warnings = []
 
@@ -183,6 +195,11 @@ def propose_booking(db, tool_input, user, attachments=None):
         warnings.append('Sin correo ni teléfono: no podrás contactar al cliente desde el panel.')
     if distant:
         warnings.append(f"{payload.comuna} es comuna lejana: incluye un cargo de {_clp(_surcharge(db, payload.comuna)[0])}.")
+    if night_pct:
+        warnings.append(f"Horario nocturno: incluye recargo de {night_pct}% ({_clp(night_extra)}).")
+    if payload.event_time == '00:00':
+        previous_day = WEEKDAYS[(payload.event_date.weekday() - 1) % 7]
+        warnings.append(f"00:00 de esa fecha: el equipo llega el {previous_day} en la noche. Revisa que sea el día correcto.")
     if 'party' in payload.services and payload.pizza_quantity < MIN_PARTY_PIZZAS:
         warnings.append(f"Pizza Party: el mínimo habitual es {MIN_PARTY_PIZZAS} pizzas.")
     if 'pizzeros' in payload.services and payload.pizzeros_participants <= 10:
@@ -201,4 +218,5 @@ def propose_booking(db, tool_input, user, attachments=None):
                f"{payload.event_time} · {payload.location} · {_clp(price)}")
     return pending.create(
         db, ACTION_TYPE, payload.model_dump(mode='json'), summary, user, warnings=warnings, attachments=attachments,
-        dedupe_hash=h, context={'estimated_price': price, 'comuna_lejana': distant, 'same_day': len(same_day)})
+        dedupe_hash=h, context={'estimated_price': price, 'comuna_lejana': distant, 'same_day': len(same_day),
+                                  'recargo_nocturno_pct': night_pct, 'recargo_nocturno_extra': night_extra})

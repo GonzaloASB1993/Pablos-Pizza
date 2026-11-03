@@ -69,7 +69,7 @@ import { useNavigate } from 'react-router-dom'
 import { designTokens } from '../../utils/theme'
 import { createBooking, createPaymentPreference } from '../../services/bookingService'
 import { santiagoComunas, isComunaLejana, DEFAULT_CARGO_COMUNA_LEJANA, DEFAULT_COMUNAS_LEJANAS } from '../../data/chileanRegions'
-import { getPizzerosPrice, PIZZEROS_TIERS } from '../../data/pricing'
+import { getPizzerosPrice, PIZZEROS_TIERS, DEFAULT_RECARGO_NOCTURNO_PCT, isNightTime, calcRecargoNocturno, formatEventTime } from '../../data/pricing'
 
 // Constantes de pricing (sincronizadas con backend)
 // PIZZEROS_TIERS y PIZZEROS_BASE_PRICE vienen del import de pricing.js
@@ -95,12 +95,28 @@ const fetchComunasLejanas = async () => {
   }
 }
 
-// Opciones de horario generadas dinámicamente
-const TIME_OPTIONS = Array.from({ length: 27 }, (_, i) => {
-  const hour = Math.floor(i / 2) + 8
-  const minute = i % 2 === 0 ? '00' : '30'
-  return `${hour.toString().padStart(2, '0')}:${minute}`
-})
+const fetchRecargoNocturno = async () => {
+  try {
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    const base = isDev ? '/api' : 'https://us-central1-pablospizza-d84bf.cloudfunctions.net/main/api'
+    const res = await fetch(`${base}/settings/recargo-nocturno`)
+    if (!res.ok) throw new Error('API error')
+    const data = await res.json()
+    return Number.isFinite(data.porcentaje) ? data.porcentaje : DEFAULT_RECARGO_NOCTURNO_PCT
+  } catch {
+    return DEFAULT_RECARGO_NOCTURNO_PCT
+  }
+}
+
+// Opciones de horario: cada 30 min de 08:00 a 23:30, y 00:00 como última opción
+const TIME_OPTIONS = [
+  ...Array.from({ length: 32 }, (_, i) => {
+    const hour = Math.floor(i / 2) + 8
+    const minute = i % 2 === 0 ? '00' : '30'
+    return `${hour.toString().padStart(2, '0')}:${minute}`
+  }),
+  '00:00'
+]
 
 // Helper functions para pricing
 const getPizzaPartyPrice = (pizzas) => {
@@ -307,10 +323,13 @@ export default function BookingPage() {
     cargo: DEFAULT_CARGO_COMUNA_LEJANA
   })
 
+  const [recargoNocturnoPct, setRecargoNocturnoPct] = useState(DEFAULT_RECARGO_NOCTURNO_PCT)
+
   const steps = ['Información Personal', 'Detalles del Evento', 'Confirmación']
 
   useEffect(() => {
     fetchComunasLejanas().then(setComunasLejanasConfig)
+    fetchRecargoNocturno().then(setRecargoNocturnoPct)
   }, [])
 
   // Efecto para mostrar animación de precio
@@ -369,6 +388,8 @@ export default function BookingPage() {
         total += pizzaQuantity * getPizzaPartyPrice(pizzaQuantity)
       }
     })
+    // El recargo nocturno va sobre los servicios; el cargo de comuna lejana se suma después, fijo
+    if (isNightTime(formData.time)) total += calcRecargoNocturno(total, recargoNocturnoPct)
     if (isComunaLejana(selectedComuna, comunasLejanasConfig.comunas)) total += comunasLejanasConfig.cargo
     return Math.round(total)
   }
@@ -416,7 +437,9 @@ export default function BookingPage() {
     setSubmitError('')
     try {
       const result = await createBooking(buildBookingData())
-      const estimatedPrice = calculateEstimatedPrice()
+      // El precio real lo calcula el servidor (recargo nocturno incluido); el cálculo local es solo respaldo
+      const serverPrice = Number(result.estimated_price)
+      const estimatedPrice = serverPrice > 0 ? serverPrice : calculateEstimatedPrice()
       const abonoAmount = Math.round(estimatedPrice * 0.15)
       const preference = await createPaymentPreference({
         booking_id: result.id,
@@ -916,11 +939,33 @@ export default function BookingPage() {
                                       </Box>
                                     ),
                                   }}
-                                  helperText="Solo horarios disponibles :00 y :30"
+                                  helperText={
+                                    recargoNocturnoPct > 0 && isNightTime(formData.time)
+                                      ? `🌙 Horario nocturno: incluye recargo de ${recargoNocturnoPct}% sobre el servicio`
+                                      : 'Solo horarios disponibles :00 y :30'
+                                  }
+                                  FormHelperTextProps={{
+                                    sx: recargoNocturnoPct > 0 && isNightTime(formData.time) ? { color: 'warning.main', fontWeight: 500 } : {}
+                                  }}
                                 >
                                   <MenuItem value="" sx={menuItemStyles}>Seleccionar hora...</MenuItem>
                                   {TIME_OPTIONS.map(time => (
-                                    <MenuItem key={time} value={time} sx={menuItemStyles}>{time}</MenuItem>
+                                    <MenuItem key={time} value={time} sx={menuItemStyles}>
+                                      {formatEventTime(time, formData.date)}
+                                      {recargoNocturnoPct > 0 && isNightTime(time) && (
+                                        <Chip
+                                          label={`+${recargoNocturnoPct}%`}
+                                          size="small"
+                                          sx={{
+                                            ml: 1,
+                                            height: 20,
+                                            fontSize: '0.7rem',
+                                            backgroundColor: 'warning.light',
+                                            color: 'warning.dark'
+                                          }}
+                                        />
+                                      )}
+                                    </MenuItem>
                                   ))}
                                 </TextField>
                               </Grid>
@@ -1104,7 +1149,7 @@ export default function BookingPage() {
                                   ) : services.includes('party') ? (
                                     <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>Pizza Party: {pizzaQuantity} pizzas</Typography>
                                   ) : null}
-                                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>{formData.date} a las {formData.time}</Typography>
+                                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>{formData.date} a las {formatEventTime(formData.time, formData.date)}</Typography>
                                   <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>{formData.location}</Typography>
                                 </Grid>
                               </Grid>
@@ -1348,6 +1393,8 @@ export default function BookingPage() {
                     participants={getTotalParticipants()}
                     selectedComuna={selectedComuna}
                     comunasLejanasConfig={comunasLejanasConfig}
+                    eventTime={formData.time}
+                    recargoNocturnoPct={recargoNocturnoPct}
                   />
 
                       {services.length > 0 && getTotalParticipants() > 0 && (
@@ -1593,7 +1640,7 @@ export default function BookingPage() {
                       Hora
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                      {formData.time}
+                      {formatEventTime(formData.time, formData.date)}
                     </Typography>
                   </Box>
                 </Box>
@@ -1732,10 +1779,10 @@ export default function BookingPage() {
 }
 
 // Componente de precio estimado premium con animaciones
-function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, pizzaQuantity, selectedComuna, comunasLejanasConfig = {} }) {
-  const { totals, grandTotal, breakdown, cargoLejana, totalConCargo } = useMemo(() => {
+function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, pizzaQuantity, selectedComuna, comunasLejanasConfig = {}, eventTime = '', recargoNocturnoPct = 0 }) {
+  const { totals, grandTotal, breakdown, cargoLejana, recargoNocturno, totalConCargo } = useMemo(() => {
     if (!services || services.length === 0) {
-      return { totals: {}, grandTotal: 0, breakdown: [], cargoLejana: 0, totalConCargo: 0 }
+      return { totals: {}, grandTotal: 0, breakdown: [], cargoLejana: 0, recargoNocturno: 0, totalConCargo: 0 }
     }
 
     const calculatedTotals = {}
@@ -1802,10 +1849,12 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
 
     // Calcular cargo por comuna lejana
     const cargoLejana = isComunaLejana(selectedComuna, comunasLejanasConfig.comunas) ? (comunasLejanasConfig.cargo || DEFAULT_CARGO_COMUNA_LEJANA) : 0
-    const totalConCargo = grandTotal + cargoLejana
+    // Recargo nocturno: solo sobre el subtotal de servicios (el cargo de comuna lejana queda fijo)
+    const recargoNocturno = isNightTime(eventTime) ? calcRecargoNocturno(grandTotal, recargoNocturnoPct) : 0
+    const totalConCargo = grandTotal + recargoNocturno + cargoLejana
 
-    return { totals: calculatedTotals, grandTotal, breakdown: calculatedBreakdown, cargoLejana, totalConCargo }
-  }, [services, pizzerosParticipants, pizzaQuantity, selectedComuna, comunasLejanasConfig])
+    return { totals: calculatedTotals, grandTotal, breakdown: calculatedBreakdown, cargoLejana, recargoNocturno, totalConCargo }
+  }, [services, pizzerosParticipants, pizzaQuantity, selectedComuna, comunasLejanasConfig, eventTime, recargoNocturnoPct])
 
   const clp = (n) => n.toLocaleString('es-CL')
 
@@ -1840,6 +1889,11 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
         <Typography variant="body1" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>
           {breakdown.map(b => `${b.label} (${b.serviceParticipants} ${b.service === 'pizzeros' ? 'niños' : 'pizzas'})`).join(' + ')}
         </Typography>
+        {recargoNocturno > 0 && (
+          <Typography variant="body2" sx={{ color: 'warning.main', mt: 0.5 }}>
+            + Recargo nocturno ({recargoNocturnoPct}%)
+          </Typography>
+        )}
         {cargoLejana > 0 && (
           <Typography variant="body2" sx={{ color: 'warning.main', mt: 0.5 }}>
             + Cargo comuna lejana ({selectedComuna})
@@ -1897,6 +1951,31 @@ function PremiumEstimatedPrice({ services, pizzerosParticipants, participants, p
         ))}
 
         <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.08)' }} />
+
+        {/* Recargo nocturno */}
+        {recargoNocturno > 0 && (
+          <Box sx={{
+            mb: 2,
+            p: 1.5,
+            borderRadius: 2,
+            backgroundColor: 'rgba(255,152,0,0.08)',
+            border: '1px solid rgba(255,152,0,0.25)'
+          }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: '#FFB74D' }}>
+                  🌙 Recargo nocturno ({recargoNocturnoPct}%)
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)' }}>
+                  Eventos desde las 22:00 - sobre el subtotal de servicios
+                </Typography>
+              </Box>
+              <Typography variant="body1" sx={{ fontWeight: 700, color: '#FFB74D' }}>
+                +${clp(recargoNocturno)}
+              </Typography>
+            </Box>
+          </Box>
+        )}
 
         {/* Cargo por comuna lejana */}
         {cargoLejana > 0 && (

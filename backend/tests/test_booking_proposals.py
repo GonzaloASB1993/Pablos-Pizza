@@ -238,3 +238,40 @@ def test_the_prompt_says_the_agent_cannot_confirm_and_who_is_notified():
     prompt = routes.SYSTEM_PROMPT
     assert 'tú NO puedes confirmarla ni cancelarla' in prompt
     assert 'avisa al cliente por WhatsApp y correo' in prompt
+
+
+# ---------- night surcharge ----------
+
+def test_night_time_proposal_includes_the_surcharge_and_a_warning(db, sent):
+    action = bp.propose_booking(db, _booking(event_time='22:30', comuna='Quilicura', location='Calle X 1, Quilicura'), USER)
+    assert action['context']['estimated_price'] == 126000 + 25200 + 20000
+    assert action['context']['recargo_nocturno_pct'] == 20 and action['context']['recargo_nocturno_extra'] == 25200
+    assert any('Horario nocturno: incluye recargo de 20% ($25.200).' == w for w in action['warnings'])
+    confirmed = pas.confirm(db, action['id'], USER)
+    booking, = db.store['bookings'].values()
+    assert booking['recargo_nocturno_pct'] == 20 and booking['recargo_nocturno_extra'] == 25200
+    assert booking['estimated_price'] == 126000 + 25200 + 20000
+    assert confirmed
+
+
+def test_midnight_proposal_is_a_night_booking_and_day_proposal_is_not(db):
+    midnight = bp.propose_booking(db, _booking(event_time='00:00'), USER)
+    assert midnight['context']['recargo_nocturno_pct'] == 20
+    day = bp.propose_booking(db, _booking(event_time='21:30', client_name='Otra Persona'), USER)
+    assert day['context']['recargo_nocturno_pct'] == 0 and day['context']['estimated_price'] == 126000
+    assert not any('nocturno' in w for w in day['warnings'])
+
+
+def test_midnight_proposal_warns_that_the_team_arrives_the_night_before(db):
+    today = today_cl()
+    saturday = today + timedelta(days=(5 - today.weekday()) % 7 or 7)
+    action = bp.propose_booking(db, _booking(event_date=saturday.isoformat(), event_time='00:00'), USER)
+    assert any('00:00' in w and 'viernes en la noche' in w for w in action['warnings'])
+    action = bp.propose_booking(db, _booking(event_date=saturday.isoformat(), event_time='23:30'), USER)
+    assert not any('en la noche' in w for w in action['warnings'])
+
+
+def test_night_surcharge_percentage_comes_from_settings(db):
+    db.store['settings'] = {'recargo_nocturno': {'porcentaje': 0}}
+    action = bp.propose_booking(db, _booking(event_time='23:00'), USER)
+    assert action['context']['estimated_price'] == 126000 and not any('nocturno' in w for w in action['warnings'])

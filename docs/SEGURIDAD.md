@@ -10,6 +10,7 @@ sitio real) y por eso se endurecen con listas blancas, validaciones y límites d
 | `POST /api/bookings/` | formulario `/agendar` | lista blanca + validación (`sanitize_public_booking`), 5/min y 30/día por IP |
 | `POST /api/contacts` | formulario de contacto | lista blanca + validación (`sanitize_public_contact`), 5/min y 20/día por IP |
 | `GET /api/settings/comunas-lejanas` | formulario `/agendar` | solo lectura |
+| `GET /api/settings/recargo-nocturno` | formulario `/agendar` | solo lectura |
 | `POST /api/payments/create-preference` | pago de abono | monto > 0 y <= saldo, `description` <= 200, 10/min por IP |
 | `GET /api/payments/status/<id>` | página de resultado del pago | 60/min por IP |
 | `POST /api/payments/webhook` | MercadoPago | firma `x-signature` (ver abajo) |
@@ -28,6 +29,9 @@ agente de WhatsApp y el panel) no cambia.
 - `comuna_lejana_extra` lo decide el servidor: es el `cargo` de `settings/comunas_lejanas` (default 20000) solo si
   `selected_comuna` está en la lista configurada (sin distinguir mayúsculas ni tildes); en cualquier otro caso 0.
   Lo que mande el cliente se ignora.
+- `recargo_nocturno_pct` también lo decide el servidor: es el `porcentaje` de `settings/recargo_nocturno` (default 20,
+  0 = apagado) solo si `event_time` o la hora incluida en `event_date` es nocturna (22:00-07:59); en cualquier otro caso 0.
+  Lo que mande el cliente se ignora. Se guardan `recargo_nocturno_pct` y `recargo_nocturno_extra` (CLP).
 - Límites: nombre 100, email 120 (con formato), teléfono 20, textos libres 1000, `participants`/`pizzeros_participants`/
   `party_participants`/`pizza_quantity` entre 0 y 500, `duration_hours` entre 0 y 24, `event_date` ISO válido,
   `event_type` en `birthday|corporate|school|private`, `service_type` en `workshop|pizza_party|pizzeros|party`.

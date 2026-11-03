@@ -631,6 +631,19 @@ Rama `claude/ai-agent-phase4-pablito`. Orquestación: Opus 5.5 diseña y revisa,
 - [✅] Fix: `get_contacts` con timestamps rompía el turno
 - [ ] Verificar a mano en WhatsApp real y revisar `timings` de producción tras el deploy; decidir `AI_WHATSAPP_MODE=inline_text` con datos reales
 
+### Recargo nocturno (desplegado e integrado a `main`, 02-03/11/2026)
+- [✅] Backend: `is_night_time`, `recargo_nocturno_pct(db, event_date, event_time)`, `calculate_estimated_price(..., recargo_nocturno_pct)` (solo sobre servicios, comuna fija), `create_booking` guarda `recargo_nocturno_pct`/`recargo_nocturno_extra`, el servidor decide el % en `sanitize_public_booking`
+- [✅] Pablito (`booking_proposals`): % en precio, aviso "Horario nocturno" y `context`
+- [✅] `GET/PUT /api/settings/recargo-nocturno` (default 20, 0 = apagado) + inventarios de rutas + `docs/SEGURIDAD.md`; tests en `tests/test_recargo_nocturno.py`
+- [✅] Frontend: horas 08:00-23:30 + 00:00, etiqueta "00:00 (viernes en la noche)", chips "+20%", línea de recargo en `PremiumEstimatedPrice`, abono desde `result.estimated_price`, sección en Configuración, panel (crear/editar) con recargo
+- [✅] Formulario público probado en navegador local sin enviar: 21:30 sin recargo, 00:00 con etiqueta y +$25.200 sobre $126.000
+- [✅] Pablito avisa en reservas de 00:00 que el equipo llega la noche anterior
+- [ ] Probar en navegador (Configuración, modales de crear/editar del panel: requieren sesión admin)
+- [✅] Panel y calendario muestran "00:00 (viernes en la noche)"
+- [✅] Desplegado backend + hosting (02/11/2026); `settings/recargo_nocturno` sin crear (usa el default 20)
+- [ ] Decidir la aclaración de 00:00 en plantillas WhatsApp/correo
+- [ ] Bug preexistente (no tocado): al editar participantes/pizzas en el modal de editar, el recálculo pierde el cargo de comuna lejana
+
 **Última actualización**: Marzo 2026
 **Total tareas activas**: 55+ items
 **Estado del proyecto**: M0 ✅, M1 ✅, M2 ✅, M3 ✅, M4 ✅, M_NUT ✅ COMPLETADO

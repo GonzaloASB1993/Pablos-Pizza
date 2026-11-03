@@ -18,6 +18,7 @@ PUBLIC_ALLOWED = {
     ('GET', '/cal/<booking_id>'),
     ('GET', '/api/gallery/public'),
     ('GET', '/api/settings/comunas-lejanas'),
+    ('GET', '/api/settings/recargo-nocturno'),
     ('POST', '/api/bookings/'),
     ('POST', '/api/contacts'),
     ('POST', '/api/payments/create-preference'),
