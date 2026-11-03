@@ -126,6 +126,23 @@ def test_night_booking_stores_pct_and_extra_and_prices_it(client, db):
     assert stored['estimated_price'] == 126000 + 25200
 
 
+@pytest.mark.parametrize('event_time', ['23.00', '23:00pm', '2300', 'noche', '25:00'])
+def test_public_booking_rejects_an_hour_that_would_dodge_the_surcharge(client, db, event_time):
+    res = client.post('/api/bookings/', json=_form(event_date='2026-11-14', event_time=event_time))
+    assert res.status_code == 400 and not db.store.get('bookings')
+
+
+@pytest.mark.parametrize('event_date', ['2026-11-14 23:00:00', '20261114T230000', '2026-11-14T23:00:00+05:00', '2026-W46-6'])
+def test_public_booking_rejects_date_formats_that_hide_the_hour(client, db, event_date):
+    res = client.post('/api/bookings/', json=_form(event_date=event_date, event_time=''))
+    assert res.status_code == 400 and not db.store.get('bookings')
+
+
+def test_public_booking_stores_a_normalized_hour(client, db):
+    stored = _stored(client, db, event_date='2026-11-14', event_time=' 7:30 ')
+    assert stored['event_time'] == '07:30' and stored['recargo_nocturno_pct'] == 20
+
+
 def test_day_booking_stores_zeros(client, db):
     stored = _stored(client, db)
     assert stored['recargo_nocturno_pct'] == 0 and stored['recargo_nocturno_extra'] == 0

@@ -237,6 +237,7 @@ def _distant_surcharge(db, comuna):
 
 
 _HHMM_RE = re.compile(r'^([01]?\d|2[0-3]):([0-5]\d)$')
+_PUBLIC_EVENT_DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?$')
 
 
 def is_night_time(hhmm):
@@ -317,12 +318,21 @@ def sanitize_public_booking(data, db=None):
     clean['event_type'] = event_type
 
     event_date = _public_text(data, 'event_date', 40, 'la fecha del evento', required=True)
+    # Only the formats the site sends: any other ISO form could hide the hour from the night surcharge
+    if not _PUBLIC_EVENT_DATE_RE.match(event_date):
+        raise BookingError('La fecha del evento no es válida', 400)
     try:
         datetime.fromisoformat(event_date)
     except ValueError:
         raise BookingError('La fecha del evento no es válida', 400)
     clean['event_date'] = event_date
-    clean['event_time'] = _public_text(data, 'event_time', 10, 'la hora del evento')
+    event_time = _public_text(data, 'event_time', 10, 'la hora del evento')
+    if event_time:
+        match = _HHMM_RE.match(event_time)
+        if not match:
+            raise BookingError('La hora del evento no es válida', 400)
+        event_time = f'{int(match.group(1)):02d}:{match.group(2)}'
+    clean['event_time'] = event_time
     clean['location'] = _public_text(data, 'location', MAX_TEXT, 'la ubicación')
     clean['special_requests'] = _public_text(data, 'special_requests', MAX_TEXT, 'los comentarios')
 
